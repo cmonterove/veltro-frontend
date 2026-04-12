@@ -1,0 +1,62 @@
+{
+  "layout": {
+    "toggleSidebar": "Mostrar u ocultar barra lateral",
+    "searchPlaceholder": "Buscar...",
+    "searchShortcut": "⌘K",
+    "orgSettings": "Ajustes de la organización",
+    "signOut": "Cerrar sesión",
+    "signingOut": "Cerrando sesión...",
+    "notifications": "Notificaciones",
+    "notificationsAria": "Notificaciones",
+    "markAllRead": "Marcar todo como leído",
+    "viewAllNotifications": "Ver todas las notificaciones",
+    "notificationSample1Title": "Ana Díaz te mencionó",
+    "notificationSample1Sub": "En Límite de tasa de API · hace 2m",
+    "notificationSample2Title": "Tarea asignada a ti",
+    "notificationSample2Sub": "Diseñar nuevo flujo de onboarding · hace 1h",
+    "notificationSample3Title": "Comentario en Bug tracker",
+    "notificationSample3Sub": "Pepito Pérez comentó · hace 3h",
+    "sidebarNoBoards": "Aún no hay tableros",
+    "sidebarAddBoard": "Añadir tablero"
+  },
+  "nav": {
+    "home": "Inicio",
+    "myWork": "Mi trabajo",
+    "inbox": "Bandeja",
+    "boards": "Tableros",
+    "members": "Miembros",
+    "settings": "Configuración",
+    "profileSettings": "Mi perfil"
+  },
+  "home": {
+    "title": "Inicio",
+    "subtitle": "Elige un tablero en la barra lateral o crea uno nuevo.",
+    "welcome": "Buenos días, {name}",
+    "recentBoards": "Tableros recientes",
+    "myItems": "Mis elementos",
+    "noBoards": "Aún no hay tableros",
+    "createFirstBoard": "Crea tu primer tablero"
+  },
+  "myWork": {
+    "title": "Mi trabajo",
+    "overdue": "Vencidos",
+    "dueToday": "Vencen hoy",
+    "upcoming": "Próximos",
+    "noItems": "No tienes nada asignado",
+    "allCaughtUp": "¡Todo al día!"
+  },
+  "inbox": {
+    "title": "Bandeja",
+    "markAllRead": "Marcar todo como leído",
+    "noNotifications": "Sin notificaciones",
+    "empty": "Tu bandeja está vacía"
+  },
+  "companySwitcher": {
+    "label": "Cambiar empresa",
+    "allCompanies": "Todas las empresas",
+    "manageCompanies": "Gestionar empresas"
+  },
+  "setup": {
+    "workspace": "Configurando tu espacio de trabajo..."
+  }
+}

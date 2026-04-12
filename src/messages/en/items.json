@@ -1,0 +1,46 @@
+{
+  "columns": {
+    "status": "Status",
+    "owner": "Owner",
+    "dueDate": "Due date",
+    "priority": "Priority",
+    "number": "Number",
+    "text": "Text",
+    "checkbox": "Checkbox",
+    "tags": "Tags",
+    "link": "Link",
+    "file": "Files"
+  },
+  "detail": {
+    "updates": "Updates",
+    "files": "Files",
+    "activity": "Activity",
+    "addUpdate": "Write an update...",
+    "postUpdate": "Post",
+    "subitemsTitle": "Subitems",
+    "addSubitem": "Add subitem",
+    "noSubitems": "No subitems yet"
+  },
+  "status": {
+    "notStarted": "Not started",
+    "inProgress": "In progress",
+    "done": "Done",
+    "stuck": "Stuck",
+    "waiting": "Waiting",
+    "cancelled": "Cancelled"
+  },
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "activity": {
+    "created": "{user} created this item",
+    "updatedStatus": "{user} changed status to {status}",
+    "assignedTo": "{user} assigned this to {assignee}",
+    "updatedDate": "{user} updated the date to {date}",
+    "addedComment": "{user} commented",
+    "uploadedFile": "{user} uploaded {filename}"
+  }
+}

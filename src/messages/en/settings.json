@@ -1,0 +1,80 @@
+{
+  "tabs": {
+    "profile": "Profile",
+    "organization": "Organization",
+    "companies": "Companies",
+    "members": "Members",
+    "billing": "Billing",
+    "notifications": "Notifications",
+    "security": "Security",
+    "language": "Language & Region"
+  },
+  "profile": {
+    "title": "Profile settings",
+    "fullNameLabel": "Full name",
+    "emailLabel": "Email",
+    "avatarLabel": "Profile photo",
+    "changeAvatar": "Change photo",
+    "timezoneLabel": "Timezone",
+    "localeLabel": "Language",
+    "saveButton": "Save profile",
+    "savedSuccess": "Profile saved successfully"
+  },
+  "organization": {
+    "title": "Organization settings",
+    "nameLabel": "Organization name",
+    "slugLabel": "URL slug",
+    "logoLabel": "Logo",
+    "saveButton": "Save organization"
+  },
+  "companies": {
+    "title": "Companies",
+    "addCompany": "Add company",
+    "noCompanies": "No companies yet",
+    "editCompany": "Edit company",
+    "deleteCompany": "Delete company",
+    "confirmDelete": "Are you sure you want to delete this company? This action cannot be undone.",
+    "nameLabel": "Company name",
+    "slugLabel": "URL slug"
+  },
+  "members": {
+    "title": "Members",
+    "inviteMember": "Invite member",
+    "inviteButton": "Send invitation",
+    "emailLabel": "Email address",
+    "roleLabel": "Role",
+    "companiesLabel": "Assign to companies",
+    "pendingInvitations": "Pending invitations",
+    "resendInvite": "Resend",
+    "revokeInvite": "Revoke",
+    "removeMember": "Remove member",
+    "changeRole": "Change role",
+    "noMembers": "No members yet"
+  },
+  "notifications": {
+    "title": "Notification preferences",
+    "email": "Email notifications",
+    "inApp": "In-app notifications",
+    "mentions": "When I'm mentioned",
+    "assignments": "When I'm assigned to an item",
+    "dueDates": "Due date reminders",
+    "statusChanges": "Status changes on my items",
+    "saveButton": "Save preferences"
+  },
+  "language": {
+    "title": "Language & Region",
+    "languageLabel": "Interface language",
+    "timezoneLabel": "Timezone",
+    "dateFormatLabel": "Date format",
+    "saveButton": "Save preferences"
+  },
+  "billing": {
+    "title": "Billing & Plan",
+    "currentPlan": "Current plan",
+    "freePlan": "Free",
+    "proPlan": "Pro",
+    "enterprisePlan": "Enterprise",
+    "upgradeButton": "Upgrade plan",
+    "manageBilling": "Manage billing"
+  }
+}

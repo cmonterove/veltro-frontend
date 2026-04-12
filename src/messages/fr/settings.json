@@ -1,0 +1,80 @@
+{
+  "tabs": {
+    "profile": "Profil",
+    "organization": "Organisation",
+    "companies": "Entreprises",
+    "members": "Membres",
+    "billing": "Facturation",
+    "notifications": "Notifications",
+    "security": "Sécurité",
+    "language": "Langue et région"
+  },
+  "profile": {
+    "title": "Paramètres du profil",
+    "fullNameLabel": "Nom complet",
+    "emailLabel": "E-mail",
+    "avatarLabel": "Photo de profil",
+    "changeAvatar": "Changer la photo",
+    "timezoneLabel": "Fuseau horaire",
+    "localeLabel": "Langue",
+    "saveButton": "Enregistrer le profil",
+    "savedSuccess": "Profil enregistré avec succès"
+  },
+  "organization": {
+    "title": "Paramètres de l'organisation",
+    "nameLabel": "Nom de l'organisation",
+    "slugLabel": "Slug d'URL",
+    "logoLabel": "Logo",
+    "saveButton": "Enregistrer l'organisation"
+  },
+  "companies": {
+    "title": "Entreprises",
+    "addCompany": "Ajouter une entreprise",
+    "noCompanies": "Aucune entreprise pour l'instant",
+    "editCompany": "Modifier l'entreprise",
+    "deleteCompany": "Supprimer l'entreprise",
+    "confirmDelete": "Voulez-vous vraiment supprimer cette entreprise ? Cette action est irréversible.",
+    "nameLabel": "Nom de l'entreprise",
+    "slugLabel": "Slug d'URL"
+  },
+  "members": {
+    "title": "Membres",
+    "inviteMember": "Inviter un membre",
+    "inviteButton": "Envoyer l'invitation",
+    "emailLabel": "Adresse e-mail",
+    "roleLabel": "Rôle",
+    "companiesLabel": "Assigner aux entreprises",
+    "pendingInvitations": "Invitations en attente",
+    "resendInvite": "Renvoyer",
+    "revokeInvite": "Révoquer",
+    "removeMember": "Retirer le membre",
+    "changeRole": "Changer le rôle",
+    "noMembers": "Aucun membre pour l'instant"
+  },
+  "notifications": {
+    "title": "Préférences de notification",
+    "email": "Notifications par e-mail",
+    "inApp": "Notifications dans l'application",
+    "mentions": "Quand on me mentionne",
+    "assignments": "Quand on me assigne un élément",
+    "dueDates": "Rappels d'échéance",
+    "statusChanges": "Changements de statut sur mes éléments",
+    "saveButton": "Enregistrer les préférences"
+  },
+  "language": {
+    "title": "Langue et région",
+    "languageLabel": "Langue de l'interface",
+    "timezoneLabel": "Fuseau horaire",
+    "dateFormatLabel": "Format de date",
+    "saveButton": "Enregistrer les préférences"
+  },
+  "billing": {
+    "title": "Facturation et forfait",
+    "currentPlan": "Forfait actuel",
+    "freePlan": "Gratuit",
+    "proPlan": "Pro",
+    "enterprisePlan": "Enterprise",
+    "upgradeButton": "Passer au forfait supérieur",
+    "manageBilling": "Gérer la facturation"
+  }
+}

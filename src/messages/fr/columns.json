@@ -1,0 +1,40 @@
+{
+  "types": {
+    "text": "Texte",
+    "status": "Statut",
+    "person": "Personne",
+    "date": "Date",
+    "number": "Nombre",
+    "timeline": "Chronologie",
+    "checkbox": "Case à cocher",
+    "tags": "Étiquettes",
+    "dropdown": "Liste déroulante",
+    "link": "Lien",
+    "file": "Fichiers",
+    "rating": "Notation",
+    "formula": "Formule"
+  },
+  "actions": {
+    "addColumn": "Ajouter une colonne",
+    "editColumn": "Modifier la colonne",
+    "deleteColumn": "Supprimer la colonne",
+    "hideColumn": "Masquer la colonne",
+    "duplicateColumn": "Dupliquer la colonne",
+    "sortAsc": "Trier A → Z",
+    "sortDesc": "Trier Z → A",
+    "filterBy": "Filtrer par cette colonne"
+  },
+  "placeholders": {
+    "text": "Saisir du texte",
+    "number": "0",
+    "link": "https://",
+    "date": "Choisir une date",
+    "search": "Rechercher..."
+  },
+  "settings": {
+    "title": "Paramètres de la colonne",
+    "nameLabel": "Nom de la colonne",
+    "typeLabel": "Type de colonne",
+    "saveButton": "Enregistrer les modifications"
+  }
+}

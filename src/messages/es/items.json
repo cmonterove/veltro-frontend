@@ -1,0 +1,46 @@
+{
+  "columns": {
+    "status": "Estado",
+    "owner": "Responsable",
+    "dueDate": "Fecha límite",
+    "priority": "Prioridad",
+    "number": "Número",
+    "text": "Texto",
+    "checkbox": "Casilla",
+    "tags": "Etiquetas",
+    "link": "Enlace",
+    "file": "Archivos"
+  },
+  "detail": {
+    "updates": "Actualizaciones",
+    "files": "Archivos",
+    "activity": "Actividad",
+    "addUpdate": "Escribe una actualización...",
+    "postUpdate": "Publicar",
+    "subitemsTitle": "Subelementos",
+    "addSubitem": "Agregar subelemento",
+    "noSubitems": "Aún no hay subelementos"
+  },
+  "status": {
+    "notStarted": "Sin comenzar",
+    "inProgress": "En progreso",
+    "done": "Listo",
+    "stuck": "Bloqueado",
+    "waiting": "En espera",
+    "cancelled": "Cancelado"
+  },
+  "priority": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "activity": {
+    "created": "{user} creó este elemento",
+    "updatedStatus": "{user} cambió el estado a {status}",
+    "assignedTo": "{user} lo asignó a {assignee}",
+    "updatedDate": "{user} actualizó la fecha a {date}",
+    "addedComment": "{user} comentó",
+    "uploadedFile": "{user} subió {filename}"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "header": {
+    "newBoard": "Nuevo tablero",
+    "newGroup": "Nuevo grupo",
+    "addItem": "Añadir item",
+    "views": "Vistas",
+    "filters": "Filtros",
+    "sort": "Ordenar",
+    "groupBy": "Agrupar por",
+    "hideColumns": "Ocultar columnas",
+    "search": "Buscar en este tablero",
+    "inviteMember": "Invitar miembro"
+  },
+  "views": {
+    "table": "Tabla",
+    "kanban": "Kanban",
+    "calendar": "Calendario",
+    "gantt": "Gantt",
+    "gallery": "Galería",
+    "chart": "Gráfico"
+  },
+  "toolbar": {
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "groupBy": "Agrupar por",
+    "hideColumns": "Ocultar columnas",
+    "search": "Buscar",
+    "addGroup": "Añadir grupo",
+    "addItem": "Añadir item",
+    "searchPlaceholder": "Buscar items..."
+  },
+  "table": {
+    "itemColumn": "Item",
+    "dropHere": "Arrastra items aquí",
+    "noItems": "Sin items aún",
+    "addItem": "+ Añadir item"
+  },
+  "create": {
+    "title": "Crear tablero",
+    "nameLabel": "Nombre del tablero",
+    "namePlaceholder": "p. ej. Campañas de marketing",
+    "colorLabel": "Color",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "¿Para qué es este tablero?",
+    "privacyLabel": "Privacidad",
+    "privateOption": "Privado",
+    "publicOption": "Público en la empresa",
+    "submitButton": "Crear tablero"
+  },
+  "group": {
+    "newItem": "Nuevo item",
+    "addGroup": "Añadir grupo",
+    "addItem": "Añadir item",
+    "collapse": "Colapsar",
+    "expand": "Expandir",
+    "rename": "Renombrar",
+    "delete": "Eliminar grupo",
+    "collapseAll": "Contraer todo",
+    "expandAll": "Expandir todo",
+    "deleteGroup": "Eliminar grupo",
+    "renameGroup": "Renombrar grupo",
+    "colorGroup": "Cambiar color",
+    "newGroup": "Nuevo grupo"
+  },
+  "item": {
+    "openItem": "Abrir elemento",
+    "openDetail": "Abrir detalle",
+    "duplicateItem": "Duplicar",
+    "duplicate": "Duplicar",
+    "deleteItem": "Eliminar elemento",
+    "delete": "Eliminar item",
+    "moveToGroup": "Mover a grupo",
+    "convertToSubitem": "Convertir en subelemento",
+    "newItem": "Nuevo item",
+    "detailTitle": "Detalle del item",
+    "properties": "Propiedades",
+    "updates": "Actualizaciones",
+    "writeUpdate": "Escribe una actualización...",
+    "post": "Publicar",
+    "unassign": "Sin asignar",
+    "nameEditHint": "Clic para editar · Doble clic para abrir",
+    "assignPrompt": "Asignar…",
+    "setStatus": "Establecer estado",
+    "dragToReorder": "Arrastra para reordenar"
+  },
+  "empty": {
+    "title": "Aún no hay tableros",
+    "subtitle": "Crea tu primer tablero para empezar a gestionar el trabajo",
+    "createButton": "Crear tablero",
+    "createFirst": "Crear primer tablero"
+  },
+  "list": {
+    "boardCount": "{count, plural, one {# tablero} other {# tableros}}",
+    "newBoard": "Nuevo tablero"
+  },
+  "boardsList": {
+    "boardCount": "{count, plural, one {# tablero} other {# tableros}}",
+    "newBoard": "Nuevo tablero",
+    "noBoards": "Aún no hay tableros",
+    "noBoardsDesc": "Crea tu primer tablero para empezar a gestionar el trabajo",
+    "createFirst": "Crear primer tablero"
+  },
+  "card": {
+    "private": "Privado",
+    "company": "Empresa",
+    "groups": "Grupos"
+  },
+  "visibility": {
+    "private": "Privado",
+    "company": "Empresa",
+    "groups": "Grupos"
+  },
+  "createModal": {
+    "title": "Crear tablero nuevo",
+    "nameRequired": "El nombre del tablero es obligatorio",
+    "optional": "(opcional)",
+    "visibility": "Visibilidad",
+    "visCompany": "Empresa",
+    "visCompanyDesc": "Todos en la empresa",
+    "visPrivate": "Privado",
+    "visPrivateDesc": "Solo miembros invitados",
+    "visGroups": "Grupos",
+    "visGroupsDesc": "Grupos seleccionados",
+    "cancel": "Cancelar",
+    "creating": "Creando..."
+  }
+}

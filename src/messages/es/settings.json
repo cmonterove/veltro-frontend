@@ -1,0 +1,80 @@
+{
+  "tabs": {
+    "profile": "Perfil",
+    "organization": "Organización",
+    "companies": "Empresas",
+    "members": "Miembros",
+    "billing": "Facturación",
+    "notifications": "Notificaciones",
+    "security": "Seguridad",
+    "language": "Idioma y región"
+  },
+  "profile": {
+    "title": "Configuración de perfil",
+    "fullNameLabel": "Nombre completo",
+    "emailLabel": "Correo electrónico",
+    "avatarLabel": "Foto de perfil",
+    "changeAvatar": "Cambiar foto",
+    "timezoneLabel": "Zona horaria",
+    "localeLabel": "Idioma",
+    "saveButton": "Guardar perfil",
+    "savedSuccess": "Perfil guardado correctamente"
+  },
+  "organization": {
+    "title": "Configuración de la organización",
+    "nameLabel": "Nombre de la organización",
+    "slugLabel": "Slug de URL",
+    "logoLabel": "Logo",
+    "saveButton": "Guardar organización"
+  },
+  "companies": {
+    "title": "Empresas",
+    "addCompany": "Agregar empresa",
+    "noCompanies": "Aún no hay empresas",
+    "editCompany": "Editar empresa",
+    "deleteCompany": "Eliminar empresa",
+    "confirmDelete": "¿Seguro que quieres eliminar esta empresa? Esta acción no se puede deshacer.",
+    "nameLabel": "Nombre de la empresa",
+    "slugLabel": "Slug de URL"
+  },
+  "members": {
+    "title": "Miembros",
+    "inviteMember": "Invitar miembro",
+    "inviteButton": "Enviar invitación",
+    "emailLabel": "Correo electrónico",
+    "roleLabel": "Rol",
+    "companiesLabel": "Asignar a empresas",
+    "pendingInvitations": "Invitaciones pendientes",
+    "resendInvite": "Reenviar",
+    "revokeInvite": "Revocar",
+    "removeMember": "Quitar miembro",
+    "changeRole": "Cambiar rol",
+    "noMembers": "Aún no hay miembros"
+  },
+  "notifications": {
+    "title": "Preferencias de notificación",
+    "email": "Notificaciones por correo",
+    "inApp": "Notificaciones en la app",
+    "mentions": "Cuando me mencionen",
+    "assignments": "Cuando me asignen un elemento",
+    "dueDates": "Recordatorios de vencimiento",
+    "statusChanges": "Cambios de estado en mis elementos",
+    "saveButton": "Guardar preferencias"
+  },
+  "language": {
+    "title": "Idioma y región",
+    "languageLabel": "Idioma de la interfaz",
+    "timezoneLabel": "Zona horaria",
+    "dateFormatLabel": "Formato de fecha",
+    "saveButton": "Guardar preferencias"
+  },
+  "billing": {
+    "title": "Facturación y plan",
+    "currentPlan": "Plan actual",
+    "freePlan": "Gratis",
+    "proPlan": "Pro",
+    "enterprisePlan": "Enterprise",
+    "upgradeButton": "Mejorar plan",
+    "manageBilling": "Gestionar facturación"
+  }
+}

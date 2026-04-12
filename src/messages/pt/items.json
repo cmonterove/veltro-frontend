@@ -1,0 +1,46 @@
+{
+  "columns": {
+    "status": "Status",
+    "owner": "Responsável",
+    "dueDate": "Data limite",
+    "priority": "Prioridade",
+    "number": "Número",
+    "text": "Texto",
+    "checkbox": "Caixa",
+    "tags": "Etiquetas",
+    "link": "Link",
+    "file": "Arquivos"
+  },
+  "detail": {
+    "updates": "Atualizações",
+    "files": "Arquivos",
+    "activity": "Atividade",
+    "addUpdate": "Escreva uma atualização...",
+    "postUpdate": "Publicar",
+    "subitemsTitle": "Subitens",
+    "addSubitem": "Adicionar subitem",
+    "noSubitems": "Ainda não há subitens"
+  },
+  "status": {
+    "notStarted": "Não iniciado",
+    "inProgress": "Em progresso",
+    "done": "Concluído",
+    "stuck": "Bloqueado",
+    "waiting": "Aguardando",
+    "cancelled": "Cancelado"
+  },
+  "priority": {
+    "low": "Baixa",
+    "medium": "Média",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "activity": {
+    "created": "{user} criou este item",
+    "updatedStatus": "{user} alterou o status para {status}",
+    "assignedTo": "{user} atribuiu a {assignee}",
+    "updatedDate": "{user} atualizou a data para {date}",
+    "addedComment": "{user} comentou",
+    "uploadedFile": "{user} enviou {filename}"
+  }
+}

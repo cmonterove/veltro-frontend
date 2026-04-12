@@ -1,0 +1,35 @@
+{
+  "generic": {
+    "title": "Algo salió mal",
+    "subtitle": "Ocurrió un error inesperado. Intenta de nuevo.",
+    "retryButton": "Reintentar",
+    "goHome": "Ir al inicio"
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "subtitle": "La página que buscas no existe o no tienes acceso.",
+    "goHome": "Ir al inicio"
+  },
+  "unauthorized": {
+    "title": "Acceso denegado",
+    "subtitle": "No tienes permiso para ver esta página."
+  },
+  "board": {
+    "notFound": "Tablero no encontrado",
+    "noAccess": "No tienes acceso a este tablero",
+    "loadFailed": "No se pudo cargar el tablero"
+  },
+  "item": {
+    "createFailed": "No se pudo crear el elemento",
+    "updateFailed": "No se pudo actualizar el elemento",
+    "deleteFailed": "No se pudo eliminar el elemento"
+  },
+  "auth": {
+    "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
+    "notAuthenticated": "Inicia sesión para continuar."
+  },
+  "network": {
+    "offline": "Sin conexión. Los cambios se sincronizarán al reconectar.",
+    "timeout": "La solicitud expiró. Intenta de nuevo."
+  }
+}

@@ -71,6 +71,15 @@ Los permisos se implementan con **Row Level Security (RLS)** en Supabase. Nunca 
 
 > **NINGÚN string visible al usuario puede estar hardcodeado en el código. Todo texto va en los archivos de traducción.**
 
+### i18n strategy (updated):
+- NO locale prefix in URLs. Routes are clean: /login, /dashboard, etc.
+- Locale resolved by priority: DB profile → cookie → Accept-Language header → NEXT_PUBLIC_DEFAULT_LOCALE env var
+- Logged-in users: locale persisted in `profiles.locale` column in Supabase
+- Logged-out users: locale stored in `veltro-locale` cookie + localStorage
+- Changing locale: `LocaleSwitcher` component → calls `updateUserLocale()` server action → sets cookie + updates DB → router.refresh()
+- All links use `next/link` (NOT next-intl Link) since there are no locale segments to manage
+- `useTranslations()` from next-intl still works exactly the same in all components
+
 ### Idiomas soportados (desde día 1):
 | Código | Idioma |
 |--------|--------|
@@ -148,20 +157,21 @@ export default function LoginForm() {
 ```
 /veltro
   /app
-    /[locale]                    # next-intl locale routing
-      /(auth)
-        /login
-        /register
-        /invite/[token]
-      /(dashboard)
-        /[orgSlug]
-          /[companySlug]
-            /boards
-            /board/[boardId]
-            /settings
-          /settings              # Org-level settings
-          /members
-      /layout.tsx
+    /(auth)
+      /login
+      /register
+      /invite/[token]
+    /(dashboard)
+      /[orgSlug]
+        /[companySlug]
+          /boards
+          /board/[boardId]
+          /settings
+        /settings                # Org-level settings
+        /members
+    /dashboard                   # Hub post-login (redirects to org/company/boards)
+    /layout.tsx
+    /page.tsx
   /components
     /ui                          # shadcn/ui base components
     /auth                        # Login, register, invite forms
@@ -180,7 +190,7 @@ export default function LoginForm() {
   /supabase
     /migrations                  # SQL migrations
     /seed.sql                    # Datos de prueba
-  /middleware.ts                  # next-intl + auth middleware
+  /middleware.ts                  # auth + veltro-locale cookie
 ```
 
 ---
@@ -221,7 +231,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_DEFAULT_LOCALE=en
+NEXT_PUBLIC_DEFAULT_LOCALE=es
 
 # Email (para invitaciones)
 RESEND_API_KEY=
@@ -244,8 +254,13 @@ users / profiles (id, org_id, email, full_name, avatar_url, role, created_at)
 -- Asignación usuario ↔ empresa (muchos a muchos)
 user_company_assignments (user_id, company_id, role_in_company)
 
--- Boards
-boards (id, company_id, name, color, icon, description, is_private, created_by)
+-- Grupos / departamentos dentro de una empresa
+company_groups (id, company_id, name, description, color, icon, created_by)
+user_group_memberships (user_id, group_id, added_by, added_at)
+
+-- Boards (owner_id, visibility: private | company | groups; is_private deprecado)
+boards (id, company_id, name, color, icon, description, owner_id, visibility, is_private, created_by)
+board_members (id, board_id, user_id | group_id, role admin|member|viewer, invited_by)
 
 -- Grupos dentro de un board
 board_groups (id, board_id, name, color, position)
@@ -298,6 +313,67 @@ Todas las tablas tienen RLS habilitado. Ver `/supabase/migrations/` para los pol
 - Proyecto iniciado: 2026
 - Arquitectura decidida por: equipo fundador
 - Cualquier cambio de arquitectura mayor debe documentarse en este archivo con fecha y razón.
+
+---
+
+## 11. Design System — Slate Green
+
+**Primary palette:**
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--primary` | `#1a3a2e` (HSL `158 40% 17%` en tokens shadcn) | Botones, estados activos, acento de marca |
+| `--primary-mid` | `#2d8a6a` | Hover, anillos de foco, acentos |
+| `--primary-light` | `#e8f5f0` | Fondo de nav activo, pills |
+| `--primary-dark` | `#0d1f18` | Texto sobre fondos claros |
+
+**Typography scale:**
+| Size | px | Usage |
+|------|-----|-------|
+| `2xs` | 10px | Labels, section headers |
+| `xs` | 11px | Badges, pills, metadata |
+| `sm` | 12px | Table cells, secondary content |
+| `base` | 13px | Body text, nav items |
+| `md` | 15px | Board titles, modal headers |
+| `lg` | 18px | Page titles |
+
+**Component classes** (defined in globals.css):
+- Buttons: `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-danger`
+- Inputs: `.input`, `.input-sm`
+- Cards: `.card`, `.card-surface`
+- Status pills: `.pill`, `.pill-todo`, `.pill-progress`, `.pill-done`, `.pill-stuck`, `.pill-waiting`
+- Navigation: `.nav-item` (with `.active`)
+- Layout: `.section-label`, `.divider`, `.badge`, `.badge-brand`
+
+**Dark mode:** implemented via `.dark` class on `<html>`. Toggle managed by `ThemeProvider`.
+All colors use CSS custom properties — never hardcode hex values in components.
+
+---
+
+## 12. Updated data model — Groups & Board Access
+
+**New tables:**
+- `company_groups` — departments/groups within a company
+- `user_group_memberships` — users assigned to groups (many-to-many)
+- `board_members` — individual users OR groups with access to a board
+
+**Board visibility rules:**
+| Visibility | Who can see |
+|------------|-------------|
+| `private` | Owner + explicitly invited users/groups only |
+| `company` | All users assigned to the company |
+| `groups` | Owner + invited groups + individually invited users |
+
+**Board access logic** (enforced via `can_access_board()` SQL function + RLS):
+1. `org_owner` / `org_admin` → always
+2. `visibility = 'company'` → any company member
+3. `visibility = 'private'/'groups'` → owner OR direct board_member OR member of an invited group
+
+**Invite constraints:**
+- A user can only invite people from companies/groups they belong to
+- Exception: `org_admin` and `org_owner` can invite anyone in the org
+- Board owner can transfer ownership to another board admin
+
+*Updated: 2026-04-11*
 
 ---
 

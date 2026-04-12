@@ -1,0 +1,127 @@
+{
+  "header": {
+    "newBoard": "Novo quadro",
+    "newGroup": "Novo grupo",
+    "addItem": "Adicionar item",
+    "views": "Visualizações",
+    "filters": "Filtros",
+    "sort": "Ordenar",
+    "groupBy": "Agrupar por",
+    "hideColumns": "Ocultar colunas",
+    "search": "Buscar neste quadro",
+    "inviteMember": "Convidar membro"
+  },
+  "views": {
+    "table": "Tabela",
+    "kanban": "Kanban",
+    "calendar": "Calendário",
+    "gantt": "Gantt",
+    "gallery": "Galeria",
+    "chart": "Gráfico"
+  },
+  "toolbar": {
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "groupBy": "Agrupar por",
+    "hideColumns": "Ocultar colunas",
+    "search": "Pesquisar",
+    "addGroup": "Adicionar grupo",
+    "addItem": "Adicionar item",
+    "searchPlaceholder": "Pesquisar itens..."
+  },
+  "table": {
+    "itemColumn": "Item",
+    "dropHere": "Arraste itens aqui",
+    "noItems": "Sem itens ainda",
+    "addItem": "+ Adicionar item"
+  },
+  "create": {
+    "title": "Criar quadro",
+    "nameLabel": "Nome do quadro",
+    "namePlaceholder": "ex.: Campanhas de marketing",
+    "colorLabel": "Cor",
+    "descriptionLabel": "Descrição",
+    "descriptionPlaceholder": "Para que serve este quadro?",
+    "privacyLabel": "Privacidade",
+    "privateOption": "Privado",
+    "publicOption": "Público na empresa",
+    "submitButton": "Criar quadro"
+  },
+  "group": {
+    "newItem": "Novo item",
+    "addGroup": "Adicionar grupo",
+    "addItem": "Adicionar item",
+    "collapse": "Recolher",
+    "expand": "Expandir",
+    "rename": "Renomear",
+    "delete": "Excluir grupo",
+    "collapseAll": "Recolher tudo",
+    "expandAll": "Expandir tudo",
+    "deleteGroup": "Excluir grupo",
+    "renameGroup": "Renomear grupo",
+    "colorGroup": "Alterar cor",
+    "newGroup": "Novo grupo"
+  },
+  "item": {
+    "openItem": "Abrir item",
+    "openDetail": "Abrir detalhe",
+    "duplicateItem": "Duplicar",
+    "duplicate": "Duplicar",
+    "deleteItem": "Excluir item",
+    "delete": "Excluir item",
+    "moveToGroup": "Mover para o grupo",
+    "convertToSubitem": "Converter em subitem",
+    "newItem": "Novo item",
+    "detailTitle": "Detalhe do item",
+    "properties": "Propriedades",
+    "updates": "Atualizações",
+    "writeUpdate": "Escreva uma atualização...",
+    "post": "Publicar",
+    "unassign": "Remover atribuição",
+    "nameEditHint": "Clique para editar · Duplo clique para abrir",
+    "assignPrompt": "Atribuir…",
+    "setStatus": "Definir status",
+    "dragToReorder": "Arraste para reordenar"
+  },
+  "empty": {
+    "title": "Ainda não há quadros",
+    "subtitle": "Crie seu primeiro quadro para começar a gerenciar o trabalho",
+    "createButton": "Criar quadro",
+    "createFirst": "Criar primeiro quadro"
+  },
+  "list": {
+    "boardCount": "{count, plural, one {# quadro} other {# quadros}}",
+    "newBoard": "Novo quadro"
+  },
+  "boardsList": {
+    "boardCount": "{count, plural, one {# quadro} other {# quadros}}",
+    "newBoard": "Novo quadro",
+    "noBoards": "Nenhum quadro ainda",
+    "noBoardsDesc": "Crie seu primeiro quadro para começar a organizar o trabalho",
+    "createFirst": "Criar primeiro quadro"
+  },
+  "card": {
+    "private": "Privado",
+    "company": "Empresa",
+    "groups": "Grupos"
+  },
+  "visibility": {
+    "private": "Privado",
+    "company": "Empresa",
+    "groups": "Grupos"
+  },
+  "createModal": {
+    "title": "Criar novo quadro",
+    "nameRequired": "O nome do quadro é obrigatório",
+    "optional": "(opcional)",
+    "visibility": "Visibilidade",
+    "visCompany": "Empresa",
+    "visCompanyDesc": "Todos na empresa",
+    "visPrivate": "Privado",
+    "visPrivateDesc": "Apenas membros convidados",
+    "visGroups": "Grupos",
+    "visGroupsDesc": "Grupos selecionados",
+    "cancel": "Cancelar",
+    "creating": "Criando..."
+  }
+}
