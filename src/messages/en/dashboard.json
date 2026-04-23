@@ -17,7 +17,8 @@
     "notificationSample3Title": "Comment on Bug tracker",
     "notificationSample3Sub": "Pepito Pérez commented · 3h ago",
     "sidebarNoBoards": "No boards yet",
-    "sidebarAddBoard": "Add board"
+    "sidebarAddBoard": "Add board",
+    "sidebarGroups": "Groups"
   },
   "nav": {
     "home": "Home",

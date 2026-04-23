@@ -10,8 +10,8 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import type { BoardData, BoardGroup, BoardItem, ColumnDef, UserData } from '@/lib/types/board'
-import { resolveColumnTitle } from '@/lib/board-column-title'
+import type { BoardGroup, BoardItem, ColumnDef, UserData } from '@/lib/types/board'
+import { resolveBoardColumnHeader } from '@/lib/board-column-title'
 import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { BoardGroupSection } from './board-group'
@@ -23,35 +23,38 @@ export const COL_DEFAULT = 140
 export const COL_ACTIONS = 80
 
 interface Props {
-  board: BoardData
   groups: BoardGroup[]
   columns: ColumnDef[]
   companyUsers: UserData[]
   onDragEnd: (event: DragEndEvent) => void
   onUpdateCell: (itemId: string, columnId: string, value: unknown) => void
   onUpdateName: (itemId: string, name: string) => void
-  onAddItem: (groupId: string, item: BoardItem) => void
   onDeleteItem: (itemId: string) => void
   onToggleGroup: (groupId: string) => void
   onOpenDetail: (item: BoardItem, groupId: string) => void
+  onCreateItemInGroup: (groupId: string) => void
+  focusItemNameId: string | null
+  onFocusItemNameConsumed: () => void
 }
 
 export function BoardTable({
-  board,
   groups,
   columns,
   companyUsers,
   onDragEnd,
   onUpdateCell,
   onUpdateName,
-  onAddItem,
   onDeleteItem,
   onToggleGroup,
   onOpenDetail,
+  onCreateItemInGroup,
+  focusItemNameId,
+  onFocusItemNameConsumed,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const tTable = useTranslations('boards.table')
-  const tColumns = useTranslations('items.columns')
+  const tBoards = useTranslations('boards')
+  const tColumnsNs = useTranslations('columns')
+  const tItemsColumns = useTranslations('items.columns')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -96,7 +99,7 @@ export function BoardTable({
               height: '32px',
             }}
           >
-            {tTable('itemColumn')}
+            {tBoards('item')}
           </div>
           {columns.map((col) => (
             <div
@@ -116,7 +119,7 @@ export function BoardTable({
               }}
             >
               <ColTypeIcon type={col.type} />
-              {resolveColumnTitle(col.title, tColumns)}
+              {resolveBoardColumnHeader(col, tColumnsNs, tItemsColumns)}
             </div>
           ))}
           <div style={{ height: '32px', borderLeft: '0.5px solid var(--border-default)' }} />
@@ -128,7 +131,6 @@ export function BoardTable({
               key={group.id}
               group={group}
               columns={columns}
-              board={board}
               companyUsers={companyUsers}
               colWidths={{
                 drag: COL_DRAG,
@@ -139,7 +141,9 @@ export function BoardTable({
               }}
               onUpdateCell={onUpdateCell}
               onUpdateName={onUpdateName}
-              onAddItem={onAddItem}
+              onCreateItemInGroup={onCreateItemInGroup}
+              focusItemNameId={focusItemNameId}
+              onFocusItemNameConsumed={onFocusItemNameConsumed}
               onDeleteItem={onDeleteItem}
               onToggle={() => onToggleGroup(group.id)}
               onOpenDetail={onOpenDetail}

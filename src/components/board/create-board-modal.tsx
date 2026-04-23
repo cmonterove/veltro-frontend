@@ -63,21 +63,21 @@ export function CreateBoardModal({ onClose, onSubmit }: Props) {
   const visibilityOptions = [
     {
       value: 'company' as const,
-      label: tModal('visCompany'),
+      label: t('visibilityCompany'),
       icon: '🏢',
-      desc: tModal('visCompanyDesc'),
+      desc: t('visibilityCompanyDesc'),
     },
     {
       value: 'private' as const,
-      label: tModal('visPrivate'),
+      label: t('visibilityPrivate'),
       icon: '🔒',
-      desc: tModal('visPrivateDesc'),
+      desc: t('visibilityPrivateDesc'),
     },
     {
       value: 'groups' as const,
-      label: tModal('visGroups'),
+      label: t('visibilityGroups'),
       icon: '👥',
-      desc: tModal('visGroupsDesc'),
+      desc: t('visibilityGroupsDesc'),
     },
   ]
 
@@ -125,7 +125,7 @@ export function CreateBoardModal({ onClose, onSubmit }: Props) {
           }}
         >
           <h2 id={`${id}-title`} style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-            {tModal('title')}
+            {t('createBoard')}
           </h2>
           <button
             type="button"
@@ -172,7 +172,7 @@ export function CreateBoardModal({ onClose, onSubmit }: Props) {
                 letterSpacing: '0.06em',
               }}
             >
-              {t('create.nameLabel')} *
+              {t('boardName')} *
             </label>
             <input
               id={`${id}-name`}
@@ -239,8 +239,7 @@ export function CreateBoardModal({ onClose, onSubmit }: Props) {
                 letterSpacing: '0.06em',
               }}
             >
-              {t('create.descriptionLabel')}{' '}
-              <span style={{ fontWeight: 400, opacity: 0.6 }}>{tModal('optional')}</span>
+              {t('boardDescription')}
             </label>
             <textarea
               id={`${id}-desc`}
@@ -282,7 +281,7 @@ export function CreateBoardModal({ onClose, onSubmit }: Props) {
                 letterSpacing: '0.06em',
               }}
             >
-              {t('create.colorLabel')}
+              {t('boardColor')}
             </label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {COLORS.map((color) => (
@@ -326,7 +325,7 @@ export function CreateBoardModal({ onClose, onSubmit }: Props) {
                 letterSpacing: '0.06em',
               }}
             >
-              {tModal('visibility')}
+              {t('boardVisibility')}
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
               {visibilityOptions.map((opt) => (
@@ -436,7 +435,7 @@ export function CreateBoardModal({ onClose, onSubmit }: Props) {
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  {t('create.submitButton')}
+                  {t('createBoard')}
                 </>
               )}
             </button>

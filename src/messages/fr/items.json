@@ -1,4 +1,16 @@
 {
+  "addItem": "Ajouter un élément",
+  "itemName": "Nom de l'élément",
+  "assignee": "Assigné à",
+  "dueDate": "Date limite",
+  "status": "Statut",
+  "noItems": "Aucun élément dans ce groupe",
+  "deleteItem": "Supprimer l'élément",
+  "openDetail": "Ouvrir le détail",
+  "comments": "Mises à jour",
+  "writeComment": "Écrivez une mise à jour...",
+  "properties": "Détails de l'élément",
+  "activity": "Activité",
   "columns": {
     "status": "Statut",
     "owner": "Responsable",
@@ -21,7 +33,7 @@
     "addSubitem": "Ajouter un sous-élément",
     "noSubitems": "Aucun sous-élément pour l'instant"
   },
-  "status": {
+  "statusEnum": {
     "notStarted": "Non commencé",
     "inProgress": "En cours",
     "done": "Terminé",

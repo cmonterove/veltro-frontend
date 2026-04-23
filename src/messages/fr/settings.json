@@ -76,5 +76,52 @@
     "enterprisePlan": "Enterprise",
     "upgradeButton": "Passer au forfait supérieur",
     "manageBilling": "Gérer la facturation"
+  },
+  "groups": {
+    "title": "Groupes de l'entreprise",
+    "newGroup": "Nouveau groupe",
+    "editGroup": "Modifier le groupe",
+    "deleteGroup": "Supprimer le groupe",
+    "groupName": "Nom du groupe",
+    "groupDescription": "Description (facultatif)",
+    "groupColor": "Couleur",
+    "members": "Membres",
+    "noMembers": "Aucun membre pour l'instant",
+    "addMember": "Ajouter un membre",
+    "removeMember": "Retirer",
+    "lead": "Responsable",
+    "member": "Membre",
+    "confirmDelete": "Voulez-vous vraiment supprimer ce groupe ?"
+  },
+  "members": {
+    "title": "Membres",
+    "invite": "Inviter un membre",
+    "inviteEmail": "Adresse e-mail",
+    "inviteRole": "Rôle",
+    "inviteCompany": "Entreprise (facultatif)",
+    "sendInvite": "Envoyer l'invitation",
+    "pendingInvitations": "Invitations en attente",
+    "resend": "Renvoyer",
+    "cancel": "Annuler",
+    "remove": "Retirer le membre",
+    "confirmRemove": "Voulez-vous vraiment retirer ce membre ?",
+    "roles": {
+      "org_owner": "Propriétaire",
+      "admin": "Admin",
+      "member": "Membre",
+      "guest": "Invité"
+    },
+    "joinedAt": "A rejoint le",
+    "invitedAt": "Invité le",
+    "expiresAt": "Expire le",
+    "noMembers": "Aucun membre pour l'instant"
+  },
+  "invite": {
+    "title": "Vous avez été invité",
+    "subtitle": "à rejoindre {orgName} sur Veltro",
+    "accept": "Accepter l'invitation",
+    "alreadyMember": "Se connecter pour accepter",
+    "invalid": "Cette invitation est invalide ou a expiré.",
+    "accepted": "Invitation acceptée"
   }
 }

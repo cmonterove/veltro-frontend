@@ -17,7 +17,8 @@
     "notificationSample3Title": "Comentário no Bug tracker",
     "notificationSample3Sub": "Pepito Pérez comentou · há 3h",
     "sidebarNoBoards": "Ainda não há quadros",
-    "sidebarAddBoard": "Adicionar quadro"
+    "sidebarAddBoard": "Adicionar quadro",
+    "sidebarGroups": "Grupos"
   },
   "nav": {
     "home": "Início",

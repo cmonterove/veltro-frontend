@@ -38,7 +38,7 @@ export function BoardsPageClient({
 }: Props) {
   const [modalOpen, setModalOpen] = useState(openCreateModal)
   const router = useRouter()
-  const tList = useTranslations('boards.boardsList')
+  const t = useTranslations('boards')
 
   function handleClose() {
     setModalOpen(false)
@@ -73,7 +73,7 @@ export function BoardsPageClient({
             {companyName}
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-            {tList('boardCount', { count: boards.length })}
+            {t('boardsList.boardCount', { count: boards.length })}
           </p>
         </div>
         <button
@@ -104,7 +104,7 @@ export function BoardsPageClient({
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          {tList('newBoard')}
+          {t('boardsList.newBoard')}
         </button>
       </div>
 
@@ -160,7 +160,7 @@ export function BoardsPageClient({
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span style={{ fontSize: '13px', fontWeight: 500 }}>{tList('newBoard')}</span>
+            <span style={{ fontSize: '13px', fontWeight: 500 }}>{t('boardsList.newBoard')}</span>
           </button>
         </div>
       )}
@@ -277,7 +277,7 @@ function BoardCard({ board, href }: { board: Board; href: Route }) {
 
 /* ── Empty state ────────────────────────────────────────────── */
 function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
-  const t = useTranslations('boards.boardsList')
+  const t = useTranslations('boards')
   return (
     <div
       style={{
@@ -343,7 +343,7 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        {t('createFirst')}
+        {t('createBoard')}
       </button>
     </div>
   )

@@ -1,7 +1,6 @@
 'use client'
 
 import type { BoardData, BoardMemberData, UserData } from '@/lib/types/board'
-import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 function getInitials(name: string) {
@@ -13,12 +12,15 @@ function getInitials(name: string) {
     .slice(0, 2)
 }
 
+const AVATAR_BG = ['var(--primary-light)', 'var(--bg-surface)', 'var(--bg-sunken)'] as const
+const AVATAR_FG = ['hsl(var(--primary))', 'var(--text-secondary)', 'var(--text-tertiary)'] as const
+
 function VisibilityBadge({ visibility }: { visibility: string }) {
   const t = useTranslations('boards.visibility')
   const map = {
     private: { labelKey: 'private' as const, bg: 'var(--primary-light)', color: 'hsl(var(--primary))' },
-    company: { labelKey: 'company' as const, bg: '#eff6ff', color: '#1d4ed8' },
-    groups: { labelKey: 'groups' as const, bg: '#faf5ff', color: '#7c3aed' },
+    company: { labelKey: 'company' as const, bg: 'var(--bg-surface)', color: 'var(--text-secondary)' },
+    groups: { labelKey: 'groups' as const, bg: 'var(--bg-sunken)', color: 'var(--text-secondary)' },
   }
   const v = map[visibility as keyof typeof map] ?? map.private
   return (
@@ -40,26 +42,29 @@ function VisibilityBadge({ visibility }: { visibility: string }) {
   )
 }
 
+export type BoardViewTab = 'table' | 'kanban' | 'calendar' | 'gantt'
+
 interface Props {
   board: BoardData
   members: BoardMemberData[]
   currentUser?: UserData
+  activeView: BoardViewTab
+  onViewChange: (view: BoardViewTab) => void
   canAddItem: boolean
   isAddItemPending?: boolean
-  onAddItemHeader: () => void
+  onAddItem: () => void
 }
 
 export function BoardHeader({
   board,
   members,
+  activeView,
+  onViewChange,
   canAddItem,
   isAddItemPending = false,
-  onAddItemHeader,
+  onAddItem,
 }: Props) {
-  const tViews = useTranslations('boards.views')
-  const tToolbar = useTranslations('boards.toolbar')
-  const tHeader = useTranslations('boards.header')
-  const [activeView, setActiveView] = useState<'table' | 'kanban' | 'calendar' | 'gantt'>('table')
+  const t = useTranslations('boards')
   const views = ['table', 'kanban', 'calendar', 'gantt'] as const
 
   const individualMembers = members.filter((m) => m.user_id && m.profiles)
@@ -104,8 +109,8 @@ export function BoardHeader({
                 width: '26px',
                 height: '26px',
                 borderRadius: '50%',
-                background: ['#e8f5f0', '#eff6ff', '#faf5ff', '#fef3c7', '#fce7f3'][i % 5],
-                color: ['#1a3a2e', '#1d4ed8', '#7c3aed', '#d97706', '#db2777'][i % 5],
+                background: AVATAR_BG[i % AVATAR_BG.length],
+                color: AVATAR_FG[i % AVATAR_FG.length],
                 fontSize: '10px',
                 fontWeight: 600,
                 display: 'flex',
@@ -168,7 +173,7 @@ export function BoardHeader({
               marginLeft: individualMembers.length ? '-8px' : 0,
               zIndex: 0,
             }}
-            title={tHeader('inviteMember')}
+            title={t('invite')}
           >
             +
           </button>
@@ -200,13 +205,13 @@ export function BoardHeader({
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'hsl(var(--primary))'
           }}
-          onClick={onAddItemHeader}
+          onClick={onAddItem}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          {tToolbar('addItem')}
+          {t('addItem')}
         </button>
       </div>
 
@@ -215,7 +220,7 @@ export function BoardHeader({
           <button
             key={v}
             type="button"
-            onClick={() => setActiveView(v)}
+            onClick={() => onViewChange(v)}
             style={{
               padding: '5px 12px 8px',
               fontSize: '12px',
@@ -228,7 +233,7 @@ export function BoardHeader({
               transition: 'all .15s',
             }}
           >
-            {tViews(v)}
+            {t(`views.${v}`)}
           </button>
         ))}
       </div>

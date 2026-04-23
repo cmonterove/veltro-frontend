@@ -1,4 +1,20 @@
 {
+  "statusLabels": {
+    "Not started": "Não iniciado",
+    "In progress": "Em andamento",
+    "Done": "Concluído",
+    "Stuck": "Travado",
+    "Waiting": "Aguardando",
+    "Cancelled": "Cancelado"
+  },
+  "columnTypes": {
+    "status": "Status",
+    "person": "Pessoa",
+    "date": "Data",
+    "number": "Número",
+    "checkbox": "Caixa de seleção",
+    "text": "Texto"
+  },
   "types": {
     "text": "Texto",
     "status": "Status",

@@ -5,8 +5,8 @@ import {
   updateItemColumnValue,
   updateItemName,
 } from '@/app/(dashboard)/[orgSlug]/[companySlug]/board/[boardId]/actions'
+import { translateColumnStatusLabel } from '@/lib/column-i18n'
 import type { BoardItem, ColumnDef, UserData } from '@/lib/types/board'
-import { STATUS_DB_LABEL_TO_KEY } from '@/lib/board-status-labels'
 import { DEFAULT_STATUSES } from '@/lib/types/board'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -32,6 +32,8 @@ interface Props {
   onUpdateName: (itemId: string, name: string) => void
   onDelete: () => void
   onOpenDetail: () => void
+  focusItemNameId: string | null
+  onFocusItemNameConsumed: () => void
 }
 
 export function BoardItemRow({
@@ -44,8 +46,12 @@ export function BoardItemRow({
   onUpdateName,
   onDelete,
   onOpenDetail,
+  focusItemNameId,
+  onFocusItemNameConsumed,
 }: Props) {
-  const t = useTranslations('boards.item')
+  const tUi = useTranslations('boards.itemUi')
+  const tItems = useTranslations('items')
+  const tBoards = useTranslations('boards')
   const [rowChecked, setRowChecked] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(item.name)
@@ -61,6 +67,12 @@ export function BoardItemRow({
   useEffect(() => {
     setNameValue(item.name)
   }, [item.name])
+
+  useEffect(() => {
+    if (focusItemNameId !== item.id) return
+    setEditingName(true)
+    queueMicrotask(() => onFocusItemNameConsumed())
+  }, [focusItemNameId, item.id, onFocusItemNameConsumed])
 
   const rowStyle: React.CSSProperties = {
     display: 'grid',
@@ -94,7 +106,7 @@ export function BoardItemRow({
 
   function handleNameBlur() {
     setEditingName(false)
-    const next = nameValue.trim() || t('newItem')
+    const next = nameValue.trim() || tBoards('newItem')
     if (next !== item.name) {
       onUpdateName(item.id, next)
       startTransition(() => void updateItemName(item.id, next))
@@ -126,7 +138,7 @@ export function BoardItemRow({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label={t('dragToReorder')}
+          aria-label={tUi('dragToReorder')}
           style={{
             width: '22px',
             height: '28px',
@@ -205,16 +217,16 @@ export function BoardItemRow({
               whiteSpace: 'nowrap',
               lineHeight: '36px',
             }}
-            title={t('nameEditHint')}
+            title={tUi('nameEditHint')}
           >
-            {nameValue || t('newItem')}
+            {nameValue || tBoards('newItem')}
           </span>
         )}
         {hovered && !editingName && (
           <button
             type="button"
             onClick={onOpenDetail}
-            title={t('openDetail')}
+            title={tItems('openDetail')}
             style={{
               flexShrink: 0,
               width: '20px',
@@ -315,7 +327,7 @@ export function BoardItemRow({
                   }}
                 >
                   <RowMenuBtn
-                    label={t('openDetail')}
+                    label={tItems('openDetail')}
                     onClick={() => {
                       onOpenDetail()
                       setShowMenu(false)
@@ -329,7 +341,7 @@ export function BoardItemRow({
                     }
                   />
                   <RowMenuBtn
-                    label={t('duplicate')}
+                    label={tUi('duplicate')}
                     onClick={() => setShowMenu(false)}
                     icon={
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -340,7 +352,7 @@ export function BoardItemRow({
                   />
                   <div style={{ height: '0.5px', background: 'var(--border-default)', margin: '3px 0' }} />
                   <RowMenuBtn
-                    label={t('delete')}
+                    label={tItems('deleteItem')}
                     danger
                     onClick={() => {
                       handleDelete()
@@ -390,12 +402,12 @@ function RowMenuBtn({
         border: 'none',
         borderRadius: '6px',
         fontSize: '12px',
-        color: danger ? '#dc2626' : 'var(--text-primary)',
+        color: danger ? 'hsl(0 72% 51%)' : 'var(--text-primary)',
         cursor: 'pointer',
         textAlign: 'left',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = danger ? '#fef2f2' : 'var(--bg-surface)'
+        e.currentTarget.style.background = danger ? 'hsl(0 86% 97%)' : 'var(--bg-surface)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'none'
@@ -445,15 +457,14 @@ function StatusCell({
   settings: Record<string, unknown>
   onChange: (v: unknown) => void
 }) {
-  const tStatus = useTranslations('items.status')
+  const tColumns = useTranslations('columns')
   const [open, setOpen] = useState(false)
   const statuses = (settings?.statuses as typeof DEFAULT_STATUSES | undefined) ?? DEFAULT_STATUSES
   const v = value as { label?: string } | null
   const current = statuses.find((s) => s.label === v?.label) ?? null
 
   function displayLabel(label: string): string {
-    const key = STATUS_DB_LABEL_TO_KEY[label as keyof typeof STATUS_DB_LABEL_TO_KEY]
-    return key ? tStatus(key) : label
+    return translateColumnStatusLabel(tColumns, label)
   }
 
   return (
@@ -578,7 +589,7 @@ function PersonCell({
   users: UserData[]
   onChange: (v: unknown) => void
 }) {
-  const t = useTranslations('boards.item')
+  const t = useTranslations('boards.itemUi')
   const [open, setOpen] = useState(false)
   const pv = value as { id?: string } | null
   const assigned: UserData | null = pv?.id ? (users.find((u) => u.id === pv.id) ?? null) : null
@@ -607,8 +618,8 @@ function PersonCell({
                 width: '22px',
                 height: '22px',
                 borderRadius: '50%',
-                background: '#e8f5f0',
-                color: '#1a3a2e',
+                background: 'var(--primary-light)',
+                color: 'hsl(var(--primary))',
                 fontSize: '9px',
                 fontWeight: 700,
                 display: 'flex',
@@ -722,8 +733,8 @@ function PersonCell({
                     width: '24px',
                     height: '24px',
                     borderRadius: '50%',
-                    background: '#e8f5f0',
-                    color: '#1a3a2e',
+                    background: 'var(--primary-light)',
+                    color: 'hsl(var(--primary))',
                     fontSize: '10px',
                     fontWeight: 700,
                     display: 'flex',
@@ -886,7 +897,7 @@ function CheckboxCell({ value, onChange }: { value: unknown; onChange: (v: unkno
         type="checkbox"
         checked={!!value}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ width: '15px', height: '15px', accentColor: '#1a3a2e', cursor: 'pointer' }}
+        style={{ width: '15px', height: '15px', accentColor: 'hsl(var(--primary))', cursor: 'pointer' }}
       />
     </div>
   )

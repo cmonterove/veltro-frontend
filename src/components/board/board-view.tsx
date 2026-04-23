@@ -16,7 +16,7 @@ import {
   createItem,
   syncItemPositions,
 } from '@/app/(dashboard)/[orgSlug]/[companySlug]/board/[boardId]/actions'
-import { BoardHeader } from './board-header'
+import { BoardHeader, type BoardViewTab } from './board-header'
 import { BoardTable } from './board-table'
 import { BoardToolbar } from './board-toolbar'
 import { ItemDetailPanel } from './item-detail-panel'
@@ -51,9 +51,11 @@ export function BoardView({
   const [groups, setGroups] = useState<BoardGroup[]>(initialGroups)
   const [selectedItem, setSelectedItem] = useState<{ item: BoardItem; groupId: string } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeView, setActiveView] = useState<BoardViewTab>('table')
+  const [focusItemNameId, setFocusItemNameId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
-  const [isHeaderAddPending, startHeaderAddTransition] = useTransition()
-  const tItem = useTranslations('boards.item')
+  const [isCreateItemPending, startCreateItemTransition] = useTransition()
+  const tBoards = useTranslations('boards')
 
   const persistOrder = useCallback((next: BoardGroup[]) => {
     const rows = flattenPositions(next)
@@ -186,16 +188,26 @@ export function BoardView({
     setGroups((prev) => [...prev, newGroup])
   }, [])
 
-  const handleHeaderAddItem = useCallback(() => {
+  const createItemInGroup = useCallback(
+    (groupId: string) => {
+      startCreateItemTransition(async () => {
+        const result = await createItem(groupId, board.id, tBoards('newItem'))
+        if (result.data) {
+          const newItem = { ...(result.data as BoardItem), item_column_values: [] }
+          addItem(groupId, newItem)
+          setFocusItemNameId(newItem.id)
+        }
+      })
+    },
+    [board.id, tBoards, addItem]
+  )
+
+  const handleAddItemFromHeader = useCallback(() => {
     const gid = groups[0]?.id
-    if (!gid) return
-    startHeaderAddTransition(async () => {
-      const result = await createItem(gid, board.id, tItem('newItem'))
-      if (result.data) {
-        addItem(gid, { ...(result.data as BoardItem), item_column_values: [] })
-      }
-    })
-  }, [groups, board.id, tItem, addItem])
+    if (gid) createItemInGroup(gid)
+  }, [groups, createItemInGroup])
+
+  const clearFocusItemName = useCallback(() => setFocusItemNameId(null), [])
 
   const toggleGroup = useCallback((groupId: string) => {
     setGroups((prev) =>
@@ -238,20 +250,23 @@ export function BoardView({
           board={board}
           members={members}
           currentUser={currentUser}
+          activeView={activeView}
+          onViewChange={setActiveView}
           canAddItem={!!groups[0]?.id}
-          isAddItemPending={isHeaderAddPending}
-          onAddItemHeader={handleHeaderAddItem}
+          isAddItemPending={isCreateItemPending}
+          onAddItem={handleAddItemFromHeader}
         />
         <BoardToolbar boardId={board.id} onSearch={setSearchQuery} onAddGroup={addGroup} />
         <BoardTable
-          board={board}
           groups={filteredGroups}
           columns={columns}
           companyUsers={companyUsers}
           onDragEnd={handleDragEnd}
           onUpdateCell={updateCellValue}
           onUpdateName={updateItemName}
-          onAddItem={addItem}
+          onCreateItemInGroup={createItemInGroup}
+          focusItemNameId={focusItemNameId}
+          onFocusItemNameConsumed={clearFocusItemName}
           onDeleteItem={deleteItem}
           onToggleGroup={toggleGroup}
           onOpenDetail={(item, groupId) => setSelectedItem({ item, groupId })}

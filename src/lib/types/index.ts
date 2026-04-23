@@ -21,12 +21,39 @@ export interface CompanyGroup {
   id: string
   company_id: string
   name: string
-  description: string | null
   color: string
-  icon: string | null
-  created_by: string | null
+  description?: string
+  created_by?: string
   created_at: string
   updated_at: string
+  members?: CompanyGroupMember[]
+}
+
+export interface CompanyGroupMember {
+  id: string
+  company_group_id: string
+  user_id: string
+  role: 'lead' | 'member'
+  created_at: string
+  profile?: {
+    id: string
+    full_name: string
+    avatar_url?: string
+    email: string
+  }
+}
+
+export interface Invitation {
+  id: string
+  organization_id: string
+  company_id?: string
+  email: string
+  role: 'org_owner' | 'admin' | 'member' | 'guest'
+  token: string
+  invited_by?: string
+  accepted_at?: string
+  expires_at: string
+  created_at: string
 }
 
 export interface UserGroupMembership {

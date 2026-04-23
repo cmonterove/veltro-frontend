@@ -1,8 +1,8 @@
 'use client'
 
 import { updateItemColumnValue, updateItemName } from '@/app/(dashboard)/[orgSlug]/[companySlug]/board/[boardId]/actions'
-import { resolveColumnTitle } from '@/lib/board-column-title'
-import { STATUS_DB_LABEL_TO_KEY } from '@/lib/board-status-labels'
+import { resolveBoardColumnHeader } from '@/lib/board-column-title'
+import { translateColumnStatusLabel } from '@/lib/column-i18n'
 import type { BoardItem, ColumnDef, UserData } from '@/lib/types/board'
 import { DEFAULT_STATUSES } from '@/lib/types/board'
 import { useEffect, useState, useTransition } from 'react'
@@ -29,8 +29,10 @@ export function ItemDetailPanel({
   onUpdateName,
   onDelete,
 }: Props) {
-  const t = useTranslations('boards.item')
-  const tColumns = useTranslations('items.columns')
+  const tItems = useTranslations('items')
+  const tUi = useTranslations('boards.itemUi')
+  const tColumnsNs = useTranslations('columns')
+  const tItemsColumns = useTranslations('items.columns')
   const [nameValue, setNameValue] = useState(item.name)
   const [editingName, setEditingName] = useState(false)
   const [comment, setComment] = useState('')
@@ -110,7 +112,7 @@ export function ItemDetailPanel({
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{t('detailTitle')}</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{tItems('properties')}</span>
           <div style={{ flex: 1 }} />
           <button
             type="button"
@@ -121,13 +123,13 @@ export function ItemDetailPanel({
               borderRadius: '6px',
               background: 'none',
               border: '0.5px solid var(--border-default)',
-              color: '#dc2626',
+              color: 'hsl(0 72% 51%)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
-            title={t('delete')}
+            title={tItems('deleteItem')}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
               <polyline points="3 6 5 6 21 6" />
@@ -198,7 +200,7 @@ export function ItemDetailPanel({
                 marginBottom: '12px',
               }}
             >
-              {t('properties')}
+              {tUi('properties')}
             </div>
             {columns.map((col) => {
               const value = getCellValue(col.id)
@@ -225,7 +227,7 @@ export function ItemDetailPanel({
                     }}
                   >
                     <ColIcon type={col.type} />
-                    {resolveColumnTitle(col.title, tColumns)}
+                    {resolveBoardColumnHeader(col, tColumnsNs, tItemsColumns)}
                   </div>
                   <div
                     style={{
@@ -268,7 +270,7 @@ export function ItemDetailPanel({
                 marginBottom: '12px',
               }}
             >
-              {t('updates')}
+              {tItems('comments')}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <div
@@ -276,8 +278,8 @@ export function ItemDetailPanel({
                   width: '28px',
                   height: '28px',
                   borderRadius: '50%',
-                  background: '#e8f5f0',
-                  color: '#1a3a2e',
+                  background: 'var(--primary-light)',
+                  color: 'hsl(var(--primary))',
                   fontSize: '10px',
                   fontWeight: 700,
                   display: 'flex',
@@ -298,7 +300,7 @@ export function ItemDetailPanel({
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder={t('writeUpdate')}
+                  placeholder={tItems('writeComment')}
                   rows={2}
                   style={{
                     width: '100%',
@@ -337,7 +339,7 @@ export function ItemDetailPanel({
                         cursor: 'pointer',
                       }}
                     >
-                      {t('post')}
+                      {tUi('post')}
                     </button>
                   </div>
                 ) : null}
@@ -461,7 +463,7 @@ function DetailCellRenderer({
           type="checkbox"
           checked={!!value}
           onChange={(e) => onChange(e.target.checked)}
-          style={{ width: '15px', height: '15px', accentColor: '#1a3a2e', cursor: 'pointer' }}
+          style={{ width: '15px', height: '15px', accentColor: 'hsl(var(--primary))', cursor: 'pointer' }}
         />
       </div>
     )
@@ -494,16 +496,15 @@ function StatusDetailField({
   value: unknown
   onChange: (v: unknown) => void
 }) {
-  const tStatus = useTranslations('items.status')
-  const tItem = useTranslations('boards.item')
+  const tColumns = useTranslations('columns')
+  const tUi = useTranslations('boards.itemUi')
   const [open, setOpen] = useState(false)
   const statuses = (settings?.statuses as typeof DEFAULT_STATUSES | undefined) ?? DEFAULT_STATUSES
   const v = value as { label?: string } | null
   const current = statuses.find((s) => s.label === v?.label)
 
   function displayLabel(label: string): string {
-    const key = STATUS_DB_LABEL_TO_KEY[label as keyof typeof STATUS_DB_LABEL_TO_KEY]
-    return key ? tStatus(key) : label
+    return translateColumnStatusLabel(tColumns, label)
   }
 
   return (
@@ -524,7 +525,7 @@ function StatusDetailField({
         }}
       >
         <span style={{ fontSize: '12px', fontWeight: 600, color: current?.color ?? 'var(--text-tertiary)' }}>
-          {current?.label ? displayLabel(current.label) : tItem('setStatus')}
+          {current?.label ? displayLabel(current.label) : tUi('setStatus')}
         </span>
       </button>
       {open ? (
@@ -609,7 +610,7 @@ function PersonDetailField({
   value: unknown
   onChange: (v: unknown) => void
 }) {
-  const t = useTranslations('boards.item')
+  const t = useTranslations('boards.itemUi')
   const [open, setOpen] = useState(false)
   const pv = value as { id?: string } | null
   const assigned = pv?.id ? (users.find((u) => u.id === pv.id) ?? null) : null
@@ -638,7 +639,7 @@ function PersonDetailField({
                 width: '22px',
                 height: '22px',
                 borderRadius: '50%',
-                background: '#e8f5f0',
+                background: 'var(--primary-light)',
                 fontSize: '9px',
                 fontWeight: 700,
                 display: 'flex',
@@ -727,7 +728,7 @@ function PersonDetailField({
                     width: '22px',
                     height: '22px',
                     borderRadius: '50%',
-                    background: '#e8f5f0',
+                    background: 'var(--primary-light)',
                     fontSize: '9px',
                     fontWeight: 700,
                     display: 'flex',

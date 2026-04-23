@@ -1,11 +1,7 @@
 'use client'
 
-import {
-  createItem,
-  toggleGroupCollapse,
-  updateGroupName,
-} from '@/app/(dashboard)/[orgSlug]/[companySlug]/board/[boardId]/actions'
-import type { BoardData, BoardGroup, BoardItem, ColumnDef, UserData } from '@/lib/types/board'
+import { toggleGroupCollapse, updateGroupName } from '@/app/(dashboard)/[orgSlug]/[companySlug]/board/[boardId]/actions'
+import type { BoardGroup, BoardItem, ColumnDef, UserData } from '@/lib/types/board'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useEffect, useState, useTransition } from 'react'
@@ -15,12 +11,13 @@ import { BoardItemRow } from './board-item-row'
 interface Props {
   group: BoardGroup
   columns: ColumnDef[]
-  board: BoardData
   companyUsers: UserData[]
   colWidths: { drag: number; checkbox: number; name: number; default: number; actions: number }
   onUpdateCell: (itemId: string, columnId: string, value: unknown) => void
   onUpdateName: (itemId: string, name: string) => void
-  onAddItem: (groupId: string, item: BoardItem) => void
+  onCreateItemInGroup: (groupId: string) => void
+  focusItemNameId: string | null
+  onFocusItemNameConsumed: () => void
   onDeleteItem: (itemId: string) => void
   onToggle: () => void
   onOpenDetail: (item: BoardItem, groupId: string) => void
@@ -29,12 +26,13 @@ interface Props {
 export function BoardGroupSection({
   group,
   columns,
-  board,
   companyUsers,
   colWidths,
   onUpdateCell,
   onUpdateName,
-  onAddItem,
+  onCreateItemInGroup,
+  focusItemNameId,
+  onFocusItemNameConsumed,
   onDeleteItem,
   onToggle,
   onOpenDetail,
@@ -42,8 +40,8 @@ export function BoardGroupSection({
   const [editingName, setEditingName] = useState(false)
   const [groupName, setGroupName] = useState(group.name)
   const [, startTransition] = useTransition()
-  const tTable = useTranslations('boards.table')
-  const tItem = useTranslations('boards.item')
+  const tBoards = useTranslations('boards')
+  const tItems = useTranslations('items')
 
   useEffect(() => {
     setGroupName(group.name)
@@ -61,16 +59,6 @@ export function BoardGroupSection({
     setEditingName(false)
     if (groupName !== group.name) {
       startTransition(() => void updateGroupName(group.id, groupName))
-    }
-  }
-
-  async function handleAddItem() {
-    const result = await createItem(group.id, board.id, tItem('newItem'))
-    if (result.data) {
-      onAddItem(group.id, {
-        ...(result.data as unknown as BoardItem),
-        item_column_values: [],
-      })
     }
   }
 
@@ -98,6 +86,8 @@ export function BoardGroupSection({
           <button
             type="button"
             onClick={handleToggle}
+            aria-label={group.is_collapsed ? tBoards('expandAll') : tBoards('collapseAll')}
+            title={group.is_collapsed ? tBoards('expand') : tBoards('collapse')}
             style={{
               background: 'none',
               border: 'none',
@@ -223,7 +213,7 @@ export function BoardGroupSection({
                   borderBottom: '0.5px solid var(--border-default)',
                 }}
               >
-                {tTable('dropHere')}
+                {tItems('noItems')}
               </div>
             ) : (
               group.items.map((item) => (
@@ -238,6 +228,8 @@ export function BoardGroupSection({
                   onUpdateName={onUpdateName}
                   onDelete={() => onDeleteItem(item.id)}
                   onOpenDetail={() => onOpenDetail(item, group.id)}
+                  focusItemNameId={focusItemNameId}
+                  onFocusItemNameConsumed={onFocusItemNameConsumed}
                 />
               ))
             )}
@@ -245,7 +237,7 @@ export function BoardGroupSection({
 
           <button
             type="button"
-            onClick={() => void handleAddItem()}
+            onClick={() => onCreateItemInGroup(group.id)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -274,7 +266,7 @@ export function BoardGroupSection({
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            {tTable('addItem')}
+            {tItems('addItem')}
           </button>
         </div>
       )}

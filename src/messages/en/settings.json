@@ -76,5 +76,52 @@
     "enterprisePlan": "Enterprise",
     "upgradeButton": "Upgrade plan",
     "manageBilling": "Manage billing"
+  },
+  "groups": {
+    "title": "Company Groups",
+    "newGroup": "New group",
+    "editGroup": "Edit group",
+    "deleteGroup": "Delete group",
+    "groupName": "Group name",
+    "groupDescription": "Description (optional)",
+    "groupColor": "Color",
+    "members": "Members",
+    "noMembers": "No members yet",
+    "addMember": "Add member",
+    "removeMember": "Remove",
+    "lead": "Lead",
+    "member": "Member",
+    "confirmDelete": "Are you sure you want to delete this group?"
+  },
+  "members": {
+    "title": "Members",
+    "invite": "Invite member",
+    "inviteEmail": "Email address",
+    "inviteRole": "Role",
+    "inviteCompany": "Company (optional)",
+    "sendInvite": "Send invitation",
+    "pendingInvitations": "Pending invitations",
+    "resend": "Resend",
+    "cancel": "Cancel",
+    "remove": "Remove member",
+    "confirmRemove": "Are you sure you want to remove this member?",
+    "roles": {
+      "org_owner": "Owner",
+      "admin": "Admin",
+      "member": "Member",
+      "guest": "Guest"
+    },
+    "joinedAt": "Joined",
+    "invitedAt": "Invited",
+    "expiresAt": "Expires",
+    "noMembers": "No members yet"
+  },
+  "invite": {
+    "title": "You've been invited",
+    "subtitle": "to join {orgName} on Veltro",
+    "accept": "Accept invitation",
+    "alreadyMember": "Sign in to accept",
+    "invalid": "This invitation is invalid or has expired.",
+    "accepted": "Invitation accepted"
   }
 }

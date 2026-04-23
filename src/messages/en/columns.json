@@ -1,4 +1,20 @@
 {
+  "statusLabels": {
+    "Not started": "Not started",
+    "In progress": "In progress",
+    "Done": "Done",
+    "Stuck": "Stuck",
+    "Waiting": "Waiting",
+    "Cancelled": "Cancelled"
+  },
+  "columnTypes": {
+    "status": "Status",
+    "person": "Person",
+    "date": "Date",
+    "number": "Number",
+    "checkbox": "Checkbox",
+    "text": "Text"
+  },
   "types": {
     "text": "Text",
     "status": "Status",

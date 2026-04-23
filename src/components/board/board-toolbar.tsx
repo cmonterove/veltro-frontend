@@ -14,12 +14,11 @@ interface Props {
 export function BoardToolbar({ boardId, onSearch, onAddGroup }: Props) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [, startTransition] = useTransition()
-  const t = useTranslations('boards.toolbar')
-  const tGroup = useTranslations('boards.group')
+  const t = useTranslations('boards')
 
   function handleAddGroup() {
     startTransition(async () => {
-      const result = await createGroup(boardId, tGroup('newGroup'))
+      const result = await createGroup(boardId, t('newGroup'))
       if (result.data) {
         onAddGroup({
           ...(result.data as unknown as BoardGroup),

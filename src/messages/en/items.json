@@ -1,4 +1,16 @@
 {
+  "addItem": "Add item",
+  "itemName": "Item name",
+  "assignee": "Assignee",
+  "dueDate": "Due date",
+  "status": "Status",
+  "noItems": "No items in this group",
+  "deleteItem": "Delete item",
+  "openDetail": "Open detail",
+  "comments": "Updates",
+  "writeComment": "Write an update...",
+  "properties": "Item details",
+  "activity": "Activity",
   "columns": {
     "status": "Status",
     "owner": "Owner",
@@ -21,7 +33,7 @@
     "addSubitem": "Add subitem",
     "noSubitems": "No subitems yet"
   },
-  "status": {
+  "statusEnum": {
     "notStarted": "Not started",
     "inProgress": "In progress",
     "done": "Done",
