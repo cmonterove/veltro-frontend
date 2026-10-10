@@ -1,17 +1,17 @@
 import Link from 'next/link'
-import type { Route } from 'next'
 import { getTranslations } from 'next-intl/server'
+import { buttonVariants } from '@/components/ui/button'
 
 export default async function NotFound() {
-  const t = await getTranslations('errors.notFound')
-
+  const t = await getTranslations('errors')
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
-      <h1 className="text-2xl font-semibold">{t('title')}</h1>
-      <p className="text-muted-foreground max-w-md">{t('subtitle')}</p>
-      <Link href={'/' as Route} className="text-primary text-sm font-medium underline-offset-4 hover:underline">
-        {t('goHome')}
+    <div className="flex min-h-[60vh] flex-col items-start justify-center gap-3 px-8 py-16 sm:px-16">
+      <p className="font-mono text-sm text-fg-subtle">404</p>
+      <h1 className="text-xl font-semibold tracking-tight">{t('notFoundTitle')}</h1>
+      <p className="max-w-md text-sm text-fg-muted">{t('notFoundBody')}</p>
+      <Link href="/home" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+        {t('backHome')}
       </Link>
-    </main>
+    </div>
   )
 }

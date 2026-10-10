@@ -1,2 +1,0 @@
--- Datos de prueba opcionales (desarrollo).
--- Ejemplo: insert into public.organizations (name, slug) values ('Demo', 'demo');

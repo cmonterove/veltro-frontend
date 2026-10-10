@@ -1,38 +1,16 @@
 import { getRequestConfig } from 'next-intl/server'
 import { cookies, headers } from 'next/headers'
-import { defaultLocale, locales, type Locale } from './routing'
+import { defaultLocale, isLocale, LOCALE_COOKIE } from './config'
 
+// Prioridad: cookie (sincronizada con profiles.locale al iniciar sesión) → Accept-Language → env.
 export default getRequestConfig(async () => {
-  const cookieStore = await cookies()
-  const cookieLocale = cookieStore.get('veltro-locale')?.value
+  const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value
+  const headerLocale = (await headers()).get('accept-language')?.split(',')[0]?.split('-')[0]
 
-  const headerStore = await headers()
-  const acceptLang = headerStore.get('accept-language')?.split(',')[0]?.split('-')[0]
+  const locale = [cookieLocale, headerLocale].find(isLocale) ?? defaultLocale
 
-  const resolved =
-    [cookieLocale, acceptLang, defaultLocale].find((l): l is Locale =>
-      locales.includes(l as Locale)
-    ) ?? defaultLocale
-
-  const namespaces = [
-    'common',
-    'auth',
-    'dashboard',
-    'boards',
-    'items',
-    'columns',
-    'settings',
-    'errors',
-  ] as const
-  const messages: Record<string, unknown> = {}
-
-  for (const ns of namespaces) {
-    try {
-      messages[ns] = (await import(`../messages/${resolved}/${ns}.json`)).default
-    } catch {
-      messages[ns] = (await import(`../messages/${defaultLocale}/${ns}.json`)).default
-    }
+  return {
+    locale,
+    messages: (await import(`../messages/${locale}.json`)).default,
   }
-
-  return { locale: resolved, messages }
 })

@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veltro · Ciclo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&family=Sora:wght@600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
+<style type="text/tailwindcss">
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-brand: "Sora", "Geist", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Neutros violáceos */
+  --color-page: #f4f2fa;
+  --color-paper: oklch(0.996 0.003 300);
+  --color-panel: #f9f8fc;
+  --color-sunk: #efecf5;
+  --color-line: #e7e3f0;
+  --color-line-soft: #efecf5;
+  --color-ink: #17141f;
+  --color-ink-2: #3f3a4b;
+  --color-muted: #6b6577;
+  --color-faint: #8a8496;
+  --color-nav: #5a5466;
+
+  /* Marca */
+  --color-brand: #6c47ff;
+  --color-brand-deep: #4b2bd6;
+  --color-lav: #b9a8ff;
+  --color-mist: #f1edff;
+  --color-sel: #e9e3ff;
+  --color-sel-ink: #3d22b5;
+  --color-on-brand: oklch(0.99 0.006 295);
+  --color-mand: #ff8a3d;
+  --color-mand-ink: #c2530f;
+  --color-mand-tint: oklch(0.962 0.035 62);
+  --color-over: oklch(0.55 0.19 22);
+
+  /* Tokens de captura */
+  --color-dec: oklch(0.47 0.085 185);
+  --color-dec-glyph: oklch(0.62 0.115 183);
+  --color-dec-chip: oklch(0.935 0.042 182);
+  --color-dec-row: oklch(0.975 0.016 182);
+  --color-dec-line: oklch(0.85 0.06 182);
+  --color-act: #4b2bd6;
+  --color-act-glyph: #6c47ff;
+  --color-act-chip: #ebe5ff;
+  --color-act-row: oklch(0.978 0.013 295);
+  --color-act-line: #d6ccff;
+  --color-ask: #c2530f;
+  --color-ask-glyph: #ff8a3d;
+  --color-ask-chip: oklch(0.942 0.045 62);
+  --color-ask-row: oklch(0.979 0.016 65);
+  --color-ask-line: oklch(0.86 0.07 60);
+}
+
+@layer base {
+  html, body { height: 100%; }
+  body {
+    background: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  button { cursor: pointer; }
+  ::selection { background: var(--color-sel); color: var(--color-sel-ink); }
+  [hidden] { display: none !important; }
+}
+
+@layer components {
+  .ico { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .ico-sm { width: 14px; height: 14px; }
+  .ico-xs { width: 12px; height: 12px; stroke-width: 2; }
+  .scroll { scrollbar-width: thin; scrollbar-color: #d9d4e4 transparent; }
+  .r { font-family: var(--font-mono); font-weight: 500; font-size: 0.92em; letter-spacing: 0; }
+  .muted { color: var(--color-muted); }
+
+  /* Monogramas de espacio */
+  .mg { display: inline-grid; place-items: center; flex: none; width: 16px; height: 16px; border-radius: 5px; font: 700 9.5px/1 var(--font-brand); }
+  .mg.md { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; }
+  .mg.lg { width: 34px; height: 34px; border-radius: 10px; font-size: 16px; }
+  .mg-p { background: #6c47ff; color: var(--color-on-brand); }
+  .mg-t { background: #ff8a3d; color: #3a1a05; }
+  .mg-v { background: #17141f; color: var(--color-on-brand); }
+
+  /* Avatares */
+  .av { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 999px; font: 600 9px/1 var(--font-sans); letter-spacing: .02em; color: var(--color-on-brand); }
+  .av.xs { width: 16px; height: 16px; font-size: 7px; }
+  .av.av-ring { box-shadow: 0 0 0 2px var(--color-paper); }
+  .av-cm { background: #6c47ff; }
+  .av-ad { background: oklch(0.6 0.16 350); }
+  .av-pp { background: oklch(0.56 0.09 230); }
+  .av-dr { background: #17141f; }
+
+  .kbd { display: inline-block; min-width: 18px; padding: 3px 5px; border-radius: 5px; text-align: center; font: 500 10.5px/1 var(--font-mono); color: var(--color-ink-2); background: var(--color-paper); border: 1px solid var(--color-line); box-shadow: 0 1px 0 var(--color-line); }
+  .kbd-on { background: oklch(0.99 0.006 295 / .14); border-color: oklch(0.99 0.006 295 / .22); color: oklch(0.95 0.02 295); box-shadow: none; }
+
+  /* Barra superior */
+  .topbar { height: 48px; display: flex; align-items: center; gap: 18px; padding: 0 14px 0 16px; }
+  .brand { display: flex; align-items: center; gap: 7px; font: 600 17px/1 var(--font-brand); letter-spacing: -0.045em; color: var(--color-ink); }
+  .ws-switch { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--color-sunk); }
+  .ws-opt { display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 5px; border-radius: 7px; font-weight: 500; color: var(--color-nav); }
+  .ws-opt:hover { background: oklch(0.99 0.006 295 / .6); }
+  .ws-opt.is-active { background: var(--color-paper); color: var(--color-ink); padding-right: 8px; box-shadow: 0 1px 2px oklch(0.25 0.05 290 / .08), 0 0 0 1px var(--color-line); }
+  .nav-a { height: 30px; padding: 0 11px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; color: var(--color-nav); }
+  .nav-a:hover { background: var(--color-sunk); color: var(--color-ink); }
+  .nav-a.is-active { background: var(--color-sel); color: var(--color-sel-ink); }
+  .cnt { font: 500 10.5px/1 var(--font-mono); padding: 3px 5px; border-radius: 5px; background: var(--color-paper); color: var(--color-muted); }
+  .search { width: 340px; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border-radius: 9px; background: var(--color-paper); border: 1px solid var(--color-line); color: var(--color-faint); transition: border-color .15s; }
+  .search:hover { border-color: var(--color-lav); }
+  .search .q { flex: 1; min-width: 0; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--color-muted); }
+  .clock { font: 500 12px var(--font-mono); color: var(--color-nav); white-space: nowrap; }
+
+  /* Tu día */
+  .day { width: 260px; flex: none; overflow-y: auto; padding: 12px 14px 64px 16px; }
+  .day-h h2 { font: 600 16px/1.2 var(--font-brand); letter-spacing: -0.02em; color: var(--color-ink); }
+  .allday { margin-top: 12px; display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; background: var(--color-sunk); color: var(--color-ink-2); font-size: 12px; }
+  .allday .lbl { font: 500 10.5px var(--font-mono); color: var(--color-faint); white-space: nowrap; }
+  .strip { position: relative; margin-top: 14px; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .strip::before { content: ""; position: absolute; left: 5px; top: 12px; bottom: 20px; width: 1px; background: var(--color-line); }
+  .blk { position: relative; display: block; padding: 9px 11px 10px; border-radius: 10px; background: var(--color-paper); border: 1px solid var(--color-line-soft); transition: border-color .15s, background-color .15s; cursor: pointer; }
+  .blk:hover { border-color: var(--color-line); }
+  .blk::before { content: ""; position: absolute; left: -17px; top: 13px; width: 9px; height: 9px; border-radius: 999px; background: var(--color-page); border: 1.5px solid #b5afc0; }
+  .blk.is-done { background: transparent; }
+  .blk.is-done::before { background: var(--color-brand); border-color: var(--color-brand); }
+  .blk.is-done .blk-title { color: var(--color-ink-2); }
+  .blk.is-live { background: var(--color-mist); border-color: #ddd3ff; }
+  .blk.is-live::before { background: var(--color-mand); border-color: var(--color-mand); box-shadow: 0 0 0 3px oklch(0.75 0.16 55 / .22); }
+  .blk-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .blk-time { font: 500 11px var(--font-mono); color: var(--color-muted); white-space: nowrap; }
+  .blk-title { margin-top: 3px; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--color-ink); }
+  .blk-meta { margin-top: 2px; font-size: 11.5px; color: var(--color-muted); }
+  .blk-foot { margin-top: 7px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11.5px; color: var(--color-muted); }
+  .blk-prog { margin-top: 8px; height: 3px; border-radius: 99px; background: oklch(0.42 0.2 285 / .1); overflow: hidden; }
+  .blk-prog > span { display: block; height: 100%; background: var(--color-mand); border-radius: inherit; }
+  .gapr { display: flex; align-items: center; gap: 6px; padding: 3px 0 3px 2px; font-size: 11px; color: var(--color-faint); }
+  .gapr button { margin-left: auto; font-size: 11px; color: var(--color-brand-deep); font-weight: 500; padding: 1px 6px; border-radius: 5px; }
+  .gapr button:hover { background: var(--color-mist); }
+  .live-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--color-mand-ink); }
+  .live-dot { position: relative; display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 999px; background: var(--color-mand); }
+  .live-dot::after { content: ""; position: absolute; inset: -3px; border-radius: inherit; border: 1.5px solid var(--color-mand); opacity: 0; animation: ping 2s cubic-bezier(0, 0, .2, 1) infinite; }
+  .phase-chip { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px 0 6px; border-radius: 6px; border: 1px solid #d6ccff; color: var(--color-sel-ink); background: var(--color-paper); font-size: 11px; font-weight: 600; }
+  .tokmini { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .tokmini.act { background: var(--color-act-chip); color: var(--color-act); }
+  .pend { margin-top: 20px; }
+  .pend-h { display: flex; align-items: center; gap: 6px; padding: 0 2px 6px; font-size: 12px; font-weight: 600; color: var(--color-ink-2); }
+  .n { font: 500 10.5px/1 var(--font-mono); color: var(--color-muted); background: var(--color-sunk); padding: 3px 5px; border-radius: 5px; }
+  .pend-i { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 9px; padding: 8px; border-radius: 9px; align-items: start; cursor: pointer; }
+  .pend-i:hover { background: var(--color-sunk); }
+  .pend-i .mg { margin-top: 1px; }
+  .pend-t { font-size: 12.5px; font-weight: 500; color: var(--color-ink); line-height: 1.32; }
+  .pend-s { margin-top: 3px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 11px; color: var(--color-muted); }
+  .flag { color: var(--color-mand-ink); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+
+  /* Sala */
+  .room { margin: 0 10px 10px 0; background: var(--color-paper); border: 1px solid var(--color-line); border-radius: 14px; box-shadow: 0 1px 2px oklch(0.25 0.05 290 / .05), 0 10px 30px -14px oklch(0.3 0.08 290 / .16); overflow: hidden; }
+  .band { flex: none; padding: 13px 22px 12px; border-bottom: 1px solid var(--color-line-soft); }
+  .mtg-title { font: 600 18px/1.25 var(--font-brand); letter-spacing: -0.025em; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mtg-meta { margin-top: 2px; font-size: 12px; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mtg-meta a { color: var(--color-brand-deep); text-decoration: underline; text-decoration-color: #d6ccff; text-underline-offset: 3px; }
+  .vsep { width: 1px; height: 20px; background: var(--color-line); flex: none; }
+  .listen { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--color-muted); white-space: nowrap; }
+  .bars { display: inline-flex; align-items: center; gap: 2px; height: 12px; }
+  .bars i { display: block; width: 2px; height: 100%; border-radius: 2px; background: var(--color-mand); transform-origin: center; animation: eq 1.1s ease-in-out infinite; }
+  .bars i:nth-child(2) { animation-delay: -.3s; }
+  .bars i:nth-child(3) { animation-delay: -.6s; }
+  .bars i:nth-child(4) { animation-delay: -.15s; }
+  .timer { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--color-muted); white-space: nowrap; }
+  .timer b { font-family: var(--font-mono); font-weight: 600; color: var(--color-ink); }
+  .tmr-track { fill: none; stroke: var(--color-sunk); stroke-width: 3; }
+  .tmr-fill { fill: none; stroke: var(--color-mand); stroke-width: 3; stroke-linecap: round; }
+
+  /* Barra de fases */
+  .phasebar { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1.55fr) 20px minmax(0, 1fr); align-items: center; padding: 4px; border-radius: 12px; background: var(--color-page); border: 1px solid var(--color-line-soft); }
+  .phase-arrow { justify-self: center; color: var(--color-lav); }
+  .phase { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 7px 12px; border-radius: 9px; text-align: left; color: var(--color-ink-2); transition: background-color .18s, color .18s, box-shadow .18s; }
+  .phase:hover { background: var(--color-mist); }
+  .phase.is-active { background: var(--color-brand); color: var(--color-on-brand); box-shadow: 0 1px 2px oklch(0.3 0.15 285 / .25), 0 6px 16px -8px oklch(0.45 0.22 285 / .55); }
+  .phase-txt { min-width: 0; display: block; }
+  .phase-name { display: block; font-size: 13px; font-weight: 600; line-height: 1.25; }
+  .phase-sub { display: block; font-size: 11.5px; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phase.is-active .phase-sub { color: oklch(0.9 0.045 295); }
+  .phase-mark { width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; flex: none; }
+  .phase.is-done .phase-mark { background: var(--color-brand); color: var(--color-on-brand); }
+  .phase.is-done.is-active .phase-mark { background: oklch(0.99 0.006 295 / .2); }
+  .phase.is-live .phase-mark { background: oklch(0.75 0.16 55 / .16); }
+  .phase.is-live.is-active .phase-mark { background: oklch(0.99 0.006 295 / .16); }
+  .phase-mark.num { border: 1.5px solid #c9c3d4; font: 600 11px/1 var(--font-mono); color: var(--color-faint); }
+  .phase.is-active .phase-mark.num { border-color: oklch(0.99 0.006 295 / .5); color: var(--color-on-brand); }
+  .phase-time { margin-left: auto; flex: 1; max-width: 230px; min-width: 96px; display: flex; align-items: center; gap: 8px; font: 500 11px var(--font-mono); color: var(--color-faint); }
+  .phase.is-active .phase-time { color: oklch(0.9 0.045 295); }
+  .phase-track { flex: 1; min-width: 30px; height: 4px; border-radius: 99px; background: oklch(0.42 0.2 285 / .1); overflow: hidden; }
+  .phase.is-active .phase-track { background: oklch(0.99 0.006 295 / .22); }
+  .phase-track > span { display: block; height: 100%; width: 22%; background: var(--color-mand); border-radius: inherit; }
+
+  /* Vistas */
+  .pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .view-in { animation: viewIn .24s cubic-bezier(.2, .7, .2, 1); }
+
+  /* Documento en vivo */
+  .doc { padding: 20px 28px 28px; }
+  .doc-col { --gut: 112px; max-width: calc(var(--gut) + 63ch); margin: 0 auto; padding-left: var(--gut); font-size: 16.5px; line-height: 1.62; color: var(--color-ink); letter-spacing: -0.003em; }
+  .doc-col p { margin: 3px 0 8px; text-wrap: pretty; color: #26222f; }
+  .ag { display: grid; grid-template-columns: var(--gut) minmax(0, 1fr); align-items: center; margin: 20px 0 6px calc(var(--gut) * -1); font-size: 13px; line-height: 1.3; }
+  .ag:first-child { margin-top: 0; }
+  .ag-num { justify-self: end; margin-right: 14px; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font: 600 11px/1 var(--font-mono); color: var(--color-faint); border: 1px solid var(--color-line); }
+  .ag.is-done .ag-num { background: var(--color-mist); border-color: #e1d9ff; color: var(--color-brand); }
+  .ag.is-now .ag-num { background: var(--color-brand); border-color: var(--color-brand); color: var(--color-on-brand); }
+  .ag-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .ag-title { font-weight: 600; color: var(--color-ink); white-space: nowrap; }
+  .ag-rule { flex: 1; min-width: 12px; height: 1px; background: var(--color-line-soft); }
+  .ag-state { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--color-muted); white-space: nowrap; }
+  .ag.is-now .ag-state { color: var(--color-mand-ink); font-weight: 500; }
+  .ag.is-next { opacity: .55; }
+
+  .cap { display: grid; grid-template-columns: var(--gut) minmax(0, 1fr); margin: 4px 0 4px calc(var(--gut) * -1); padding: 5px 12px 5px 0; border-radius: 10px; background: var(--row); }
+  .cap .tok { justify-self: start; margin: 3px 0 0 12px; }
+  .cap-txt { min-width: 0; text-wrap: pretty; }
+  .tok { display: inline-flex; align-items: center; gap: 5px; height: 21px; padding: 0 8px 0 7px; border-radius: 6px; font: 600 11px/1 var(--font-sans); letter-spacing: .01em; background: var(--chip); color: var(--tx); white-space: nowrap; }
+  .tok-g { display: inline-grid; place-items: center; width: 11px; color: var(--glyph); font-weight: 700; font-size: 12px; }
+  .tok-g .ico { width: 11px; height: 11px; stroke-width: 2.4; }
+  .cap-dec { --row: var(--color-dec-row); --chip: var(--color-dec-chip); --tx: var(--color-dec); --glyph: var(--color-dec-glyph); --ln: var(--color-dec-line); }
+  .cap-act { --row: var(--color-act-row); --chip: var(--color-act-chip); --tx: var(--color-act); --glyph: var(--color-act-glyph); --ln: var(--color-act-line); }
+  .cap-ask { --row: var(--color-ask-row); --chip: var(--color-ask-chip); --tx: var(--color-ask); --glyph: var(--color-ask-glyph); --ln: var(--color-ask-line); }
+  .cap.is-typing { background: transparent; outline: 1px dashed var(--color-act-line); outline-offset: -1px; }
+
+  .mention { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 3px; margin: 0 1px; border-radius: 999px; background: var(--color-paper); border: 1px solid var(--color-act-line); font: 500 12.5px/1 var(--font-sans); color: var(--color-act); vertical-align: middle; position: relative; top: -1.5px; }
+  .when { display: inline-flex; align-items: center; gap: 4px; height: 21px; padding: 0 6px; margin: 0 1px; border-radius: 6px; background: var(--color-act-chip); font: 500 12px/1 var(--font-sans); color: var(--color-act); vertical-align: middle; position: relative; top: -1.5px; }
+  .st { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; margin-left: 4px; border-radius: 6px; font: 500 11px/1 var(--font-sans); white-space: nowrap; vertical-align: middle; position: relative; top: -1.5px; }
+  .st .ico { width: 11px; height: 11px; stroke-width: 2.2; }
+  .st-new { background: var(--color-sel); color: var(--color-sel-ink); }
+  .st-upd { background: oklch(0.42 0.05 290 / .07); color: var(--color-ink-2); }
+  .st-dec { color: var(--color-dec); border: 1px solid var(--color-dec-line); background: var(--color-paper); }
+  .st-rel { color: var(--color-muted); border: 1px solid var(--color-line); background: var(--color-paper); }
+  .st-ask { color: var(--color-ask); border: 1px solid var(--color-ask-line); background: var(--color-paper); }
+  .refdec { text-decoration: underline dotted var(--color-dec-glyph); text-decoration-thickness: 1.5px; text-underline-offset: 4px; cursor: help; }
+
+  .draft { display: inline-flex; align-items: center; height: 22px; padding: 0 6px 0 7px; border-radius: 999px; border: 1px dashed var(--color-act-line); background: var(--color-paper); font: 500 12.5px/1 var(--font-sans); color: var(--color-act); vertical-align: middle; position: relative; top: -1.5px; }
+  .draft .ghost { color: #b5afc0; }
+  .caret { display: inline-block; width: 1.5px; height: 15px; margin: 0 1px; background: var(--color-act); animation: blink 1.05s steps(1) infinite; }
+  .peer-caret { position: relative; display: inline-block; width: 2px; height: 1.15em; margin-left: 2px; vertical-align: -0.2em; background: oklch(0.6 0.16 350); }
+  .peer-caret::before { content: "Ana"; position: absolute; left: 0; bottom: calc(100% - 2px); padding: 2px 5px 3px; border-radius: 4px 4px 4px 0; background: oklch(0.6 0.16 350); color: var(--color-on-brand); font: 600 9.5px/1 var(--font-sans); letter-spacing: .02em; white-space: nowrap; }
+  .suggest { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font: 400 12px/1.4 var(--font-sans); color: var(--color-muted); }
+  .suggest span { display: inline-flex; align-items: center; gap: 6px; }
+  .suggest b { font-weight: 600; color: var(--color-ink); }
+
+  .hintbar { flex: none; display: flex; align-items: center; gap: 16px; height: 38px; padding: 0 20px; border-top: 1px solid var(--color-line-soft); background: var(--color-paper); font-size: 11.5px; color: var(--color-muted); white-space: nowrap; overflow: hidden; }
+  .hint { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+  .saved { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--color-faint); }
+  .hint .ico { width: 11px; height: 11px; stroke-width: 2.4; }
+  .g-dec { color: var(--color-dec-glyph); } .g-act { color: var(--color-act-glyph); } .g-ask { color: var(--color-ask-glyph); font-weight: 700; }
+
+  /* Panel derecho */
+  .out { width: 340px; flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--color-panel); border-left: 1px solid var(--color-line-soft); }
+  .out-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 14px 18px 8px; }
+  .out-head h2 { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; color: var(--color-ink); }
+  .out-sub { margin-top: 1px; font-size: 11.5px; color: var(--color-muted); }
+  .livepill { display: inline-flex; align-items: center; gap: 6px; height: 19px; padding: 0 7px 0 6px; border-radius: 99px; background: var(--color-mand-tint); color: var(--color-mand-ink); font-size: 10.5px; font-weight: 600; }
+  .tally { display: flex; gap: 4px; }
+  .tally span { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px; border-radius: 6px; font: 600 11px/1 var(--font-mono); }
+  .tally .ico { width: 10px; height: 10px; stroke-width: 2.6; }
+  .t-act { background: var(--color-act-chip); color: var(--color-act); }
+  .t-dec { background: var(--color-dec-chip); color: var(--color-dec); }
+  .t-ask { background: var(--color-ask-chip); color: var(--color-ask); }
+  .out-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 10px 12px; }
+  .og { padding: 6px 0 6px; }
+  .og + .og { border-top: 1px solid var(--color-line-soft); }
+  .og-h { display: flex; align-items: center; gap: 7px; padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--color-ink-2); }
+  .og-hint { margin-left: auto; font-weight: 400; font-size: 11px; color: var(--color-faint); white-space: nowrap; }
+  .gl { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; flex: none; font: 700 11px/1 var(--font-sans); }
+  .gl .ico { width: 11px; height: 11px; stroke-width: 2.4; }
+  .gl-act { background: var(--color-act-chip); color: var(--color-act-glyph); }
+  .gl-dec { background: var(--color-dec-chip); color: var(--color-dec-glyph); }
+  .gl-ask { background: var(--color-ask-chip); color: var(--color-ask-glyph); }
+  .gl-cyc { background: var(--color-sunk); color: var(--color-muted); }
+  .orow { display: block; padding: 7px 8px 8px; border-radius: 9px; }
+  .orow:hover { background: oklch(0.42 0.05 290 / .04); }
+  .orow-t { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; font-weight: 500; line-height: 1.35; color: var(--color-ink); }
+  .orow-t .ts { margin-top: 2px; }
+  .orow-m { margin-top: 5px; display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--color-muted); }
+  .orow-m.ind { padding-left: 22px; }
+  .orow-m .st { margin-left: auto; top: 0; }
+  .orow.is-typing { outline: 1px dashed var(--color-act-line); outline-offset: -1px; }
+  .orow.is-typing .orow-t { color: var(--color-muted); }
+  .sdot { width: 3px; height: 3px; border-radius: 99px; background: #c9c3d4; flex: none; }
+  .due { font-weight: 500; color: var(--color-ink-2); white-space: nowrap; }
+  .due.over { color: var(--color-over); }
+  .dots { display: inline-flex; gap: 3px; margin-top: 7px; flex: none; }
+  .dots i { width: 4px; height: 4px; border-radius: 99px; background: var(--color-act-glyph); animation: dot 1.2s ease-in-out infinite; }
+  .dots i:nth-child(2) { animation-delay: .15s; }
+  .dots i:nth-child(3) { animation-delay: .3s; }
+
+  /* Estados de tarea */
+  .ts { position: relative; display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 99px; border: 1.5px solid #bdb7c8; }
+  .ts-prog { border-color: var(--color-mand); }
+  .ts-prog::after { content: ""; position: absolute; inset: 1.5px; border-radius: 99px; background: var(--color-mand); clip-path: inset(0 50% 0 0); }
+  .ts-done { border-color: var(--color-brand); background: var(--color-brand); color: var(--color-on-brand); display: inline-grid; place-items: center; }
+  .ts-done .ico { width: 9px; height: 9px; stroke-width: 3; }
+
+  .sug { margin: 6px 0 2px; padding: 10px 11px 11px; border-radius: 10px; background: var(--color-paper); border: 1px solid var(--color-line); }
+  .sug-h { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--color-brand-deep); }
+  .sug-q { margin-top: 5px; font-size: 12.5px; line-height: 1.5; color: var(--color-ink-2); }
+  .sug-a { margin-top: 9px; display: flex; gap: 6px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .pill .ico { width: 11px; height: 11px; stroke-width: 2.2; }
+  .pill-ok { background: var(--color-sel); color: var(--color-sel-ink); }
+  .pill-wait { background: var(--color-mand-tint); color: var(--color-mand-ink); }
+  .pill-over { background: oklch(0.96 0.025 22); color: var(--color-over); }
+
+  .out-foot { flex: none; padding: 12px 16px 14px; border-top: 1px solid var(--color-line); background: var(--color-panel); }
+  .will-h { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--color-ink-2); }
+  .will { margin: 7px 0 11px; display: flex; flex-direction: column; gap: 4px; }
+  .will li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--color-ink-2); }
+  .will li .ico { width: 14px; height: 14px; color: var(--color-brand); }
+  .will li .muted { margin-left: auto; font-size: 11px; color: var(--color-faint); }
+
+  /* Botones */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 8px; font-weight: 500; font-size: 12.5px; white-space: nowrap; transition: background-color .15s, border-color .15s, transform .12s; }
+  .btn:active { transform: translateY(.5px) scale(.99); }
+  .btn-out { background: var(--color-paper); border: 1px solid var(--color-line); color: var(--color-ink); }
+  .btn-out:hover { border-color: var(--color-lav); background: var(--color-mist); }
+  .btn-out .ico { color: var(--color-brand); }
+  .btn-ghost { color: var(--color-nav); }
+  .btn-ghost:hover { background: var(--color-sunk); color: var(--color-ink); }
+  .btn-pri { height: 40px; border-radius: 10px; background: var(--color-brand); color: var(--color-on-brand); font-weight: 600; font-size: 13.5px; box-shadow: inset 0 1px 0 oklch(0.99 0.006 295 / .16), 0 1px 2px oklch(0.3 0.15 285 / .3), 0 6px 16px -8px oklch(0.45 0.22 285 / .6); }
+  .btn-pri:hover { background: var(--color-brand-deep); }
+  .btn-xs { height: 26px; padding: 0 9px; font-size: 11.5px; border-radius: 7px; gap: 5px; }
+  .btn-xs .ico { width: 12px; height: 12px; }
+  .btn-icon { width: 32px; padding: 0; }
+
+  /* Preparar */
+  .prep { max-width: 760px; margin: 0 auto; padding: 22px 32px 48px; }
+  .eyebrow { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--color-brand-deep); }
+  .prep-title { margin-top: 6px; font: 600 20px/1.25 var(--font-brand); letter-spacing: -0.03em; color: var(--color-ink); }
+  .prep-sub { margin-top: 4px; font-size: 13px; color: var(--color-muted); max-width: 60ch; }
+  .agl { margin-top: 16px; }
+  .agi { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 14px; padding: 14px 0 15px; border-top: 1px solid var(--color-line-soft); }
+  .agi-time .t { display: block; font: 600 13px/1.3 var(--font-mono); color: var(--color-ink); }
+  .agi-time .d { display: block; margin-top: 2px; font-size: 11px; color: var(--color-faint); }
+  .agi-title { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; color: var(--color-ink); }
+  .agi-n { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; font: 600 10.5px/1 var(--font-mono); background: var(--color-mist); color: var(--color-brand); flex: none; }
+  .agi-why { margin-top: 4px; font-size: 14px; line-height: 1.55; color: var(--color-ink-2); max-width: 64ch; }
+  .agi-links { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tchip { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; height: 26px; padding: 0 8px 0 7px; border-radius: 7px; background: var(--color-paper); border: 1px solid var(--color-line); font-size: 12px; color: var(--color-ink); }
+  .tchip .tt { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .dchip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px 0 8px; border-radius: 7px; background: var(--color-dec-row); border: 1px solid oklch(0.92 0.03 182); color: var(--color-dec); font-size: 12px; font-weight: 500; }
+  .dchip .ico { width: 10px; height: 10px; color: var(--color-dec-glyph); }
+  .agi.is-free .agi-title { color: var(--color-muted); font-weight: 500; }
+  .left-out { margin-top: 18px; padding: 12px 14px; border-radius: 11px; background: var(--color-panel); border: 1px solid var(--color-line-soft); }
+  .left-out li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; padding: 6px 0; font-size: 12.5px; color: var(--color-ink-2); }
+  .left-out li + li { border-top: 1px solid var(--color-line-soft); }
+  .left-out .why { display: block; color: var(--color-muted); font-size: 12px; margin-top: 1px; }
+
+  /* Cerrar */
+  .cl { max-width: 740px; margin: 0 auto; padding: 20px 32px 48px; }
+  .cycle { display: grid; grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1.25fr) 18px minmax(0, 1fr); align-items: stretch; gap: 6px; }
+  .cy { min-width: 0; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--color-line-soft); background: var(--color-panel); }
+  .cy.now { background: var(--color-mist); border-color: #ddd3ff; }
+  .cy-t { display: block; font: 500 10.5px var(--font-mono); color: var(--color-faint); }
+  .cy-n { display: block; margin-top: 1px; font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--color-ink); }
+  .cy-s { display: block; margin-top: 2px; font-size: 11px; color: var(--color-muted); }
+  .cy-arrow { align-self: center; justify-self: center; color: var(--color-lav); }
+  .sum-h { font: 600 17px/1.3 var(--font-brand); letter-spacing: -0.025em; color: var(--color-ink); }
+  .sum { margin-top: 8px; font-size: 16px; line-height: 1.62; color: #26222f; max-width: 64ch; }
+  .sum p + p { margin-top: 10px; }
+  .src { margin-top: 12px; display: flex; align-items: flex-start; gap: 7px; font-size: 11.5px; line-height: 1.45; color: var(--color-muted); }
+  .src .ico { margin-top: 1px; color: var(--color-faint); }
+  .cl-sec { margin-top: 24px; }
+  .cl-h { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--color-line); font-size: 12.5px; font-weight: 600; color: var(--color-ink); }
+  .cl-h .dest { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 400; color: var(--color-muted); white-space: nowrap; }
+  .trow { display: grid; grid-template-columns: 16px 50px minmax(0, 1fr) 78px 56px 92px; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--color-line-soft); font-size: 12.5px; color: var(--color-ink); }
+  .trow .who { display: inline-flex; align-items: center; gap: 6px; color: var(--color-ink-2); }
+  .trow .r { color: var(--color-muted); }
+  .trow .st { margin-left: 0; top: 0; justify-self: start; }
+  .citem { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 9px 4px; border-bottom: 1px solid var(--color-line-soft); }
+  .citem .tx { font-size: 14px; line-height: 1.5; color: var(--color-ink); }
+  .citem .mt { margin-top: 2px; font-size: 11.5px; color: var(--color-muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+  .citem .gl { margin-top: 1px; }
+
+  .mail { margin: 2px 8px 0; border-radius: 12px; background: var(--color-paper); border: 1px solid var(--color-line); box-shadow: 0 1px 2px oklch(0.25 0.05 290 / .05); overflow: hidden; }
+  .mail-f { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 12px; border-bottom: 1px solid var(--color-line-soft); font-size: 12px; color: var(--color-ink); }
+  .mail-f .lbl { width: 40px; flex: none; color: var(--color-faint); }
+  .person { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px 0 3px; border-radius: 99px; background: var(--color-sunk); font-weight: 500; }
+  .mail-b { padding: 12px 14px 14px; font-size: 12.5px; line-height: 1.58; color: var(--color-ink); }
+  .mail-b p + p, .mail-b ul + p, .mail-b p + ul { margin-top: 8px; }
+  .mail-b li { position: relative; padding-left: 12px; }
+  .mail-b li + li { margin-top: 5px; }
+  .mail-b li::before { content: ""; position: absolute; left: 1px; top: .68em; width: 4px; height: 4px; border-radius: 99px; background: var(--color-lav); }
+  .mail-foot { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--color-line-soft); font-size: 11px; color: var(--color-faint); background: var(--color-panel); }
+  .chk { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; font-size: 12.5px; line-height: 1.4; color: var(--color-ink-2); }
+
+  .toast { position: fixed; left: 50%; bottom: 22px; z-index: 60; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; background: var(--color-ink); color: var(--color-on-brand); font-size: 12.5px; font-weight: 500; box-shadow: 0 12px 30px -10px oklch(0.2 0.05 290 / .5); animation: toastIn .26s cubic-bezier(.2, .7, .2, 1); }
+  .toast .ico { color: var(--color-lav); }
+  .dir { position: fixed; left: 12px; bottom: 12px; z-index: 50; padding: 5px 9px; border-radius: 7px; background: var(--color-ink); color: var(--color-on-brand); font: 500 11px/1.2 var(--font-sans); letter-spacing: .01em; box-shadow: 0 4px 12px -4px oklch(0.2 0.05 290 / .4); }
+  .dir b { font-family: var(--font-brand); font-weight: 600; color: var(--color-lav); }
+
+  @media (max-width: 1359px) {
+    .hide-narrow { display: none !important; }
+    .search { width: 300px; }
+  }
+}
+
+@keyframes ping { 0% { transform: scale(.6); opacity: .9; } 80%, 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes eq { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+@keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+@keyframes dot { 0%, 100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
+@keyframes viewIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.2 3.1a.5.5 0 0 0 .8-.4V8.3a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"/></symbol>
+    <symbol id="i-claude" viewBox="0 0 24 24"><path d="M12 3v5.5M12 15.5V21M3 12h5.5M15.5 12H21M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/></symbol>
+    <symbol id="i-dia" viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12Z" fill="currentColor" stroke="none"/></symbol>
+  </defs>
+</svg>
+
+<!-- Barra superior -->
+<header class="topbar">
+  <a class="brand" href="#" aria-label="Veltro, inicio">
+    <svg viewBox="0 0 64 64" width="24" height="24" aria-hidden="true">
+      <path d="M15 15 L32 49" fill="none" stroke="#b9a8ff" stroke-width="12" stroke-linecap="round"/>
+      <path d="M49 15 L32 49" fill="none" stroke="#f4f2fa" stroke-width="19" stroke-linecap="round"/>
+      <path d="M49 15 L32 49" fill="none" stroke="#6c47ff" stroke-width="12" stroke-linecap="round"/>
+    </svg>
+    Veltro
+  </a>
+
+  <div class="ws-switch" role="group" aria-label="Espacios del Consorcio Promoting">
+    <button class="ws-opt is-active" title="Promoting"><span class="mg md mg-p">P</span>Promoting<svg class="ico ico-xs" style="color:var(--color-faint)"><use href="#i-down"/></svg></button>
+    <button class="ws-opt" title="Trade Marketing"><span class="mg md mg-t">T</span></button>
+    <button class="ws-opt" title="Tech Ve"><span class="mg md mg-v">V</span></button>
+  </div>
+
+  <nav class="flex items-center gap-1" aria-label="Principal">
+    <a class="nav-a is-active" href="#" aria-current="page">Hoy</a>
+    <a class="nav-a" href="#" title="4 tareas tuyas para hoy o vencidas">Tareas <span class="cnt">4</span></a>
+    <a class="nav-a" href="#" title="Decisiones, documentos y sesiones de Claude">Memoria</a>
+  </nav>
+
+  <div class="ml-auto flex items-center gap-3">
+    <button class="search" aria-label="Buscar o preguntar">
+      <svg class="ico ico-sm"><use href="#i-search"/></svg>
+      <span class="q">Busca o pregunta: ¿qué quedó pendiente con Polar?</span>
+      <span class="kbd">⌘K</span>
+    </button>
+    <span class="clock">vie 9 oct · 10:40</span>
+    <span class="av av-cm" title="Cesar Montero">CM</span>
+  </div>
+</header>
+
+<div class="flex" style="height: calc(100vh - 48px)">
+
+  <!-- Tu día -->
+  <aside class="day scroll" aria-label="Tu día">
+    <div class="day-h">
+      <div class="flex items-baseline justify-between">
+        <h2>Tu día</h2>
+        <span class="muted" style="font-size:12px">viernes 9 de octubre</span>
+      </div>
+      <div class="muted" style="font-size:11.5px;margin-top:3px">4 reuniones · 2 h 15 min en total</div>
+    </div>
+
+    <div class="allday">
+      <svg class="ico ico-sm" style="color:var(--color-faint)"><use href="#i-cal"/></svg>
+      <div class="min-w-0"><span class="lbl block">Todo el día</span>Entrega de reportes semanales</div>
+    </div>
+
+    <ol class="strip">
+      <li class="blk is-done">
+        <div class="blk-top"><span class="blk-time">09:30 a 09:45</span><span class="mg mg-p">P</span></div>
+        <div class="blk-title">Daily Promoting</div>
+        <div class="blk-foot">
+          <span class="tokmini act"><svg class="ico ico-xs"><use href="#i-arrow"/></svg>3 acciones</span>
+          <span class="inline-flex items-center gap-1"><svg class="ico ico-xs" style="color:var(--color-brand)"><use href="#i-check"/></svg>Cerrada</span>
+        </div>
+      </li>
+
+      <li class="blk is-live" aria-current="true">
+        <div class="blk-top"><span class="blk-time">10:30 a 11:15</span><span class="live-tag"><span class="live-dot"></span>En vivo</span></div>
+        <div class="blk-title">Revisión rápida de pendientes</div>
+        <div class="blk-meta">Cesar, Ana · Google Meet</div>
+        <div class="blk-prog"><span style="width:22%"></span></div>
+      </li>
+
+      <li class="gapr">2 h 45 libres<button type="button" title="Reservar este hueco para trabajar en PRO-1, que vence hoy">Foco en PRO-1</button></li>
+
+      <li class="blk">
+        <div class="blk-top"><span class="blk-time">14:00 a 14:45</span><span class="mg mg-v">V</span></div>
+        <div class="blk-title">Retro del sprint Tech Ve</div>
+        <div class="blk-foot">
+          <span class="phase-chip"><svg class="ico ico-xs"><use href="#i-list"/></svg>Preparar</span>
+          <span>agenda lista</span>
+        </div>
+      </li>
+
+      <li class="blk">
+        <div class="blk-top"><span class="blk-time">16:00 a 16:30</span><span class="mg mg-v">V</span></div>
+        <div class="blk-title">Sync con Diego: integración de calendario</div>
+        <div class="blk-foot"><span>Agenda de Claude a las 15:30</span></div>
+      </li>
+    </ol>
+
+    <div class="pend">
+      <div class="pend-h">Pendiente de cerrar <span class="n">3</span></div>
+      <ul>
+        <li class="pend-i">
+          <span class="mg mg-v">V</span>
+          <div>
+            <div class="pend-t">Demo Tech Ve: dashboard de campañas</div>
+            <div class="pend-s"><span class="flag"><svg class="ico ico-xs"><use href="#i-alert"/></svg>1 acción sin responsable</span><span>· mié</span></div>
+          </div>
+        </li>
+        <li class="pend-i">
+          <span class="mg mg-p">P</span>
+          <div>
+            <div class="pend-t">Kickoff promociones Q4</div>
+            <div class="pend-s"><span>Seguimiento sin enviar</span><span>· ayer</span></div>
+          </div>
+        </li>
+        <li class="pend-i">
+          <span class="mg mg-p">P</span>
+          <div>
+            <div class="pend-t">Almuerzo con proveedor de material POP</div>
+            <div class="pend-s"><span>Sin notas ni acciones</span><span>· ayer</span></div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Sala de la reunión -->
+  <main class="room flex-1 min-w-0 flex flex-col">
+    <section class="band" aria-label="Reunión en curso">
+      <div class="flex items-center gap-3">
+        <span class="mg lg mg-p" title="Promoting">P</span>
+        <div class="min-w-0 flex-1">
+          <h1 class="mtg-title">Revisión rápida de pendientes</h1>
+          <div class="mtg-meta">Hoy, 10:30 a 11:15 · Promoting · sigue al <a href="#">Daily de las 09:30</a></div>
+        </div>
+        <div class="flex items-center gap-3 flex-none">
+          <div class="flex items-center gap-2">
+            <div class="flex -space-x-1.5"><span class="av av-cm av-ring" title="Cesar Montero">CM</span><span class="av av-ad av-ring" title="Ana Díaz">AD</span></div>
+            <span class="hide-narrow" style="font-size:12px;color:var(--color-ink-2)">Cesar y Ana</span>
+          </div>
+          <span class="vsep"></span>
+          <span class="listen" title="Claude recibe la transcripción de Meet"><span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Transcribiendo</span>
+          <span class="timer">
+            <svg viewBox="0 0 20 20" width="18" height="18" style="transform:rotate(-90deg)" aria-hidden="true">
+              <circle class="tmr-track" cx="10" cy="10" r="8"/>
+              <circle class="tmr-fill" cx="10" cy="10" r="8" stroke-dasharray="50.27" stroke-dashoffset="39.1"/>
+            </svg>
+            <span><b>35 min</b> restantes</span>
+          </span>
+          <button class="btn btn-out"><svg class="ico ico-sm"><use href="#i-video"/></svg>Volver a Meet</button>
+          <button class="btn btn-ghost btn-icon" aria-label="Más opciones"><svg class="ico"><use href="#i-more"/></svg></button>
+        </div>
+      </div>
+
+      <div class="phasebar" role="tablist" aria-label="Fases de la reunión">
+        <button class="phase is-done" data-phase-btn="preparar" role="tab" aria-selected="false">
+          <span class="phase-mark"><svg class="ico ico-xs" style="stroke-width:2.6"><use href="#i-check"/></svg></span>
+          <span class="phase-txt"><span class="phase-name">Preparar</span><span class="phase-sub">Agenda enviada a Ana · 10:20</span></span>
+        </button>
+        <svg class="ico ico-sm phase-arrow"><use href="#i-chev"/></svg>
+        <button class="phase is-live is-active" data-phase-btn="vivo" role="tab" aria-selected="true">
+          <span class="phase-mark"><span class="live-dot"></span></span>
+          <span class="phase-txt"><span class="phase-name">En vivo</span><span class="phase-sub">Punto 3 de 4 · Propuesta a Polar</span></span>
+          <span class="phase-time" aria-label="10 de 45 minutos">10:30<span class="phase-track"><span></span></span>11:15</span>
+        </button>
+        <svg class="ico ico-sm phase-arrow"><use href="#i-chev"/></svg>
+        <button class="phase" data-phase-btn="cerrar" role="tab" aria-selected="false">
+          <span class="phase-mark num">3</span>
+          <span class="phase-txt"><span class="phase-name">Cerrar</span><span class="phase-sub">Resumen, tareas y seguimiento</span></span>
+        </button>
+      </div>
+    </section>
+
+    <div class="flex-1 min-h-0 flex">
+      <!-- Centro -->
+      <section class="flex-1 min-w-0 flex flex-col" aria-label="Lienzo de la reunión">
+
+        <!-- PREPARAR -->
+        <div class="pane scroll overflow-y-auto" data-view="preparar" hidden>
+          <div class="prep">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="eyebrow"><svg class="ico ico-sm"><use href="#i-claude"/></svg>Claude armó esta agenda a las 10:15</div>
+                <h2 class="prep-title">Agenda sugerida</h2>
+                <p class="prep-sub">Con las tareas abiertas de Cesar y Ana, los 2 pendientes del Daily y 3 decisiones de esta semana.</p>
+              </div>
+              <div class="flex items-center gap-1.5 flex-none">
+                <span class="pill pill-ok"><svg class="ico"><use href="#i-check"/></svg>Enviada a Ana · 10:20</span>
+                <button class="btn btn-xs btn-ghost"><svg class="ico"><use href="#i-refresh"/></svg>Regenerar</button>
+              </div>
+            </div>
+
+            <ol class="agl">
+              <li class="agi">
+                <div class="agi-time"><span class="t">10:30</span><span class="d">5 min</span></div>
+                <div class="min-w-0">
+                  <div class="agi-title"><span class="agi-n">1</span>Presupuesto de material POP</div>
+                  <p class="agi-why">Viene del Daily y lleva 2 días vencida. Tiene que respetar el tope que se decidió en el kickoff del jueves.</p>
+                  <div class="agi-links">
+                    <span class="tchip"><span class="ts"></span><span class="r" style="color:var(--color-muted)">PRO-5</span><span class="tt">Cerrar presupuesto de material POP</span><span class="av av-ad xs">AD</span><span class="due over">vencida</span></span>
+                    <span class="dchip"><svg class="ico"><use href="#i-dia"/></svg>Tope de presupuesto POP: 4.500 USD</span>
+                  </div>
+                </div>
+              </li>
+              <li class="agi">
+                <div class="agi-time"><span class="t">10:35</span><span class="d">5 min</span></div>
+                <div class="min-w-0">
+                  <div class="agi-title"><span class="agi-n">2</span>Calendario de promociones Q4</div>
+                  <p class="agi-why">Ana lo entrega el martes y de esas fechas dependen las activaciones de las tres ciudades.</p>
+                  <div class="agi-links">
+                    <span class="tchip"><span class="ts ts-prog"></span><span class="r" style="color:var(--color-muted)">PRO-8</span><span class="tt">Definir calendario de promociones Q4</span><span class="av av-ad xs">AD</span><span class="due">mar 13</span></span>
+                    <span class="dchip"><svg class="ico"><use href="#i-dia"/></svg>Activaciones en Caracas, Valencia y Maracaibo</span>
+                  </div>
+                </div>
+              </li>
+              <li class="agi">
+                <div class="agi-time"><span class="t">10:40</span><span class="d">10 min</span></div>
+                <div class="min-w-0">
+                  <div class="agi-title"><span class="agi-n">3</span>Propuesta de activación a Polar</div>
+                  <p class="agi-why">Vence hoy y va 1 de 3 subtareas. Polar decide en noviembre si renueva, según los resultados de Q4.</p>
+                  <div class="agi-links">
+                    <span class="tchip"><span class="ts ts-prog"></span><span class="r" style="color:var(--color-muted)">PRO-1</span><span class="tt">Enviar propuesta de activación a Polar</span><span class="av av-cm xs">CM</span><span class="due">hoy · 1/3</span></span>
+                    <span class="dchip"><svg class="ico"><use href="#i-dia"/></svg>Polar evalúa renovar en noviembre</span>
+                  </div>
+                </div>
+              </li>
+              <li class="agi">
+                <div class="agi-time"><span class="t">10:50</span><span class="d">10 min</span></div>
+                <div class="min-w-0">
+                  <div class="agi-title"><span class="agi-n">4</span>Impulsadoras del fin de semana</div>
+                  <p class="agi-why">Pepito no está invitado. Revisar cómo va y decidir si se le escribe hoy, porque la activación es mañana.</p>
+                  <div class="agi-links">
+                    <span class="tchip"><span class="ts"></span><span class="r" style="color:var(--color-muted)">PRO-6</span><span class="tt">Confirmar logística de impulsadoras para el fin de semana</span><span class="av av-pp xs">PP</span><span class="due">mañana</span></span>
+                  </div>
+                </div>
+              </li>
+              <li class="agi is-free">
+                <div class="agi-time"><span class="t">11:00</span><span class="d">15 min</span></div>
+                <div class="min-w-0">
+                  <div class="agi-title">Margen para lo que surja</div>
+                </div>
+              </li>
+            </ol>
+
+            <div class="left-out">
+              <div class="eyebrow" style="color:var(--color-ink-2)"><svg class="ico ico-sm" style="color:var(--color-brand)"><use href="#i-claude"/></svg>Lo que Claude dejó fuera, y por qué</div>
+              <ul class="mt-2">
+                <li><span class="r" style="color:var(--color-muted)">TM-3</span><span>Negociar espacios en cabecera de góndola<span class="why">Es de Trade Marketing y está bloqueada. Va mejor en la próxima revisión con Polar.</span></span></li>
+                <li><span class="r" style="color:var(--color-muted)">TV-2</span><span>Integrar Google Calendar en Veltro<span class="why">Ya está en la agenda del Sync con Diego de las 16:00.</span></span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- EN VIVO -->
+        <div class="pane" data-view="vivo">
+          <div id="doc-scroll" class="flex-1 min-h-0 overflow-y-auto scroll">
+            <article class="doc">
+              <div class="doc-col">
+
+                <div class="ag is-done">
+                  <span class="ag-num">1</span>
+                  <div class="ag-main"><span class="ag-title">Presupuesto de material POP</span><span class="r" style="font-size:11px;color:var(--color-faint)">PRO-5</span><span class="ag-rule"></span><span class="ag-state"><svg class="ico ico-xs" style="color:var(--color-brand)"><use href="#i-check"/></svg>Tratado · 4 min</span></div>
+                </div>
+                <p>Ana trae dos cotizaciones: Gráficas Lara en 4.180 USD y Publicidad Andina en 4.950 USD, que se pasa del tope.</p>
+                <div class="cap cap-dec">
+                  <span class="tok"><span class="tok-g"><svg class="ico"><use href="#i-dia"/></svg></span>Decisión</span>
+                  <div class="cap-txt">Vamos con Gráficas Lara si sostiene el precio y entrega antes del 20 de octubre. <span class="st st-dec"><svg class="ico"><use href="#i-book"/></svg>Al registro</span></div>
+                </div>
+                <div class="cap cap-act">
+                  <span class="tok"><span class="tok-g"><svg class="ico"><use href="#i-arrow"/></svg></span>Acción</span>
+                  <div class="cap-txt"><span class="mention"><span class="av av-ad xs">AD</span>Ana</span> cerrar presupuesto POP <span class="when">hoy</span> (<span class="refdec" title="Decisión del Kickoff promociones Q4, jueves">tope 4.500 USD</span>) <span class="st st-upd"><span class="r">PRO-5</span> actualizada</span></div>
+                </div>
+
+                <div class="ag is-done">
+                  <span class="ag-num">2</span>
+                  <div class="ag-main"><span class="ag-title">Calendario de promociones Q4</span><span class="r" style="font-size:11px;color:var(--color-faint)">PRO-8</span><span class="ag-rule"></span><span class="ag-state"><svg class="ico ico-xs" style="color:var(--color-brand)"><use href="#i-check"/></svg>Tratado · 5 min</span></div>
+                </div>
+                <p>Farmatodo pidió adelantar su exhibición de fin de año. Locatel puede esperar a diciembre sin perder el espacio.</p>
+                <div class="cap cap-dec">
+                  <span class="tok"><span class="tok-g"><svg class="ico"><use href="#i-dia"/></svg></span>Decisión</span>
+                  <div class="cap-txt">Priorizar Farmatodo en noviembre. <span class="st st-dec"><svg class="ico"><use href="#i-book"/></svg>Al registro</span></div>
+                </div>
+                <div class="cap cap-act">
+                  <span class="tok"><span class="tok-g"><svg class="ico"><use href="#i-arrow"/></svg></span>Acción</span>
+                  <div class="cap-txt"><span class="mention"><span class="av av-ad xs">AD</span>Ana</span> pasar Locatel a la primera semana de diciembre <span class="when">mar 13</span> <span class="st st-new"><svg class="ico"><use href="#i-check"/></svg><span class="r">PRO-11</span> creada</span></div>
+                </div>
+                <div class="cap cap-ask">
+                  <span class="tok"><span class="tok-g">?</span>Pregunta</span>
+                  <div class="cap-txt">¿Polar acepta compartir la cabecera de góndola con otra marca en Farmatodo? <span class="st st-rel"><svg class="ico"><use href="#i-link"/></svg><span class="r">TM-3</span></span></div>
+                </div>
+
+                <div class="ag is-now">
+                  <span class="ag-num">3</span>
+                  <div class="ag-main"><span class="ag-title">Propuesta de activación a Polar</span><span class="r" style="font-size:11px;color:var(--color-faint)">PRO-1</span><span class="ag-rule"></span><span class="ag-state"><span class="live-dot"></span>Ahora, desde 10:39</span></div>
+                </div>
+                <p>Polar quiere ver las fotos de exhibiciones antes de la propuesta. Falta la subtarea de costos por ciudad<span class="peer-caret" aria-label="Ana está escribiendo"></span></p>
+                <div class="cap cap-act">
+                  <span class="tok"><span class="tok-g"><svg class="ico"><use href="#i-arrow"/></svg></span>Acción</span>
+                  <div class="cap-txt"><span class="mention"><span class="av av-cm xs">CM</span>Cesar</span> enviar la propuesta a Polar con las fechas de Farmatodo <span class="when">hoy</span> <span class="st st-upd"><svg class="ico"><use href="#i-link"/></svg><span class="r">PRO-1</span> vinculada</span></div>
+                </div>
+                <div class="cap cap-ask">
+                  <span class="tok"><span class="tok-g">?</span>Pregunta</span>
+                  <div class="cap-txt">¿Le mostramos a Polar los costos por ciudad o solo el total?</div>
+                </div>
+                <div class="cap cap-act is-typing">
+                  <span class="tok"><span class="tok-g"><svg class="ico"><use href="#i-arrow"/></svg></span>Acción</span>
+                  <div class="cap-txt">enviar a Polar las fotos de exhibiciones de esta semana <span class="draft">@Pe<span class="caret"></span><span class="ghost">pito Pérez</span></span>
+                    <div class="suggest">
+                      <span><span class="kbd">↵</span><b>Pepito Pérez</b> no está en la reunión, le llega el aviso</span>
+                      <span><span class="kbd">Tab</span>Vincular con <b class="r">TM-5</b> Enviar fotos de exhibiciones a cliente</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ag is-next">
+                  <span class="ag-num">4</span>
+                  <div class="ag-main"><span class="ag-title">Impulsadoras del fin de semana</span><span class="r" style="font-size:11px;color:var(--color-faint)">PRO-6</span><span class="ag-rule"></span><span class="ag-state">Siguiente · 10:50</span></div>
+                </div>
+
+              </div>
+            </article>
+          </div>
+          <div class="hintbar" aria-label="Atajos de captura">
+            <span class="hint"><span class="kbd">&lt;&gt;</span><svg class="ico g-dec"><use href="#i-dia"/></svg>Decisión</span>
+            <span class="hint"><span class="kbd">-&gt;</span><svg class="ico g-act"><use href="#i-arrow"/></svg>Acción</span>
+            <span class="hint"><span class="kbd">??</span><span class="g-ask">?</span>Pregunta</span>
+            <span class="hint"><span class="kbd">@</span>Responsable</span>
+            <span class="hint"><span class="kbd">/</span>Comandos</span>
+            <span class="saved hide-narrow">Guardado · Ana escribe contigo</span>
+          </div>
+        </div>
+
+        <!-- CERRAR -->
+        <div class="pane scroll overflow-y-auto" data-view="cerrar" hidden>
+          <div class="cl">
+            <div class="cycle" aria-label="Ciclo de reuniones enlazadas">
+              <div class="cy"><span class="cy-t">hoy · 09:30</span><span class="cy-n">Daily Promoting</span><span class="cy-s">3 acciones · cerrada</span></div>
+              <svg class="ico ico-sm cy-arrow"><use href="#i-arrow"/></svg>
+              <div class="cy now"><span class="cy-t">hoy · 10:30</span><span class="cy-n">Revisión rápida de pendientes</span><span class="cy-s">4 acciones · 2 decisiones</span></div>
+              <svg class="ico ico-sm cy-arrow"><use href="#i-arrow"/></svg>
+              <div class="cy"><span class="cy-t">lun 12 · 09:30</span><span class="cy-n">Daily Promoting</span><span class="cy-s">recibe 1 pregunta abierta</span></div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between gap-3">
+              <div>
+                <div class="eyebrow"><svg class="ico ico-sm"><use href="#i-claude"/></svg>Escrito por Claude</div>
+                <h2 class="sum-h mt-1">Resumen de la reunión</h2>
+              </div>
+              <div class="flex items-center gap-0.5">
+                <button class="btn btn-xs btn-ghost"><svg class="ico"><use href="#i-pencil"/></svg>Editar</button>
+                <button class="btn btn-xs btn-ghost">Más breve</button>
+                <button class="btn btn-xs btn-ghost"><svg class="ico"><use href="#i-refresh"/></svg>Regenerar</button>
+              </div>
+            </div>
+            <div class="sum">
+              <p>Revisamos los pendientes que venían del Daily. El presupuesto de material POP se cierra hoy con Gráficas Lara por 4.180 USD, dentro del tope de 4.500 USD del kickoff, siempre que entregue antes del 20 de octubre.</p>
+              <p>Farmatodo pasa a ser la prioridad de noviembre, así que las activaciones de Locatel se mueven a la primera semana de diciembre. La propuesta a Polar sale hoy con esas fechas y con las fotos de exhibiciones de esta semana.</p>
+              <p>Quedan dos preguntas abiertas: si Polar acepta compartir la cabecera de góndola en Farmatodo y cuánto detalle de costos le mostramos. El punto 4, impulsadoras del fin de semana, todavía no se ha tratado.</p>
+            </div>
+            <div class="src"><svg class="ico ico-sm"><use href="#i-file"/></svg><span>Borrador de las 10:40 con 11 notas de Cesar y Ana, 10 min de transcripción de Meet y el cierre del Daily. Se actualiza hasta que cierres.</span></div>
+
+            <section class="cl-sec">
+              <div class="cl-h"><span class="gl gl-act"><svg class="ico"><use href="#i-arrow"/></svg></span>Tareas<span class="n">4</span><span class="dest"><svg class="ico ico-xs"><use href="#i-users"/></svg>se asignan al cerrar</span></div>
+              <div class="trow"><span class="ts"></span><span class="r">PRO-5</span><span>Cerrar presupuesto de material POP</span><span class="who"><span class="av av-ad xs">AD</span>Ana</span><span class="due">hoy</span><span class="st st-upd">Actualizada</span></div>
+              <div class="trow"><span class="ts"></span><span class="r">PRO-11</span><span>Pasar Locatel a la primera semana de diciembre</span><span class="who"><span class="av av-ad xs">AD</span>Ana</span><span class="due">mar 13</span><span class="st st-new"><svg class="ico"><use href="#i-check"/></svg>Creada</span></div>
+              <div class="trow"><span class="ts ts-prog"></span><span class="r">PRO-1</span><span>Enviar propuesta de activación a Polar</span><span class="who"><span class="av av-cm xs">CM</span>Cesar</span><span class="due">hoy</span><span class="st st-upd">Actualizada</span></div>
+              <div class="trow"><span class="ts"></span><span class="r">TM-5</span><span>Enviar fotos de exhibiciones a cliente</span><span class="who"><span class="av av-pp xs">PP</span>Pepito</span><span class="due">mañana</span><span class="st st-upd"><svg class="ico"><use href="#i-link"/></svg>Vinculada</span></div>
+            </section>
+
+            <section class="cl-sec">
+              <div class="cl-h"><span class="gl gl-dec"><svg class="ico"><use href="#i-dia"/></svg></span>Decisiones<span class="n">2</span><span class="dest"><svg class="ico ico-xs"><use href="#i-book"/></svg>Registro de decisiones de Promoting</span></div>
+              <div class="citem"><span class="gl gl-dec"><svg class="ico"><use href="#i-dia"/></svg></span><span class="tx">Gráficas Lara, si sostiene el precio y entrega antes del 20 de octubre</span><span class="mt">10:33</span></div>
+              <div class="citem"><span class="gl gl-dec"><svg class="ico"><use href="#i-dia"/></svg></span><span class="tx">Priorizar Farmatodo en noviembre</span><span class="mt">10:36 · mueve <span class="r">PRO-8</span></span></div>
+            </section>
+
+            <section class="cl-sec">
+              <div class="cl-h"><span class="gl gl-ask">?</span>Preguntas abiertas<span class="n">2</span><span class="dest">cada una pasa a su próximo lugar</span></div>
+              <div class="citem"><span class="gl gl-ask">?</span><span class="tx">¿Polar acepta compartir la cabecera de góndola con otra marca en Farmatodo?</span><span class="mt"><svg class="ico ico-xs"><use href="#i-link"/></svg>a <span class="r">TM-3</span></span></div>
+              <div class="citem"><span class="gl gl-ask">?</span><span class="tx">¿Le mostramos a Polar los costos por ciudad o solo el total?</span><span class="mt"><svg class="ico ico-xs"><use href="#i-cal"/></svg>Daily lun 12</span></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel derecho -->
+      <aside class="out" aria-label="Salida de la reunión">
+
+        <!-- PREPARAR: Entrada -->
+        <div class="pane" data-view="preparar" hidden>
+          <div class="out-head">
+            <div>
+              <h2>Entrada</h2>
+              <p class="out-sub">Lo que Claude usó para preparar</p>
+            </div>
+          </div>
+          <div class="out-scroll scroll">
+            <section class="og">
+              <header class="og-h"><span class="gl gl-cyc"><svg class="ico"><use href="#i-refresh"/></svg></span>Del ciclo anterior<span class="og-hint">Daily · 09:30</span></header>
+              <div class="orow">
+                <div class="orow-t"><span class="ts"></span><span><span class="r" style="color:var(--color-muted)">PRO-5</span> Cerrar presupuesto de material POP</span></div>
+                <div class="orow-m ind"><span class="av av-ad xs">AD</span>Ana<span class="sdot"></span><span class="due over">vencida hace 2 días</span></div>
+              </div>
+              <div class="orow">
+                <div class="orow-t"><span class="ts"></span><span><span class="r" style="color:var(--color-muted)">PRO-6</span> Confirmar logística de impulsadoras para el fin de semana</span></div>
+                <div class="orow-m ind"><span class="av av-pp xs">PP</span>Pepito<span class="sdot"></span><span class="due">mañana</span></div>
+              </div>
+              <div class="orow">
+                <div class="orow-t" style="color:var(--color-muted)"><span class="ts ts-done"><svg class="ico"><use href="#i-check"/></svg></span><span><span class="r">PRO-7</span> Compartir el manual con las impulsadoras</span></div>
+                <div class="orow-m ind"><span class="av av-pp xs">PP</span>Pepito<span class="sdot"></span>hecha a las 10:05</div>
+              </div>
+            </section>
+            <section class="og">
+              <header class="og-h"><span class="gl gl-dec"><svg class="ico"><use href="#i-dia"/></svg></span>Decisiones que aplican<span class="og-hint">3</span></header>
+              <div class="orow">
+                <div class="orow-t">Tope de presupuesto POP: 4.500 USD</div>
+                <div class="orow-m"><span class="mg mg-p">P</span>Kickoff promociones Q4 · jueves</div>
+              </div>
+              <div class="orow">
+                <div class="orow-t">Activaciones en Caracas, Valencia y Maracaibo</div>
+                <div class="orow-m"><span class="mg mg-p">P</span>Kickoff promociones Q4 · jueves</div>
+              </div>
+              <div class="orow">
+                <div class="orow-t">Polar evalúa renovar el contrato en noviembre según resultados de Q4</div>
+                <div class="orow-m"><span class="mg mg-t">T</span>Revisión de campaña con Polar · martes</div>
+              </div>
+            </section>
+            <section class="og">
+              <header class="og-h"><span class="gl gl-cyc"><svg class="ico"><use href="#i-file"/></svg></span>Documentos<span class="og-hint">2</span></header>
+              <div class="orow">
+                <div class="orow-t">Brief: promociones Q4</div>
+                <div class="orow-m"><span class="av av-ad xs">AD</span>Ana · hace 5 h</div>
+              </div>
+              <div class="orow">
+                <div class="orow-t">Notas: Revisión de campaña con Polar</div>
+                <div class="orow-m"><span class="mg mg-t">T</span>Lucía · martes</div>
+              </div>
+            </section>
+          </div>
+          <div class="out-foot">
+            <p class="muted" style="font-size:12px;margin-bottom:10px">Ana abrió la agenda a las 10:24. La reunión empezó a las 10:30.</p>
+            <button class="btn btn-pri w-full" data-goto="vivo"><span class="live-dot"></span>Volver a En vivo</button>
+          </div>
+        </div>
+
+        <!-- EN VIVO: Salida -->
+        <div class="pane" data-view="vivo">
+          <div class="out-head">
+            <div>
+              <div class="flex items-center gap-2"><h2>Salida</h2><span class="livepill"><span class="live-dot"></span>en vivo</span></div>
+              <p class="out-sub">Se arma sola con tus notas</p>
+            </div>
+            <div class="tally" aria-label="3 acciones, 2 decisiones, 2 preguntas">
+              <span class="t-act"><svg class="ico"><use href="#i-arrow"/></svg>3</span>
+              <span class="t-dec"><svg class="ico"><use href="#i-dia"/></svg>2</span>
+              <span class="t-ask">?&nbsp;2</span>
+            </div>
+          </div>
+          <div class="out-scroll scroll">
+            <section class="og">
+              <header class="og-h"><span class="gl gl-act"><svg class="ico"><use href="#i-arrow"/></svg></span>Acciones<span class="og-hint">se vuelven tareas</span></header>
+              <div class="orow">
+                <div class="orow-t"><span class="ts"></span><span>Cerrar presupuesto de material POP</span></div>
+                <div class="orow-m ind"><span class="av av-ad xs">AD</span>Ana<span class="sdot"></span><span class="due">hoy</span><span class="st st-upd"><span class="r">PRO-5</span> actualizada</span></div>
+              </div>
+              <div class="orow">
+                <div class="orow-t"><span class="ts"></span><span>Pasar Locatel a la primera semana de diciembre</span></div>
+                <div class="orow-m ind"><span class="av av-ad xs">AD</span>Ana<span class="sdot"></span><span class="due">mar 13</span><span class="st st-new"><svg class="ico"><use href="#i-check"/></svg><span class="r">PRO-11</span> creada</span></div>
+              </div>
+              <div class="orow">
+                <div class="orow-t"><span class="ts ts-prog"></span><span>Enviar propuesta de activación a Polar</span></div>
+                <div class="orow-m ind"><span class="av av-cm xs">CM</span>Cesar<span class="sdot"></span><span class="due">hoy</span><span class="st st-upd"><svg class="ico"><use href="#i-link"/></svg><span class="r">PRO-1</span> vinculada</span></div>
+              </div>
+              <div class="orow is-typing">
+                <div class="orow-t"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Enviar a Polar las fotos de exhibiciones</span></div>
+                <div class="orow-m ind"><span>Cesar escribe · @Pe</span><span class="st st-rel">¿Es <span class="r">TM-5</span>?</span></div>
+              </div>
+              <div class="sug">
+                <div class="sug-h"><svg class="ico ico-sm"><use href="#i-claude"/></svg>Claude, desde la transcripción</div>
+                <p class="sug-q">Ana, a las 10:34: «Gráficas Lara pide el 50 % de anticipo para reservar la imprenta». No está en las notas.</p>
+                <div class="sug-a">
+                  <button class="btn btn-xs btn-out"><svg class="ico"><use href="#i-plus"/></svg>Acción para Ana, lun 12</button>
+                  <button class="btn btn-xs btn-ghost">Descartar</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="og">
+              <header class="og-h"><span class="gl gl-dec"><svg class="ico"><use href="#i-dia"/></svg></span>Decisiones<span class="og-hint">al registro de Promoting</span></header>
+              <div class="orow">
+                <div class="orow-t">Gráficas Lara, si sostiene el precio y entrega antes del 20 de octubre</div>
+                <div class="orow-m">10:33 · dentro del tope de 4.500 USD</div>
+              </div>
+              <div class="orow">
+                <div class="orow-t">Priorizar Farmatodo en noviembre</div>
+                <div class="orow-m">10:36 · mueve fechas de <span class="r">PRO-8</span></div>
+              </div>
+            </section>
+
+            <section class="og">
+              <header class="og-h"><span class="gl gl-ask">?</span>Preguntas<span class="og-hint">abiertas</span></header>
+              <div class="orow">
+                <div class="orow-t">¿Polar acepta compartir la cabecera de góndola con otra marca en Farmatodo?</div>
+                <div class="orow-m">Ligada a <span class="r">TM-3</span>, que está bloqueada</div>
+              </div>
+              <div class="orow">
+                <div class="orow-t">¿Le mostramos a Polar los costos por ciudad o solo el total?</div>
+                <div class="orow-m">Sin responder · pasa al Daily del lunes</div>
+              </div>
+            </section>
+
+            <section class="og">
+              <header class="og-h"><span class="gl gl-cyc"><svg class="ico"><use href="#i-refresh"/></svg></span>Del ciclo anterior<span class="og-hint">Daily 09:30 · 2 de 3 abiertas</span></header>
+              <div class="orow">
+                <div class="orow-t"><span class="ts"></span><span><span class="r" style="color:var(--color-muted)">PRO-5</span> Cerrar presupuesto de material POP</span></div>
+                <div class="orow-m ind"><span class="av av-ad xs">AD</span>Ana<span class="pill pill-ok ml-auto"><svg class="ico"><use href="#i-check"/></svg>Tratada, cierra hoy</span></div>
+              </div>
+              <div class="orow">
+                <div class="orow-t"><span class="ts"></span><span><span class="r" style="color:var(--color-muted)">PRO-6</span> Confirmar logística de impulsadoras</span></div>
+                <div class="orow-m ind"><span class="av av-pp xs">PP</span>Pepito<span class="sdot"></span>mañana<span class="pill pill-wait ml-auto">En agenda, punto 4</span></div>
+              </div>
+            </section>
+          </div>
+          <div class="out-foot">
+            <div class="will-h">Al cerrar, Claude:</div>
+            <ul class="will">
+              <li><svg class="ico"><use href="#i-file"/></svg>Escribe el resumen<span class="muted">notas y Meet</span></li>
+              <li><svg class="ico"><use href="#i-users"/></svg>Crea y asigna 4 tareas<span class="muted">1 nueva</span></li>
+              <li><svg class="ico"><use href="#i-mail"/></svg>Redacta el seguimiento<span class="muted">a Ana y Pepito</span></li>
+              <li><svg class="ico"><use href="#i-link"/></svg>Enlaza con el ciclo<span class="muted">Daily 09:30 y lunes</span></li>
+            </ul>
+            <button class="btn btn-pri w-full" data-goto="cerrar"><svg class="ico"><use href="#i-claude"/></svg>Cerrar con Claude<span class="kbd kbd-on">⌘↵</span></button>
+          </div>
+        </div>
+
+        <!-- CERRAR: Seguimiento -->
+        <div class="pane" data-view="cerrar" hidden>
+          <div class="out-head">
+            <div>
+              <h2>Seguimiento</h2>
+              <p class="out-sub">Borrador listo para enviar</p>
+            </div>
+            <span class="pill pill-ok"><svg class="ico"><use href="#i-check"/></svg>Listo</span>
+          </div>
+          <div class="out-scroll scroll">
+            <div class="mail">
+              <div class="mail-f"><span class="lbl">Para</span><span class="person"><span class="av av-ad xs">AD</span>Ana Díaz</span></div>
+              <div class="mail-f"><span class="lbl">CC</span><span class="person"><span class="av av-pp xs">PP</span>Pepito Pérez</span><span class="muted" style="font-size:11px">tiene 1 acción</span></div>
+              <div class="mail-f"><span class="lbl">Asunto</span><span style="font-weight:500">Acuerdos de la revisión de pendientes (vie 9 oct)</span></div>
+              <div class="mail-b">
+                <p>Hola Ana y Pepito:</p>
+                <p>Les dejo lo que quedó de la revisión de hoy.</p>
+                <ul>
+                  <li>Presupuesto POP: vamos con Gráficas Lara (4.180 USD) si entrega antes del 20. Ana lo cierra hoy.</li>
+                  <li>Farmatodo es la prioridad de noviembre. Ana pasa Locatel a la primera semana de diciembre.</li>
+                  <li>La propuesta a Polar sale hoy. Pepito, ¿nos mandas mañana las fotos de exhibiciones de esta semana?</li>
+                </ul>
+                <p>Las tareas ya están asignadas en Veltro, con enlace a las notas.</p>
+                <p>Cesar</p>
+              </div>
+              <div class="mail-foot"><svg class="ico ico-xs"><use href="#i-mail"/></svg>Sale desde tu Gmail</div>
+            </div>
+
+            <section class="og mt-2">
+              <header class="og-h">Al enviar también</header>
+              <div class="chk"><span class="ts ts-done"><svg class="ico"><use href="#i-check"/></svg></span>4 tareas asignadas en Promoting y Trade Marketing</div>
+              <div class="chk"><span class="ts ts-done"><svg class="ico"><use href="#i-check"/></svg></span>2 decisiones al registro de Promoting</div>
+              <div class="chk"><span class="ts ts-done"><svg class="ico"><use href="#i-check"/></svg></span>1 pregunta al Daily del lunes, 1 a TM-3</div>
+              <div class="chk"><span class="ts ts-done"><svg class="ico"><use href="#i-check"/></svg></span>Notas y transcripción guardadas en Memoria</div>
+            </section>
+          </div>
+          <div class="out-foot">
+            <button class="btn btn-pri w-full" id="send-close"><svg class="ico"><use href="#i-send"/></svg>Enviar y cerrar reunión</button>
+            <div class="flex items-center justify-between mt-2">
+              <button class="btn btn-xs btn-ghost" data-goto="vivo">Seguir en vivo</button>
+              <button class="btn btn-xs btn-ghost">Cerrar sin enviar</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div id="toast" class="toast" role="status" hidden><svg class="ico ico-sm"><use href="#i-check"/></svg>Reunión cerrada. Seguimiento enviado a Ana y Pepito.</div>
+<div class="dir">Dirección C · <b>Ciclo</b></div>
+
+<script>
+(function () {
+  var btns = document.querySelectorAll('[data-phase-btn]');
+  var views = document.querySelectorAll('[data-view]');
+  var doc = document.getElementById('doc-scroll');
+  var toast = document.getElementById('toast');
+  var toastTimer = null;
+
+  function followLive() {
+    if (doc) { doc.scrollTop = doc.scrollHeight; }
+  }
+
+  function setPhase(phase) {
+    btns.forEach(function (b) {
+      var on = b.getAttribute('data-phase-btn') === phase;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    views.forEach(function (v) {
+      var on = v.getAttribute('data-view') === phase;
+      v.hidden = !on;
+      v.classList.remove('view-in');
+      if (on) { void v.offsetWidth; v.classList.add('view-in'); }
+    });
+    if (phase === 'vivo') { requestAnimationFrame(followLive); }
+  }
+
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () { setPhase(b.getAttribute('data-phase-btn')); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function (el) {
+    el.addEventListener('click', function () { setPhase(el.getAttribute('data-goto')); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); setPhase('cerrar'); }
+  });
+
+  var send = document.getElementById('send-close');
+  if (send && toast) {
+    send.addEventListener('click', function () {
+      toast.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toast.hidden = true; }, 3200);
+    });
+  }
+
+  window.addEventListener('load', followLive);
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(followLive); }
+})();
+</script>
+</body>
+</html>

@@ -1,8 +1,14 @@
+import 'server-only'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Database } from './types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/database.types'
+import { DEMO } from '@/lib/demo/config'
+import { createServerDemoClient } from '@/lib/demo/server'
 
-export async function createClient() {
+/** Cliente con la sesión del usuario (RLS aplica). Server Components, Actions y Route Handlers. */
+export async function createClient(): Promise<SupabaseClient<Database>> {
+  if (DEMO) return createServerDemoClient() as unknown as SupabaseClient<Database>
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
@@ -13,14 +19,12 @@ export async function createClient() {
         getAll: () => cookieStore.getAll(),
         setAll: (cookiesToSet) => {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
           } catch {
-            /* Server Component — cookies may be read-only */
+            // Server Component: las cookies son de solo lectura; el middleware refresca la sesión.
           }
         },
       },
-    }
+    },
   )
 }
