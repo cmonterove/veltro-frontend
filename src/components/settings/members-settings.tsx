@@ -3,10 +3,12 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Check, ChevronDown, Copy, MoreHorizontal, UserPlus } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/switch'
 import { Avatar } from '@/components/ui/avatar'
 import { Field, Input } from '@/components/ui/input'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from '@/components/ui/dialog'
@@ -16,8 +18,9 @@ import { addMember, removeMember, setMemberWorkspaces, updateMemberRole } from '
 import { cn } from '@/lib/utils'
 import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
 import type { Member } from '@/lib/types'
-import { SettingsSection } from './section'
+import { SettingsHeader } from './ui'
 import { WorkspaceMark } from '@/components/app/marks'
+import { Select } from '@/components/ui/select'
 
 type Assignment = { workspace_id: string; user_id: string; role: WorkspaceRole }
 type Usage = { max_members: number | null; members_count: number } | null
@@ -37,29 +40,33 @@ export function MembersSettings({ assignments, usage }: { assignments: Assignmen
     return m
   }, [assignments])
 
+  const qc = useQueryClient()
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, success: string) =>
     start(async () => {
       const res = await fn()
       if (res.ok) {
         toast.success(success)
         router.refresh()
+        // las listas de asignables por espacio también cambian
+        qc.invalidateQueries({ queryKey: ['workspace-members'] })
       } else toast.error(te(res.error ?? 'generic'))
     })
 
   return (
     <div>
-      <SettingsSection
+      <SettingsHeader
         title={t('title')}
         description={usage?.max_members != null ? t('descriptionLimit', { used: usage.members_count, max: usage.max_members }) : t('description')}
-        action={
+        actions={
           <Button variant="primary" size="sm" onClick={() => setAddOpen(true)} disabled={full}>
             <UserPlus />
             {t('add')}
           </Button>
         }
-      >
+      />
+      <div>
         {full ? <p className="mb-4 rounded-md bg-warning-soft px-3 py-2 text-sm text-fg">{t('limitReached')}</p> : null}
-        <ul className="flex flex-col divide-y divide-line border-y border-line">
+        <ul className="flex flex-col divide-y divide-line-soft rounded-xl border border-line bg-panel">
           {members.map((m) => (
             <MemberRow
               key={m.id}
@@ -74,7 +81,7 @@ export function MembersSettings({ assignments, usage }: { assignments: Assignmen
             />
           ))}
         </ul>
-      </SettingsSection>
+      </div>
 
       <AddMemberDialog open={addOpen} onOpenChange={setAddOpen} canPromote={accountRole === 'owner'} onDone={() => router.refresh()} />
     </div>
@@ -107,7 +114,7 @@ function MemberRow({
   const editableRole = !isOwner && !isSelf && (canPromote || member.role !== 'admin')
 
   return (
-    <li className="flex flex-wrap items-center gap-3 py-3">
+    <li className="flex flex-wrap items-center gap-3 px-5 py-3">
       <Avatar name={member.full_name} src={member.avatar_url} seed={member.id} size={28} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-fg">
@@ -229,17 +236,12 @@ function WorkspaceAssignments({
                 <span className="truncate">{w.name}</span>
               </button>
               {role ? (
-                <select
+                <Select<WorkspaceRole>
                   value={role}
-                  onChange={(e) => setDraft(new Map(draft).set(w.id, e.target.value as WorkspaceRole))}
-                  className="h-6 rounded-sm border border-line bg-panel px-1 text-xs"
-                >
-                  {(['admin', 'editor', 'viewer'] as const).map((r) => (
-                    <option key={r} value={r}>
-                      {tRole(`ws_${r}`)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setDraft(new Map(draft).set(w.id, v))}
+                  options={(['admin', 'editor', 'viewer'] as const).map((r) => ({ value: r, label: tRole(`ws_${r}`) }))}
+                  className="h-7 w-28 px-2 text-xs"
+                />
               ) : null}
             </div>
           )
@@ -376,32 +378,25 @@ function AddMemberDialog({
                       return (
                         <div key={w.id} className="flex h-9 items-center gap-2 rounded-sm px-2 hover:bg-hover">
                           <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={Boolean(r)}
-                              onChange={(e) => {
+                              onCheckedChange={(on) => {
                                 const next = new Map(selected)
-                                if (e.target.checked) next.set(w.id, 'editor')
+                                if (on) next.set(w.id, 'editor')
                                 else next.delete(w.id)
                                 setSelected(next)
                               }}
-                              className="accent-[var(--accent)]"
                             />
                             <WorkspaceMark ws={w} size={16} />
                             <span className="truncate">{w.name}</span>
                           </label>
                           {r ? (
-                            <select
+                            <Select<WorkspaceRole>
                               value={r}
-                              onChange={(e) => setSelected(new Map(selected).set(w.id, e.target.value as WorkspaceRole))}
-                              className="h-6 rounded-sm border border-line bg-panel px-1 text-xs"
-                            >
-                              {(['admin', 'editor', 'viewer'] as const).map((x) => (
-                                <option key={x} value={x}>
-                                  {tRole(`ws_${x}`)}
-                                </option>
-                              ))}
-                            </select>
+                              onChange={(v) => setSelected(new Map(selected).set(w.id, v))}
+                              options={(['admin', 'editor', 'viewer'] as const).map((x) => ({ value: x, label: tRole(`ws_${x}`) }))}
+                              className="h-7 w-28 px-2 text-xs"
+                            />
                           ) : null}
                         </div>
                       )

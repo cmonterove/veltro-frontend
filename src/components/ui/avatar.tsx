@@ -43,3 +43,39 @@ export function Avatar({
     </span>
   )
 }
+
+/** Varias personas en poco espacio: caras superpuestas y "+N" si no entran. */
+export function AvatarStack({
+  people,
+  size = 20,
+  max = 3,
+  ring = 'canvas',
+  className,
+}: {
+  people: { id: string; full_name: string; avatar_url?: string | null }[]
+  size?: number
+  max?: number
+  /** color del fondo donde se dibuja, para separar las caras */
+  ring?: 'canvas' | 'panel' | 'sidebar'
+  className?: string
+}) {
+  if (!people.length) return null
+  const shown = people.slice(0, people.length > max ? max - 1 : max)
+  const extra = people.length - shown.length
+  const ringCls = ring === 'panel' ? 'ring-panel' : ring === 'sidebar' ? 'ring-sidebar' : 'ring-canvas'
+  return (
+    <span className={cn('flex shrink-0 items-center', className)} title={people.map((p) => p.full_name).join(', ')}>
+      {shown.map((p, i) => (
+        <Avatar key={p.id} name={p.full_name} src={p.avatar_url} seed={p.id} size={size} className={cn('ring-2', ringCls, i > 0 && '-ml-1.5')} />
+      ))}
+      {extra > 0 ? (
+        <span
+          className={cn('-ml-1.5 inline-flex shrink-0 items-center justify-center rounded-full bg-hover font-medium text-fg-muted ring-2', ringCls)}
+          style={{ width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.42)) }}
+        >
+          +{extra}
+        </span>
+      ) : null}
+    </span>
+  )
+}

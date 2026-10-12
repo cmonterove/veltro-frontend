@@ -1,5 +1,6 @@
 'use client'
 
+import { fileTitle } from '@/components/vault/file-visual'
 import Link from 'next/link'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
@@ -15,7 +16,7 @@ import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { useWorkspaceItems, useWorkspaceMeetings, type MeetingWithNotes } from '@/lib/queries/meetings'
 import { openAttachment, useAttachments } from '@/lib/queries/attachments'
 import { useDateLocale, dueInfo } from '@/lib/dates'
-import { useNow, useTaskPanel } from '@/lib/hooks'
+import { useNow } from '@/lib/hooks'
 import { TASK_STATUSES } from '@/lib/constants'
 import { cn, taskRef } from '@/lib/utils'
 import { meetingAgreements } from '@/lib/agreements'
@@ -26,6 +27,7 @@ import { StatusIcon } from '@/components/tasks/status-icon'
 import { SourceBadge } from '@/components/docs/source-badge'
 import { DocMark } from '@/components/app/marks'
 import { AttachmentIcon, formatBytes } from '@/components/attachments/attachments'
+import { useOpenTask } from '@/lib/use-open-task'
 
 /** Inicio del espacio: lo que viene, cómo va, qué se acordó y qué quedó guardado. */
 export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
@@ -257,7 +259,7 @@ function Health({ ws, tasks, loading, now }: { ws: WorkspaceWithRole; tasks: Tas
 function Agreements({ ws, items, meetings, tasks }: { ws: WorkspaceWithRole; items: MeetingItemRow[]; meetings: MeetingWithNotes[]; tasks: TaskRow[] }) {
   const t = useTranslations('workspace.overview')
   const locale = useDateLocale()
-  const { open } = useTaskPanel()
+  const { open } = useOpenTask()
   const meetingById = new Map(meetings.map((m) => [m.id, m]))
   const groups = meetingAgreements(items, tasks)
     .map((g) => ({ ...g, meeting: meetingById.get(g.meetingId) }))
@@ -420,7 +422,7 @@ function RecentFiles({ ws, tasks, meetings }: { ws: WorkspaceWithRole; tasks: Ta
                     <AttachmentIcon a={a} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-fg">{a.name}</span>
+                    <span className="block truncate text-sm text-fg">{fileTitle(a)}</span>
                     <span className="block truncate text-2xs text-fg-subtle">
                       {[origin, a.kind === 'file' ? formatBytes(a.size_bytes) : null].filter(Boolean).join(' · ')}
                     </span>

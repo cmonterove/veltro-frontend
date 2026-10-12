@@ -3,9 +3,11 @@
 
 export type Filter =
   | { op: 'eq' | 'neq'; col: string; value: unknown }
+  | { op: 'gt' | 'gte' | 'lt' | 'lte'; col: string; value: string | number }
   | { op: 'in'; col: string; value: unknown[] }
   | { op: 'is'; col: string; value: null | boolean }
   | { op: 'ilike'; col: string; value: string }
+  | { op: 'contains'; col: string; value: unknown[] }
   | { op: 'or'; expr: string }
 
 export type Query = {
@@ -81,8 +83,29 @@ export class DemoQueryBuilder implements PromiseLike<Result> {
     this.q.filters.push({ op: 'is', col, value })
     return this
   }
+  gt(col: string, value: string | number) {
+    this.q.filters.push({ op: 'gt', col, value })
+    return this
+  }
+  gte(col: string, value: string | number) {
+    this.q.filters.push({ op: 'gte', col, value })
+    return this
+  }
+  lt(col: string, value: string | number) {
+    this.q.filters.push({ op: 'lt', col, value })
+    return this
+  }
+  lte(col: string, value: string | number) {
+    this.q.filters.push({ op: 'lte', col, value })
+    return this
+  }
   ilike(col: string, value: string) {
     this.q.filters.push({ op: 'ilike', col, value })
+    return this
+  }
+  /** columna arreglo que contiene todos los valores (como `cs` de PostgREST) */
+  contains(col: string, value: unknown[]) {
+    this.q.filters.push({ op: 'contains', col, value })
     return this
   }
   or(expr: string) {

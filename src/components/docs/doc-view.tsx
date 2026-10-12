@@ -19,9 +19,12 @@ import {
   MoreHorizontal,
   Plus,
   Trash2,
+  MessageCircle,
 } from 'lucide-react'
 import { useApp, useMemberMap, canEdit } from '@/components/app/app-context'
 import { Button } from '@/components/ui/button'
+import { ShareToChatDialog } from '@/components/chat/share-to-chat'
+import { Tooltip } from '@/components/ui/tooltip'
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { Avatar } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,12 +39,13 @@ import type { WorkspaceWithRole } from '@/lib/types'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { DueDate } from '@/components/tasks/due-date'
 import { DocMark, WorkspaceMark } from '@/components/app/marks'
-import { useTaskPanel } from '@/lib/hooks'
 import { AttachmentsSection } from '@/components/attachments/attachments'
 import { ImportMarkdownDialog } from './import-markdown-dialog'
 import { useNewDoc, buildDocTree } from './doc-tree'
 import type { EditorChange } from './block-editor'
 import { inlineText, type LooseBlock } from '@/lib/blocks'
+import { useOpenTask } from '@/lib/use-open-task'
+import { useConfirm } from '@/components/ui/confirm'
 
 const BlockEditor = dynamic(() => import('./block-editor').then((m) => m.BlockEditor), {
   ssr: false,
@@ -71,6 +75,9 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
   const [title, setTitle] = useState(doc.title)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [importOpen, setImportOpen] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const confirm = useConfirm()
+  const tConfirm = useTranslations('confirm')
   const pending = useRef<Partial<DocRow> | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -178,6 +185,11 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
           <ClipboardCopy />
           {t('copyForClaude')}
         </Button>
+        <Tooltip content={t('shareInPasillo')}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setSharing(true)} aria-label={t('shareInPasillo')}>
+            <MessageCircle />
+          </Button>
+        </Tooltip>
 
         <Menu>
           <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('more')} />}>
@@ -201,14 +213,15 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
                 <MenuSeparator />
                 <MenuItem
                   danger
-                  onClick={() =>
+                  onClick={async () => {
+                    if (!(await confirm({ title: t('deleteConfirm', { title: title || t('untitled') }), description: t('deleteConfirmHint'), danger: true, confirmLabel: tConfirm('delete') }))) return
                     archive.mutate(doc.id, {
                       onSuccess: () => {
                         toast.success(t('deleted'))
                         router.push(doc.parent_id ? `/w/${workspace.slug}/docs/${doc.parent_id}` : `/w/${workspace.slug}/docs`)
                       },
                     })
-                  }
+                  }}
                 >
                   <Trash2 />
                   {t('delete')}
@@ -339,6 +352,7 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
           if (doc.source === 'manual' && mode === 'replace') save.mutate({ id: doc.id, patch: { source: 'import' } })
         }}
       />
+      <ShareToChatDialog open={sharing} onOpenChange={setSharing} item={{ kind: 'doc', refId: doc.id, title: title || t('untitled') }} />
     </div>
   )
 }
@@ -432,7 +446,7 @@ function DocTasks({
 }) {
   const t = useTranslations('docs')
   const { user } = useApp()
-  const { open } = useTaskPanel()
+  const { open } = useOpenTask()
   const { data: tasks } = useTasks({ kind: 'doc', docId: doc.id })
   const create = useCreateTask()
   const update = useUpdateTask()

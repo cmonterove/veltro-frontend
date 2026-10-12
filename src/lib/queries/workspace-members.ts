@@ -8,6 +8,11 @@ import type { Member } from '@/lib/types'
 
 /** Personas asignables en un espacio: miembros del espacio + admins de la cuenta. */
 export function useWorkspaceMembers(workspaceId: string | null | undefined): Member[] {
+  return useWorkspaceMembersState(workspaceId).members
+}
+
+/** Igual, pero dice si la lista ya cargó (mientras carga solo están los admins). */
+export function useWorkspaceMembersState(workspaceId: string | null | undefined): { members: Member[]; loaded: boolean } {
   const { members } = useApp()
   const { data } = useQuery({
     queryKey: ['workspace-members', workspaceId],
@@ -25,6 +30,6 @@ export function useWorkspaceMembers(workspaceId: string | null | undefined): Mem
 
   return useMemo(() => {
     const ids = new Set((data ?? []).map((r) => r.user_id))
-    return members.filter((m) => m.role === 'owner' || m.role === 'admin' || ids.has(m.id))
+    return { members: members.filter((m) => m.role === 'owner' || m.role === 'admin' || ids.has(m.id)), loaded: data !== undefined }
   }, [data, members])
 }

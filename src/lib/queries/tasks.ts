@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import type { Database, TaskRow } from '@/lib/database.types'
 import { toErrorCode } from '@/lib/errors'
+import { isAssignedTo } from '@/lib/assignees'
 
 export type TaskScope =
   | { kind: 'workspace'; workspaceId: string }
@@ -31,7 +32,7 @@ export function useTasks(scope: TaskScope | null, initialData?: TaskRow[]) {
       const supabase = createClient()
       let q = supabase.from('tasks').select(TASK_COLUMNS).is('parent_id', null)
       if (scope!.kind === 'workspace') q = q.eq('workspace_id', scope!.workspaceId)
-      if (scope!.kind === 'assignee') q = q.eq('assignee_id', scope!.userId).in('workspace_id', scope!.workspaceIds)
+      if (scope!.kind === 'assignee') q = q.contains('assignee_ids', [scope!.userId]).in('workspace_id', scope!.workspaceIds)
       if (scope!.kind === 'doc') q = q.eq('doc_id', scope!.docId)
       if (scope!.kind === 'meeting') q = q.eq('meeting_id', scope!.meetingId)
       if (scope!.kind === 'workspaces') q = q.in('workspace_id', scope!.workspaceIds)
@@ -61,7 +62,7 @@ function matchesScope(scope: TaskScope | { kind: 'parent'; parentId: string }, t
     case 'workspace':
       return t.workspace_id === scope.workspaceId && !t.parent_id
     case 'assignee':
-      return t.assignee_id === scope.userId && scope.workspaceIds.includes(t.workspace_id) && !t.parent_id
+      return isAssignedTo(t, scope.userId) && scope.workspaceIds.includes(t.workspace_id) && !t.parent_id
     case 'doc':
       return t.doc_id === scope.docId && !t.parent_id
     case 'meeting':
@@ -73,7 +74,7 @@ function matchesScope(scope: TaskScope | { kind: 'parent'; parentId: string }, t
   }
 }
 
-function findCachedTask(qc: QueryClient, id: string) {
+export function findCachedTask(qc: QueryClient, id: string) {
   for (const [, list] of qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })) {
     const hit = list?.find((t) => t.id === id)
     if (hit) return hit
@@ -122,7 +123,7 @@ export function useUpdateTask() {
     },
     onSettled: (_d, _e, { patch }) => {
       // Cambios que mueven la tarea entre listas: refrescar todas
-      if ('assignee_id' in patch || 'workspace_id' in patch || 'doc_id' in patch || 'meeting_id' in patch) {
+      if ('assignee_id' in patch || 'assignee_ids' in patch || 'workspace_id' in patch || 'doc_id' in patch || 'meeting_id' in patch) {
         qc.invalidateQueries({ queryKey: taskKeys.all })
       }
     },
@@ -154,29 +155,6 @@ export function useCreateTask() {
   })
 }
 
-export function useDeleteTask() {
-  const qc = useQueryClient()
-  const onError = useErrorToast()
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await createClient().from('tasks').delete().eq('id', id)
-      if (error) throw error
-      return id
-    },
-    onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: taskKeys.all })
-      const snapshot = qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })
-      qc.setQueriesData<TaskRow[]>({ queryKey: taskKeys.all }, (old) => old?.filter((t) => t.id !== id))
-      return { snapshot }
-    },
-    onError: (error, _id, ctx) => {
-      ctx?.snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
-      onError(error)
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
-  })
-}
-
 /**
  * Eliminar con "Deshacer": la tarea desaparece al instante y el borrado real ocurre a los 5 s,
  * salvo que la persona se arrepienta desde el aviso.
@@ -197,6 +175,9 @@ export function useDeleteTaskWithUndo() {
         onError(error)
       }
       qc.invalidateQueries({ queryKey: taskKeys.all })
+      // al borrar la tarea se borran sus adjuntos y comentarios: la bóveda y los contadores se ponen al día
+      qc.invalidateQueries({ queryKey: ['attachments'] })
+      qc.invalidateQueries({ queryKey: ['comments', task.id] })
     }, 5000)
     toast(t('deleted', { ref }), {
       duration: 5000,

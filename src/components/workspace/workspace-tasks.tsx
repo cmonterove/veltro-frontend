@@ -11,11 +11,12 @@ import { useLocalStorage } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { track } from '@/lib/telemetry'
 import type { TaskRow } from '@/lib/database.types'
-import { TaskGroupList, useStatusGroups } from '@/components/tasks/task-list'
+import { CollapseAllButton, TaskGroupList, useStatusGroups, type CollapsedGroups } from '@/components/tasks/task-list'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { TaskCalendar } from '@/components/tasks/task-calendar'
 import { TaskTable } from '@/components/tasks/task-table'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
+import { isAssignedTo } from '@/lib/assignees'
 
 type View = 'list' | 'table' | 'board' | 'calendar'
 
@@ -26,6 +27,7 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
   const editable = canEdit(ws)
   const { data: tasks = initialTasks } = useTasks({ kind: 'workspace', workspaceId }, initialTasks)
   const [view, setView] = useLocalStorage<View>(`veltro:tasks-view:${workspaceId}`, 'list')
+  const [collapsed, setCollapsed] = useLocalStorage<CollapsedGroups>(`veltro:tasks-collapsed:${workspaceId}`, {})
   const [mine, setMine] = useState(false)
   const [query, setQuery] = useState('')
   const [quickOpen, setQuickOpen] = useState(false)
@@ -34,7 +36,7 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
     const q = query.trim().toLowerCase()
     return tasks.filter(
       (x) =>
-        (!mine || x.assignee_id === user.id) &&
+        (!mine || isAssignedTo(x, user.id)) &&
         (!q || x.title.toLowerCase().includes(q) || x.labels.some((l) => l.toLowerCase().includes(q)) || String(x.number) === q),
     )
   }, [tasks, mine, query, user.id])
@@ -88,7 +90,12 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
           {t('onlyMine')}
         </button>
 
-        <div className="relative ml-auto flex items-center">
+        {view === 'list' ? (
+          <span className="ml-auto">
+            <CollapseAllButton groups={groups} collapsed={collapsed} onChange={setCollapsed} />
+          </span>
+        ) : null}
+        <div className={cn('relative flex items-center', view !== 'list' && 'ml-auto')}>
           <Search className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
           <input
             value={query}
@@ -128,6 +135,26 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
               }
             />
           </div>
+        ) : filtered.length === 0 ? (
+          // la búsqueda o "Solo mías" no dejan nada: se dice y se ofrece volver atrás
+          <div className="px-6">
+            <EmptyState
+              icon={<Search />}
+              title={t('noMatches')}
+              description={t('noMatchesHint')}
+              action={
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setQuery('')
+                    setMine(false)
+                  }}
+                >
+                  {t('clearFilter')}
+                </Button>
+              }
+            />
+          </div>
         ) : view === 'table' ? (
           <TaskTable tasks={filtered} workspaceId={workspaceId} />
         ) : view === 'board' ? (
@@ -135,7 +162,7 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
         ) : view === 'calendar' ? (
           <TaskCalendar tasks={filtered} workspaceId={workspaceId} editable={editable} />
         ) : (
-          <TaskGroupList groups={groups} />
+          <TaskGroupList groups={groups} collapsed={collapsed} onCollapsedChange={setCollapsed} />
         )}
       </div>
 

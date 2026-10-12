@@ -25,7 +25,10 @@ const TRAILING = /\s+(para el|para|el|antes del|antes de|for|by|on|pour|le|até|
 export type QuickParse = {
   title: string
   due: string | null
+  /** el primero de assigneeIds */
   assigneeId: string | null
+  /** todas las personas mencionadas con @, en orden */
+  assigneeIds: string[]
   priority: TaskPriority | null
   /** Texto reconocido de cada token, para mostrarlo como pista. */
   matched: { due?: string; assignee?: string; priority?: string }
@@ -40,20 +43,22 @@ export function parseQuickTask(
 ): QuickParse {
   let rest = ` ${text} `
   const matched: QuickParse['matched'] = {}
-  let assigneeId: string | null = null
+  const assigneeIds: string[] = []
   let priority: TaskPriority | null = null
 
-  // @persona: coincide con el inicio del nombre o del apellido
-  const mention = skip.assignee ? null : rest.match(/\s@([\p{L}][\p{L}.\-]*)/u)
-  if (mention) {
+  // @persona (una o varias): coincide con el inicio del nombre o del apellido
+  const mentions = skip.assignee ? [] : [...rest.matchAll(/\s@([\p{L}][\p{L}.\-]*)/gu)]
+  const said: string[] = []
+  for (const mention of mentions) {
     const q = norm(mention[1])
     const hits = members.filter((m) => norm(m.full_name).split(/\s+/).some((part) => part.startsWith(q)) || norm(m.full_name).replace(/\s+/g, '').startsWith(q))
     if (hits.length === 1) {
-      assigneeId = hits[0].id
-      matched.assignee = mention[0].trim()
+      if (!assigneeIds.includes(hits[0].id)) assigneeIds.push(hits[0].id)
+      said.push(mention[0].trim())
       rest = rest.replace(mention[0], ' ')
     }
   }
+  if (said.length) matched.assignee = said.join(' ')
 
   // !!! urgente, !! alta, o !palabra
   const bang = skip.priority ? null : rest.match(/\s(!{2,3})(?=\s)|\s!([\p{L}]+)(?=\s)/u)
@@ -73,5 +78,5 @@ export function parseQuickTask(
     rest = withoutDate.replace(TRAILING, '').trim()
   }
 
-  return { title: rest, due, assigneeId, priority, matched }
+  return { title: rest, due, assigneeId: assigneeIds[0] ?? null, assigneeIds, priority, matched }
 }

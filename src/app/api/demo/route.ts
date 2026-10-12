@@ -12,8 +12,12 @@ export async function POST(request: Request) {
     | { kind: 'upload'; path: string; dataUrl: string }
     | { kind: 'file'; path: string }
     | { kind: 'reset' }
+    | { kind: 'batch'; calls: ({ kind: 'query'; q: Query } | { kind: 'rpc'; name: string; args: Record<string, unknown> })[] }
 
   switch (body.kind) {
+    case 'batch':
+      // en orden: una escritura seguida de una lectura del mismo lote ve el cambio
+      return NextResponse.json(body.calls.map((c) => (c.kind === 'query' ? executeQuery(c.q) : executeRpc(c.name, c.args))))
     case 'query':
       return NextResponse.json(executeQuery(body.q))
     case 'rpc':

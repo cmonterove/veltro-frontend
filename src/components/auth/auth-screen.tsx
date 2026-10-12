@@ -75,13 +75,13 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
     <MotionConfig reducedMotion="user" transition={{ duration: 0.32, ease: EASE }}>
       <div className="grid min-h-dvh bg-canvas lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         {/* formulario */}
-        <section className="flex min-h-dvh flex-col px-6 py-6 sm:px-10">
+        <section className="flex min-h-dvh flex-col px-6 py-5 sm:px-10 short:py-4">
           <header className="flex items-center justify-between">
             <Logo />
             <LocaleSelect />
           </header>
 
-          <main className="flex flex-1 items-center justify-center py-10">
+          <main className="flex flex-1 items-center justify-center py-8 short:py-4">
             <div className="w-full max-w-[380px]">
               <AnimatePresence mode="wait" initial={false}>
                 {done ? (
@@ -111,7 +111,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                 ) : (
                   <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     {/* selector de modo */}
-                    <div className="relative mb-10 h-10">
+                    <div className="relative mb-8 h-10 short:mb-5">
                       <AnimatePresence initial={false} mode="popLayout">
                         {mode === 'reset' ? (
                           <motion.button
@@ -154,7 +154,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                     </div>
 
                     {/* título */}
-                    <div className="relative mb-8 min-h-[76px]">
+                    <div className="relative mb-7 min-h-[76px] short:mb-5 short:min-h-[60px]">
                       <AnimatePresence mode="popLayout" initial={false}>
                         <motion.div
                           key={mode}
@@ -162,8 +162,8 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                           exit={{ opacity: 0, y: -10, filter: 'blur(3px)' }}
                         >
-                          <h1 className="font-brand text-[30px] font-semibold leading-[1.1] tracking-[-0.035em]">{t(`${mode}.title`)}</h1>
-                          <p className="mt-2 text-[15px] leading-relaxed text-fg-muted">{t(`${mode}.subtitle`)}</p>
+                          <h1 className="font-brand text-[30px] font-semibold leading-[1.1] tracking-[-0.035em] short:text-[26px]">{t(`${mode}.title`)}</h1>
+                          <p className="mt-2 text-[15px] leading-relaxed text-fg-muted short:mt-1.5 short:text-sm">{t(`${mode}.subtitle`)}</p>
                         </motion.div>
                       </AnimatePresence>
                     </div>
@@ -172,7 +172,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                       {mode !== 'reset' ? (
                         <motion.div key="oauth" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                           <OAuthButtons next={next} onError={setOauthError} />
-                          <div className="my-6 flex items-center gap-3 text-xs text-fg-subtle">
+                          <div className="my-5 flex items-center gap-3 text-xs text-fg-subtle short:my-4">
                             <span className="h-px flex-1 bg-line" />
                             {t('oauth.divider')}
                             <span className="h-px flex-1 bg-line" />
@@ -306,7 +306,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                       <button
                         type="submit"
                         disabled={pending}
-                        className="group/submit relative mt-3 inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-xl bg-accent px-5 text-[15px] font-semibold text-accent-fg shadow-[0_8px_24px_-10px_var(--accent)] transition-[background-color,transform] duration-150 hover:bg-accent-hover active:scale-[0.99] disabled:opacity-80"
+                        className="group/submit relative mt-3 inline-flex h-12 short:h-11 items-center justify-center gap-2 overflow-hidden rounded-xl bg-accent px-5 text-[15px] font-semibold text-accent-fg shadow-[0_8px_24px_-10px_var(--accent)] transition-[background-color,transform] duration-150 hover:bg-accent-hover active:scale-[0.99] disabled:opacity-80"
                       >
                         <AnimatePresence mode="popLayout" initial={false}>
                           <motion.span key={`${mode}-${pending}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="inline-flex items-center gap-2">
@@ -318,14 +318,16 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                       </button>
                     </form>
 
-                    {DEMO ? <p className="mt-6 rounded-xl border border-dashed border-line-strong px-3.5 py-2.5 text-xs text-fg-muted">{t('demoHint')}</p> : null}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </main>
 
-          <footer className="text-xs text-fg-subtle">{t('footer', { year: new Date().getFullYear() })}</footer>
+          <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-fg-subtle">
+            <span>{t('footer', { year: new Date().getFullYear() })}</span>
+            {DEMO ? <span className="rounded-full border border-dashed border-line-strong px-3 py-1 text-fg-muted">{t('demoHint')}</span> : null}
+          </footer>
         </section>
 
         {/* historia del producto */}
@@ -336,12 +338,12 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
 }
 
 const inputCls =
-  'h-12 w-full rounded-xl border border-line bg-panel px-4 text-[15px] text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle hover:border-line-strong focus:border-accent focus:ring-4 focus:ring-accent/15'
+  'h-12 short:h-11 w-full rounded-xl border border-line bg-panel px-4 text-[15px] text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle hover:border-line-strong focus:border-accent focus:ring-4 focus:ring-accent/15'
 
 function FieldShell({ label, htmlFor, aside, children }: { label: string; htmlFor: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="pb-4">
-      <div className="mb-1.5 flex items-center justify-between">
+    <div className="pb-4 short:pb-3">
+      <div className="mb-1.5 flex items-center justify-between short:mb-1">
         <label htmlFor={htmlFor} className="text-sm font-medium text-fg">
           {label}
         </label>

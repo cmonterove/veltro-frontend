@@ -49,19 +49,17 @@ export function useMeetingsInRange(workspaceIds: string[], from: Date, to: Date)
     queryKey: ['meetings', 'range', workspaceIds, from.toISOString(), to.toISOString()],
     enabled: workspaceIds.length > 0,
     queryFn: async () => {
+      // el rango va en la consulta: traer las últimas N y filtrar acá dejaba vacíos los rangos pasados
       const { data, error } = await createClient()
         .from('meetings')
         .select('*')
         .in('workspace_id', workspaceIds)
+        .gte('starts_at', from.toISOString())
+        .lt('starts_at', to.toISOString())
         .order('starts_at', { ascending: false })
-        .limit(200)
+        .limit(500)
       if (error) throw error
-      const f = from.getTime()
-      const t = to.getTime()
-      return (data as MeetingRow[]).filter((m) => {
-        const s = new Date(m.starts_at).getTime()
-        return s >= f && s < t
-      })
+      return data as MeetingRow[]
     },
   })
 }
@@ -225,6 +223,8 @@ export function useMeetingItemMutations(meetingId: string) {
       if (ctx?.snapshot) qc.setQueryData(key, ctx.snapshot)
       onError(error)
     },
+    // los acuerdos de Pulso y del resumen del espacio también se enteran
+    onSettled: () => qc.invalidateQueries({ queryKey: ['meeting-items', 'ws'] }),
   })
 
   return { add, update, remove }

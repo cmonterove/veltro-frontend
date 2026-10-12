@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   experimental: {
     // El explorador de segmentos (solo dev) envuelve los layouts y desalineaba los useId de la barra lateral al hidratar.
     devtoolSegmentExplorer: false,
+    // Volver a una pantalla visitada hace poco es instantáneo: los datos viven en el cliente (React Query) y se
+    // revalidan solos; el servidor solo arma la estructura de la página.
+    staleTimes: { dynamic: 30, static: 180 },
   },
 }
 

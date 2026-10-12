@@ -7,6 +7,7 @@
 
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import type { MeetingItemRow, MeetingRow, TaskRow } from '@/lib/database.types'
+import { assigneesOf, isAssignedTo } from '@/lib/assignees'
 
 type T = (key: string, values?: Record<string, string | number>) => string
 
@@ -40,7 +41,7 @@ export function suggestAgenda(input: {
   const people = new Set(input.attendeeIds)
   for (const task of input.tasks) {
     if (task.status === 'done' || taken.has(task.id)) continue
-    if (people.size && task.assignee_id && !people.has(task.assignee_id)) continue
+    if (people.size && assigneesOf(task).length && !isAssignedTo(task, people)) continue
     const diff = task.due_date ? differenceInCalendarDays(parseISO(task.due_date), now) : null
     const reason: AgendaSuggestion['reason'] | null =
       task.status === 'blocked' ? 'blocked' : diff != null && diff < 0 ? 'overdue' : diff === 0 ? 'today' : task.status === 'in_progress' ? 'progress' : null
@@ -121,7 +122,7 @@ export function followUpEmail(input: {
   return lines.join('\n')
 }
 
-export type AnswerRef = { kind: 'task' | 'decision' | 'doc' | 'meeting'; id: string; label: string; href: string }
+export type AnswerRef = { kind: 'task' | 'decision' | 'doc' | 'meeting' | 'file'; id: string; label: string; href: string }
 
 const STOP = new Set(
   'que qué quedo quedó con de del la las el los un una y o en a por para sobre cual cuál como cómo hay esta está what the a of with on for is are pending pendiente pendientes'.split(' '),
@@ -143,6 +144,8 @@ export function answerQuestion(input: {
   decisions: (MeetingItemRow & { meetingTitle: string; href: string })[]
   docs: { id: string; title: string; content_text?: string; href: string }[]
   meetings: (Pick<MeetingRow, 'id' | 'title'> & { href: string })[]
+  /** archivos de la bóveda: título, nombre y etiquetas */
+  files?: { id: string; title: string; text: string; href: string }[]
   t: T
 }): { text: string; refs: AnswerRef[] } {
   const q = tokens(input.question)
@@ -171,12 +174,19 @@ export function answerQuestion(input: {
     .sort((a, b) => b.s - a.s)
     .slice(0, 2)
 
-  if (!openTasks.length && !decisions.length && !docs.length) return { text: input.t('ask.nothing'), refs: [] }
+  const files = (input.files ?? [])
+    .map((f) => ({ f, s: score(`${f.title} ${f.text}`) }))
+    .filter((x) => x.s > 0)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 3)
+
+  if (!openTasks.length && !decisions.length && !docs.length && !files.length) return { text: input.t('ask.nothing'), refs: [] }
 
   const parts: string[] = []
   if (openTasks.length) parts.push(input.t('ask.tasks', { count: openTasks.length, list: openTasks.map((x) => `${x.t.ref} ${x.t.title}`).join('; ') }))
   if (decisions.length) parts.push(input.t('ask.decisions', { list: decisions.map((x) => `«${x.d.text}»`).join(', ') }))
   if (!openTasks.length && docs.length) parts.push(input.t('ask.docs', { list: docs.map((x) => x.d.title).join(', ') }))
+  if (files.length) parts.push(input.t('ask.files', { count: files.length, list: files.map((x) => x.f.title).join(', ') }))
 
   return {
     text: parts.join(' '),
@@ -185,6 +195,7 @@ export function answerQuestion(input: {
       ...openTasks.map((x) => ({ kind: 'task' as const, id: x.t.id, label: x.t.ref, href: x.t.href })),
       ...decisions.map((x) => ({ kind: 'decision' as const, id: x.d.id, label: x.d.meetingTitle, href: x.d.href })),
       ...docs.map((x) => ({ kind: 'doc' as const, id: x.d.id, label: x.d.title, href: x.d.href })),
+      ...files.map((x) => ({ kind: 'file' as const, id: x.f.id, label: x.f.title, href: x.f.href })),
     ].filter((r, i, all) => all.findIndex((o) => o.kind === r.kind && (o.href ?? o.id) === (r.href ?? r.id) && o.label === r.label) === i),
   }
 }

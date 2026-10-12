@@ -46,8 +46,8 @@ export function AuthStory() {
   const phase = step >= 5 ? 2 : step >= 1 ? 1 : 0
 
   return (
-    <aside className="relative hidden overflow-hidden p-3 lg:block">
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] bg-accent px-12 pb-10 pt-14 text-accent-fg xl:px-16">
+    <aside className="relative hidden overflow-hidden p-3 lg:sticky lg:top-0 lg:block lg:h-dvh">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] bg-accent px-12 pb-10 pt-14 text-accent-fg xl:px-16 short:pb-7 short:pt-10">
         {/* textura: el isotipo enorme */}
         <svg viewBox="0 0 64 64" className="pointer-events-none absolute -bottom-40 -right-32 size-[720px] opacity-[0.16]" aria-hidden>
           <path d="M15 15 L32 49" fill="none" stroke="var(--logo-a)" strokeWidth="12" strokeLinecap="round" />
@@ -56,12 +56,12 @@ export function AuthStory() {
         </svg>
 
         <div className="relative max-w-[30rem]">
-          <p className="font-brand text-[40px] font-semibold leading-[1.05] tracking-[-0.04em] xl:text-[46px]">{t('tagline')}</p>
-          <p className="mt-4 max-w-[26rem] text-[15px] leading-relaxed text-accent-fg/75">{t('body')}</p>
+          <p className="font-brand text-[40px] font-semibold leading-[1.05] tracking-[-0.04em] xl:text-[46px] short:text-[34px] xl:short:text-[38px]">{t('tagline')}</p>
+          <p className="mt-4 max-w-[26rem] text-[15px] leading-relaxed text-accent-fg/75 short:mt-3">{t('body')}</p>
         </div>
 
         {/* escena: alturas fijas para que nada empuje el resto de la pantalla */}
-        <div className="relative mt-10 flex flex-1 items-center">
+        <div className="relative mt-10 flex flex-1 items-center short:mt-6">
           <LayoutGroup>
             <div className="grid w-full max-w-[34rem] gap-4">
               <div className="h-[276px] rounded-2xl bg-panel p-5 text-fg shadow-lift">
@@ -182,7 +182,7 @@ export function AuthStory() {
         </div>
 
         {/* pasos */}
-        <ol className="relative mt-10 flex gap-6 text-sm">
+        <ol className="relative mt-10 flex gap-6 text-sm short:mt-6">
           {(['meet', 'decide', 'advance'] as const).map((s, i) => (
             <li key={s} className={cn('flex items-center gap-2 transition-opacity duration-300', i === phase ? 'opacity-100' : 'opacity-50')}>
               <span className="relative h-1 w-8 overflow-hidden rounded-full bg-accent-fg/25">

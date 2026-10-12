@@ -53,7 +53,7 @@ export function OAuthButtons({ next, onError }: { next?: string; onError: (code:
           }}
           aria-label={t('continueWith', { provider: label })}
           className={cn(
-            'inline-flex h-12 items-center justify-center gap-2.5 rounded-xl border border-line bg-panel text-[15px] font-medium text-fg transition-[border-color,background-color,transform] duration-150 hover:border-line-strong hover:bg-hover active:scale-[0.99] disabled:opacity-70',
+            'inline-flex h-12 short:h-11 items-center justify-center gap-2.5 rounded-xl border border-line bg-panel text-[15px] font-medium text-fg transition-[border-color,background-color,transform] duration-150 hover:border-line-strong hover:bg-hover active:scale-[0.99] disabled:opacity-70',
           )}
         >
           {pending && active === id ? <Spinner className="size-4" /> : <Logo />}

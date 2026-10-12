@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { AttachmentRow } from '@/lib/database.types'
 import { toErrorCode } from '@/lib/errors'
 import { track } from '@/lib/telemetry'
+import { useApp } from '@/components/app/app-context'
 
 export type AttachmentScope =
   | { kind: 'task'; taskId: string }
@@ -15,11 +16,44 @@ export type AttachmentScope =
   | { kind: 'doc'; docId: string }
   | { kind: 'workspace'; workspaceId: string }
 
-export type AttachmentParent = { workspaceId: string; taskId?: string | null; meetingId?: string | null; docId?: string | null }
+/** Dónde cuelga lo que se sube. Sin nada, queda suelto en la bóveda de la cuenta. */
+export type AttachmentParent = {
+  workspaceId?: string | null
+  taskId?: string | null
+  meetingId?: string | null
+  docId?: string | null
+  /** subido en un chat: queda privado para sus miembros */
+  chatId?: string | null
+  title?: string | null
+  labels?: string[]
+}
 
 export const attachmentKeys = {
   all: ['attachments'] as const,
   scope: (scope: AttachmentScope) => ['attachments', scope] as const,
+  vault: (accountId: string, workspaceIds: string[]) => ['attachments', 'vault', accountId, workspaceIds] as const,
+}
+
+/** La bóveda: todos los archivos y links de la cuenta, cuelguen o no de un espacio. */
+export function useVaultFiles(enabled = true) {
+  const { account, user, workspaces, observedWorkspaces } = useApp()
+  const ids = useMemo(() => [...workspaces, ...observedWorkspaces].map((w) => w.id).sort(), [workspaces, observedWorkspaces])
+  return useQuery({
+    queryKey: attachmentKeys.vault(account.id, ids),
+    enabled,
+    queryFn: async () => {
+      const supabase = createClient()
+      const [files, mine] = await Promise.all([
+        supabase.from('attachments').select('*').order('created_at', { ascending: false }).limit(2000),
+        supabase.from('chat_members').select('chat_id').eq('user_id', user.id),
+      ])
+      if (files.error) throw files.error
+      const wsIds = new Set(ids)
+      const chats = new Set(((mine.data ?? []) as { chat_id: string }[]).map((m) => m.chat_id))
+      // de un espacio: si lo ves; suelto: si es de la cuenta y, si vino de un chat, si estás en ese chat
+      return (files.data as AttachmentRow[]).filter((a) => (a.workspace_id ? wsIds.has(a.workspace_id) : a.account_id === account.id && (!a.chat_id || chats.has(a.chat_id))))
+    },
+  })
 }
 
 export const MAX_FILE_BYTES = 20 * 1024 * 1024
@@ -69,29 +103,35 @@ export function useAttachmentMutations() {
   const qc = useQueryClient()
   const onError = useErrorToast()
   const t = useTranslations('attachments')
+  const { account } = useApp()
   const refresh = () => qc.invalidateQueries({ queryKey: attachmentKeys.all })
 
   const upload = useMutation({
-    mutationFn: async ({ parent, files }: { parent: AttachmentParent; files: File[] }) => {
+    /** `titles`: un título por archivo, en el mismo orden (si no, el de `parent`) */
+    mutationFn: async ({ parent, files, titles }: { parent: AttachmentParent; files: File[]; titles?: (string | null)[] }) => {
       const supabase = createClient()
       const rows: AttachmentRow[] = []
-      for (const file of files) {
+      for (const [i, file] of files.entries()) {
         if (file.size > MAX_FILE_BYTES) {
           toast.error(t('tooBig', { name: file.name }))
           continue
         }
-        const path = `${parent.workspaceId}/${crypto.randomUUID()}-${safeName(file.name)}`
+        const path = `${parent.workspaceId ?? account.id}/${crypto.randomUUID()}-${safeName(file.name)}`
         const { error: upErr } = await supabase.storage.from('attachments').upload(path, file, { contentType: file.type || undefined })
         if (upErr) throw upErr
         const { data, error } = await supabase
           .from('attachments')
           .insert({
-            workspace_id: parent.workspaceId,
+            account_id: account.id,
+            workspace_id: parent.workspaceId ?? null,
+            chat_id: parent.chatId ?? null,
             task_id: parent.taskId ?? null,
             meeting_id: parent.meetingId ?? null,
             doc_id: parent.docId ?? null,
             kind: 'file',
             name: file.name.slice(0, 300),
+            title: titles?.[i]?.trim() || parent.title || null,
+            labels: parent.labels ?? [],
             storage_path: path,
             mime_type: file.type || null,
             size_bytes: file.size,
@@ -116,10 +156,13 @@ export function useAttachmentMutations() {
       const { data, error } = await createClient()
         .from('attachments')
         .insert({
-          workspace_id: parent.workspaceId,
+          account_id: account.id,
+          workspace_id: parent.workspaceId ?? null,
           task_id: parent.taskId ?? null,
           meeting_id: parent.meetingId ?? null,
           doc_id: parent.docId ?? null,
+          title: parent.title ?? null,
+          labels: parent.labels ?? [],
           kind: 'link',
           name: (name?.trim() || new URL(href).hostname).slice(0, 300),
           url: href,
@@ -151,7 +194,25 @@ export function useAttachmentMutations() {
     },
   })
 
-  return { upload, addLink, remove }
+  /** Título, etiquetas y vínculos (espacio, tarea, reunión, doc). Se ve al instante y se confirma después. */
+  const update = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<AttachmentRow, 'title' | 'labels' | 'workspace_id' | 'task_id' | 'meeting_id' | 'doc_id' | 'name'>> }) => {
+      const { data, error } = await createClient().from('attachments').update(patch).eq('id', id).select('*').single()
+      if (error) throw error
+      return data as AttachmentRow
+    },
+    onMutate: async ({ id, patch }) => {
+      await qc.cancelQueries({ queryKey: attachmentKeys.all })
+      qc.setQueriesData<AttachmentRow[]>({ queryKey: attachmentKeys.all }, (old) => old?.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+    },
+    onError: (e) => {
+      onError(e)
+      refresh()
+    },
+    onSuccess: refresh,
+  })
+
+  return { upload, addLink, remove, update }
 }
 
 /** Abre un link o descarga un archivo (URL firmada de 5 minutos). */

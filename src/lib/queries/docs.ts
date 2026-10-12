@@ -55,6 +55,24 @@ export function useRecentDocs(workspaceIds: string[], limit = 8) {
   })
 }
 
+/** Todos los documentos (no archivados) de varios espacios, el último editado primero. */
+export function useDocsIn(workspaceIds: string[]) {
+  return useQuery({
+    queryKey: ['docs', 'in', workspaceIds],
+    enabled: workspaceIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await createClient()
+        .from('docs')
+        .select(DOC_SUMMARY_COLUMNS)
+        .in('workspace_id', workspaceIds)
+        .is('archived_at', null)
+        .order('updated_at', { ascending: false })
+      if (error) throw error
+      return data as DocSummary[]
+    },
+  })
+}
+
 export function useDoc(id: string, initialData?: DocRow) {
   return useQuery({
     queryKey: docKeys.one(id),
@@ -111,30 +129,9 @@ export function useSaveDoc() {
     },
     onSuccess: (summary, { id, patch }) => {
       qc.setQueryData<DocRow>(docKeys.one(id), (old) => (old ? { ...old, ...patch, updated_at: summary.updated_at } as DocRow : old))
-      qc.setQueryData<DocSummary[]>(docKeys.workspace(summary.workspace_id), (old) =>
-        old?.map((d) => (d.id === id ? summary : d)),
-      )
+      // todas las listas (espacio, Escritos de la bóveda, recientes de Pulso, tarjetas de chat)
+      qc.setQueriesData<DocSummary[]>({ queryKey: docKeys.all }, (old) => (Array.isArray(old) ? old.map((d) => (d.id === id ? summary : d)) : old))
     },
-  })
-}
-
-export function useUpdateDocMeta() {
-  const qc = useQueryClient()
-  const onError = useErrorToast()
-  return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: DocUpdate }) => {
-      const { data, error } = await createClient().from('docs').update(patch).eq('id', id).select(DOC_SUMMARY_COLUMNS).single()
-      if (error) throw error
-      return data as DocSummary
-    },
-    onMutate: ({ id, patch }) => {
-      qc.setQueryData<DocRow>(docKeys.one(id), (old) => (old ? ({ ...old, ...patch } as DocRow) : old))
-      qc.setQueriesData<DocSummary[]>({ queryKey: docKeys.all }, (old) =>
-        old?.map((d) => (d.id === id ? ({ ...d, ...patch } as DocSummary) : d)),
-      )
-    },
-    onError,
-    onSettled: () => qc.invalidateQueries({ queryKey: docKeys.all }),
   })
 }
 
@@ -142,13 +139,19 @@ export function useArchiveDoc() {
   const qc = useQueryClient()
   const onError = useErrorToast()
   return useMutation({
+    // con sus subpáginas (y las de ellas): si no, quedaban vivas y sueltas
     mutationFn: async (id: string) => {
-      const { error } = await createClient().from('docs').update({ archived_at: new Date().toISOString() }).eq('id', id)
+      const supabase = createClient()
+      const { data: doc } = await supabase.from('docs').select('workspace_id').eq('id', id).single()
+      const { data: all } = doc ? await supabase.from('docs').select('id, parent_id').eq('workspace_id', doc.workspace_id).is('archived_at', null) : { data: [] }
+      const ids = [id]
+      for (let i = 0; i < ids.length; i++) for (const d of (all ?? []) as { id: string; parent_id: string | null }[]) if (d.parent_id === ids[i]) ids.push(d.id)
+      const { error } = await supabase.from('docs').update({ archived_at: new Date().toISOString() }).in('id', ids)
       if (error) throw error
-      return id
+      return ids
     },
-    onSuccess: (id) => {
-      qc.setQueriesData<DocSummary[]>({ queryKey: docKeys.all }, (old) => old?.filter((d) => d.id !== id && d.parent_id !== id))
+    onSuccess: (ids) => {
+      qc.setQueriesData<DocSummary[]>({ queryKey: docKeys.all }, (old) => (Array.isArray(old) ? old.filter((d) => !ids.includes(d.id)) : old))
       qc.invalidateQueries({ queryKey: docKeys.all })
     },
     onError,

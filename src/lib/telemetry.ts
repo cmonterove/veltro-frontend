@@ -61,7 +61,7 @@ export function viewEvent(pathname: string): `view.${string}` | null {
   if (pathname === '/home') return 'view.pulse'
   if (pathname === '/mesa') return 'view.mesa'
   if (pathname === '/calendar') return 'view.calendar'
-  if (pathname === '/my-tasks') return 'view.my_tasks'
+  if (pathname === '/tasks') return 'view.my_tasks'
   if (pathname.startsWith('/m/')) return 'view.meeting_room'
   if (pathname.startsWith('/settings')) return 'view.settings'
   const w = pathname.match(/^\/w\/[^/]+(\/[^/]+)?(\/[^/]+)?/)

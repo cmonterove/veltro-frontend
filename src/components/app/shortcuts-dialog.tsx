@@ -16,6 +16,7 @@ export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenC
       items: [
         { keys: ['⌘', 'K'], label: t('palette') },
         { keys: ['C'], label: t('newTask') },
+        { keys: ['['], label: t('toggleSidebar') },
         { keys: ['?'], label: t('help') },
       ],
     },
@@ -23,9 +24,12 @@ export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenC
       title: t('navigate'),
       items: [
         { keys: ['G', 'H'], label: t('goToday'), then: true },
+        { keys: ['G', 'V'], label: t('goVeltro'), then: true },
         { keys: ['G', 'M'], label: t('goMesa'), then: true },
         { keys: ['G', 'C'], label: t('goCalendar'), then: true },
         { keys: ['G', 'T'], label: t('goMyTasks'), then: true },
+        { keys: ['G', 'B'], label: t('goVault'), then: true },
+        { keys: ['G', 'P'], label: t('goPasillo'), then: true },
         { keys: ['G', '1-9'], label: t('goWorkspace'), then: true },
       ],
     },

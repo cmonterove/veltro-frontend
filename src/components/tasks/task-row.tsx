@@ -3,16 +3,18 @@
 import { useTranslations } from 'next-intl'
 import { CircleUser, Paperclip } from 'lucide-react'
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
-import { Avatar } from '@/components/ui/avatar'
+import { AvatarStack } from '@/components/ui/avatar'
 import { useUpdateTask } from '@/lib/queries/tasks'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { useAttachmentCounts } from '@/lib/queries/attachments'
 import { cn, taskRef } from '@/lib/utils'
 import type { TaskRow as Task } from '@/lib/database.types'
-import { AssigneeMenu, DuePopover, LabelChip, PriorityMenu, StatusMenu } from './pickers'
+import { AssigneesMenu, DuePopover, LabelChip, PriorityMenu, StatusMenu } from './pickers'
 import { PriorityIcon, StatusIcon } from './status-icon'
 import { DueDate } from './due-date'
 import { WorkspaceMark } from '@/components/app/marks'
+import { statusPatch, taskStatusOf, workspaceStatuses } from '@/lib/statuses'
+import { assigneesOf, assigneesPatch } from '@/lib/assignees'
 
 export function TaskRow({
   task,
@@ -32,7 +34,7 @@ export function TaskRow({
   const editable = canEdit(ws)
   const update = useUpdateTask()
   const members = useWorkspaceMembers(editable ? task.workspace_id : null)
-  const assignee = task.assignee_id ? memberMap.get(task.assignee_id) : undefined
+  const people = assigneesOf(task).flatMap((id) => memberMap.get(id) ?? [])
   const attachments = useAttachmentCounts(task.workspace_id).get(task.id) ?? 0
   const done = task.status === 'done'
 
@@ -57,7 +59,7 @@ export function TaskRow({
 
       <span className="hidden w-14 shrink-0 font-mono text-xs text-fg-subtle @lg:block">{ws ? taskRef(ws.key, task.number) : ''}</span>
 
-      <StatusMenu value={task.status} onChange={(status) => patch({ status })} disabled={!editable} className="size-6 justify-center">
+      <StatusMenu options={workspaceStatuses(ws)} value={taskStatusOf(task, ws)} onChange={(o) => patch(statusPatch(o))} disabled={!editable} className="size-6 justify-center">
         <StatusIcon status={task.status} />
       </StatusMenu>
 
@@ -94,19 +96,15 @@ export function TaskRow({
         )}
       </DuePopover>
 
-      <AssigneeMenu
-        value={task.assignee_id}
+      <AssigneesMenu
+        value={assigneesOf(task)}
         members={members}
-        onChange={(assignee_id) => patch({ assignee_id })}
+        onChange={(ids) => patch(assigneesPatch(ids))}
         disabled={!editable}
-        className="size-6 justify-center rounded-full"
+        className="h-6 min-w-6 justify-center rounded-full px-0.5"
       >
-        {assignee ? (
-          <Avatar name={assignee.full_name} src={assignee.avatar_url} seed={assignee.id} size={20} />
-        ) : (
-          <CircleUser className="size-4 text-fg-subtle" />
-        )}
-      </AssigneeMenu>
+        {people.length ? <AvatarStack people={people} size={20} /> : <CircleUser className="size-4 text-fg-subtle" />}
+      </AssigneesMenu>
     </div>
   )
 }

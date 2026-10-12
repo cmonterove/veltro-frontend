@@ -13,7 +13,8 @@ import { GoogleG } from '@/components/calendar/connect-calendar'
 import { cn } from '@/lib/utils'
 import { SettingsSection } from './section'
 
-export function IntegrationsSettings({ redirectUri }: { redirectUri: string }) {
+/** Integraciones, dentro de Preferencias: por ahora Google Calendar (agenda, notas por reunión y Meet). */
+export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
   const t = useTranslations('settings.integrations')
   const router = useRouter()
   const params = useSearchParams()
@@ -26,7 +27,7 @@ export function IntegrationsSettings({ redirectUri }: { redirectUri: string }) {
     if (!status) return
     if (status === 'connected') toast.success(t('connected'))
     else toast.error(t.has(`errors.${status}`) ? t(`errors.${status}`) : t('errors.generic'))
-    router.replace('/settings/integrations')
+    router.replace('/settings/preferences#integrations', { scroll: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -40,58 +41,59 @@ export function IntegrationsSettings({ redirectUri }: { redirectUri: string }) {
   }
 
   return (
-    <div>
-      <SettingsSection
-        title={
-          <span className="flex items-center gap-2">
+    <SettingsSection id="integrations" title={t('pageTitle')} description={t('pageDescription')} className="mt-10 scroll-mt-6">
+      <div className="overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-line bg-canvas">
             <GoogleG />
-            Google Calendar
           </span>
-        }
-        description={t('googleDescription')}
-        action={
-          google ? (
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-fg">Google Calendar</p>
+            <p className="text-xs leading-relaxed text-fg-muted">{t('googleDescription')}</p>
+          </div>
+          {google ? (
             <Button variant="ghost" size="sm" onClick={disconnect} loading={disconnecting}>
               {t('disconnect')}
             </Button>
           ) : googleConfigured ? (
-            <a href="/api/integrations/google/connect?returnTo=/settings/integrations" className={buttonVariants({ variant: 'primary', size: 'sm' })}>
+            <a href="/api/integrations/google/connect?returnTo=/settings/preferences" className={buttonVariants({ variant: 'primary', size: 'sm' })}>
               {t('connect')}
             </a>
-          ) : null
-        }
-      >
-        {google ? (
-          <div className="flex flex-col gap-4">
-            <p className="flex items-center gap-2 text-sm text-fg">
-              <span className="flex size-5 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
-                <Check className="size-3" />
-              </span>
-              {t('connectedAs', { email: google.email })}
-            </p>
-            <CalendarPicker />
-          </div>
-        ) : !googleConfigured ? (
-          <div className="flex max-w-xl flex-col gap-3 rounded-xl border border-dashed border-line-strong p-4 text-sm text-fg-muted">
-            <p className="font-medium text-fg">{t('setupTitle')}</p>
-            <ol className="list-decimal space-y-1 pl-5">
-              <li>{t('setup1')}</li>
-              <li>{t('setup2')}</li>
-              <li>
-                {t('setup3')}
-                <code className="mt-1 block break-all rounded-md bg-hover px-2 py-1 font-mono text-xs text-fg">{redirectUri}</code>
-              </li>
-              <li>
-                {t('setup4')}
-                <code className="mt-1 block rounded-md bg-hover px-2 py-1 font-mono text-xs text-fg">GOOGLE_CLIENT_ID=…{'\n'}GOOGLE_CLIENT_SECRET=…</code>
-              </li>
-            </ol>
-          </div>
-        ) : (
-          <p className="text-sm text-fg-muted">{t('notConnected')}</p>
-        )}
-      </SettingsSection>
-    </div>
+          ) : null}
+        </div>
+        <div className="border-t border-line px-4 py-4">
+          {google ? (
+            <div className="flex flex-col gap-4">
+              <p className="flex items-center gap-2 text-sm text-fg">
+                <span className="flex size-5 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
+                  <Check className="size-3" />
+                </span>
+                {t('connectedAs', { email: google.email })}
+              </p>
+              <CalendarPicker />
+            </div>
+          ) : !googleConfigured ? (
+            <div className="flex max-w-xl flex-col gap-3 rounded-xl border border-dashed border-line-strong p-4 text-sm text-fg-muted">
+              <p className="font-medium text-fg">{t('setupTitle')}</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>{t('setup1')}</li>
+                <li>{t('setup2')}</li>
+                <li>
+                  {t('setup3')}
+                  <code className="mt-1 block break-all rounded-md bg-hover px-2 py-1 font-mono text-xs text-fg">{redirectUri}</code>
+                </li>
+                <li>
+                  {t('setup4')}
+                  <code className="mt-1 block rounded-md bg-hover px-2 py-1 font-mono text-xs text-fg">GOOGLE_CLIENT_ID=…{'\n'}GOOGLE_CLIENT_SECRET=…</code>
+                </li>
+              </ol>
+            </div>
+          ) : (
+            <p className="text-sm text-fg-muted">{t('notConnected')}</p>
+          )}
+        </div>
+      </div>
+    </SettingsSection>
   )
 }
 

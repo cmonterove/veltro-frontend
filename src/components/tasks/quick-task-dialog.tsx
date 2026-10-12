@@ -6,20 +6,23 @@ import { useTranslations } from 'next-intl'
 import { ChevronDown, CircleUser } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Avatar } from '@/components/ui/avatar'
+import { Switch } from '@/components/ui/switch'
+import { AvatarStack } from '@/components/ui/avatar'
 import { AutoTextarea } from '@/components/ui/auto-textarea'
 import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/components/ui/menu'
 import { useApp, useMemberMap, canEdit } from '@/components/app/app-context'
 import { useCreateTask } from '@/lib/queries/tasks'
-import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
-import { useTaskPanel } from '@/lib/hooks'
+import { useWorkspaceMembersState } from '@/lib/queries/workspace-members'
 import { cn } from '@/lib/utils'
 import { parseQuickTask } from '@/lib/quick-parse'
-import type { TaskPriority, TaskStatus } from '@/lib/database.types'
-import { AssigneeMenu, DuePopover, PriorityMenu, StatusMenu } from './pickers'
+import { statusKey, statusPatch, workspaceStatuses, type StatusOption } from '@/lib/statuses'
+import { useStatusName } from '@/lib/use-status-name'
+import type { TaskPriority } from '@/lib/database.types'
+import { AssigneesMenu, DuePopover, PriorityMenu, StatusMenu } from './pickers'
 import { PriorityIcon, StatusIcon } from './status-icon'
 import { DueDate } from './due-date'
 import { WorkspaceMark } from '@/components/app/marks'
+import { useOpenTask } from '@/lib/use-open-task'
 
 export function QuickTaskDialog({
   open,
@@ -28,24 +31,24 @@ export function QuickTaskDialog({
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
-  defaults?: { workspaceId?: string; dueDate?: string | null }
+  defaults?: { workspaceId?: string; dueDate?: string | null; assigneeIds?: string[] }
 }) {
   const t = useTranslations('tasks')
-  const tStatus = useTranslations('tasks.status')
+  const statusName = useStatusName()
   const tPriority = useTranslations('tasks.priority')
   const pathname = usePathname()
   const { workspaces, user } = useApp()
   const memberMap = useMemberMap()
   const editableWs = useMemo(() => workspaces.filter((w) => canEdit(w)), [workspaces])
   const create = useCreateTask()
-  const panel = useTaskPanel()
+  const panel = useOpenTask()
 
   const fromPath = editableWs.find((w) => pathname.startsWith(`/w/${w.slug}`))
   const [workspaceId, setWorkspaceId] = useState<string | undefined>()
   const [title, setTitle] = useState('')
-  const [status, setStatus] = useState<TaskStatus>('todo')
+  const [statusPick, setStatusPick] = useState<StatusOption | null>(null)
   const [priority, setPriority] = useState<TaskPriority>('none')
-  const [assignee, setAssignee] = useState<string | null>(user.id)
+  const [assignees, setAssignees] = useState<string[]>([user.id])
   const [due, setDue] = useState<string | null>(null)
   const [keepOpen, setKeepOpen] = useState(false)
   // Campos fijados a mano: el texto deja de mandar sobre ellos.
@@ -55,23 +58,30 @@ export function QuickTaskDialog({
     if (!open) return
     setWorkspaceId(defaults?.workspaceId ?? fromPath?.id ?? editableWs[0]?.id)
     setDue(defaults?.dueDate ?? null)
+    setAssignees(defaults?.assigneeIds ?? [user.id])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const ws = editableWs.find((w) => w.id === workspaceId)
-  const members = useWorkspaceMembers(workspaceId)
+  const statusOptions = workspaceStatuses(ws)
+  // al cambiar de espacio, el estado elegido puede no existir: vuelve al primero de "Por hacer"
+  const status =
+    (statusPick && statusOptions.find((o) => statusKey(o) === statusKey(statusPick))) ??
+    statusOptions.find((o) => o.category === 'todo') ??
+    statusOptions[0]
+  const { members, loaded: membersLoaded } = useWorkspaceMembersState(workspaceId)
   const parsed = useMemo(() => parseQuickTask(title, members, manual), [title, members, manual])
   const effDue = parsed.due ?? due
   const effPriority = parsed.priority ?? priority
-  const effAssignee = parsed.assigneeId ?? assignee
-  const assigneeMember = effAssignee ? memberMap.get(effAssignee) : undefined
+  const effAssignees = parsed.assigneeIds.length ? parsed.assigneeIds : assignees
+  const assigneeMembers = effAssignees.flatMap((id) => memberMap.get(id) ?? [])
   const fromText = 'bg-accent-soft border-accent/40 text-accent-ink'
 
   const reset = () => {
     setTitle('')
-    setStatus('todo')
+    setStatusPick(null)
     setPriority('none')
-    setAssignee(user.id)
+    setAssignees([user.id])
     setDue(null)
     setManual({})
   }
@@ -83,9 +93,10 @@ export function QuickTaskDialog({
       {
         workspace_id: workspaceId,
         title: finalTitle.slice(0, 500),
-        status,
+        ...statusPatch(status),
         priority: effPriority,
-        assignee_id: effAssignee && members.some((m) => m.id === effAssignee) ? effAssignee : null,
+        // se descartan quienes no están en el espacio, pero solo con la lista ya cargada (si no, se perdía el responsable por defecto)
+        assignee_ids: membersLoaded ? effAssignees.filter((id) => members.some((m) => m.id === id)) : effAssignees,
         due_date: effDue,
         position: Date.now() / 1000,
       },
@@ -152,9 +163,9 @@ export function QuickTaskDialog({
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 px-4 pb-4">
-              <StatusMenu value={status} onChange={setStatus} className="h-7 border border-line px-2 text-sm">
-                <StatusIcon status={status} />
-                {tStatus(status)}
+              <StatusMenu options={statusOptions} value={status} onChange={setStatusPick} className="h-7 border border-line px-2 text-sm">
+                <StatusIcon status={status.category} />
+                {statusName(status)}
               </StatusMenu>
               <PriorityMenu
                 value={effPriority}
@@ -167,19 +178,19 @@ export function QuickTaskDialog({
                 <PriorityIcon priority={effPriority} />
                 {tPriority(effPriority)}
               </PriorityMenu>
-              <AssigneeMenu
-                value={effAssignee}
+              <AssigneesMenu
+                value={effAssignees}
                 members={members}
-                onChange={(a) => {
-                  setAssignee(a)
+                onChange={(ids) => {
+                  setAssignees(ids)
                   setManual((m) => ({ ...m, assignee: true }))
                 }}
-                className={cn('h-7 border border-line px-2 text-sm', parsed.assigneeId && fromText)}
+                className={cn('h-7 border border-line px-2 text-sm', parsed.assigneeIds.length && fromText)}
               >
-                {assigneeMember ? (
+                {assigneeMembers.length ? (
                   <>
-                    <Avatar name={assigneeMember.full_name} seed={assigneeMember.id} src={assigneeMember.avatar_url} size={16} />
-                    {assigneeMember.full_name.split(' ')[0]}
+                    <AvatarStack people={assigneeMembers} size={16} ring="panel" />
+                    {assigneeMembers.length === 1 ? assigneeMembers[0].full_name.split(' ')[0] : t('assigneesCount', { count: assigneeMembers.length })}
                   </>
                 ) : (
                   <>
@@ -187,7 +198,7 @@ export function QuickTaskDialog({
                     {t('unassigned')}
                   </>
                 )}
-              </AssigneeMenu>
+              </AssigneesMenu>
               <DuePopover
                 value={effDue}
                 onChange={(d) => {
@@ -200,7 +211,7 @@ export function QuickTaskDialog({
               </DuePopover>
             </div>
             <p className="-mt-2 px-5 pb-3 text-xs text-fg-subtle">
-              {parsed.due || parsed.assigneeId || parsed.priority ? (
+              {parsed.due || parsed.assigneeIds.length || parsed.priority ? (
                 <>
                   <span className="text-accent-ink">{t('quick.understood')}</span> «{parsed.title}»
                 </>
@@ -211,7 +222,7 @@ export function QuickTaskDialog({
 
             <div className="flex items-center gap-3 border-t border-line px-4 py-3">
               <label className="flex cursor-default items-center gap-2 text-xs text-fg-muted">
-                <input type="checkbox" checked={keepOpen} onChange={(e) => setKeepOpen(e.target.checked)} className="accent-[var(--accent)]" />
+                <Switch checked={keepOpen} onCheckedChange={setKeepOpen} />
                 {t('createMore')}
               </label>
               <Button type="submit" variant="primary" size="sm" className={cn('ml-auto')} loading={create.isPending} disabled={!(parsed.title || title).trim()}>

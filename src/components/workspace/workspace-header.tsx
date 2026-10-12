@@ -34,7 +34,7 @@ export function WorkspaceHeader({ slug }: { slug: string }) {
         </div>
         {ws.my_role === 'admin' ? (
           <Link
-            href={`/settings/workspaces?edit=${ws.id}`}
+            href={`/settings/workspaces/${ws.slug}`}
             className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-sm text-fg-muted hover:bg-hover hover:text-fg"
           >
             <Settings className="size-4" />
@@ -42,16 +42,17 @@ export function WorkspaceHeader({ slug }: { slug: string }) {
           </Link>
         ) : null}
       </div>
-      <nav className="-mb-px mt-3 flex gap-4 overflow-x-auto">
+      <nav className="-mb-px mt-3 flex gap-1 overflow-x-auto scrollbar-none" aria-label={t('sections')}>
         {tabs.map((tab) => {
           const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href)
           return (
             <Link
               key={tab.href}
               href={tab.href}
+              aria-current={active ? 'page' : undefined}
               className={cn(
-                'whitespace-nowrap border-b-2 pb-2.5 text-sm transition-colors',
-                active ? 'border-fg font-medium text-fg' : 'border-transparent text-fg-muted hover:text-fg',
+                'inline-flex h-9 items-center whitespace-nowrap rounded-t-md border-b-2 px-3 text-sm outline-none transition-colors focus-visible:bg-hover focus-visible:text-fg',
+                active ? 'border-accent font-medium text-fg' : 'border-transparent text-fg-muted hover:text-fg',
               )}
             >
               {tab.label}

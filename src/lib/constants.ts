@@ -1,7 +1,6 @@
 import type { TaskPriority, TaskStatus } from '@/lib/database.types'
 
 export const TASK_STATUSES: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'blocked', 'done']
-export const OPEN_STATUSES: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'blocked']
 export const TASK_PRIORITIES: TaskPriority[] = ['urgent', 'high', 'medium', 'low', 'none']
 
 export const PRIORITY_WEIGHT: Record<TaskPriority, number> = {
@@ -17,3 +16,6 @@ export const WORKSPACE_COLORS = ['violet', 'mandarina', 'ink', 'lavender', 'blue
 export type WorkspaceColor = (typeof WORKSPACE_COLORS)[number]
 
 export const RESERVED_LABEL_LIMIT = 8
+
+/** Barra lateral colapsada. Va en cookie (no localStorage) para que el servidor la dibuje ya colapsada y no salte al cargar. */
+export const SIDEBAR_COOKIE = 'veltro-sidebar-collapsed'

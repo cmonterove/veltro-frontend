@@ -18,13 +18,15 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, CircleUser, Search, X } from 'lucide-react'
-import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuShortcut, MenuTrigger } from '@/components/ui/menu'
+import { Menu, MenuCheckboxItem, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Avatar } from '@/components/ui/avatar'
-import { TASK_PRIORITIES, TASK_STATUSES } from '@/lib/constants'
+import { statusKey, type StatusOption } from '@/lib/statuses'
+import { useStatusName } from '@/lib/use-status-name'
 import { toDateKey, useDateLocale } from '@/lib/dates'
 import { cn } from '@/lib/utils'
-import type { TaskPriority, TaskStatus } from '@/lib/database.types'
+import { RESERVED_LABEL_LIMIT, TASK_PRIORITIES } from '@/lib/constants'
+import type { TaskPriority } from '@/lib/database.types'
 import type { Member } from '@/lib/types'
 import { PriorityIcon, StatusIcon } from './status-icon'
 
@@ -36,31 +38,37 @@ type TriggerProps = {
 }
 
 const triggerBase =
-  'inline-flex items-center gap-1.5 rounded-md outline-none transition-colors hover:bg-hover data-[popup-open]:bg-hover disabled:pointer-events-none'
+  'inline-flex items-center gap-1.5 rounded-md outline-none transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[popup-open]:bg-hover disabled:pointer-events-none'
 
 export function StatusMenu({
+  options,
   value,
   onChange,
   ...trigger
-}: { value: TaskStatus; onChange: (s: TaskStatus) => void } & TriggerProps) {
-  const t = useTranslations('tasks.status')
+}: { options: StatusOption[]; value: StatusOption; onChange: (o: StatusOption) => void } & TriggerProps) {
+  const name = useStatusName()
   return (
     <Menu>
       <MenuTrigger
         className={cn(triggerBase, trigger.className)}
         disabled={trigger.disabled}
-        aria-label={trigger['aria-label'] ?? t(value)}
+        aria-label={trigger['aria-label'] ?? name(value)}
         onClick={(e) => e.stopPropagation()}
       >
         {trigger.children}
       </MenuTrigger>
-      <MenuContent className="w-52" onClick={(e) => e.stopPropagation()}>
-        <MenuRadioGroup value={value} onValueChange={(v) => onChange(v as TaskStatus)}>
-          {TASK_STATUSES.map((s, i) => (
-            <MenuRadioItem key={s} value={s}>
-              <StatusIcon status={s} />
-              {t(s)}
-              <MenuShortcut className="mr-4">{i + 1}</MenuShortcut>
+      <MenuContent className="w-56" onClick={(e) => e.stopPropagation()}>
+        <MenuRadioGroup
+          value={statusKey(value)}
+          onValueChange={(v) => {
+            const next = options.find((o) => statusKey(o) === v)
+            if (next) onChange(next)
+          }}
+        >
+          {options.map((o) => (
+            <MenuRadioItem key={statusKey(o)} value={statusKey(o)}>
+              <StatusIcon status={o.category} />
+              <span className="truncate">{name(o)}</span>
             </MenuRadioItem>
           ))}
         </MenuRadioGroup>
@@ -153,6 +161,73 @@ export function AssigneeMenu({
   )
 }
 
+/** Varios responsables: se marcan y desmarcan sin cerrar el menú. */
+export function AssigneesMenu({
+  value,
+  members,
+  onChange,
+  ...trigger
+}: { value: string[]; members: Member[]; onChange: (ids: string[]) => void } & TriggerProps) {
+  const t = useTranslations('tasks')
+  const [query, setQuery] = useState('')
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return q ? members.filter((m) => m.full_name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q)) : members
+  }, [members, query])
+  const toggle = (id: string, on: boolean) => onChange(on ? [...value.filter((x) => x !== id), id] : value.filter((x) => x !== id))
+
+  return (
+    <Menu onOpenChange={(o) => !o && setQuery('')}>
+      <MenuTrigger
+        className={cn(triggerBase, trigger.className)}
+        disabled={trigger.disabled}
+        aria-label={trigger['aria-label'] ?? t('assignees')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {trigger.children}
+      </MenuTrigger>
+      <MenuContent className="w-64" onClick={(e) => e.stopPropagation()}>
+        {members.length > 6 ? (
+          <div className="flex items-center gap-2 border-b border-line px-2 pb-1.5 pt-0.5">
+            <Search className="size-3.5 text-fg-subtle" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+              placeholder={t('searchPeople')}
+              className="h-7 w-full bg-transparent text-sm outline-none placeholder:text-fg-subtle"
+              autoFocus
+            />
+          </div>
+        ) : null}
+        <MenuLabel>{value.length ? t('assigneesCount', { count: value.length }) : t('pickAssignees')}</MenuLabel>
+        {/* sin nadie es una opción válida: la tarea queda para asignar después */}
+        {!query ? (
+          <MenuCheckboxItem checked={value.length === 0} onCheckedChange={(on) => on && onChange([])} closeOnClick={false}>
+            <CircleUser className="!text-fg-subtle" />
+            <span className="truncate text-fg-muted">{t('unassigned')}</span>
+          </MenuCheckboxItem>
+        ) : null}
+        {filtered.map((m) => (
+          <MenuCheckboxItem key={m.id} checked={value.includes(m.id)} onCheckedChange={(on) => toggle(m.id, on)} closeOnClick={false}>
+            <Avatar name={m.full_name} src={m.avatar_url} seed={m.id} size={18} />
+            <span className="truncate">{m.full_name}</span>
+          </MenuCheckboxItem>
+        ))}
+        {value.length ? (
+          <>
+            <MenuSeparator />
+            <MenuItem onClick={() => onChange([])}>
+              <X />
+              {t('clearAssignees')}
+            </MenuItem>
+          </>
+        ) : null}
+      </MenuContent>
+    </Menu>
+  )
+}
+
 export function DuePopover({
   value,
   onChange,
@@ -217,6 +292,7 @@ export function DuePopover({
 
 export function MiniCalendar({ selected, onSelect }: { selected: Date | null; onSelect: (d: Date) => void }) {
   const locale = useDateLocale()
+  const tc = useTranslations('tasks')
   const [month, setMonth] = useState(() => startOfMonth(selected ?? new Date()))
   const weekStartsOn = locale.options?.weekStartsOn ?? 1
   const days = eachDayOfInterval({
@@ -230,10 +306,10 @@ export function MiniCalendar({ selected, onSelect }: { selected: Date | null; on
       <div className="flex items-center justify-between px-1 pb-1">
         <span className="text-sm font-medium capitalize">{format(month, 'LLLL yyyy', { locale })}</span>
         <div className="flex">
-          <button type="button" onClick={() => setMonth(addMonths(month, -1))} className="inline-flex size-6 items-center justify-center rounded-sm text-fg-muted hover:bg-hover">
+          <button type="button" onClick={() => setMonth(addMonths(month, -1))} aria-label={tc('prevMonth')} className="inline-flex size-6 items-center justify-center rounded-sm text-fg-muted hover:bg-hover">
             <ChevronLeft className="size-3.5" />
           </button>
-          <button type="button" onClick={() => setMonth(addMonths(month, 1))} className="inline-flex size-6 items-center justify-center rounded-sm text-fg-muted hover:bg-hover">
+          <button type="button" onClick={() => setMonth(addMonths(month, 1))} aria-label={tc('nextMonth')} className="inline-flex size-6 items-center justify-center rounded-sm text-fg-muted hover:bg-hover">
             <ChevronRight className="size-3.5" />
           </button>
         </div>
@@ -280,7 +356,7 @@ export function LabelsPopover({
   const exact = all.some((l) => l.toLowerCase() === draft.trim().toLowerCase())
 
   const toggle = (label: string) =>
-    onChange(value.includes(label) ? value.filter((l) => l !== label) : [...value, label].slice(0, 8))
+    onChange(value.includes(label) ? value.filter((l) => l !== label) : [...value, label].slice(0, RESERVED_LABEL_LIMIT))
 
   return (
     <Popover onOpenChange={(o) => !o && setDraft('')}>

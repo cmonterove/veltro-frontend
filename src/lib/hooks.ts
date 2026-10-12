@@ -1,7 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 const noopSubscribe = () => () => {}
 
@@ -24,57 +23,71 @@ export function useNow(ms = 60_000) {
   return now
 }
 
-export function useLocalStorage<T>(key: string, initial: T) {
-  const [value, setValue] = useState<T>(initial)
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(key)
-      if (raw != null) setValue(JSON.parse(raw) as T)
-    } catch {
-      // storage no disponible
-    }
-  }, [key])
-  const update = useCallback(
-    (next: T | ((prev: T) => T)) => {
-      setValue((prev) => {
-        const resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next
-        try {
-          localStorage.setItem(key, JSON.stringify(resolved))
-        } catch {
-          // storage no disponible
-        }
-        return resolved
-      })
-    },
-    [key],
-  )
-  return [value, update] as const
+// Preferencias en localStorage, leídas antes de pintar: antes se mostraba un instante el valor por
+// defecto (otra pestaña, otra vista) y después saltaba al guardado. Si el navegador no deja guardar,
+// el valor vive en memoria mientras dure la página.
+const memory = new Map<string, string>()
+const listeners = new Set<() => void>()
+
+function readRaw(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return memory.get(key) ?? null
+  }
 }
 
-/** Panel de tarea global: ?task=<id> en la URL actual. */
-export function useTaskPanel() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const params = useSearchParams()
-  const openId = params.get('task')
+function subscribeStorage(onChange: () => void) {
+  listeners.add(onChange)
+  // otra pestaña cambió la preferencia
+  window.addEventListener('storage', onChange)
+  return () => {
+    listeners.delete(onChange)
+    window.removeEventListener('storage', onChange)
+  }
+}
 
-  const open = useCallback(
-    (id: string) => {
-      const next = new URLSearchParams(params.toString())
-      next.set('task', id)
-      router.push(`${pathname}?${next}`, { scroll: false })
-    },
-    [params, pathname, router],
+export function useLocalStorage<T>(key: string, initial: T) {
+  const raw = useSyncExternalStore(
+    subscribeStorage,
+    () => readRaw(key),
+    () => null,
   )
-
-  const close = useCallback(() => {
-    const next = new URLSearchParams(params.toString())
-    next.delete('task')
-    const qs = next.toString()
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [params, pathname, router])
-
-  return { openId, open, close }
+  // el valor inicial puede ser un objeto nuevo en cada render: se toma el primero
+  const [fallback] = useState(initial)
+  const value = useMemo<T>(() => {
+    if (raw == null) return fallback
+    try {
+      return JSON.parse(raw) as T
+    } catch {
+      return fallback
+    }
+  }, [raw, fallback])
+  const update = useCallback(
+    (next: T | ((prev: T) => T)) => {
+      // lo vigente se lee en el momento: dos cambios seguidos no se pisan
+      let prev = fallback
+      const current = readRaw(key)
+      if (current != null) {
+        try {
+          prev = JSON.parse(current) as T
+        } catch {
+          // valor corrupto: se parte del inicial
+        }
+      }
+      const resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next
+      const text = JSON.stringify(resolved)
+      try {
+        localStorage.setItem(key, text)
+      } catch {
+        // storage no disponible: queda en memoria
+        memory.set(key, text)
+      }
+      listeners.forEach((l) => l())
+    },
+    [key, fallback],
+  )
+  return [value, update] as const
 }
 
 export function isTypingTarget(target: EventTarget | null) {

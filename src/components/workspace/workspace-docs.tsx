@@ -1,5 +1,6 @@
 'use client'
 
+import { fileTitle } from '@/components/vault/file-visual'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useMemo, useRef, useState } from 'react'
@@ -9,13 +10,13 @@ import { FilePlus2, FileText, FileUp, ListTodo, Paperclip, Search, Upload } from
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
 import { DocMark } from '@/components/app/marks'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Avatar } from '@/components/ui/avatar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useWorkspaceDocs } from '@/lib/queries/docs'
 import { useTasks } from '@/lib/queries/tasks'
 import { useWorkspaceMeetings } from '@/lib/queries/meetings'
 import { openAttachment, useAttachmentMutations, useAttachments } from '@/lib/queries/attachments'
-import { useTaskPanel } from '@/lib/hooks'
 import { useDateLocale } from '@/lib/dates'
 import { cn, taskRef, excerptOf } from '@/lib/utils'
 import type { AttachmentRow, DocSource } from '@/lib/database.types'
@@ -24,6 +25,8 @@ import { SourceBadge } from '@/components/docs/source-badge'
 import { useNewDoc } from '@/components/docs/doc-tree'
 import { ImportMarkdownDialog } from '@/components/docs/import-markdown-dialog'
 import { AttachmentIcon, formatBytes } from '@/components/attachments/attachments'
+import { useOpenTask } from '@/lib/use-open-task'
+import { useConfirm } from '@/components/ui/confirm'
 
 type Tab = 'docs' | 'files'
 type FileFilter = 'all' | 'docs' | 'images' | 'sheets' | 'links'
@@ -98,7 +101,10 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
                 type="file"
                 multiple
                 hidden
-                onChange={(e) => upload.mutate({ parent: { workspaceId }, files: Array.from(e.target.files ?? []) })}
+                onChange={(e) => {
+                  upload.mutate({ parent: { workspaceId }, files: Array.from(e.target.files ?? []) })
+                  e.target.value = ''
+                }}
               />
               <Button variant="primary" size="sm" onClick={() => fileInput.current?.click()} loading={upload.isPending}>
                 {upload.isPending ? null : <Upload />}
@@ -123,7 +129,7 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
         allowReplace={false}
         footerStart={
           <label className="flex items-center gap-2 text-xs text-fg-muted">
-            <input type="checkbox" checked={fromClaude} onChange={(e) => setFromClaude(e.target.checked)} className="accent-[var(--accent)]" />
+            <Switch checked={fromClaude} onCheckedChange={setFromClaude} />
             {t('import.fromClaude')}
           </label>
         }
@@ -317,10 +323,13 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
   const t = useTranslations('docs.library')
   const locale = useDateLocale()
   const memberMap = useMemberMap()
-  const { open } = useTaskPanel()
+  const { open } = useOpenTask()
   const { data: tasks } = useTasks({ kind: 'workspace', workspaceId: ws.id })
   const { data: meetings } = useWorkspaceMeetings(ws.id)
   const { upload, remove } = useAttachmentMutations()
+  const confirm = useConfirm()
+  const tConfirm = useTranslations('confirm')
+  const tAtt = useTranslations('attachments')
   const [filter, setFilter] = useState<FileFilter>('all')
   const [dragging, setDragging] = useState(false)
   const taskById = useMemo(() => new Map((tasks ?? []).map((x) => [x.id, x])), [tasks])
@@ -401,7 +410,7 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
                           <AttachmentIcon a={f} />
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-fg hover:underline">{f.name}</span>
+                          <span className="block truncate font-medium text-fg hover:underline">{fileTitle(f)}</span>
                           <span className="block text-xs text-fg-subtle">{formatDistanceToNowStrict(new Date(f.created_at), { addSuffix: true, locale })}</span>
                         </span>
                       </button>
@@ -442,7 +451,9 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
                       {editable ? (
                         <button
                           type="button"
-                          onClick={() => remove.mutate(f)}
+                          onClick={async () => {
+                            if (await confirm({ title: tAtt('deleteConfirm', { name: fileTitle(f) }), danger: true, confirmLabel: tConfirm('delete') })) remove.mutate(f)
+                          }}
                           className="text-xs text-fg-subtle opacity-0 hover:text-danger group-hover/f:opacity-100 focus-visible:opacity-100"
                         >
                           {t('remove')}

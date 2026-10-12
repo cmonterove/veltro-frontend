@@ -2,6 +2,7 @@
 
 import { Dialog as D } from '@base-ui/react/dialog'
 import { X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 export const Dialog = D.Root
@@ -14,6 +15,7 @@ export function DialogContent({
   hideClose,
   ...props
 }: React.ComponentProps<typeof D.Popup> & { hideClose?: boolean }) {
+  const t = useTranslations('nav')
   return (
     <D.Portal>
       <D.Backdrop className="backdrop-motion fixed inset-0 z-50 bg-[oklch(0.2_0.01_165/0.32)] dark:bg-[oklch(0_0_0/0.55)]" />
@@ -29,7 +31,7 @@ export function DialogContent({
           {hideClose ? null : (
             <D.Close
               className="absolute right-3 top-3 inline-flex size-7 items-center justify-center rounded-md text-fg-subtle hover:bg-hover hover:text-fg"
-              aria-label="Close"
+              aria-label={t('close')}
             >
               <X className="size-4" />
             </D.Close>

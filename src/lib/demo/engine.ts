@@ -3,7 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { DEMO_USER_ID } from './config'
 import type { Filter, Query, Result } from './query'
-import { buildSeed, SEED_VERSION, type DemoStore } from './seed'
+import { buildSeed, LOOSE_FILES, SEED_VERSION, type DemoStore } from './seed'
+import { seedChats } from './chats-seed'
 
 // ============================================================
 // Base de datos en memoria para el modo demo.
@@ -18,6 +19,8 @@ const FILE = path.join(process.cwd(), '.demo', 'db.json')
 const g = globalThis as unknown as { __veltroDemo?: DemoStore; __veltroDemoTimer?: ReturnType<typeof setTimeout> }
 
 export function store(): DemoStore {
+  // también al cambiar la versión del seed con el servidor ya corriendo (la memoria sobrevive al recargado en caliente)
+  if (g.__veltroDemo && g.__veltroDemo.version !== SEED_VERSION) g.__veltroDemo = undefined
   if (!g.__veltroDemo) {
     try {
       const saved = JSON.parse(fs.readFileSync(FILE, 'utf8')) as DemoStore
@@ -28,7 +31,67 @@ export function store(): DemoStore {
     }
     persist()
   }
+  if ((g.__veltroDemo.schema ?? 0) < DEMO_SCHEMA) {
+    upgrade(g.__veltroDemo)
+    persist()
+  }
   return g.__veltroDemo
+}
+
+/**
+ * Cambios de esquema sobre datos demo ya guardados, sin regenerarlos (no se pierde lo que la persona probó).
+ * 1: tasks.assignee_ids (varios responsables).
+ * 2: tareas sin responsable con fecha esta semana, para repartirlas desde el calendario.
+ * 3: bóveda (account_id, title y labels en adjuntos, archivos sueltos) y Pasillo (chats de ejemplo).
+ */
+const DEMO_SCHEMA = 3
+const UNASSIGNED_DEMO_TASKS = ['Coordinar muestras para degustación en Farmatodo', 'Relevar precios de la competencia', 'Preparar ambiente de pruebas para el cliente']
+function upgrade(saved: DemoStore) {
+  const from = saved.schema ?? 0
+  if (from < 1) {
+    for (const t of saved.tables.tasks) {
+      if (!Array.isArray(t.assignee_ids)) t.assignee_ids = t.assignee_id ? [t.assignee_id] : []
+    }
+  }
+  if (from < 2) {
+    // los ids del seed son aleatorios: se enlaza por la clave del espacio y se numera a continuación
+    const fresh = buildSeed(new Date())
+    const freshKey = new Map(fresh.tables.workspaces.map((w) => [w.id, w.key]))
+    for (const title of UNASSIGNED_DEMO_TASKS) {
+      if (saved.tables.tasks.some((t) => t.title === title)) continue
+      const row = fresh.tables.tasks.find((t) => t.title === title)
+      const ws = row && saved.tables.workspaces.find((w) => w.key === freshKey.get(row.workspace_id))
+      if (!row || !ws) continue
+      ws.task_seq = Number(ws.task_seq ?? 0) + 1
+      saved.tables.tasks.push({ ...row, workspace_id: ws.id, number: ws.task_seq, created_by: ws.created_by ?? row.created_by })
+    }
+  }
+  if (from < 3) {
+    const accountId = (saved.tables.accounts[0]?.id as string | undefined) ?? null
+    for (const a of saved.tables.attachments) {
+      if (!Array.isArray(a.labels)) a.labels = []
+      if (a.title === undefined) a.title = null
+      if (!a.account_id) a.account_id = saved.tables.workspaces.find((w) => w.id === a.workspace_id)?.account_id ?? accountId
+    }
+    // títulos y etiquetas de los archivos de ejemplo (sin pisar lo que la persona haya cambiado)
+    const fresh = buildSeed(new Date())
+    for (const f of fresh.tables.attachments) {
+      const mine = saved.tables.attachments.find((a) => a.name === f.name)
+      if (!mine) continue
+      if (!mine.title) mine.title = f.title
+      if (!(mine.labels as string[]).length) mine.labels = f.labels
+    }
+    if (accountId) {
+      for (const f of LOOSE_FILES(accountId)) {
+        if (saved.tables.attachments.some((a) => a.name === f.row.name)) continue
+        saved.files[f.storage_path] = f.dataUrl
+        const by = saved.tables.profiles.find((p) => p.email === `${f.by}@veltro.demo`)?.id ?? DEMO_USER_ID
+        saved.tables.attachments.push({ ...f.row, id: uuid(), uploaded_by: by, created_at: new Date(Date.now() - f.hours * 3_600_000).toISOString() })
+      }
+    }
+    seedChats(saved, new Date())
+  }
+  saved.schema = DEMO_SCHEMA
 }
 
 export function resetStore() {
@@ -111,6 +174,18 @@ function matches(row: Row, f: Filter): boolean {
       return f.value === null ? row[f.col] == null : row[f.col] === f.value
     case 'ilike':
       return typeof row[f.col] === 'string' && likeToRegex(f.value).test(row[f.col] as string)
+    case 'contains': {
+      const have = Array.isArray(row[f.col]) ? (row[f.col] as unknown[]).map(String) : []
+      return f.value.every((v) => have.includes(String(v)))
+    }
+    case 'gt':
+    case 'gte':
+    case 'lt':
+    case 'lte': {
+      if (row[f.col] == null) return false
+      const c = compare(row[f.col], f.value)
+      return f.op === 'gt' ? c > 0 : f.op === 'gte' ? c >= 0 : f.op === 'lt' ? c < 0 : c <= 0
+    }
     case 'or':
       return parseOr(f.expr).some((sub) => matches(row, sub))
   }
@@ -136,8 +211,9 @@ function project(row: Row, columns: string | null) {
 const DEFAULTS: Record<string, () => Row> = {
   profiles: () => ({ avatar_url: null, locale: 'es', timezone: 'America/Caracas', must_change_password: false, full_name: '' }),
   accounts: () => ({ plan_id: 'free' }),
-  account_members: () => ({ role: 'member' }),
-  workspaces: () => ({ icon: '', color: 'violet', description: null, task_seq: 0, task_fields: [], created_by: null, archived_at: null }),
+  account_members: () => ({ role: 'member', title: null, department_id: null, reports_to: null }),
+  departments: () => ({ head_id: null }),
+  workspaces: () => ({ icon: '', color: 'violet', description: null, task_seq: 0, task_fields: [], task_statuses: [], created_by: null, archived_at: null }),
   workspace_members: () => ({ role: 'editor' }),
   meetings: () => ({
     google_event_id: null,
@@ -184,8 +260,10 @@ const DEFAULTS: Record<string, () => Row> = {
     description: null,
     description_text: '',
     status: 'todo',
+    status_id: null,
     priority: 'none',
     assignee_id: null,
+    assignee_ids: [],
     due_date: null,
     start_date: null,
     estimate_hours: null,
@@ -200,14 +278,45 @@ const DEFAULTS: Record<string, () => Row> = {
     completed_at: null,
   }),
   task_comments: () => ({}),
-  attachments: () => ({ task_id: null, meeting_id: null, doc_id: null, kind: 'file', storage_path: null, url: null, mime_type: null, size_bytes: null, uploaded_by: null }),
+  attachments: () => ({
+    account_id: null,
+    workspace_id: null,
+    chat_id: null,
+    task_id: null,
+    meeting_id: null,
+    doc_id: null,
+    kind: 'file',
+    title: null,
+    labels: [],
+    storage_path: null,
+    url: null,
+    mime_type: null,
+    size_bytes: null,
+    uploaded_by: null,
+  }),
+  chats: () => ({ name: null, created_by: null, last_message_at: null }),
+  chat_members: () => ({ role: 'member', last_read_at: null }),
+  chat_messages: () => ({ user_id: null, body: '', ref_id: null, meta: {}, edited_at: null }),
   google_connections: () => ({ access_token: null, access_token_expires_at: null, scopes: [], selected_calendar_ids: ['primary'] }),
   api_tokens: () => ({ last_used_at: null }),
   plans: () => ({}),
 }
 
-const NO_ID = new Set(['profiles', 'account_members', 'workspace_members', 'google_connections', 'plans'])
-const NO_UPDATED = new Set(['account_members', 'workspace_members', 'api_tokens', 'plans', 'attachments'])
+const NO_ID = new Set(['profiles', 'account_members', 'workspace_members', 'google_connections', 'plans', 'chat_members'])
+const NO_UPDATED = new Set(['account_members', 'workspace_members', 'api_tokens', 'plans', 'attachments', 'chat_members', 'chat_messages'])
+
+/** Un adjunto vinculado a una tarea, reunión o doc vive en el espacio de eso; suelto, es de la cuenta. */
+function placeAttachment(s: DemoStore, row: Row) {
+  for (const [col, tbl] of [['task_id', 'tasks'], ['meeting_id', 'meetings'], ['doc_id', 'docs']] as const) {
+    if (!row[col]) continue
+    const target = (s.tables[tbl] as Row[]).find((r) => r.id === row[col])
+    if (!target) throw new DbError('not_found')
+    if (row.workspace_id && row.workspace_id !== target.workspace_id) throw new DbError('attachment_other_workspace')
+    row.workspace_id = target.workspace_id
+  }
+  const ws = row.workspace_id ? s.tables.workspaces.find((w) => w.id === row.workspace_id) : undefined
+  row.account_id = ws?.account_id ?? row.account_id ?? s.tables.accounts[0]?.id ?? null
+}
 
 function workspaceRoleFor(s: DemoStore, workspaceId: string, userId: string) {
   const ws = s.tables.workspaces.find((w) => w.id === workspaceId)
@@ -217,6 +326,64 @@ function workspaceRoleFor(s: DemoStore, workspaceId: string, userId: string) {
   return (s.tables.workspace_members.find((m) => m.workspace_id === workspaceId && m.user_id === userId)?.role as string) ?? null
 }
 
+// Emula tasks_a_sync_status: la categoría (status) sale del estado propio; si solo cambia la
+// categoría, se toma el primer estado propio de esa categoría.
+function syncStatus(s: DemoStore, next: Row, prev: Row | null) {
+  const ws = s.tables.workspaces.find((w) => w.id === next.workspace_id)
+  const list = ((ws?.task_statuses as Row[] | undefined) ?? []) as { id: string; category: string }[]
+  if (!list.length) {
+    next.status_id = null
+    return
+  }
+  if (prev && next.status !== prev.status && next.status_id === prev.status_id) {
+    next.status_id = list.find((x) => x.category === next.status)?.id ?? null
+  }
+  if (next.status_id) {
+    const own = list.find((x) => x.id === next.status_id)
+    if (!own) {
+      if (!prev || next.status_id !== prev.status_id) throw new DbError('invalid_status')
+      next.status_id = null
+    } else next.status = own.category
+  }
+}
+
+// Emula account_members_check_org: departamento de la cuenta, sin ciclos en "reporta a"
+function checkOrg(s: DemoStore, next: Row) {
+  if (next.department_id && !s.tables.departments.some((d) => d.id === next.department_id && d.account_id === next.account_id)) {
+    throw new DbError('department_other_account')
+  }
+  if (next.reports_to) {
+    if (next.reports_to === next.user_id) throw new DbError('reports_to_self')
+    if (!s.tables.account_members.some((m) => m.account_id === next.account_id && m.user_id === next.reports_to)) throw new DbError('reports_to_not_member')
+    let cursor = next.reports_to as string | null
+    for (let i = 0; cursor && i < 64; i++) {
+      if (cursor === next.user_id) throw new DbError('reports_to_cycle')
+      cursor = (s.tables.account_members.find((m) => m.account_id === next.account_id && m.user_id === cursor)?.reports_to as string | null) ?? null
+    }
+  }
+}
+
+/** Igual que tasks_sync_assignees en la base: lista sin repetidos, assignee_id = el primero y solo se valida a quien entra. */
+function syncAssignees(s: DemoStore, next: Row, prev: Row | null) {
+  const prevIds = ((prev?.assignee_ids as string[] | undefined) ?? []).slice()
+  let ids = ((next.assignee_ids as string[] | undefined) ?? []).slice()
+  if (!prev) {
+    if (!ids.length && next.assignee_id) ids = [next.assignee_id as string]
+  } else if (JSON.stringify(ids) === JSON.stringify(prevIds) && next.assignee_id !== prev.assignee_id) {
+    // cambió solo el responsable único: reemplaza al primero y los demás se quedan
+    ids = prevIds.filter((x) => x !== prev.assignee_id)
+    if (next.assignee_id) ids.unshift(next.assignee_id as string)
+  }
+  ids = [...new Set(ids.filter(Boolean))]
+  if (ids.length > 20) throw new DbError('too_many_assignees')
+  for (const id of ids) {
+    const added = !prev || next.workspace_id !== prev.workspace_id || !prevIds.includes(id)
+    if (added && !workspaceRoleFor(s, next.workspace_id as string, id)) throw new DbError('assignee_not_in_workspace')
+  }
+  next.assignee_ids = ids
+  next.assignee_id = ids[0] ?? null
+}
+
 function beforeInsert(s: DemoStore, table: string, row: Row) {
   if (table === 'tasks') {
     const ws = s.tables.workspaces.find((w) => w.id === row.workspace_id)
@@ -224,10 +391,9 @@ function beforeInsert(s: DemoStore, table: string, row: Row) {
     ws.task_seq = (ws.task_seq as number) + 1
     row.number = ws.task_seq
     row.created_by = DEMO_USER_ID
+    syncStatus(s, row, null)
+    syncAssignees(s, row, null)
     row.completed_at = row.status === 'done' ? now() : null
-    if (row.assignee_id && !workspaceRoleFor(s, row.workspace_id as string, row.assignee_id as string)) {
-      throw new DbError('assignee_not_in_workspace')
-    }
   }
   if (table === 'docs') {
     row.created_by = row.created_by ?? DEMO_USER_ID
@@ -237,11 +403,18 @@ function beforeInsert(s: DemoStore, table: string, row: Row) {
   if (table === 'meetings') row.created_by = row.created_by ?? DEMO_USER_ID
   if (table === 'attachments') {
     row.uploaded_by = row.uploaded_by ?? DEMO_USER_ID
-    for (const [col, tbl] of [['task_id', 'tasks'], ['meeting_id', 'meetings'], ['doc_id', 'docs']] as const) {
-      if (row[col] && !(s.tables[tbl] as Row[]).some((r) => r.id === row[col] && r.workspace_id === row.workspace_id)) {
-        throw new DbError('attachment_other_workspace')
-      }
-    }
+    placeAttachment(s, row)
+  }
+  if (table === 'chats') row.created_by = row.created_by ?? DEMO_USER_ID
+  if (table === 'chat_messages') {
+    if (row.kind !== 'system') row.user_id = row.user_id ?? DEMO_USER_ID
+    const chat = s.tables.chats.find((c) => c.id === row.chat_id)
+    if (!chat) throw new DbError('not_found')
+    chat.last_message_at = row.created_at
+    chat.updated_at = row.created_at
+    // quien escribe ya leyó hasta aquí
+    const me = s.tables.chat_members.find((m) => m.chat_id === row.chat_id && m.user_id === row.user_id)
+    if (me) me.last_read_at = row.created_at
   }
   if (table === 'meeting_items') {
     const meeting = s.tables.meetings.find((m) => m.id === row.meeting_id)
@@ -258,7 +431,11 @@ function beforeInsert(s: DemoStore, table: string, row: Row) {
     row.workspace_id = task.workspace_id
     row.user_id = DEMO_USER_ID
   }
+  if (table === 'departments' && row.head_id && !s.tables.account_members.some((m) => m.account_id === row.account_id && m.user_id === row.head_id)) {
+    throw new DbError('head_not_member')
+  }
   if (table === 'account_members') {
+    checkOrg(s, row)
     const acc = s.tables.accounts.find((a) => a.id === row.account_id)
     const plan = s.tables.plans.find((p) => p.id === acc?.plan_id)
     const count = s.tables.account_members.filter((m) => m.account_id === row.account_id).length
@@ -271,16 +448,20 @@ function beforeUpdate(s: DemoStore, table: string, row: Row, patch: Row) {
   if (table === 'tasks') {
     next.number = row.number
     next.created_by = row.created_by
+    syncStatus(s, next, row)
     if (next.status === 'done') next.completed_at = row.status === 'done' ? row.completed_at : now()
     else next.completed_at = null
-    if (patch.assignee_id && !workspaceRoleFor(s, next.workspace_id as string, patch.assignee_id as string)) {
-      throw new DbError('assignee_not_in_workspace')
-    }
+    syncAssignees(s, next, row)
   }
   if (table === 'docs') {
     next.created_by = row.created_by
     next.updated_by = DEMO_USER_ID
     next.excerpt = String(next.content_text ?? '').slice(0, 240)
+  }
+  if (table === 'attachments' && ('task_id' in patch || 'meeting_id' in patch || 'doc_id' in patch || 'workspace_id' in patch)) {
+    // al soltar un vínculo el espacio se mantiene salvo que se cambie a propósito
+    if (!('workspace_id' in patch) && (patch.task_id || patch.meeting_id || patch.doc_id)) next.workspace_id = null
+    placeAttachment(s, next)
   }
   if (table === 'meeting_items') {
     next.workspace_id = row.workspace_id
@@ -292,17 +473,32 @@ function beforeUpdate(s: DemoStore, table: string, row: Row, patch: Row) {
   if (table === 'account_members') {
     if (row.role === 'owner' && next.role !== 'owner') throw new DbError('cannot_remove_owner')
     if (row.role !== 'owner' && next.role === 'owner') throw new DbError('cannot_assign_owner')
+    checkOrg(s, next)
+  }
+  if (table === 'departments') {
+    next.account_id = row.account_id
+    if (next.head_id && !s.tables.account_members.some((m) => m.account_id === next.account_id && m.user_id === next.head_id)) throw new DbError('head_not_member')
+  }
+  if (table === 'workspaces' && 'task_statuses' in patch) {
+    // emula workspaces_cleanup_statuses: tareas con un estado borrado quedan solo con su categoría
+    const ids = new Set(((patch.task_statuses as Row[]) ?? []).map((x) => x.id))
+    s.tables.tasks.forEach((t) => t.workspace_id === row.id && t.status_id && !ids.has(t.status_id) && (t.status_id = null))
   }
   if (!NO_UPDATED.has(table)) next.updated_at = now()
   return next
 }
 
 function afterDelete(s: DemoStore, table: string, row: Row) {
+  if (table === 'departments') {
+    s.tables.account_members.forEach((m) => m.department_id === row.id && (m.department_id = null))
+  }
   if (table === 'tasks') {
     s.tables.tasks = s.tables.tasks.filter((t) => t.parent_id !== row.id)
     s.tables.task_comments = s.tables.task_comments.filter((c) => c.task_id !== row.id)
   }
   if (table === 'account_members') {
+    s.tables.account_members.forEach((m) => m.account_id === row.account_id && m.reports_to === row.user_id && (m.reports_to = null))
+    s.tables.departments.forEach((d) => d.account_id === row.account_id && d.head_id === row.user_id && (d.head_id = null))
     const wsIds = s.tables.workspaces.filter((w) => w.account_id === row.account_id).map((w) => w.id)
     s.tables.workspace_members = s.tables.workspace_members.filter((m) => !(m.user_id === row.user_id && wsIds.includes(m.workspace_id)))
   }
@@ -404,6 +600,7 @@ export function executeQuery(q: Query): Result {
 
 function defaultConflict(table: string) {
   if (table === 'workspace_members') return ['workspace_id', 'user_id']
+  if (table === 'chat_members') return ['chat_id', 'user_id']
   if (table === 'account_members') return ['account_id', 'user_id']
   if (table === 'google_connections' || table === 'profiles') return table === 'profiles' ? ['id'] : ['user_id']
   return ['id']

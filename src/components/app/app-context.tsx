@@ -21,8 +21,9 @@ export function useIsAccountAdmin() {
 }
 
 export function useWorkspaceMap() {
-  const { workspaces } = useApp()
-  return useMemo(() => new Map(workspaces.map((w) => [w.id, w])), [workspaces])
+  const { workspaces, observedWorkspaces } = useApp()
+  // incluye los espacios observados por jerarquía: sus tareas se muestran (en solo lectura) con nombre y color
+  return useMemo(() => new Map([...observedWorkspaces, ...workspaces].map((w) => [w.id, w])), [workspaces, observedWorkspaces])
 }
 
 export function useWorkspaceBySlug(slug: string): WorkspaceWithRole | undefined {

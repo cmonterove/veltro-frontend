@@ -55,7 +55,19 @@ export type AccountMemberRow = {
   account_id: string
   user_id: string
   role: AccountRole
+  /** cargo (texto libre: Gerente General, Analista…) */
+  title: string | null
+  department_id: string | null
+  /** a quién le reporta dentro de la cuenta (arma el organigrama) */
+  reports_to: string | null
   created_at: string
+}
+
+export type DepartmentRow = Timestamps & {
+  id: string
+  account_id: string
+  name: string
+  head_id: string | null
 }
 
 export type WorkspaceRow = Timestamps & {
@@ -69,9 +81,14 @@ export type WorkspaceRow = Timestamps & {
   description: string | null
   task_seq: number
   task_fields: TaskFieldDef[]
+  /** vacío = los 5 estados estándar */
+  task_statuses: TaskStatusDef[]
   created_by: string | null
   archived_at: string | null
 }
+
+/** Estado propio de un espacio; `category` es una de las 5 categorías fijas y vive en tasks.status. */
+export type TaskStatusDef = { id: string; name: string; category: TaskStatus }
 
 export type TaskFieldType = 'text' | 'number' | 'date' | 'select' | 'url'
 export type TaskFieldDef = { id: string; name: string; type: TaskFieldType; options?: string[] }
@@ -156,7 +173,12 @@ export type TaskRow = Timestamps & {
   description: Json | null
   description_text: string
   status: TaskStatus
+  /** estado propio del espacio (si el espacio los define); status guarda su categoría */
+  status_id: string | null
   priority: TaskPriority
+  /** responsables, en orden (sin repetidos) */
+  assignee_ids: string[]
+  /** el primero de assignee_ids; la base lo mantiene sincronizado (compatibilidad) */
   assignee_id: string | null
   due_date: string | null
   start_date: string | null
@@ -172,20 +194,86 @@ export type TaskRow = Timestamps & {
   completed_at: string | null
 }
 
+/**
+ * Un archivo o link de la bóveda. Puede colgar de un espacio, una tarea, una reunión o un doc, pero no
+ * necesita ninguno: los sueltos son de la cuenta (account_id). Título y etiquetas son opcionales.
+ * Pendiente en la base: account_id, title, labels y chat_id, y workspace_id pasa a admitir null.
+ */
 export type AttachmentRow = {
   id: string
-  workspace_id: string
+  account_id: string | null
+  workspace_id: string | null
+  /** subido en un chat de Pasillo: solo lo ven quienes están en ese chat */
+  chat_id: string | null
   task_id: string | null
   meeting_id: string | null
   doc_id: string | null
   kind: 'file' | 'link'
   name: string
+  title: string | null
+  labels: string[]
   storage_path: string | null
   url: string | null
   mime_type: string | null
   size_bytes: number | null
   uploaded_by: string | null
   created_at: string
+}
+
+// ---------- Pasillo (chats). Pendiente en la base: chats, chat_members y chat_messages. ----------
+
+export type ChatKind = 'direct' | 'group'
+
+export type ChatRow = Timestamps & {
+  id: string
+  account_id: string
+  kind: ChatKind
+  /** solo los grupos tienen nombre; un directo se llama como la otra persona */
+  name: string | null
+  created_by: string | null
+  last_message_at: string | null
+}
+
+export type ChatMemberRow = {
+  chat_id: string
+  user_id: string
+  role: 'owner' | 'member'
+  last_read_at: string | null
+  created_at: string
+}
+
+export type ChatMessageKind = 'text' | 'task' | 'file' | 'doc' | 'meeting' | 'system'
+export type RsvpAnswer = 'yes' | 'maybe' | 'no'
+
+/** Invitación a una reunión enviada por chat: los datos van en el mensaje y cada persona responde ahí. */
+export type MeetingInvite = {
+  title: string
+  start: string
+  end: string
+  conferenceUrl: string | null
+  eventId: string | null
+  rsvp: Record<string, RsvpAnswer>
+}
+
+export type ChatMessageRow = {
+  id: string
+  chat_id: string
+  user_id: string | null
+  kind: ChatMessageKind
+  /** texto del mensaje; en las tarjetas, el comentario que acompaña lo compartido */
+  body: string
+  /** lo compartido: id de la tarea, el archivo o el doc */
+  ref_id: string | null
+  meta: {
+    invite?: MeetingInvite
+    system?: 'created' | 'joined' | 'left' | 'renamed'
+    name?: string
+    users?: string[]
+    /** respuesta a otro mensaje: se guarda un extracto para mostrarlo citado */
+    replyTo?: { id: string; userId: string | null; body: string }
+  }
+  created_at: string
+  edited_at: string | null
 }
 
 export type TaskCommentRow = Timestamps & {
@@ -230,6 +318,7 @@ export type Database = {
       profiles: Table<ProfileRow, 'id' | 'email'>
       accounts: Table<AccountRow, 'name' | 'owner_id'>
       account_members: Table<AccountMemberRow, 'account_id' | 'user_id'>
+      departments: Table<DepartmentRow, 'account_id' | 'name'>
       workspaces: Table<WorkspaceRow, 'account_id' | 'name' | 'slug' | 'key'>
       workspace_members: Table<WorkspaceMemberRow, 'workspace_id' | 'user_id'>
       meetings: Table<MeetingRow, 'workspace_id' | 'starts_at'>
@@ -237,7 +326,10 @@ export type Database = {
       docs: Table<DocRow, 'workspace_id'>
       tasks: Table<TaskRow, 'workspace_id' | 'title'>
       task_comments: Table<TaskCommentRow, 'task_id' | 'body'>
-      attachments: Table<AttachmentRow, 'workspace_id' | 'name'>
+      attachments: Table<AttachmentRow, 'name'>
+      chats: Table<ChatRow, 'account_id' | 'kind'>
+      chat_members: Table<ChatMemberRow, 'chat_id' | 'user_id'>
+      chat_messages: Table<ChatMessageRow, 'chat_id' | 'kind'>
       google_connections: Table<GoogleConnectionRow, 'user_id' | 'google_email' | 'refresh_token'>
       api_tokens: Table<ApiTokenRow, 'user_id' | 'name' | 'token_hash' | 'token_prefix'>
     }

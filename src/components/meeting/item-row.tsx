@@ -9,11 +9,11 @@ import { AssigneeMenu, DuePopover } from '@/components/tasks/pickers'
 import { DueDate } from '@/components/tasks/due-date'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { useTask } from '@/lib/queries/tasks'
-import { useTaskPanel } from '@/lib/hooks'
 import { cn, taskRef } from '@/lib/utils'
 import type { MeetingItemRow } from '@/lib/database.types'
 import type { Member } from '@/lib/types'
 import { KIND_STYLE, KindChip } from './kinds'
+import { useOpenTask } from '@/lib/use-open-task'
 
 export function ItemRow({
   item,
@@ -112,7 +112,7 @@ export function ItemRow({
 export function TaskLink({ taskId, className }: { taskId: string; className?: string }) {
   const { data: task } = useTask(taskId)
   const ws = useWorkspaceMap().get(task?.workspace_id ?? '')
-  const { open } = useTaskPanel()
+  const { open } = useOpenTask()
   if (!task) return null
   return (
     <button

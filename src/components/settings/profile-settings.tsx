@@ -5,44 +5,34 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
+import { Monitor, Moon, Sun } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { Button } from '@/components/ui/button'
-import { Field, Input, inputClass } from '@/components/ui/input'
+import { Input } from '@/components/ui/input'
 import { Avatar } from '@/components/ui/avatar'
 import { LocaleSelect } from '@/components/app/locale-select'
+import { Select } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 import { updateProfile } from '@/app/actions/settings'
 import { cn } from '@/lib/utils'
 import { useHydrated } from '@/lib/hooks'
-import { SettingsSection } from './section'
+import { SaveBar, SettingsCard, SettingsHeader, SettingsRow } from './ui'
 
+/** Perfil: cómo te ven los demás y tu contraseña. */
 export function ProfileSettings() {
   const t = useTranslations('settings.profile')
   const router = useRouter()
   const { profile } = useApp()
-  const { theme, setTheme } = useTheme()
   const [name, setName] = useState(profile.full_name)
-  const [timezone, setTimezone] = useState(profile.timezone)
   const [saving, start] = useTransition()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [pwPending, setPwPending] = useState(false)
-
-  // La lista de zonas depende del ICU de cada motor (Node y el navegador difieren): solo se arma en el cliente.
-  const hydrated = useHydrated()
-  const zones = useMemo(() => {
-    if (!hydrated) return [timezone]
-    try {
-      const all = (Intl as unknown as { supportedValuesOf: (k: string) => string[] }).supportedValuesOf('timeZone')
-      return all.includes(timezone) ? all : [timezone, ...all]
-    } catch {
-      return [timezone]
-    }
-  }, [hydrated, timezone])
+  const dirty = name.trim() !== profile.full_name
 
   const save = () =>
     start(async () => {
-      const res = await updateProfile({ full_name: name.trim() || profile.full_name, timezone })
+      const res = await updateProfile({ full_name: name.trim() || profile.full_name })
       if (res.ok) {
         toast.success(t('saved'))
         router.refresh()
@@ -65,74 +55,104 @@ export function ProfileSettings() {
 
   return (
     <div>
-      <SettingsSection title={t('title')} description={t('description')}>
-        <div className="flex max-w-md flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Avatar name={name} src={profile.avatar_url} seed={profile.id} size={44} />
-            <div className="text-sm text-fg-muted">{profile.email}</div>
-          </div>
-          <Field label={t('name')} htmlFor="p-name">
-            <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
-          </Field>
-          <Field label={t('timezone')} htmlFor="p-tz" hint={t('timezoneHint')}>
-            <select id="p-tz" value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputClass}>
-              {zones.map((z) => (
-                <option key={z} value={z}>
-                  {z}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div>
-            <Button variant="primary" onClick={save} loading={saving}>
-              {t('save')}
-            </Button>
-          </div>
-        </div>
-      </SettingsSection>
+      <SettingsHeader title={t('title')} description={t('description')} />
 
-      <SettingsSection title={t('preferences')}>
-        <div className="flex flex-col gap-5">
-          <div className="flex items-center gap-4">
-            <span className="w-28 text-sm text-fg-muted">{t('language')}</span>
-            <LocaleSelect />
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="w-28 text-sm text-fg-muted">{t('theme')}</span>
-            <div className="flex rounded-md bg-hover p-0.5">
-              {(['light', 'dark', 'system'] as const).map((th) => (
-                <button
-                  key={th}
-                  type="button"
-                  onClick={() => setTheme(th)}
-                  className={cn('h-7 rounded-sm px-3 text-sm', hydrated && theme === th ? 'bg-panel font-medium shadow-card' : 'text-fg-muted hover:text-fg')}
-                >
-                  {t(`themes.${th}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </SettingsSection>
+      <SettingsCard>
+        <SettingsRow label={t('photo')} description={t('photoHint')}>
+          <Avatar name={name} src={profile.avatar_url} seed={profile.id} size={44} />
+        </SettingsRow>
+        <SettingsRow label={t('name')} htmlFor="p-name">
+          <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} className="sm:w-72" />
+        </SettingsRow>
+        <SettingsRow label={t('email')} description={t('emailHint')}>
+          <span className="truncate text-sm text-fg-muted">{profile.email}</span>
+        </SettingsRow>
+      </SettingsCard>
 
-      <SettingsSection
-        title={t('password')}
-        description={profile.must_change_password ? t('passwordTemp') : t('passwordDescription')}
-      >
-        <div className="flex max-w-md flex-col gap-4">
-          <Field label={t('newPassword')} htmlFor="p-pw">
-            <Input id="p-pw" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </Field>
-          <Field label={t('confirmPassword')} htmlFor="p-pw2">
-            <Input id="p-pw2" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-          </Field>
-          <div>
-            <Button onClick={changePassword} loading={pwPending} disabled={!password}>
-              {t('changePassword')}
-            </Button>
-          </div>
+      <SettingsCard title={t('password')} description={profile.must_change_password ? t('passwordTemp') : t('passwordDescription')}>
+        <SettingsRow label={t('newPassword')} htmlFor="p-pw">
+          <Input id="p-pw" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="sm:w-72" />
+        </SettingsRow>
+        <SettingsRow label={t('confirmPassword')} htmlFor="p-pw2">
+          <Input id="p-pw2" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="sm:w-72" />
+        </SettingsRow>
+        <div className="flex justify-end px-5 py-3">
+          <Button onClick={changePassword} loading={pwPending} disabled={!password}>
+            {t('changePassword')}
+          </Button>
         </div>
-      </SettingsSection>
+      </SettingsCard>
+
+      <SaveBar dirty={dirty} pending={saving} onSave={save} onDiscard={() => setName(profile.full_name)} disabled={!name.trim()} />
+    </div>
+  )
+}
+
+/** Preferencias: idioma, tema y zona horaria. Se aplican al momento, sin guardar. */
+export function PreferencesSettings() {
+  const t = useTranslations('settings.profile')
+  const router = useRouter()
+  const { profile } = useApp()
+  const { theme, setTheme } = useTheme()
+  const [timezone, setTimezone] = useState(profile.timezone)
+  const hydrated = useHydrated()
+
+  // La lista de zonas depende del ICU de cada motor (Node y el navegador difieren): solo se arma en el cliente.
+  const zones = useMemo(() => {
+    if (!hydrated) return [timezone]
+    try {
+      const all = (Intl as unknown as { supportedValuesOf: (k: string) => string[] }).supportedValuesOf('timeZone')
+      return all.includes(timezone) ? all : [timezone, ...all]
+    } catch {
+      return [timezone]
+    }
+  }, [hydrated, timezone])
+
+  const changeZone = async (tz: string) => {
+    setTimezone(tz)
+    const res = await updateProfile({ timezone: tz })
+    if (res.ok) {
+      toast.success(t('saved'))
+      router.refresh()
+    } else toast.error(t('error'))
+  }
+
+  const themes = [
+    { id: 'light', icon: Sun },
+    { id: 'dark', icon: Moon },
+    { id: 'system', icon: Monitor },
+  ] as const
+
+  return (
+    <div>
+      <SettingsHeader title={t('preferences')} description={t('preferencesDescription')} />
+      <SettingsCard>
+        <SettingsRow label={t('language')} description={t('languageHint')}>
+          <LocaleSelect />
+        </SettingsRow>
+        <SettingsRow label={t('theme')} description={t('themeHint')}>
+          <div className="flex rounded-lg bg-hover p-0.5">
+            {themes.map(({ id, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTheme(id)}
+                aria-pressed={hydrated && theme === id}
+                className={cn(
+                  'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm transition-colors',
+                  hydrated && theme === id ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
+                )}
+              >
+                <Icon className="size-3.5" />
+                {t(`themes.${id}`)}
+              </button>
+            ))}
+          </div>
+        </SettingsRow>
+        <SettingsRow label={t('timezone')} description={t('timezoneHint')} htmlFor="p-tz">
+          <Select id="p-tz" value={timezone} onChange={changeZone} options={zones.map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))} className="sm:w-72" />
+        </SettingsRow>
+      </SettingsCard>
     </div>
   )
 }

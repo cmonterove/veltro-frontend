@@ -16,16 +16,22 @@ import {
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCreateTask } from '@/lib/queries/tasks'
-import { useTaskPanel } from '@/lib/hooks'
 import { toDateKey, useDateLocale } from '@/lib/dates'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import type { TaskRow as Task } from '@/lib/database.types'
 import { StatusIcon } from './status-icon'
+import { useOpenTask } from '@/lib/use-open-task'
+import { useWorkspaceMap } from '@/components/app/app-context'
+import { WorkspaceMark } from '@/components/app/marks'
 
-export function TaskCalendar({ tasks, workspaceId, editable }: { tasks: Task[]; workspaceId: string; editable: boolean }) {
+/** Calendario mensual por fecha. Sin `workspaceId` (varios espacios) cada tarea lleva la marca de su espacio y no se crean desde el día. */
+export function TaskCalendar({ tasks, workspaceId, editable }: { tasks: Task[]; workspaceId?: string; editable: boolean }) {
+  const wsMap = useWorkspaceMap()
+  const cross = !workspaceId
   const t = useTranslations('tasks')
   const locale = useDateLocale()
-  const { open } = useTaskPanel()
+  const { open } = useOpenTask()
   const create = useCreateTask()
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [adding, setAdding] = useState<string | null>(null)
@@ -95,7 +101,7 @@ export function TaskCalendar({ tasks, workspaceId, editable }: { tasks: Task[]; 
                 >
                   {format(d, 'd')}
                 </span>
-                {editable ? (
+                {editable && !cross ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -116,11 +122,34 @@ export function TaskCalendar({ tasks, workspaceId, editable }: { tasks: Task[]; 
                   onClick={() => open(task.id)}
                   className="flex h-6 min-w-0 items-center gap-1.5 rounded-sm px-1 text-left text-xs hover:bg-hover"
                 >
-                  <StatusIcon status={task.status} className="size-3" />
+                  {cross && wsMap.get(task.workspace_id) ? <WorkspaceMark ws={wsMap.get(task.workspace_id)!} size={12} /> : <StatusIcon status={task.status} className="size-3" />}
                   <span className={cn('truncate', task.status === 'done' ? 'text-fg-subtle line-through' : 'text-fg')}>{task.title}</span>
                 </button>
               ))}
-              {list.length > 4 ? <span className="px-1 text-2xs text-fg-subtle">{t('moreCount', { count: list.length - 4 })}</span> : null}
+              {list.length > 4 ? (
+                // el resto del día en un desplegable (antes era un número sin forma de verlas)
+                <Popover>
+                  <PopoverTrigger className="self-start rounded-sm px-1 text-2xs font-medium text-fg-muted hover:bg-hover hover:text-fg data-[popup-open]:bg-hover">
+                    {t('moreCount', { count: list.length - 4 })}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-1">
+                    <p className="px-2 pb-1 pt-1.5 text-2xs font-medium capitalize text-fg-subtle">{format(d, 'EEEE d MMMM', { locale })}</p>
+                    <div className="max-h-72 overflow-y-auto scrollbar-thin">
+                      {list.map((task) => (
+                        <button
+                          key={task.id}
+                          type="button"
+                          onClick={() => open(task.id)}
+                          className="flex h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-2 text-left text-xs hover:bg-hover"
+                        >
+                          {cross && wsMap.get(task.workspace_id) ? <WorkspaceMark ws={wsMap.get(task.workspace_id)!} size={12} /> : <StatusIcon status={task.status} className="size-3" />}
+                          <span className={cn('truncate', task.status === 'done' ? 'text-fg-subtle line-through' : 'text-fg')}>{task.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              ) : null}
               {adding === key ? (
                 <input
                   autoFocus
@@ -130,7 +159,7 @@ export function TaskCalendar({ tasks, workspaceId, editable }: { tasks: Task[]; 
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') setAdding(null)
                     if (e.key === 'Enter' && draft.trim()) {
-                      create.mutate({ workspace_id: workspaceId, title: draft.trim(), due_date: key, status: 'todo', position: Date.now() / 1000 })
+                      create.mutate({ workspace_id: workspaceId!, title: draft.trim(), due_date: key, status: 'todo', position: Date.now() / 1000 })
                       setDraft('')
                     }
                   }}

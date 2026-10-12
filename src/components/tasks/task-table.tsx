@@ -4,46 +4,52 @@ import { useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { ArrowDown, CalendarClock, CircleUser, Paperclip, Timer } from 'lucide-react'
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
-import { Avatar } from '@/components/ui/avatar'
+import { AvatarStack } from '@/components/ui/avatar'
 import { useUpdateTask } from '@/lib/queries/tasks'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { useAttachmentCounts } from '@/lib/queries/attachments'
-import { useTaskPanel } from '@/lib/hooks'
-import { TASK_STATUSES } from '@/lib/constants'
+import { statusKey, statusPatch, taskStatusOf, workspaceStatuses } from '@/lib/statuses'
+import { useStatusName } from '@/lib/use-status-name'
 import { cn, taskRef } from '@/lib/utils'
 import type { TaskRow } from '@/lib/database.types'
-import { AssigneeMenu, DuePopover, PriorityMenu, StatusMenu } from './pickers'
+import { AssigneesMenu, DuePopover, PriorityMenu, StatusMenu } from './pickers'
 import { PriorityIcon, StatusIcon } from './status-icon'
 import { DueDate } from './due-date'
 import { AddFieldPopover, FIELD_ICONS, FieldValue } from './custom-fields'
 import { TaskComposer } from './task-list'
+import { useOpenTask } from '@/lib/use-open-task'
+import { assigneesOf, assigneesPatch } from '@/lib/assignees'
 
 type SortKey = 'status' | 'due' | 'priority' | 'title'
 
 /** Vista tabla: todos los campos (incluidos los propios del espacio) como columnas editables. */
 export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceId: string }) {
   const t = useTranslations('tasks')
-  const tStatus = useTranslations('tasks.status')
+  const statusName = useStatusName()
   const ws = useWorkspaceMap().get(workspaceId)!
+  const statusOptions = workspaceStatuses(ws)
   const editable = canEdit(ws)
   const memberMap = useMemberMap()
   const members = useWorkspaceMembers(workspaceId)
   const counts = useAttachmentCounts(workspaceId)
   const update = useUpdateTask()
-  const { open, openId } = useTaskPanel()
+  const { open } = useOpenTask()
   const [sort, setSort] = useState<SortKey>('status')
   const fields = ws.task_fields ?? []
 
   const rows = useMemo(() => {
-    const order = new Map(TASK_STATUSES.map((s, i) => [s, i]))
+    // orden de los estados del espacio (propios o estándar)
+    const order = new Map(statusOptions.map((o, i) => [statusKey(o), i]))
+    const rank = (x: TaskRow) => order.get(statusKey(taskStatusOf(x, ws))) ?? order.get(x.status) ?? 99
     const pr = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 }
     return [...tasks].sort((a, b) => {
       if (sort === 'due') return (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999')
       if (sort === 'priority') return pr[a.priority] - pr[b.priority]
       if (sort === 'title') return a.title.localeCompare(b.title)
-      return (order.get(a.status) ?? 0) - (order.get(b.status) ?? 0) || a.position - b.position
+      return rank(a) - rank(b) || a.position - b.position
     })
-  }, [tasks, sort])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, sort, ws.task_statuses])
 
   const locale = useLocale()
   const totalEstimate = tasks.reduce((n, x) => n + (Number(x.estimate_hours) || 0), 0)
@@ -52,12 +58,6 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
   const fmt = (n: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(n)
   const head = 'sticky top-0 z-10 h-9 border-b border-line bg-sidebar px-2 text-left text-xs font-medium text-fg-muted whitespace-nowrap'
   const cell = 'h-10 border-b border-line-soft px-1.5 align-middle'
-  const SortBtn = ({ k, children }: { k: SortKey; children: React.ReactNode }) => (
-    <button type="button" onClick={() => setSort(k)} aria-pressed={sort === k} className={cn('inline-flex items-center gap-1 hover:text-fg', sort === k && 'text-fg')}>
-      {children}
-      {sort === k ? <ArrowDown className="size-3 text-accent-ink" /> : null}
-    </button>
-  )
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -66,13 +66,13 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
           <thead>
             <tr>
               <th className={cn(head, 'sticky left-0 z-20 w-[360px] min-w-[360px] pl-4')}>
-                <SortBtn k="title">{t('title')}</SortBtn>
+                <SortBtn sort={sort} onSort={setSort} k="title">{t('title')}</SortBtn>
               </th>
               <th className={cn(head, 'w-36')}>
-                <SortBtn k="status">{t('statusLabel')}</SortBtn>
+                <SortBtn sort={sort} onSort={setSort} k="status">{t('statusLabel')}</SortBtn>
               </th>
               <th className={cn(head, 'w-32')}>
-                <SortBtn k="priority">{t('priorityLabel')}</SortBtn>
+                <SortBtn sort={sort} onSort={setSort} k="priority">{t('priorityLabel')}</SortBtn>
               </th>
               <th className={cn(head, 'w-40')}>{t('assignee')}</th>
               <th className={cn(head, 'w-32')}>
@@ -82,7 +82,7 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
                 </span>
               </th>
               <th className={cn(head, 'w-32')}>
-                <SortBtn k="due">{t('dueLabel')}</SortBtn>
+                <SortBtn sort={sort} onSort={setSort} k="due">{t('dueLabel')}</SortBtn>
               </th>
               <th className={cn(head, 'w-24')}>
                 <span className="inline-flex items-center gap-1">
@@ -109,21 +109,21 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
           </thead>
           <tbody>
             {rows.map((task) => {
-              const assignee = task.assignee_id ? memberMap.get(task.assignee_id) : undefined
+              const people = assigneesOf(task).flatMap((id) => memberMap.get(id) ?? [])
               const patch = (p: Parameters<typeof update.mutate>[0]['patch']) => update.mutate({ id: task.id, patch: p })
               const n = counts.get(task.id) ?? 0
               return (
-                <tr key={task.id} className={cn('group/tr hover:bg-hover/50', openId === task.id && 'bg-accent-soft/50')}>
-                  <td className={cn(cell, 'sticky left-0 z-[1] bg-canvas pl-4 group-hover/tr:bg-hover', openId === task.id && 'bg-accent-soft')}>
+                <tr key={task.id} className="group/tr hover:bg-hover/50">
+                  <td className={cn(cell, 'sticky left-0 z-[1] bg-canvas pl-4 group-hover/tr:bg-hover')}>
                     <button type="button" onClick={() => open(task.id)} className="flex w-full min-w-0 items-center gap-2 text-left">
                       <span className="w-14 shrink-0 font-mono text-xs text-fg-subtle">{taskRef(ws.key, task.number)}</span>
                       <span className={cn('truncate', task.status === 'done' ? 'text-fg-muted line-through decoration-fg-subtle/40' : 'text-fg')}>{task.title}</span>
                     </button>
                   </td>
                   <td className={cell}>
-                    <StatusMenu value={task.status} onChange={(status) => patch({ status })} disabled={!editable} className="h-7 px-2">
+                    <StatusMenu options={statusOptions} value={taskStatusOf(task, ws)} onChange={(o) => patch(statusPatch(o))} disabled={!editable} className="h-7 px-2">
                       <StatusIcon status={task.status} />
-                      <span className="truncate">{tStatus(task.status)}</span>
+                      <span className="truncate">{statusName(taskStatusOf(task, ws))}</span>
                     </StatusMenu>
                   </td>
                   <td className={cell}>
@@ -132,16 +132,16 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
                     </PriorityMenu>
                   </td>
                   <td className={cell}>
-                    <AssigneeMenu value={task.assignee_id} members={members} onChange={(assignee_id) => patch({ assignee_id })} disabled={!editable} className="h-7 max-w-full px-2">
-                      {assignee ? (
+                    <AssigneesMenu value={assigneesOf(task)} members={members} onChange={(ids) => patch(assigneesPatch(ids))} disabled={!editable} className="h-7 max-w-full px-2">
+                      {people.length ? (
                         <>
-                          <Avatar name={assignee.full_name} src={assignee.avatar_url} seed={assignee.id} size={18} />
-                          <span className="truncate">{assignee.full_name.split(' ')[0]}</span>
+                          <AvatarStack people={people} size={18} />
+                          <span className="truncate">{people.length === 1 ? people[0].full_name.split(' ')[0] : people.map((p) => p.full_name.split(' ')[0]).join(', ')}</span>
                         </>
                       ) : (
                         <CircleUser className="size-4 text-fg-subtle" />
                       )}
-                    </AssigneeMenu>
+                    </AssigneesMenu>
                   </td>
                   <td className={cell}>
                     <DuePopover value={task.start_date} onChange={(start_date) => patch({ start_date })} disabled={!editable} className="h-7 px-2" aria-label={t('startLabel')}>
@@ -201,5 +201,14 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
         </div>
       ) : null}
     </div>
+  )
+}
+
+function SortBtn({ k, sort, onSort, children }: { k: SortKey; sort: SortKey; onSort: (k: SortKey) => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={() => onSort(k)} aria-pressed={sort === k} className={cn('inline-flex items-center gap-1 hover:text-fg', sort === k && 'text-fg')}>
+      {children}
+      {sort === k ? <ArrowDown className="size-3 text-accent-ink" /> : null}
+    </button>
   )
 }

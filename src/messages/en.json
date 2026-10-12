@@ -62,12 +62,12 @@
       "body": "Veltro listens to your calendar, helps you capture what gets decided and turns every agreement into a task with an owner.",
       "live": "Live",
       "closedBadge": "Closed",
-      "meeting": "Campaign review with Polar",
-      "decision": "Prioritize Farmatodo in November",
-      "action": "Send display photos",
-      "owner": "Pepito",
+      "meeting": "Weekly client review",
+      "decision": "Launch the campaign in November",
+      "action": "Send the final proposal",
+      "owner": "Ana",
       "due": "tomorrow",
-      "question": "Do we share the endcap with another brand?",
+      "question": "Do we expand the budget?",
       "capturing": "Capturing live",
       "close": "Close with Veltro",
       "closed": "Closed",
@@ -94,10 +94,10 @@
     "subtitle": "Just two things and you're done. You can change them anytime.",
     "accountLabel": "Account name",
     "accountHint": "Your company, consultancy or team. All your workspaces and people will live here.",
-    "accountPlaceholder": "Promoting Group",
+    "accountPlaceholder": "e.g. My company",
     "workspaceLabel": "Your first workspace",
     "workspaceHint": "A project, client or company. Each workspace has its own tasks, docs and meetings.",
-    "workspacePlaceholder": "Promoting",
+    "workspacePlaceholder": "e.g. Marketing",
     "submit": "Get started"
   },
   "seed": {
@@ -108,9 +108,10 @@
     "task3": "Import the documentation from a Claude session"
   },
   "nav": {
-    "today": "Today",
+    "today": "Pulse",
+    "veltro": "Veltro AI",
     "calendar": "Calendar",
-    "myTasks": "My tasks",
+    "myTasks": "Tasks",
     "search": "Search",
     "newTask": "New task",
     "workspaces": "Workspaces",
@@ -138,11 +139,48 @@
     "tempPasswordBanner": "You're using a temporary password. Change it in your profile.",
     "mesa": "Control room",
     "shortcuts": "Keyboard shortcuts",
-    "suspendedBanner": "This account is suspended. Your data is safe; contact us to reactivate it."
+    "suspendedBanner": "This account is suspended. Your data is safe; contact us to reactivate it.",
+    "sidebarCollapse": "Collapse sidebar",
+    "sidebarExpand": "Expand sidebar",
+    "themeToLight": "Switch to light theme",
+    "themeToDark": "Switch to dark theme",
+    "language": "Language",
+    "switchLanguage": "Switch language to {language}",
+    "documents": "Documents",
+    "vault": "Vault",
+    "pasillo": "Hallway",
+    "close": "Close",
+    "peek": {
+      "workspace": "Space",
+      "todayLeft": "Still today",
+      "now": "Now",
+      "noMeetings": "No more meetings today",
+      "more": "{count, plural, other {and # more}}",
+      "files": "{count, plural, =0 {No files yet} one {# file} other {# files}}",
+      "unread": "{count, plural, one {# unread chat} other {# unread chats}}",
+      "allRead": "You're all caught up.",
+      "stat": {
+        "open": "open",
+        "inProgress": "in progress",
+        "overdue": "overdue",
+        "today": "due today",
+        "blocked": "blocked",
+        "meetings": "{count, plural, one {meeting} other {meetings}}"
+      },
+      "desc": {
+        "home": "Your day at a glance: what's urgent and your meetings.",
+        "veltro": "Ask anything about your tasks, meetings and files.",
+        "mesa": "How spaces are doing and who's overloaded.",
+        "calendar": "Your week: meetings and dated tasks.",
+        "tasks": "Everything assigned to you across your spaces.",
+        "vault": "Your files and links, with or without a space.",
+        "chat": "What the team is talking about."
+      }
+    }
   },
   "command": {
     "title": "Search and run",
-    "placeholder": "Search tasks, docs or type a command…",
+    "placeholder": "Search tasks, docs, files, chats or type a command…",
     "empty": "No results.",
     "tasks": "Tasks",
     "docs": "Docs",
@@ -155,7 +193,10 @@
     "meetings": "Meetings",
     "decisions": "Decisions",
     "newMeeting": "New meeting",
-    "shortcuts": "Keyboard shortcuts"
+    "shortcuts": "Keyboard shortcuts",
+    "files": "Vault",
+    "chats": "Hallway",
+    "vaultLoose": "Loose"
   },
   "dates": {
     "today": "Today",
@@ -165,30 +206,8 @@
     "clear": "Clear date",
     "dueDate": "Due date"
   },
-  "home": {
-    "greeting": {
-      "night": "Good evening, {name}",
-      "morning": "Good morning, {name}",
-      "afternoon": "Good afternoon, {name}",
-      "evening": "Good evening, {name}"
-    },
-    "summaryMeetings": "{count, plural, =0 {No meetings today} one {# meeting today} other {# meetings today}}",
-    "summaryTasks": "{count, plural, =0 {nothing due today} one {# task due today} other {# tasks due today}}",
-    "summaryOverdue": "{count, plural, one {# overdue} other {# overdue}}",
-    "agenda": "Today's agenda",
-    "openCalendar": "Calendar",
-    "noMeetings": "No meetings today. A good time to move tasks forward.",
-    "tomorrow": "Tomorrow",
-    "allDay": "All day",
-    "yourTasks": "Your tasks",
-    "allTasks": "All",
-    "addForToday": "Add a task for today…",
-    "noTasks": "Nothing pending this week.",
-    "recentDocs": "Recent docs",
-    "untitled": "Untitled"
-  },
   "myTasks": {
-    "title": "My tasks",
+    "title": "Tasks",
     "subtitle": "{count, plural, =0 {You have no open tasks} one {# open task across all your workspaces} other {# open tasks across all your workspaces}}",
     "groups": {
       "overdue": "Overdue",
@@ -201,6 +220,38 @@
     "empty": {
       "title": "All caught up",
       "description": "Tasks assigned to you will show up here, sorted by date. Press C to create one."
+    },
+    "emptyFiltered": "No tasks in this view",
+    "emptyFilteredHint": "Try removing a filter or change who you are looking at.",
+    "newTask": "New task",
+    "subtitleScoped": "{count, plural, =0 {No open tasks} one {# open task} other {# open tasks}} · {who}",
+    "filters": {
+      "label": "Filters",
+      "search": "Search tasks…",
+      "clearSearch": "Clear search",
+      "status": "Status",
+      "due": "Due",
+      "space": "Space",
+      "who": "Assignee",
+      "priority": "Priority",
+      "labels": "Labels",
+      "find": "Search…",
+      "noResults": "No results",
+      "clear": "Clear filter",
+      "remove": "Remove the {filter} filter",
+      "clearAll": "Clear",
+      "dueHint": "By due date. Only open tasks count.",
+      "andMore": "{first} +{count}",
+      "groupBy": "Group by",
+      "groups": {
+        "date": "Due date",
+        "status": "Status",
+        "space": "Space",
+        "assignee": "Assignee",
+        "priority": "Priority"
+      },
+      "shownOf": "{shown} of {count, plural, one {# task} other {# tasks}}",
+      "clearFilters": "Clear filters"
     }
   },
   "tasks": {
@@ -222,7 +273,8 @@
       "list": "List",
       "board": "Board",
       "calendar": "Calendar",
-      "table": "Table"
+      "table": "Table",
+      "summary": "Summary"
     },
     "empty": {
       "title": "No tasks yet",
@@ -312,7 +364,56 @@
       "hint": "Type “tomorrow”, “fri”, “@Ana” or “!high” and Veltro fills in the date, owner and priority.",
       "understood": "Title:"
     },
-    "undo": "Undo"
+    "undo": "Undo",
+    "back": "Back",
+    "breadcrumb": "Task location",
+    "properties": "Properties",
+    "subtaskOf": "Subtask of {title}",
+    "readOnly": "Read only",
+    "goToMyTasks": "Go to My tasks",
+    "task": "Task",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "editing": "Editing",
+    "unsaved": "Unsaved changes",
+    "saved": "Changes saved",
+    "discardConfirm": "Discard unsaved changes?",
+    "markDone": "Mark as done",
+    "reopen": "Reopen",
+    "sections": "Task sections",
+    "noDescription": "No description.",
+    "addDescription": "Add one",
+    "moreFields": "More fields",
+    "subtasksDone": "{done} of {total} done",
+    "noSubtasks": "Break the task into smaller steps.",
+    "noComments": "No comments yet.",
+    "tabs": {
+      "detail": "Details",
+      "subtasks": "Subtasks",
+      "comments": "Comments",
+      "attachments": "Attachments"
+    },
+    "assignees": "Assignees",
+    "assigneesCount": "{count, plural, one {# assignee} other {# assignees}}",
+    "pickAssignees": "Pick assignees",
+    "clearAssignees": "Remove all",
+    "space": "Space",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "collapseHint": "Alt + click to open or close every group",
+    "groupSummary": {
+      "overdue": "{count} overdue",
+      "blocked": "{count} blocked",
+      "today": "{count} due today",
+      "moving": "{count} in progress",
+      "next": "Next"
+    },
+    "shareInPasillo": "Share in Hallway",
+    "deleteCommentConfirm": "Delete this comment?",
+    "openTask": "Open “{title}”",
+    "noMatches": "No tasks match",
+    "noMatchesHint": "Try other words or turn off \"Only mine\"."
   },
   "docs": {
     "untitled": "Untitled",
@@ -415,7 +516,10 @@
       "link": "Link",
       "remove": "Remove"
     },
-    "extractCount": "{count, plural, one {Turn # item into a task} other {Turn # items into tasks}}"
+    "extractCount": "{count, plural, one {Turn # item into a task} other {Turn # items into tasks}}",
+    "shareInPasillo": "Share in Hallway",
+    "deleteConfirm": "Delete “{title}”?",
+    "deleteConfirmHint": "Its subpages are deleted too."
   },
   "meetings": {
     "takeNotes": "Take notes",
@@ -488,13 +592,34 @@
       "cancel": "Cancel",
       "create": "Create meeting",
       "created": "Meeting created in Google Calendar",
-      "error": "Couldn't create the meeting."
+      "error": "Couldn't create the meeting.",
+      "attendeesPlaceholder": "ana@company.com, peter@company.com"
     },
     "legend": {
       "mine": "{workspace} meetings",
       "unlinked": "Not linked"
     },
-    "newAt": "New meeting at {time}"
+    "newAt": "New meeting at {time}",
+    "filters": {
+      "show": "Show",
+      "meetings": "Meetings",
+      "tasks": "Tasks",
+      "space": "Space",
+      "who": "Assignee",
+      "whoHint": "By default you see your tasks and the ones nobody owns yet, so you can hand them out from here.",
+      "unassignedLegend": "No assignee"
+    },
+    "task": {
+      "nobody": "Nobody owns it yet.",
+      "assignMe": "Assign to me",
+      "me": "You",
+      "assignHint": "Tap a person to add or remove them.",
+      "open": "Open task"
+    },
+    "moreTasks": "+{count} more",
+    "lessTasks": "Show less",
+    "loadError": "We couldn't fetch your Google calendar.",
+    "retry": "Try again"
   },
   "workspace": {
     "summary": "Overview",
@@ -539,7 +664,8 @@
       "files": "Recent files",
       "allFiles": "All files",
       "noFiles": "No files yet. Upload them from a task, a meeting or the library."
-    }
+    },
+    "sections": "Space sections"
   },
   "roles": {
     "owner": "Owner",
@@ -553,11 +679,13 @@
     "title": "Settings",
     "nav": {
       "profile": "Profile",
-      "account": "Account & plan",
+      "account": "General & plan",
       "members": "People",
       "workspaces": "Workspaces",
-      "integrations": "Integrations",
-      "api": "API & Claude"
+      "org": "Org chart",
+      "groupYou": "You",
+      "preferences": "Preferences",
+      "newWorkspace": "New space"
     },
     "profile": {
       "title": "Profile",
@@ -585,7 +713,14 @@
       "passwordChanged": "Password updated",
       "passwordShort": "Password must be at least 8 characters.",
       "passwordMismatch": "Passwords don't match.",
-      "passwordError": "Couldn't change the password."
+      "passwordError": "Couldn't change the password.",
+      "photo": "Photo",
+      "photoHint": "Taken from your Google or Apple account.",
+      "email": "Email",
+      "emailHint": "You sign in to Veltro with this email.",
+      "preferencesDescription": "How Veltro looks and reads for you. Applied right away.",
+      "languageHint": "Language for the whole app.",
+      "themeHint": "System follows your device settings."
     },
     "account": {
       "title": "Account",
@@ -599,7 +734,9 @@
       "workspaces": "Workspaces",
       "members": "People",
       "usage": "{used} of {max}",
-      "unlimitedCount": "{used} · unlimited"
+      "unlimitedCount": "{used} · unlimited",
+      "pageTitle": "General & plan",
+      "nameHint": "Your company's name in Veltro."
     },
     "members": {
       "title": "People",
@@ -662,7 +799,79 @@
       "archive": "Archive",
       "archived": "Workspace archived",
       "archiveConfirm": "Archive {name}? It will be hidden for the whole team.",
-      "iconHint": "1 or 2 letters."
+      "iconHint": "1 or 2 letters on the space color.",
+      "statuses": {
+        "title": "Task statuses",
+        "hint": "Create this space's statuses. Each one belongs to a category (To do, In progress, Blocked, Done…), so Pulse and the counters know where every task stands.",
+        "customize": "Customize statuses",
+        "namePlaceholder": "Status name",
+        "category": "Category",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "remove": "Remove",
+        "add": "Add status",
+        "reset": "Use the standard ones",
+        "resetConfirm": "Go back to the standard statuses? Tasks keep their category.",
+        "save": "Save statuses",
+        "saved": "Statuses saved",
+        "error": "Could not save the statuses"
+      },
+      "fields": {
+        "title": "Task fields",
+        "hint": "Custom data every task in this space carries (for example Chain, Stores or Sprint). They show on each task and as columns in the Table view.",
+        "namePlaceholder": "Field name",
+        "type": "Type",
+        "optionsPlaceholder": "Comma-separated options (e.g. Walmart, Target, Costco)",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "remove": "Remove field",
+        "add": "Add field",
+        "empty": "This space has no custom fields yet.",
+        "discard": "Discard",
+        "save": "Save fields",
+        "saved": "Fields saved",
+        "error": "Couldn't save the fields",
+        "removeHint": "A removed field stops showing on tasks; if you create it again it starts empty."
+      },
+      "summary": "{statuses} statuses · {fields, plural, =0 {no fields} one {# field} other {# fields}}",
+      "newTitle": "New space",
+      "newDescription": "A space groups the tasks, docs and meetings of a project or company. Then you set its statuses, fields and people.",
+      "noDescription": "No description.",
+      "open": "Open space",
+      "tabs": {
+        "general": "General",
+        "statuses": "Statuses",
+        "fields": "Fields",
+        "people": "People"
+      },
+      "nameHint": "Everyone sees it in the sidebar.",
+      "colorHint": "To spot it at a glance.",
+      "descriptionHint": "What this space is for.",
+      "key": "Task key",
+      "keyHint": "Goes before every task number, like {key}-12. It can't be changed.",
+      "address": "Address",
+      "addressHint": "The space's link inside Veltro.",
+      "dangerTitle": "Danger zone",
+      "archiveTitle": "Archive space",
+      "archiveHint": "Hides it for the whole team. Its tasks, docs and meetings are kept.",
+      "peopleTitle": "People with access",
+      "peopleHint": "Who works in this space and what they can do.",
+      "addPerson": "Add person",
+      "addPersonHint": "People in the account",
+      "nobodyToAdd": "Everyone in the account already has access.",
+      "inviteNew": "Invite someone new",
+      "noPeople": "Nobody has access yet besides the account admins.",
+      "you": "(you)",
+      "role": "Role",
+      "roleHints": {
+        "admin": "Configures the space",
+        "editor": "Creates and edits",
+        "viewer": "Read only"
+      },
+      "removeAccess": "Remove access",
+      "accessUpdated": "Access updated",
+      "adminsTitle": "Account admins",
+      "adminsHint": "They see and edit every space; no need to give them access."
     },
     "integrations": {
       "googleDescription": "Show your schedule in Veltro, open notes for each meeting and create meetings with Google Meet.",
@@ -688,30 +897,62 @@
         "exchange_failed": "Google rejected the connection. Check the client ID and secret.",
         "not_configured": "The Google integration isn't configured.",
         "generic": "Couldn't connect Google Calendar."
-      }
+      },
+      "pageTitle": "Integrations",
+      "pageDescription": "Connect Veltro with the tools your team already uses."
     },
-    "api": {
-      "title": "API tokens",
-      "description": "With a token, Claude (or any script) can save documentation straight to your workspaces. Each token acts with your permissions.",
-      "namePlaceholder": "Token name",
-      "create": "Create token",
-      "createdTitle": "Copy your token now. It won't be shown again.",
-      "createdHint": "Save it as the VELTRO_TOKEN environment variable wherever Claude Code runs.",
-      "error": "Couldn't create the token.",
-      "lastUsed": "used {when}",
-      "neverUsed": "never used",
-      "revoke": "Revoke",
-      "revoked": "Token revoked",
-      "copy": "Copy",
-      "copied": "Copied",
-      "howTitle": "Document Claude sessions",
-      "howDescription": "When a session ends, Claude can create a doc with what it did, decisions and next steps.",
-      "step1": "1. Export your token in the terminal where you use Claude Code:",
-      "step2": "2. Add this to your project's CLAUDE.md:",
-      "step3": "3. Or try it by hand:",
-      "claudeMdIntro": "At the end of each session, document in Veltro what was done, the decisions made and the next steps:",
-      "claudeMdList": "lists the available workspaces."
-    }
+    "org": {
+      "chartHint": "Everyone sees their own tasks and those of the people below them; a department head sees the whole department. Admins see everything.",
+      "readOnly": "Only admins can change the org chart.",
+      "title": "Title",
+      "titlePlaceholder": "Title (e.g. Supervisor)",
+      "department": "Department",
+      "noDepartment": "No department",
+      "reportsTo": "Reports to",
+      "noBoss": "Reports to no one",
+      "departmentsTitle": "Departments",
+      "departmentsHint": "Group people by area. The department head sees every member’s tasks.",
+      "departmentName": "Department name",
+      "head": "Head",
+      "noHead": "No head",
+      "people": "{count, plural, one {# person} other {# people}}",
+      "delete": "Delete department",
+      "deleteConfirm": "Delete the “{name}” department? Its members are left without a department.",
+      "deleted": "Department deleted",
+      "noDepartments": "No departments yet.",
+      "newDepartment": "New department",
+      "addDepartment": "Add",
+      "created": "Department created",
+      "pageTitle": "Org chart",
+      "viewLabel": "View",
+      "viewChart": "Org chart",
+      "viewAreas": "By department",
+      "departmentsCount": "{count, plural, one {# department} other {# departments}}",
+      "unplaced": "{count, plural, other {# unplaced}}",
+      "search": "Search person, title or department…",
+      "clearSearch": "Clear search",
+      "dragHint": "Drag a person onto another to change who they report to. Tap a card to edit it.",
+      "dropRoot": "Drop here so they report to no one",
+      "moved": "{name} now reports to {boss}",
+      "movedRoot": "{name} no longer reports to anyone",
+      "you": "You",
+      "noTitle": "No title",
+      "expandTeam": "{count, plural, one {Show # person} other {Show # people}}",
+      "collapseTeam": "Hide team",
+      "headOf": "Head of {name}",
+      "message": "Message",
+      "viewTasks": "See their tasks",
+      "headLabel": "Head: {name}",
+      "areaTasks": "See department tasks",
+      "reportsToName": "Reports to {name}",
+      "noMatches": "No one matches “{q}”."
+    },
+    "common": {
+      "unsaved": "You have unsaved changes",
+      "discard": "Discard",
+      "save": "Save changes"
+    },
+    "tabs": "Sections"
   },
   "errors": {
     "generic": "Something went wrong. Try again.",
@@ -734,7 +975,17 @@
     "backHome": "Back to Today",
     "crashTitle": "Something broke",
     "crashBody": "We've logged the error. Try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "reports_to_cycle": "That would create a loop: that person is already below in the org chart.",
+    "reports_to_self": "A person cannot report to themselves.",
+    "reports_to_not_member": "The manager must belong to the account.",
+    "head_not_member": "The head must belong to the account.",
+    "department_other_account": "That department is not part of this account.",
+    "invalid_status": "That status does not exist in the space.",
+    "invalid_statuses": "Check the statuses: each one needs a name and a category.",
+    "too_many_assignees": "A task can have up to 20 assignees.",
+    "loadTitle": "We couldn't load this",
+    "loadBody": "It may be the connection. Try again in a moment."
   },
   "demo": {
     "badge": "Demo mode: sample data",
@@ -832,6 +1083,14 @@
       "hint": "Capture what happened or let Veltro draft the summary, tasks and follow-up.",
       "capture": "Capture what happened",
       "close": "Close with Veltro"
+    },
+    "shareSummary": "Share the summary in Hallway",
+    "shareInvite": "Invite through Hallway",
+    "shareText": {
+      "heading": "Summary of “{title}” ({date})",
+      "decisions": "Decisions",
+      "actions": "Actions",
+      "questions": "Open questions"
     }
   },
   "assistant": {
@@ -858,7 +1117,8 @@
       "nothing": "I didn't find anything related in your workspaces.",
       "tasks": "{count, plural, one {# open task remains: {list}.} other {# open tasks remain: {list}.}}",
       "decisions": "Related decisions: {list}.",
-      "docs": "I found it documented in: {list}."
+      "docs": "I found it documented in: {list}.",
+      "files": "In the vault: {list}."
     },
     "record": {
       "summary": "Summary",
@@ -866,6 +1126,23 @@
       "actions": "Actions",
       "questions": "Open questions",
       "notes": "Notes"
+    },
+    "intents": {
+      "week": "{who, select, none {This week across your spaces,} other {This week, for {who},}} {done, plural, =0 {no tasks were closed} one {# task was closed} other {# tasks were closed}} and {decisions, plural, =0 {no decisions were made} one {# decision was made} other {# decisions were made}}. {open, plural, =0 {Nothing is left open.} other {Still open: {open}, with {overdue} overdue and {blocked} blocked.}} {meetings, plural, =0 {No meetings ahead.} one {# meeting ahead.} other {# meetings ahead.}}",
+      "blocked": "{count, plural, =0 {{who, select, none {Nothing is blocked.} other {{who} has nothing blocked.}}} one {{who, select, none {{count} task is blocked.} other {{who} has {count} blocked task.}}} other {{who, select, none {{count} tasks are blocked.} other {{who} has {count} blocked tasks.}}}}",
+      "overdue": "{count, plural, =0 {{who, select, none {No overdue tasks. You're on track.} other {{who} has no overdue tasks.}}} one {{who, select, none {{count} task is overdue} other {{who} has {count} overdue task}}, {days, plural, one {# day} other {# days}} late.} other {{who, select, none {{count} tasks are overdue} other {{who} has {count} overdue tasks}}; the oldest is {days, plural, one {# day} other {# days}} late.}}",
+      "today": "{count, plural, =0 {{who, select, none {Nothing is due today.} other {{who} has nothing due today.}}} one {{who, select, none {{count} task is due today.} other {{who} has {count} task due today.}}} other {{who, select, none {{count} tasks are due today.} other {{who} has {count} tasks due today.}}}}",
+      "person": "{count, plural, =0 {{name} is all caught up: no open tasks.} one {{name} has 1 open task.} other {{name} has # open tasks.}} {overdue, plural, =0 {} other {# overdue.}} {blocked, plural, =0 {} other {# blocked.}}",
+      "follow": {
+        "overdue": "What's overdue?",
+        "blocked": "What's blocked?",
+        "today": "What's due today?",
+        "week": "Summarize my week",
+        "personBlocked": "What does {name} have blocked?",
+        "personWeek": "Summarize {name}'s week",
+        "personOverdue": "What does {name} have overdue?",
+        "personToday": "What's due today for {name}?"
+      }
     }
   },
   "pulse": {
@@ -899,77 +1176,177 @@
     "show": "Show thread",
     "summaryBy": "Summary:",
     "claudeSession": "Session with Claude documented by {who}",
-    "focus": {
-      "title": "Today's focus",
-      "hint": "Most urgent first. Never more than {max}.",
-      "overdue": "{count, plural, one {# overdue} other {# overdue}}",
-      "empty": "Nothing urgent. A good time to move the important things forward.",
-      "lateDays": "{count, plural, one {# day overdue} other {# days overdue}}",
-      "dueToday": "due today",
-      "inProgress": "in progress",
-      "from": "from {origin}"
-    },
     "ask": {
       "title": "Ask Veltro",
       "hint": "Searches your meetings, decisions, tasks and docs.",
-      "placeholder": "What's pending with Polar?",
       "send": "Ask",
-      "example1": "What's pending with Polar?",
-      "example2": "What did we decide about the POP budget?",
-      "example3": "What's blocking Tech Ve?"
+      "dismiss": "Dismiss answer",
+      "try": "Try",
+      "suggest": {
+        "week": "Summarize my week",
+        "decided": "What did we decide in “{title}”?",
+        "pending": "What is still pending from “{title}”?",
+        "doc": "What does “{title}” say?"
+      },
+      "heroPlaceholder": "Ask Veltro: what was decided, what is pending, who has what…",
+      "focusHint": "Press",
+      "expand": "Open in Veltro AI",
+      "expandShort": "Expand",
+      "continueHint": "Keep the conversation going with more room and follow-ups.",
+      "moreTasks": "+{count} more",
+      "continue": "Continue in Veltro AI"
     },
     "closeNow": "Close",
-    "linkToCapture": "Enter and pick a space to capture notes, decisions and actions."
+    "linkToCapture": "Enter and pick a space to capture notes, decisions and actions.",
+    "brief": {
+      "greeting": {
+        "morning": "Good morning, {name}",
+        "afternoon": "Good afternoon, {name}",
+        "evening": "Good evening, {name}"
+      },
+      "back": "Pulse",
+      "timeline": "Timeline",
+      "now": {
+        "live": "Now",
+        "next": "Up next",
+        "remaining": "Live · {minutes} min left",
+        "inMinutes": "In {minutes} min",
+        "atTime": "Today at {time}",
+        "join": "Join",
+        "free": "No meetings ahead",
+        "freeHint": "A good moment to move your list forward."
+      },
+      "agenda": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "empty": "No meetings today.",
+        "open": "Calendar",
+        "unclosed": "not closed",
+        "title": "Agenda",
+        "subtitle": "Today's meetings and what happened last",
+        "live": "live"
+      },
+      "recent": {
+        "title": "What happened lately",
+        "all": "Timeline",
+        "empty": "No closed meetings or documented sessions yet."
+      },
+      "counters": {
+        "overdue": "Overdue",
+        "today": "Due today",
+        "in_progress": "In progress",
+        "blocked": "Blocked",
+        "todo": "To do",
+        "done": "Done (7 days)"
+      },
+      "today": {
+        "title": "Your tasks",
+        "titleTeam": "Your team's tasks",
+        "titleAll": "Company-wide tasks",
+        "titleOf": "{name}'s tasks",
+        "subtitle": "Overdue, due today and in progress",
+        "all": "See all",
+        "empty": "Nothing overdue, due today or in progress. A good moment to get ahead on the week.",
+        "overdue": "Overdue",
+        "today": "Due today",
+        "progress": "In progress",
+        "complete": "Mark as done",
+        "late": "{count, plural, one {# day late} other {# days late}}",
+        "add": "Add for today… @person, !high or “fri”",
+        "understood": "Veltro fills it in",
+        "workspace": "Space",
+        "titleDept": "{name} department tasks",
+        "progressAbove": "{count, plural, one {Another one in progress is already listed above.} other {# more in progress are already listed above.}}"
+      },
+      "loose": {
+        "title": "Meeting follow-ups",
+        "subtitle": "What was left loose after meeting",
+        "meetings": "Meetings not closed",
+        "meetingsHint": "Close them to confirm what was decided and create their tasks.",
+        "ended": "ended {ago}",
+        "close": "Close",
+        "questions": "Unanswered questions",
+        "questionsHint": "Raised in a meeting and still open.",
+        "unowned": "Actions without an owner",
+        "unownedHint": "Assign them and they become tasks when the meeting is closed.",
+        "assign": "Assign",
+        "assignTo": "Assign to",
+        "empty": "Nothing left loose from your meetings."
+      }
+    },
+    "pasillo": {
+      "unread": "{count, plural, one {# unread message} other {# unread messages}}",
+      "open": "Open Hallway"
+    }
+  },
+  "veltro": {
+    "title": "Veltro AI",
+    "subtitle": "Ask anything about your tasks, meetings and docs",
+    "newChat": "New chat",
+    "history": "Chats",
+    "noHistory": "No chats yet.",
+    "deleteChat": "Delete chat",
+    "emptyTitle": "What do you want to know, {name}?",
+    "emptyHint": "Veltro reads your tasks, meetings, decisions and docs and answers with what it finds.",
+    "suggest": {
+      "week": "Summarize my week",
+      "blocked": "What's blocked?",
+      "overdue": "What's overdue?",
+      "today": "What's due today?",
+      "decided": "What did we decide in “{title}”?",
+      "person": "What does {name} have?"
+    },
+    "followUp": "Follow up",
+    "placeholder": "Ask what was decided, what's pending, who has what…",
+    "followPlaceholder": "Ask a follow-up or for more detail…",
+    "send": "Send",
+    "composerHint": "Enter to send · Shift + Enter for a new line · Chats are saved in this browser.",
+    "thinking": "Veltro is thinking",
+    "justNow": "just now"
   },
   "mesa": {
-    "title": "Control room",
-    "subtitle": "{workspaces, plural, one {# workspace} other {# workspaces}} · {people, plural, one {# person} other {# people}} · {open, plural, one {# open task} other {# open tasks}}",
-    "yourDay": "Your day",
-    "meetingsToday": "{count, plural, =0 {no meetings} one {# meeting} other {# meetings}}",
-    "rows": {
-      "next": "Next meeting",
-      "agreements": "Open agreements",
-      "stuck": "Stuck",
-      "progress": "Moving forward",
-      "memory": "Memory"
+    "title": "Control desk",
+    "subtitle": "How the spaces are doing: their status, whether they move forward and who is overloaded.",
+    "sentence": "{period}: {closed, plural, =0 {no tasks closed} one {# task closed} other {# tasks closed}} and {created, plural, =0 {none new} one {# new} other {# new}}. {problems, select, none {Nothing is overdue or blocked.} other {There are {overdue} overdue and {blocked} blocked{atRisk, plural, =0 {.} one {; # space is at risk.} other {; # spaces are at risk.}}}}",
+    "spaces": {
+      "title": "Spaces",
+      "empty": "People in this scope have no tasks in any space.",
+      "space": "Space",
+      "health": "Status",
+      "healthHelpLabel": "How the status is computed",
+      "healthHelp": "At risk: a task more than {days} days late, or {count} or more overdue and blocked. Attention: something overdue or blocked. On track: nothing overdue or blocked.",
+      "progress": "Progress in period",
+      "open": "Open",
+      "overdue": "Overdue",
+      "blocked": "Blocked"
     },
-    "hints": {
-      "next": "What's next",
-      "agreements": "Decisions with open tasks",
-      "stuck": "Blocked or overdue",
-      "progress": "Tasks done and in progress",
-      "memory": "Recent docs and sessions"
+    "health": {
+      "ok": "On track",
+      "attention": "Attention",
+      "risk": "At risk"
     },
-    "healthy": "On track",
-    "blocked": "{count, plural, one {# blocker} other {# blockers}}",
-    "overdue": "{count, plural, one {# overdue} other {# overdue}}",
-    "noMeeting": "No upcoming linked meetings.",
-    "liveNow": "Happening now",
-    "inMinutes": "in {minutes} min",
-    "inHours": "in {hours} h",
-    "open": "Open",
-    "noAgreements": "No pending agreements.",
-    "nothingStuck": "Nothing stuck.",
-    "days": "{count, plural, one {day} other {days}}",
-    "doneOf": "{done} of {total} done",
-    "inProgress": "{count} in progress",
-    "nothingActive": "Nothing in progress.",
-    "noMemory": "No docs yet.",
-    "briefing": {
-      "title": "Weekly briefing",
-      "period": "Last 7 days, all workspaces",
-      "risks": "Risks",
-      "risksText": "{count, plural, one {# task blocked or overdue} other {# tasks blocked or overdue}}: {refs}.",
-      "noRisks": "No blockers or overdue tasks.",
-      "decisions": "Decisions",
-      "decisionsText": "{count, plural, one {# decision} other {# decisions}} this week. Latest: “{latest}”.",
-      "noDecisions": "No decisions recorded this week.",
-      "wins": "Wins",
-      "winsText": "{count, plural, one {# task finished} other {# tasks finished}}. Latest: {latest}.",
-      "noWins": "No tasks finished this week yet.",
-      "risksCount": "{count, plural, one {# task blocked or overdue} other {# tasks blocked or overdue}}"
+    "closedIn": "{when}: {count, plural, =0 {none closed} one {# closed} other {# closed}}",
+    "closedVsNew": "{closed} closed · {created} new",
+    "detail": {
+      "risks": "Overdue or blocked",
+      "late": "{count, plural, one {# day late} other {# days late}}",
+      "blocked": "Blocked",
+      "more": "+{count} more",
+      "noRisks": "Nothing overdue or blocked.",
+      "load": "Who carries it",
+      "openCount": "{count} open",
+      "noLoad": "No open assigned tasks.",
+      "openTasks": "View tasks",
+      "openSpace": "Open space"
     },
-    "blockedShort": "blocked"
+    "team": {
+      "title": "Team load",
+      "hint": "Each person's open tasks across every space. Tap someone to see their tasks.",
+      "open": "{count} open",
+      "atRisk": "{count} at risk",
+      "closed": "{count, plural, =0 {none closed} one {# closed} other {# closed}}",
+      "empty": "Nobody has tasks in this scope."
+    }
   },
   "attachments": {
     "title": "Attachments",
@@ -984,7 +1361,8 @@
     "download": "Download",
     "remove": "Remove",
     "tooBig": "{name} is over 20 MB.",
-    "uploaded": "{count, plural, one {File uploaded} other {# files uploaded}}"
+    "uploaded": "{count, plural, one {File uploaded} other {# files uploaded}}",
+    "deleteConfirm": "Delete “{name}”? This can’t be undone."
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -995,15 +1373,403 @@
     "palette": "Search and run",
     "newTask": "New task",
     "help": "Show shortcuts",
-    "goToday": "Today",
+    "goToday": "Pulse",
+    "goVeltro": "Veltro AI",
     "goMesa": "Control room",
     "goCalendar": "Calendar",
-    "goMyTasks": "My tasks",
+    "goMyTasks": "Tasks",
     "goWorkspace": "Space by number",
     "action": "Action (becomes a task)",
     "decision": "Decision",
     "question": "Open question",
     "assign": "Assign someone",
-    "then": "then"
+    "then": "then",
+    "toggleSidebar": "Collapse or expand the sidebar",
+    "goDocs": "Documents",
+    "goVault": "Vault",
+    "goPasillo": "Hallway"
+  },
+  "scope": {
+    "me": "Mine",
+    "team": "{count, plural, one {My team (# person)} other {My team (# people)}}",
+    "all": "Whole company",
+    "departments": "Departments",
+    "people": "People",
+    "label": "View",
+    "viewing": "Viewing tasks for",
+    "in": "in",
+    "allWorkspaces": "all spaces",
+    "teamShort": "My team",
+    "deptDisplay": "{name} department",
+    "hintMe": "Only the ones assigned to you",
+    "hintTeam": "You and your reports: {names}",
+    "hintAll": "All {count} people in the account",
+    "you": "You"
+  },
+  "dateRange": {
+    "presets": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "thisMonth": "This month"
+    },
+    "start": "Start",
+    "end": "End",
+    "pickEnd": "Pick the end date",
+    "prev": "Previous month",
+    "next": "Next month",
+    "summary": "{days, plural, one {# day} other {# days}} · {range}",
+    "apply": "Apply",
+    "cancel": "Cancel"
+  },
+  "tasksDashboard": {
+    "subject": "{subject, select, me {You have} other {{who} has}}",
+    "and": "and",
+    "allClear": "{subject, select, me {You're on track} other {{who} is on track}}: nothing overdue, blocked or due today.",
+    "parts": {
+      "late": "{count, plural, one {# overdue task} other {# overdue tasks}}",
+      "stuck": "{count} blocked",
+      "due": "{count} due today"
+    },
+    "subline": "{open, plural, one {# open task} other {# open tasks}} in {spaces, plural, one {# space} other {# spaces}} · {done, plural, =0 {none done in the last 7 days} other {# done in the last 7 days}}",
+    "loadNumbers": "{risk} at risk · {progress} in progress · {rest} to do",
+    "urgent": {
+      "title": "Needs attention",
+      "days": "{count, plural, one {day} other {days}}",
+      "blocked": "Blocked",
+      "today": "Today",
+      "empty": "Nothing urgent: nothing overdue, blocked or due today.",
+      "more": "See {count} more in the list"
+    },
+    "pace": {
+      "title": "Pace",
+      "hint": "Tasks closed and created in the last 14 days.",
+      "closed": "Closed",
+      "created": "New",
+      "net": "Net {net}",
+      "tip": "{when}: {closed, plural, =0 {none closed} other {# closed}} · {created, plural, =0 {none new} other {# new}}"
+    },
+    "ahead": {
+      "title": "Coming up",
+      "hint": "Due dates in the next two weeks.",
+      "open": "Open calendar",
+      "more": "+{count} more"
+    },
+    "bySpace": "Load by space",
+    "byPerson": "Load by person",
+    "nothingOpen": "Nothing open.",
+    "riskShort": "{count} at risk"
+  },
+  "charts": {
+    "load": {
+      "overdue": "{count} overdue",
+      "blocked": "{count} blocked",
+      "risk": "{count} at risk",
+      "progress": "{count} in progress",
+      "rest": "{count} to do",
+      "legend": {
+        "risk": "At risk",
+        "progress": "In progress",
+        "rest": "To do"
+      }
+    }
+  },
+  "docsHub": {
+    "title": "Documents",
+    "subtitle": "{count, plural, =0 {No documents} one {# document} other {# documents}} in {spaces, plural, one {# space} other {# spaces}}",
+    "newDoc": "New document",
+    "newIn": "Create in…",
+    "resume": "Pick up where you left off",
+    "all": "All documents",
+    "search": "Search documents…",
+    "clearSearch": "Clear search",
+    "filters": "Filters",
+    "space": "Space",
+    "kind": "Type",
+    "author": "Author",
+    "clearAll": "Clear",
+    "groupBy": "Group by",
+    "groups": {
+      "date": "Date",
+      "space": "Space"
+    },
+    "buckets": {
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "older": "Earlier"
+    },
+    "shownOf": "{shown} of {count, plural, one {# document} other {# documents}}",
+    "emptyTitle": "No documents yet",
+    "emptyBody": "Documents from all your spaces show up here: meeting notes, Claude sessions and whatever you write.",
+    "noMatches": "No documents match",
+    "noMatchesHint": "Try other words or remove a filter.",
+    "clearFilters": "Clear filters"
+  },
+  "vault": {
+    "title": "Vault",
+    "subtitle": "{count, plural, =0 {No files} one {# file} other {# files}} · {size}",
+    "upload": "Upload files",
+    "tabs": {
+      "files": "Files",
+      "written": "Written"
+    },
+    "filters": "Filters",
+    "search": "Search files…",
+    "clearSearch": "Clear search",
+    "kind": "Type",
+    "space": "Space",
+    "linkedTo": "Linked to",
+    "labels": "Labels",
+    "uploader": "Uploaded by",
+    "clearAll": "Clear",
+    "shownOf": "{shown} of {count, plural, one {# file} other {# files}}",
+    "viewLabel": "View",
+    "views": {
+      "grid": "Grid",
+      "list": "List"
+    },
+    "emptyTitle": "Your vault is empty",
+    "emptyBody": "Upload contracts, quotes, photos or links. Each file can have a title and labels, and be linked to a space, a task or a meeting whenever you want.",
+    "noMatches": "No files match",
+    "noMatchesHint": "Try other words or remove a filter.",
+    "clearFilters": "Clear filters",
+    "drop": "Drop to save in your vault",
+    "dropInto": "Drop to save in {space}",
+    "noSpace": "No space",
+    "loose": "Loose",
+    "links": {
+      "task": "A task",
+      "meeting": "A meeting",
+      "doc": "A document",
+      "none": "Nothing (loose)"
+    },
+    "kinds": {
+      "pdf": "PDF",
+      "image": "Image",
+      "sheet": "Spreadsheet",
+      "slides": "Presentation",
+      "doc": "Document",
+      "link": "Link",
+      "other": "Other"
+    },
+    "close": "Close",
+    "open": "Open",
+    "openLink": "Open link",
+    "titleLabel": "Title",
+    "uploadedBy": "Uploaded by {who} {when}",
+    "someone": "someone",
+    "addLabels": "Add labels",
+    "linkedHint": "Optional: the file stays in your vault even if it hangs from nothing.",
+    "task": "Task",
+    "meeting": "Meeting",
+    "doc": "Document",
+    "linked": "Linked",
+    "linkTask": "Link to a task",
+    "linkMeeting": "Link to a meeting",
+    "searchTasks": "Search tasks…",
+    "searchMeetings": "Search meetings…",
+    "untitledMeeting": "Untitled meeting",
+    "openDoc": "Open the document",
+    "share": "Share in Hallway",
+    "delete": "Delete",
+    "deleteConfirm": "Delete “{name}” from the vault? This can’t be undone.",
+    "noResults": "No results",
+    "unlink": "Remove link",
+    "fromChat": "From a chat",
+    "addLink": "Add link",
+    "uploadForm": {
+      "title": "Upload to the vault",
+      "description": "What you upload stays in your vault. A title, labels or links are optional.",
+      "what": "What you are uploading",
+      "mode": {
+        "files": "Files",
+        "link": "Link"
+      },
+      "drop": "Drag files here or",
+      "choose": "choose them from your computer",
+      "limit": "Up to 20 MB per file",
+      "fileTitle": "Title for {name}",
+      "remove": "Remove {name}",
+      "tooBig": "Over 20 MB: it won’t be uploaded",
+      "url": "Address",
+      "linkTitlePlaceholder": "Optional: otherwise the site name is used",
+      "linkTo": "Link to",
+      "optional": "(optional)",
+      "looseHint": "With no links it stays loose in your vault; you can link it later.",
+      "linkedHint": "It will show up there too, besides your vault.",
+      "cancel": "Cancel",
+      "submitFiles": "{count, plural, =0 {Upload} one {Upload # file} other {Upload # files}}",
+      "submitLink": "Add link"
+    }
+  },
+  "pasillo": {
+    "title": "Hallway",
+    "tagline": "What the team is talking about",
+    "new": "New",
+    "newDirect": "Direct message",
+    "newGroup": "New group",
+    "search": "Search conversations…",
+    "filterLabel": "Filter conversations",
+    "filters": {
+      "all": "All",
+      "unread": "Unread",
+      "groups": "Groups",
+      "direct": "Direct"
+    },
+    "noMatches": "No conversations match.",
+    "empty": "No conversations yet.",
+    "yesterday": "Yesterday",
+    "today": "Today",
+    "you": "You",
+    "noMessages": "No messages yet",
+    "preview": {
+      "system": "Group updates",
+      "meeting": "Invite: {title}",
+      "task": "Shared a task",
+      "file": "Shared a file",
+      "doc": "Shared a document"
+    },
+    "untitledGroup": "Unnamed group",
+    "onlyYou": "Just you",
+    "notFound": "This conversation doesn’t exist or you’re no longer in it.",
+    "back": "Back",
+    "more": "More options",
+    "rename": "Rename group",
+    "addPeople": "Add people",
+    "leave": "Leave group",
+    "leaveConfirm": "Leave “{name}”?",
+    "makeGroup": "Start a group",
+    "membersList": "{count, plural, one {# person} other {# people}}: {names}",
+    "groupNamePlaceholder": "Group name",
+    "cancel": "Cancel",
+    "save": "Save",
+    "newMessages": "New",
+    "emptyGroup": "This is how {name} begins",
+    "emptyDirect": "Your conversation with {name}",
+    "emptyHint": "Write something, share a task or a file, or invite people to a meeting.",
+    "welcomeTitle": "Pick a conversation",
+    "welcomeBody": "Or start one: a direct message to someone or a group for a project.",
+    "system": {
+      "you": "You",
+      "created": "{who} created the group",
+      "joined": "{who} added {others}",
+      "left": "{others} left the group",
+      "renamed": "{who} renamed the group to “{name}”"
+    },
+    "composer": {
+      "attached": {
+        "task": "Task",
+        "file": "File",
+        "doc": "Document",
+        "meeting": "Invite",
+        "text": "",
+        "system": ""
+      },
+      "removeAttached": "Remove",
+      "commentPlaceholder": "Add a comment (optional)…",
+      "placeholder": "Message {name}…",
+      "shareTask": "Share a task",
+      "shareFile": "Share a file",
+      "fromVault": "From the vault",
+      "fromDevice": "Upload from your computer",
+      "shareDoc": "Share a document",
+      "invite": "Invite to a meeting",
+      "newMeeting": "New meeting",
+      "fromCalendar": "A meeting from my calendar",
+      "hint": "Enter sends · Shift + Enter for a new line",
+      "send": "Send",
+      "loose": "Loose",
+      "untitledMeeting": "Untitled meeting",
+      "search": {
+        "task": "Search a task…",
+        "file": "Search the vault…",
+        "doc": "Search a document…",
+        "meeting": "Search meetings in the next 3 weeks…"
+      },
+      "closePicker": "Close",
+      "nothing": "Nothing here."
+    },
+    "cards": {
+      "missing": "This no longer exists or you don’t have access.",
+      "unassigned": "Unassigned",
+      "open": "Open",
+      "openLink": "Open link",
+      "inVault": "See in the vault",
+      "invite": "Invite",
+      "join": "Join",
+      "past": "This meeting already happened.",
+      "rsvp": "Your answer",
+      "answers": {
+        "yes": "Going",
+        "maybe": "Maybe",
+        "no": "Not going"
+      },
+      "going": "{count} going",
+      "live": "Live now"
+    },
+    "share": {
+      "title": "Share in Hallway",
+      "description": "“{title}”",
+      "members": "{count, plural, one {# person} other {# people}}",
+      "newDirect": "New direct",
+      "search": "Search chats or people…",
+      "noMatches": "Nothing matches.",
+      "notePlaceholder": "Add a comment (optional)…",
+      "cancel": "Cancel",
+      "send": "Send",
+      "sendMany": "Send to {count}",
+      "sent": "{count, plural, one {Shared in 1 chat} other {Shared in # chats}}",
+      "goToChat": "Go to chat"
+    },
+    "people": {
+      "title": {
+        "direct": "Direct message",
+        "group": "New group",
+        "add": "Add people"
+      },
+      "description": {
+        "direct": "Pick who to talk to.",
+        "group": "Give it a name and pick who’s in.",
+        "add": "Pick who to add to the group."
+      },
+      "name": "Group name",
+      "namePlaceholder": "Group name",
+      "search": "Search people…",
+      "nobody": "There’s no one else to add.",
+      "cancel": "Cancel",
+      "add": "{count, plural, one {Add 1 person} other {Add # people}}",
+      "create": "Create group"
+    },
+    "reply": "Reply",
+    "copyText": "Copy text",
+    "copied": "Text copied",
+    "quotedCard": "Something shared",
+    "replyingTo": "Replying to {name}",
+    "cancelReply": "Cancel reply",
+    "meetNow": {
+      "label": "Meet now",
+      "hint": "Start a Google Meet call and post it in the chat",
+      "titleGroup": "Call · {name}",
+      "titleDirect": "Call: {a} and {b}",
+      "ready": "Call ready and posted in the chat.",
+      "readyDemo": "Call created and posted in the chat. In the demo the Meet link is a placeholder.",
+      "join": "Join",
+      "error": "Couldn't create the call. Try again.",
+      "connect": "Connect your Google account to start Meet calls.",
+      "connectAction": "Connect"
+    }
+  },
+  "confirm": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "discard": "Discard",
+    "leave": "Leave",
+    "reset": "Reset",
+    "archive": "Archive"
   }
 }

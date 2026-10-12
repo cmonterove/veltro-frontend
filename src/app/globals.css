@@ -2,6 +2,8 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* pantallas bajas (laptops con la barra del navegador): las pantallas que deben caber sin scroll se compactan */
+@custom-variant short (@media (max-height: 820px));
 
 /* ============================================================
    Veltro: tokens de marca
@@ -44,6 +46,7 @@
   /* semánticos */
   --danger: oklch(0.57 0.2 22);
   --danger-soft: oklch(0.955 0.025 22);
+  --success-soft: oklch(0.955 0.035 155);
   --warning: oklch(0.577 0.159 45.1);
   --warning-soft: oklch(0.962 0.035 60);
   --success: oklch(0.58 0.13 155);
@@ -56,6 +59,12 @@
   --st-progress: oklch(0.75 0.167 50.5);
   --st-blocked: oklch(0.6 0.2 22);
   --st-done: oklch(0.557 0.254 283.7);
+  /* gráficos de Mesa (validados con dataviz/validate_palette: carga = riesgo · en curso · resto) */
+  --chart-risk: oklch(0.57 0.2 22);
+  --chart-progress: oklch(0.75 0.167 50.5);
+  --chart-rest: oklch(0.86 0.026 300);
+  --chart-bar: oklch(0.557 0.254 283.7);
+  --chart-track: oklch(0.948 0.013 300);
 
   /* prioridad */
   --pr-urgent: oklch(0.6 0.2 22);
@@ -133,6 +142,7 @@
 
   --danger: oklch(0.68 0.17 22);
   --danger-soft: oklch(0.29 0.06 22);
+  --success-soft: oklch(0.28 0.05 155);
   --warning: oklch(0.794 0.134 52.5);
   --warning-soft: oklch(0.29 0.05 55);
   --success: oklch(0.72 0.12 155);
@@ -144,6 +154,12 @@
   --st-progress: oklch(0.794 0.134 52.5);
   --st-blocked: oklch(0.68 0.17 22);
   --st-done: oklch(0.638 0.208 288.5);
+  /* modo oscuro: pasos propios (rojo y naranja separados ≥15 ΔE, dentro de la banda L 0.48–0.67) */
+  --chart-risk: oklch(0.56 0.19 20);
+  --chart-progress: oklch(0.665 0.15 64);
+  --chart-rest: oklch(0.36 0.03 298);
+  --chart-bar: oklch(0.695 0.173 289.9);
+  --chart-track: oklch(0.279 0.024 299);
 
   --pr-urgent: oklch(0.7 0.17 25);
   --pr-high: oklch(0.794 0.134 52.5);
@@ -208,6 +224,7 @@
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-success: var(--success);
@@ -325,6 +342,10 @@
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong) transparent;
   }
+  /* el riel colapsado se desplaza sin barra visible: no hay ancho para ella */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
 }
 
 /* Popups de Base UI: entrada/salida corta, ease-out */
@@ -346,6 +367,109 @@
   &[data-ending-style] {
     opacity: 0;
   }
+}
+
+/* Desplegables (espacios del sidebar): el alto va de 0fr a 1fr y el contenido baja un poco al abrir.
+   Va con un solo hijo que recorta; el abierto se marca con data-open. */
+@utility disclosure {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 240ms var(--ease-out-quart),
+    opacity 180ms var(--ease-out-quart);
+  & > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+  & > * > * {
+    transform: translateY(-6px);
+    transition: transform 240ms var(--ease-out-quart);
+  }
+  &[data-open] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  &[data-open] > * > * {
+    transform: none;
+  }
+}
+
+/* Organigrama: árbol de arriba hacia abajo con las líneas que unen a cada jefe con su equipo.
+   ul > li anidados; cada li dibuja su tramo de la barra horizontal y su bajada. */
+.org-tree {
+  --org-gap: 22px;
+  --org-line: var(--line-strong);
+}
+.org-tree ul {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: var(--org-gap);
+}
+.org-tree > ul {
+  padding-top: 0;
+  gap: 28px;
+}
+.org-tree li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--org-gap) 6px 0;
+}
+.org-tree > ul > li {
+  padding-top: 0;
+}
+.org-tree li::before,
+.org-tree li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: var(--org-gap);
+  border-top: 1px solid var(--org-line);
+}
+.org-tree li::before {
+  right: 50%;
+}
+.org-tree li::after {
+  left: 50%;
+  border-left: 1px solid var(--org-line);
+}
+.org-tree li:first-child::before {
+  border-top: 0;
+}
+.org-tree li:first-child::after {
+  border-top-left-radius: 10px;
+}
+.org-tree li:last-child::after {
+  border: 0;
+}
+.org-tree li:last-child::before {
+  border-right: 1px solid var(--org-line);
+  border-top-right-radius: 10px;
+}
+.org-tree li:only-child::before {
+  display: none;
+}
+.org-tree li:only-child::after {
+  border: 0;
+  border-left: 1px solid var(--org-line);
+  border-radius: 0;
+}
+.org-tree > ul > li::before,
+.org-tree > ul > li::after {
+  display: none;
+}
+/* la bajada desde el jefe hasta la barra de su equipo */
+.org-tree ul ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: var(--org-gap);
+  border-left: 1px solid var(--org-line);
 }
 
 @media (prefers-reduced-motion: reduce) {

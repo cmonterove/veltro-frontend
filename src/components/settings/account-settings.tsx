@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { useApp, useIsAccountAdmin } from '@/components/app/app-context'
-import { Button } from '@/components/ui/button'
-import { Field, Input } from '@/components/ui/input'
+import { Input } from '@/components/ui/input'
 import { updateAccountName } from '@/app/actions/settings'
 import { cn } from '@/lib/utils'
-import { SettingsSection } from './section'
+import { SaveBar, SettingsCard, SettingsHeader, SettingsRow } from './ui'
 
 type Usage = {
   plan_id: string
@@ -48,47 +47,41 @@ export function AccountSettings({ usage }: { usage: Usage }) {
   const isAdmin = useIsAccountAdmin()
   const [name, setName] = useState(account.name)
   const [pending, start] = useTransition()
+  const dirty = isAdmin && name.trim() !== account.name
+
+  const save = () =>
+    start(async () => {
+      const res = await updateAccountName(name.trim())
+      if (res.ok) {
+        toast.success(t('saved'))
+        router.refresh()
+      } else toast.error(t('error'))
+    })
 
   return (
     <div>
-      <SettingsSection title={t('title')} description={t('description')}>
-        <div className="flex max-w-md items-end gap-2">
-          <Field label={t('name')} htmlFor="a-name" className="flex-1">
-            <Input id="a-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!isAdmin} maxLength={80} />
-          </Field>
-          {isAdmin ? (
-            <Button
-              variant="primary"
-              loading={pending}
-              disabled={!name.trim() || name === account.name}
-              onClick={() =>
-                start(async () => {
-                  const res = await updateAccountName(name)
-                  if (res.ok) {
-                    toast.success(t('saved'))
-                    router.refresh()
-                  } else toast.error(t('error'))
-                })
-              }
-            >
-              {t('save')}
-            </Button>
-          ) : null}
-        </div>
-      </SettingsSection>
+      <SettingsHeader title={t('pageTitle')} description={t('description')} />
+
+      <SettingsCard>
+        <SettingsRow label={t('name')} description={t('nameHint')} htmlFor="a-name">
+          <Input id="a-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!isAdmin} maxLength={80} className="sm:w-72" />
+        </SettingsRow>
+      </SettingsCard>
 
       {usage ? (
-        <SettingsSection
+        <SettingsCard
           title={t('plan')}
           description={t('planDescription')}
           action={<span className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent-ink">{usage.plan_name}</span>}
         >
-          <div className="flex max-w-md flex-col gap-5">
+          <div className="flex flex-col gap-5 px-5 py-5">
             <Meter label={t('workspaces')} used={usage.workspaces_count} max={usage.max_workspaces} />
             <Meter label={t('members')} used={usage.members_count} max={usage.max_members} />
           </div>
-        </SettingsSection>
+        </SettingsCard>
       ) : null}
+
+      <SaveBar dirty={dirty} pending={pending} onSave={save} onDiscard={() => setName(account.name)} disabled={!name.trim()} />
     </div>
   )
 }

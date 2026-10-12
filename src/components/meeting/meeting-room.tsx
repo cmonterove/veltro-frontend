@@ -6,13 +6,15 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { differenceInMinutes, format, formatDistanceToNowStrict } from 'date-fns'
 import { toast } from 'sonner'
-import { Check, CheckCheck, ClipboardCopy, ExternalLink, FileText, Mail, Play, Plus, Sparkles, Video } from 'lucide-react'
+import { Check, CheckCheck, ClipboardCopy, ExternalLink, FileText, Mail, MessageCircle, Play, Plus, Sparkles, Video } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/input'
+import { Tooltip } from '@/components/ui/tooltip'
+import { ShareToChatDialog, type ShareItem } from '@/components/chat/share-to-chat'
 import { useMeeting, useMeetingItemMutations, useMeetingItems, usePreviousInSeries, useUpdateMeeting, meetingKeys } from '@/lib/queries/meetings'
 import { useTasks, taskKeys } from '@/lib/queries/tasks'
 import { docKeys } from '@/lib/queries/docs'
@@ -76,6 +78,45 @@ export function MeetingRoom({
     { id: 'closed', label: t('phase.closed'), hint: meeting.phase === 'closed' ? t('phaseHint.closedDone') : t('phaseHint.closed') },
   ]
   const phaseIndex = phases.findIndex((p) => p.id === meeting.phase)
+  const [sharing, setSharing] = useState(false)
+  const memberMap = useMemberMap()
+
+  // Cerrada: se comparte el resumen (decisiones, acciones y preguntas). Antes: la invitación, para que respondan en el chat.
+  const shareItem = (): ShareItem => {
+    if (meeting.phase !== 'closed') {
+      return {
+        kind: 'meeting',
+        title: meeting.title,
+        meta: {
+          invite: {
+            title: meeting.title,
+            start: meeting.starts_at,
+            end: meeting.ends_at ?? meeting.starts_at,
+            conferenceUrl: meeting.conference_url,
+            eventId: meeting.google_event_id,
+            rsvp: {},
+          },
+        },
+      }
+    }
+    const line = (s: string) => `• ${s}`
+    const decisions = items.filter((i) => i.kind === 'decision').map((i) => line(i.text))
+    const actions = items
+      .filter((i) => i.kind === 'action')
+      .map((i) => line([i.text, i.assignee_id ? memberMap.get(i.assignee_id)?.full_name : null, i.due_date ? format(new Date(`${i.due_date}T12:00:00`), 'd MMM', { locale }) : null].filter(Boolean).join(' · ')))
+    const questions = items.filter((i) => i.kind === 'question' && !i.done).map((i) => line(i.text))
+    const text = [
+      t('shareText.heading', { title: meeting.title, date: format(start, 'd MMM', { locale }) }),
+      meeting.summary ?? '',
+      decisions.length ? `${t('shareText.decisions')}\n${decisions.join('\n')}` : '',
+      actions.length ? `${t('shareText.actions')}\n${actions.join('\n')}` : '',
+      questions.length ? `${t('shareText.questions')}\n${questions.join('\n')}` : '',
+      `${window.location.origin}/m/${meeting.id}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+    return { kind: 'text', title: meeting.title, text }
+  }
 
   if (!ws) return null
 
@@ -110,6 +151,11 @@ export function MeetingRoom({
             {t('remaining', { minutes: remaining })}
           </span>
         ) : null}
+        <Tooltip content={meeting.phase === 'closed' ? t('shareSummary') : t('shareInvite')}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setSharing(true)} aria-label={meeting.phase === 'closed' ? t('shareSummary') : t('shareInvite')}>
+            <MessageCircle />
+          </Button>
+        </Tooltip>
         {meeting.conference_url && meeting.phase !== 'closed' ? (
           <a href={meeting.conference_url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'primary', size: 'sm' })}>
             <Video />
@@ -117,6 +163,7 @@ export function MeetingRoom({
           </a>
         ) : null}
       </header>
+      {sharing ? <ShareToChatDialog open onOpenChange={setSharing} item={shareItem()} /> : null}
 
       {/* barra de fases */}
       <div className="px-4 sm:px-6">
@@ -130,9 +177,13 @@ export function MeetingRoom({
                 key={p.id}
                 type="button"
                 onClick={() => setView(p.id)}
+                // relleno = la fase en la que está la reunión; aro = la que estás mirando
+                aria-pressed={selected}
+                aria-current={current ? 'step' : undefined}
                 className={cn(
-                  'relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 text-left transition-colors',
+                  'relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40',
                   current ? 'bg-accent text-accent-fg' : selected ? 'bg-panel shadow-card' : 'hover:bg-hover',
+                  selected && 'ring-2 ring-accent-mid/50 ring-offset-1 ring-offset-sidebar',
                 )}
               >
                 <span
@@ -271,7 +322,7 @@ function PrepView({
                 {item.source === 'assistant' ? <Sparkles className="size-3.5 text-accent" aria-label={t('fromAssistant')} /> : null}
                 {item.task_id ? <TaskLink taskId={item.task_id} /> : null}
                 {editable ? (
-                  <button type="button" onClick={() => remove.mutate(item.id)} className="text-xs text-fg-subtle opacity-0 hover:text-danger group-hover/ag:opacity-100">
+                  <button type="button" onClick={() => remove.mutate(item.id)} className="text-xs text-fg-subtle opacity-0 hover:text-danger focus-visible:opacity-100 group-hover/ag:opacity-100">
                     {t('remove')}
                   </button>
                 ) : null}
@@ -449,7 +500,7 @@ function CloseView({ meeting, items, editable }: { meeting: MeetingRow; items: M
       toast.success(t('closedToast', { count: res.tasksCreated }))
       track('feature.close_with_veltro', { workspaceId: meeting.workspace_id })
       qc.invalidateQueries({ queryKey: meetingKeys.one(meeting.id) })
-      qc.invalidateQueries({ queryKey: meetingKeys.items(meeting.id) })
+      qc.invalidateQueries({ queryKey: ['meeting-items'] })
       qc.invalidateQueries({ queryKey: taskKeys.all })
       qc.invalidateQueries({ queryKey: docKeys.all })
       qc.invalidateQueries({ queryKey: meetingKeys.all })

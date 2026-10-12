@@ -1,33 +1,30 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { addDays, differenceInMinutes, format, isSameDay, startOfDay, subDays } from 'date-fns'
-import { ArrowRight, CheckCheck, ChevronDown, Diamond, Video } from 'lucide-react'
-import { useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
-import { WorkspaceMark, DocMark } from '@/components/app/marks'
-import { Avatar } from '@/components/ui/avatar'
-import { buttonVariants } from '@/components/ui/button'
+import { addDays, format, isSameDay, startOfDay, subDays } from 'date-fns'
+import { ArrowLeft, ChevronDown, Diamond } from 'lucide-react'
+import { useApp, useWorkspaceMap } from '@/components/app/app-context'
+import { WorkspaceMark } from '@/components/app/marks'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { ConnectCalendar } from '@/components/calendar/connect-calendar'
-import { NotesButton } from '@/components/calendar/notes-button'
-import { CaptureBox } from '@/components/meeting/capture-box'
-import { KindChip } from '@/components/meeting/kinds'
 import { CalendarError, useCalendarEvents } from '@/lib/queries/calendar'
 import { useTasks } from '@/lib/queries/tasks'
-import { useMeetingItemMutations, useMeetingsInRange, useWorkspaceItems } from '@/lib/queries/meetings'
+import { useMeetingsInRange, useWorkspaceItems } from '@/lib/queries/meetings'
 import { useRecentDocs } from '@/lib/queries/docs'
-import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
-import { useTaskPanel, useNow } from '@/lib/hooks'
+import { useLocalStorage, useNow } from '@/lib/hooks'
+import { useScopes } from '@/lib/scope'
 import { useDateLocale } from '@/lib/dates'
-import { suggestAgenda } from '@/lib/assistant'
 import { cn, taskRef } from '@/lib/utils'
 import type { MeetingItemRow, MeetingRow, TaskRow } from '@/lib/database.types'
 import type { CalendarEvent, DocSummary, WorkspaceWithRole } from '@/lib/types'
-import { FocusPanel } from './focus-panel'
+import { PasilloStrip } from './pasillo-strip'
+import { AskBar } from './ask-bar'
+import { AgendaColumn, Counters, LooseColumn, TodayColumn, ViewSentence, useBriefModel, type BriefData } from './brief'
+import { DocThread, LiveCard, MeetingThread, UpcomingCard } from './cards'
+import { useOpenTask } from '@/lib/use-open-task'
 
 type Entry =
   | { type: 'event'; at: Date; event: CalendarEvent; meeting: MeetingRow | null }
@@ -39,21 +36,24 @@ export function PulseView() {
   const t = useTranslations('pulse')
   const appLocale = useLocale()
   const locale = useDateLocale()
-  const { workspaces, google, account } = useApp()
+  const { workspaces, observedWorkspaces, google, profile } = useApp()
   const wsMap = useWorkspaceMap()
   const now = useNow(30_000)
   const [filter, setFilter] = useState<string>('all')
   const nowRef = useRef<HTMLDivElement>(null)
 
   const wsIds = useMemo(() => workspaces.map((w) => w.id), [workspaces])
-  const scopeIds = useMemo(() => (filter === 'all' ? wsIds : [filter]), [filter, wsIds])
+  // Las tareas también se leen de los espacios donde trabaja mi equipo (solo lectura, por jerarquía)
+  const taskWsIds = useMemo(() => [...wsIds, ...observedWorkspaces.map((w) => w.id)], [wsIds, observedWorkspaces])
+  const scopeIds = useMemo(() => (filter === 'all' ? taskWsIds : [filter]), [filter, taskWsIds])
   const from = useMemo(() => subDays(startOfDay(new Date()), 6), [])
-  const to = useMemo(() => addDays(startOfDay(new Date()), 2), [])
+  // Una semana hacia adelante para encontrar la próxima reunión aunque caiga después del fin de semana.
+  const to = useMemo(() => addDays(startOfDay(new Date()), 8), [])
 
   const { data: events, error, isLoading } = useCalendarEvents(from, to, Boolean(google))
   const { data: meetings } = useMeetingsInRange(wsIds, from, to)
   const { data: items } = useWorkspaceItems(wsIds)
-  const { data: tasks } = useTasks({ kind: 'workspaces', workspaceIds: wsIds })
+  const { data: tasks } = useTasks({ kind: 'workspaces', workspaceIds: taskWsIds })
   const { data: docs } = useRecentDocs(wsIds, 30)
   const errorCode = error instanceof CalendarError ? error.code : null
 
@@ -90,93 +90,143 @@ export function PulseView() {
     return out.sort((a, b) => b.at.getTime() - a.at.getTime())
   }, [events, meetings, docs, filter, scopeIds, now, from])
 
-  const future = entries.filter((e) => entryEnd(e) > now && e.at > now)
+  // La línea de tiempo muestra solo lo inmediato (hoy y mañana) por delante.
+  const horizon = addDays(startOfDay(now), 2)
+  const future = entries.filter((e) => entryEnd(e) > now && e.at > now && e.at < horizon)
   const live = entries.filter((e) => e.at <= now && entryEnd(e) > now && e.type === 'event')
-  const past = entries.filter((e) => !future.includes(e) && !live.includes(e))
+  const past = entries.filter((e) => e.at <= now && !live.includes(e))
 
   const deadlines = (tasks ?? []).filter((x) => x.status !== 'done' && x.due_date && scopeIds.includes(x.workspace_id))
 
+  // Hoy siempre abre en la vista principal; la línea de tiempo es un desvío desde "Lo último que pasó".
+  const [view, setView] = useState<'brief' | 'timeline'>('brief')
+
   useEffect(() => {
-    if (!isLoading) nowRef.current?.scrollIntoView({ block: 'center' })
-  }, [isLoading])
+    if (!isLoading && view === 'timeline') nowRef.current?.scrollIntoView({ block: 'center' })
+  }, [isLoading, view])
 
   const filters: { id: string; label: string; ws?: WorkspaceWithRole }[] = [
     { id: 'all', label: t('allWorkspaces') },
     ...workspaces.map((w) => ({ id: w.id, label: w.name, ws: w })),
   ]
 
-  return (
-    // El layout responde al ancho disponible (no al viewport): con el panel de tarea abierto, el foco baja en vez de apretar.
-    <div className="@container/pulse min-h-full">
-    <div className="grid min-h-full grid-cols-1 @min-[1100px]/pulse:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="min-w-0 border-line @min-[1100px]/pulse:border-r">
-        <header className="sticky top-0 z-20 flex flex-wrap items-end gap-x-6 gap-y-3 border-b border-line-soft bg-canvas/95 px-4 pb-4 pt-6 sm:px-8">
-          <div className="mr-auto">
-            <h1 className="font-brand text-[28px] font-semibold leading-tight tracking-[-0.03em] first-letter:uppercase">
-              {new Intl.DateTimeFormat(appLocale, { weekday: 'long', day: 'numeric', month: 'long' }).format(now)}
-            </h1>
-            <p className="text-sm text-fg-muted">
-              {t('weekOf', { week: format(now, 'w', { locale }) })} · {account.name}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-1 rounded-lg bg-sidebar p-1">
-            {filters.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilter(f.id)}
-                aria-pressed={filter === f.id}
-                className={cn(
-                  'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors',
-                  filter === f.id ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
-                )}
-              >
-                {f.ws ? <WorkspaceMark ws={f.ws} size={14} /> : null}
-                <span className={cn(f.ws && 'hidden @min-[900px]/pulse:inline')}>{f.label}</span>
-              </button>
-            ))}
-          </div>
+  const briefData: BriefData = {
+    now,
+    scopeIds,
+    filter,
+    events,
+    eventsLoading: Boolean(google) && isLoading,
+    calendarIssue: errorCode,
+    meetings: meetings ?? [],
+    items: items ?? [],
+    itemsLoading: !items || !meetings,
+    itemsByMeeting,
+    tasks,
+    docs: docs ?? [],
+    wsMap,
+  }
+  const { options: scopes, resolve } = useScopes()
+  const [scopeId, setScopeId] = useLocalStorage<string>('veltro:home-scope', 'me')
+  const scope = resolve(scopeId)
+  const model = useBriefModel(briefData, scope.userIds)
+  const hour = now.getHours()
+  const greeting = hour < 12 ? 'morning' : hour < 19 ? 'afternoon' : 'evening'
+  const dateLine = `${new Intl.DateTimeFormat(appLocale, { weekday: 'long', day: 'numeric', month: 'long' }).format(now)} · ${t('weekOf', { week: format(now, 'w', { locale }) })}`
+
+  const filterChips =
+    workspaces.length > 1 ? (
+      <div className="flex items-center gap-0.5 rounded-lg bg-sidebar p-0.5">
+        {filters.map((f) => (
           <button
+            key={f.id}
             type="button"
-            onClick={() => nowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line px-3 text-sm text-fg hover:bg-hover"
+            onClick={() => setFilter(f.id)}
+            aria-pressed={filter === f.id}
+            title={f.label}
+            className={cn(
+              'inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs transition-colors',
+              filter === f.id ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
+            )}
           >
-            <span className="size-2 rounded-full bg-mandarina" />
-            {t('now')}
+            {f.ws ? <WorkspaceMark ws={f.ws} size={14} /> : f.label}
           </button>
-        </header>
+        ))}
+      </div>
+    ) : null
 
-        {!google || errorCode === 'google_not_connected' || errorCode === 'google_auth_revoked' ? (
-          <div className="px-4 pt-6 sm:px-8">
-            <ConnectCalendar reason={errorCode ?? undefined} returnTo="/home" compact />
+  if (view === 'timeline') {
+    return (
+      <div className="@container/pulse min-h-full">
+        <div className="mx-auto w-full max-w-[860px] px-4 pb-24 pt-6 sm:px-8">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setView('brief')} className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
+              <ArrowLeft className="size-4" />
+              {t('brief.back')}
+            </button>
+            <h1 className="text-sm font-semibold">{t('brief.timeline')}</h1>
+            <span className="ml-auto">{filterChips}</span>
+            <button
+              type="button"
+              onClick={() => nowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line px-2.5 text-xs text-fg hover:bg-hover"
+            >
+              <span className="size-2 rounded-full bg-mandarina" />
+              {t('now')}
+            </button>
           </div>
-        ) : null}
-
-        <div className="relative px-4 pb-24 pt-4 sm:px-8">
+          {!google || errorCode === 'google_not_connected' || errorCode === 'google_auth_revoked' ? (
+            <div className="pb-6">
+              <ConnectCalendar reason={errorCode ?? undefined} returnTo="/home" compact />
+            </div>
+          ) : null}
           {isLoading && google ? (
             <div className="flex flex-col gap-4 pl-16">
               <Skeleton className="h-24" />
               <Skeleton className="h-40" />
-              <Skeleton className="h-24" />
             </div>
           ) : (
-            <Stream
-              future={future}
-              live={live}
-              past={past}
-              now={now}
-              nowRef={nowRef}
-              itemsByMeeting={itemsByMeeting}
-              tasks={tasks ?? []}
-              deadlines={deadlines}
-              wsMap={wsMap}
-            />
+            <Stream future={future} live={live} past={past} now={now} nowRef={nowRef} itemsByMeeting={itemsByMeeting} tasks={tasks ?? []} deadlines={deadlines} wsMap={wsMap} />
           )}
         </div>
       </div>
+    )
+  }
 
-      <FocusPanel loading={!tasks} tasks={tasks ?? []} items={items ?? []} meetings={meetings ?? []} docs={docs ?? []} scopeIds={scopeIds} />
-    </div>
+  // Pulso: todo en una pantalla. Arriba quién eres, qué estás mirando y la pregunta a Veltro;
+  // después cuánto hay y tres columnas que hacen scroll por dentro.
+  return (
+    <div className="@container/pulse h-full">
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4 px-4 py-5 sm:px-6 @min-[1000px]/pulse:h-full">
+        <header className="flex shrink-0 flex-wrap items-end gap-x-6 gap-y-2">
+          <div className="mr-auto min-w-0">
+            <p className="text-xs font-medium text-fg-subtle first-letter:uppercase">{dateLine}</p>
+            <h1 className="font-brand text-[28px] font-semibold leading-tight tracking-[-0.03em]">
+              {t(`brief.greeting.${greeting}`, { name: profile.full_name.split(' ')[0] })}
+            </h1>
+          </div>
+          <ViewSentence scopes={scopes} scope={scope} onScope={setScopeId} workspaces={workspaces} filter={filter} onFilter={setFilter} />
+        </header>
+
+        <div className="relative z-20 shrink-0">
+          <AskBar tasks={tasks ?? []} items={items ?? []} meetings={meetings ?? []} docs={docs ?? []} />
+        </div>
+
+        <div className="shrink-0">
+          <Counters model={model} scope={scope} loading={!tasks} />
+        </div>
+
+        {scope.kind === 'me' ? (
+          <div className="shrink-0 empty:hidden">
+            <PasilloStrip />
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 gap-4 @min-[1000px]/pulse:min-h-0 @min-[1000px]/pulse:flex-1 @min-[1000px]/pulse:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <TodayColumn data={briefData} model={model} scope={scope} />
+          <AgendaColumn data={briefData} model={model} onTimeline={() => setView('timeline')} />
+          <LooseColumn data={briefData} model={model} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -220,7 +270,7 @@ function Stream({
     const label = isSameDay(d, now) ? t('today') : isSameDay(d, addDays(now, 1)) ? t('tomorrow') : isSameDay(d, subDays(now, 1)) ? t('yesterday') : format(d, 'EEEE d MMMM', { locale })
     const dl = deadlines.filter((x) => x.due_date === key)
     return (
-      <div key={`day-${key}`} className="sticky top-[86px] z-10 -mx-1 mb-1 mt-6 flex items-center gap-3 bg-canvas/95 px-1 py-2 first:mt-0">
+      <div key={`day-${key}`} className="sticky top-0 z-10 -mx-1 mb-1 mt-6 flex items-center gap-3 bg-canvas/95 px-1 py-2 first:mt-0">
         <span className="w-14 shrink-0 font-mono text-2xs uppercase tracking-wider text-accent-ink">{format(d, 'EEE d', { locale })}</span>
         <span className="text-sm font-semibold first-letter:uppercase">{label}</span>
         {dl.length ? <Deliveries tasks={dl} wsMap={wsMap} /> : null}
@@ -284,7 +334,7 @@ function Stream({
 /** Entregas del día: el contador abre la lista y cada tarea abre su panel. */
 function Deliveries({ tasks, wsMap }: { tasks: TaskRow[]; wsMap: Map<string, WorkspaceWithRole> }) {
   const t = useTranslations('pulse')
-  const { open } = useTaskPanel()
+  const { open } = useOpenTask()
   return (
     <Popover>
       <PopoverTrigger className="ml-auto inline-flex h-6 items-center gap-1.5 rounded-md px-1.5 text-xs text-fg-muted transition-colors hover:bg-hover hover:text-fg data-[popup-open]:bg-hover data-[popup-open]:text-fg">
@@ -320,324 +370,5 @@ function Row({ time, children }: { time: string; children: React.ReactNode }) {
       <span className="absolute left-[59px] top-[18px] z-[1] size-[7px] rounded-full border-2 border-canvas bg-line-strong" aria-hidden />
       <div className="min-w-0 flex-1">{children}</div>
     </div>
-  )
-}
-
-// ---------------- tarjetas ----------------
-
-function UpcomingCard({
-  event,
-  meeting,
-  items,
-  tasks,
-  wsMap,
-  now,
-}: {
-  event: CalendarEvent
-  meeting: MeetingRow | null
-  items: MeetingItemRow[]
-  tasks: TaskRow[]
-  wsMap: Map<string, WorkspaceWithRole>
-  now: Date
-}) {
-  const t = useTranslations('pulse')
-  const ws = meeting ? wsMap.get(meeting.workspace_id) : undefined
-  const minutes = differenceInMinutes(new Date(event.start), now)
-  const agenda = items.filter((i) => i.kind === 'agenda')
-
-  return (
-    <article className="rounded-xl border border-line bg-panel p-4 shadow-card">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {ws ? <WorkspaceMark ws={ws} size={18} /> : null}
-        <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold">{event.title}</h3>
-        <span className="text-xs text-fg-muted">
-          {minutes < 60 ? t('inMinutes', { minutes }) : t('inHours', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })}
-        </span>
-        <NotesButton event={event} />
-      </div>
-      <People event={event} />
-      {ws ? (
-        <PrepareBox ws={ws} event={event} agenda={agenda} tasks={tasks.filter((x) => x.workspace_id === ws.id)} meetingId={meeting?.id ?? null} />
-      ) : (
-        <p className="mt-3 text-xs text-fg-subtle">{t('linkToPrepare')}</p>
-      )}
-    </article>
-  )
-}
-
-function PrepareBox({
-  ws,
-  event,
-  agenda,
-  tasks,
-  meetingId,
-}: {
-  ws: WorkspaceWithRole
-  event: CalendarEvent
-  agenda: MeetingItemRow[]
-  tasks: TaskRow[]
-  meetingId: string | null
-}) {
-  const t = useTranslations('pulse')
-  const tm = useTranslations('meeting')
-  const members = useWorkspaceMembers(ws.id)
-  const attendeeIds = useMemo(() => {
-    const emails = new Set(event.attendees.map((a) => a.email.toLowerCase()))
-    return members.filter((m) => emails.has(m.email.toLowerCase())).map((m) => m.id)
-  }, [event.attendees, members])
-  const suggestions = suggestAgenda({ tasks, taskRef: (x) => taskRef(ws.key, x.number), attendeeIds, previousItems: [], existing: agenda })
-  const lines = agenda.length ? agenda.map((a) => ({ id: a.id, text: a.text, reason: null as string | null })) : suggestions.slice(0, 4).map((s) => ({ id: s.text, text: s.text, reason: s.reason }))
-  if (!lines.length) return null
-
-  return (
-    <div className="mt-3 rounded-lg bg-highlight px-3 py-2.5">
-      <div className="mb-1.5 flex items-center gap-2">
-        <span className="text-2xs font-semibold uppercase tracking-wider text-highlight-ink">{agenda.length ? t('agendaReady') : t('prepare')}</span>
-        <span className="text-2xs text-fg-muted">{agenda.length ? t('agendaCount', { count: agenda.length }) : t('suggested', { count: suggestions.length })}</span>
-        {meetingId ? (
-          <Link href={`/m/${meetingId}`} className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-accent-ink hover:underline">
-            {t('openRoom')}
-            <ArrowRight className="size-3" />
-          </Link>
-        ) : null}
-      </div>
-      <ul className="flex flex-col gap-1">
-        {lines.map((l) => (
-          <li key={l.id} className="flex items-center gap-2 text-sm">
-            {l.reason ? <span className="w-16 shrink-0 text-2xs font-medium text-fg-subtle">{tm(`reason.${l.reason}`)}</span> : <span className="size-1.5 shrink-0 rounded-full bg-accent" />}
-            <span className="min-w-0 truncate">{l.text}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function LiveCard({
-  event,
-  meeting,
-  items,
-  wsMap,
-  now,
-}: {
-  event: CalendarEvent
-  meeting: MeetingRow | null
-  items: MeetingItemRow[]
-  wsMap: Map<string, WorkspaceWithRole>
-  now: Date
-}) {
-  const t = useTranslations('pulse')
-  const ws = meeting ? wsMap.get(meeting.workspace_id) : undefined
-  const remaining = differenceInMinutes(new Date(event.end), now)
-  const agenda = items.filter((i) => i.kind === 'agenda')
-  const captured = items.filter((i) => i.kind !== 'agenda').slice(-3)
-
-  return (
-    <article className="rounded-2xl bg-highlight p-4 ring-1 ring-accent/15">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="inline-flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wider text-mandarina-ink">
-          <span className="size-2 animate-pulse rounded-full bg-mandarina" />
-          {t('live')}
-        </span>
-        {ws ? <WorkspaceMark ws={ws} size={18} /> : null}
-        <span className="font-mono text-xs text-fg-muted">
-          {format(new Date(event.start), 'HH:mm')} - {format(new Date(event.end), 'HH:mm')} · {t('remaining', { minutes: remaining })}
-        </span>
-        <span className="ml-auto flex items-center gap-1.5">
-          {event.conferenceUrl ? (
-            <a href={event.conferenceUrl} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'primary', size: 'xs' })}>
-              <Video />
-              {t('join')}
-            </a>
-          ) : null}
-          <NotesButton event={event} />
-        </span>
-      </div>
-      <h3 className="mt-2 text-lg font-semibold text-highlight-ink">{event.title}</h3>
-      <People event={event} />
-
-      {agenda.length ? (
-        <ol className="mt-3 flex flex-wrap gap-1.5">
-          {agenda.map((a, i) => (
-            <li key={a.id} className={cn('inline-flex h-6 max-w-72 items-center gap-1.5 rounded-full px-2.5 text-xs', a.done ? 'bg-panel/50 text-fg-subtle line-through' : 'bg-panel text-fg shadow-card')}>
-              <span className="font-mono text-fg-subtle">{i + 1}</span>
-              <span className="truncate">{a.text}</span>
-            </li>
-          ))}
-        </ol>
-      ) : null}
-
-      {captured.length ? (
-        <ul className="mt-3 flex flex-col gap-1">
-          {captured.map((i) => (
-            <li key={i.id} className="flex items-center gap-2 text-sm">
-              {i.kind === 'note' ? <span className="w-[74px] shrink-0" /> : <KindChip kind={i.kind} className="w-[74px] justify-center" />}
-              <span className="min-w-0 truncate">{i.text}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {meeting && ws ? <LiveCapture meeting={meeting} /> : <p className="mt-3 text-xs text-fg-muted">{t('linkToCapture')}</p>}
-    </article>
-  )
-}
-
-function LiveCapture({ meeting }: { meeting: MeetingRow }) {
-  const members = useWorkspaceMembers(meeting.workspace_id)
-  const { add } = useMeetingItemMutations(meeting.id)
-  return (
-    <div className="mt-3">
-      <CaptureBox members={members} onCapture={(c) => add.mutate({ ...c, position: Date.now() })} />
-    </div>
-  )
-}
-
-function People({ event }: { event: CalendarEvent }) {
-  if (!event.attendees.length) return null
-  return (
-    <div className="mt-1.5 flex items-center gap-2 text-xs text-fg-muted">
-      <span className="flex -space-x-1">
-        {event.attendees.slice(0, 5).map((a) => (
-          <Avatar key={a.email} name={a.name || a.email} seed={a.email} size={18} className="ring-2 ring-panel" />
-        ))}
-      </span>
-      <span className="truncate">{event.attendees.map((a) => (a.name || a.email).split(' ')[0]).join(', ')}</span>
-    </div>
-  )
-}
-
-// ---------------- hilos ----------------
-
-function Lineage({ decisions, tasks }: { decisions: number; tasks: TaskRow[] }) {
-  const t = useTranslations('pulse')
-  const done = tasks.filter((x) => x.status === 'done').length
-  const blocked = tasks.filter((x) => x.status === 'blocked').length
-  const open = tasks.length - done - blocked
-  return (
-    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
-      {decisions ? (
-        <>
-          <span className="rounded-md bg-k-decision-soft px-2 py-0.5 font-medium text-k-decision">{t('decisions', { count: decisions })}</span>
-          <ArrowRight className="size-3 text-fg-subtle" />
-        </>
-      ) : null}
-      <span className="rounded-md bg-k-action-soft px-2 py-0.5 font-medium text-k-action">{t('tasks', { count: tasks.length })}</span>
-      {tasks.length ? (
-        <>
-          <ArrowRight className="size-3 text-fg-subtle" />
-          <span className="text-fg-muted">
-            {[done ? t('doneCount', { count: done }) : null, blocked ? t('blockedCount', { count: blocked }) : null, open ? t('openCount', { count: open }) : null]
-              .filter(Boolean)
-              .join(' · ')}
-          </span>
-        </>
-      ) : null}
-    </div>
-  )
-}
-
-function MeetingThread({
-  title,
-  meeting,
-  event,
-  items,
-  tasks,
-  wsMap,
-}: {
-  title: string
-  meeting: MeetingRow | null
-  event: CalendarEvent | null
-  items: MeetingItemRow[]
-  tasks: TaskRow[]
-  wsMap: Map<string, WorkspaceWithRole>
-}) {
-  const t = useTranslations('pulse')
-  const [open, setOpen] = useState(false)
-  const { open: openTask } = useTaskPanel()
-  const ws = meeting ? wsMap.get(meeting.workspace_id) : undefined
-  const decisions = items.filter((i) => i.kind === 'decision')
-  const itemTaskIds = new Set(items.map((i) => i.task_id).filter(Boolean))
-  const linkedTasks = meeting ? tasks.filter((x) => x.meeting_id === meeting.id || itemTaskIds.has(x.id)) : []
-  const pendingClose = meeting && meeting.phase !== 'closed'
-
-  if (!meeting) {
-    return (
-      <div className="flex items-center gap-3 py-1.5 text-sm text-fg-muted">
-        <span className="truncate">{title}</span>
-        {event ? <NotesButton event={event} /> : null}
-      </div>
-    )
-  }
-
-  return (
-    <article className="rounded-xl border border-line-soft px-4 py-3 transition-colors hover:border-line">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {ws ? <WorkspaceMark ws={ws} size={18} /> : null}
-        <Link href={`/m/${meeting.id}`} className="min-w-0 flex-1 truncate text-[15px] font-semibold hover:underline">
-          {title}
-        </Link>
-        {pendingClose ? (
-          <Link
-            href={`/m/${meeting.id}?view=closed`}
-            title={t('pendingClose')}
-            className="inline-flex h-6 items-center gap-1.5 rounded-md bg-warning-soft px-2 text-xs font-medium text-mandarina-ink transition-colors hover:bg-mandarina hover:text-on-mandarina"
-          >
-            <CheckCheck className="size-3.5" />
-            {t('closeNow')}
-          </Link>
-        ) : null}
-        {decisions.length || linkedTasks.length ? (
-          <button type="button" onClick={() => setOpen(!open)} className="inline-flex items-center gap-1 text-xs text-fg-muted hover:text-fg" aria-expanded={open}>
-            {open ? t('hide') : t('show')}
-            <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
-          </button>
-        ) : null}
-      </div>
-      {meeting.summary ? (
-        <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
-          <span className="font-medium text-accent-ink">{t('summaryBy')}</span> {meeting.summary}
-        </p>
-      ) : null}
-      {decisions.length || linkedTasks.length ? <Lineage decisions={decisions.length} tasks={linkedTasks} /> : null}
-      {open ? (
-        <div className="mt-3 flex flex-col gap-1.5 border-t border-line-soft pt-3">
-          {decisions.map((d) => (
-            <p key={d.id} className="flex items-start gap-2 text-sm">
-              <KindChip kind="decision" className="mt-0.5" />
-              {d.text}
-            </p>
-          ))}
-          {linkedTasks.map((x) => (
-            <button key={x.id} type="button" onClick={() => openTask(x.id)} className="flex items-center gap-2 rounded-md px-1 py-0.5 text-left text-sm hover:bg-hover">
-              <StatusIcon status={x.status} />
-              <span className="font-mono text-2xs text-fg-subtle">{ws ? taskRef(ws.key, x.number) : ''}</span>
-              <span className="truncate">{x.title}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </article>
-  )
-}
-
-function DocThread({ doc, tasks, wsMap }: { doc: DocSummary; tasks: TaskRow[]; wsMap: Map<string, WorkspaceWithRole> }) {
-  const t = useTranslations('pulse')
-  const memberMap = useMemberMap()
-  const ws = wsMap.get(doc.workspace_id)
-  const linked = tasks.filter((x) => x.doc_id === doc.id)
-  const author = doc.created_by ? memberMap.get(doc.created_by) : undefined
-  return (
-    <article className="rounded-xl border border-line-soft px-4 py-3 hover:border-line">
-      <div className="flex items-center gap-3">
-        <DocMark source="claude" />
-        <Link href={`/w/${ws?.slug}/docs/${doc.id}`} className="min-w-0 flex-1 truncate text-[15px] font-semibold hover:underline">
-          {doc.title}
-        </Link>
-        {ws ? <WorkspaceMark ws={ws} size={16} /> : null}
-      </div>
-      <p className="mt-1 text-xs text-fg-muted">{t('claudeSession', { who: author?.full_name ?? '' })}</p>
-      {linked.length ? <Lineage decisions={0} tasks={linked} /> : null}
-    </article>
   )
 }

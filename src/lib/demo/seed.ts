@@ -1,20 +1,24 @@
 import { addDays, format, subDays, subHours } from 'date-fns'
+import { seedChats } from './chats-seed'
 import type { CalendarEvent } from '@/lib/types'
 import { DEMO_USER_ID } from './config'
 import { anchorEvents, lastOccurrence, nextOccurrence, PEOPLE } from './calendar-gen'
 
-export const SEED_VERSION = 3
+export const SEED_VERSION = 4
 
 type Row = Record<string, unknown>
 
 export type DemoStore = {
   version: number
+  /** cambios de esquema aplicados sobre datos ya guardados (engine.ts → upgrade) */
+  schema?: number
   anchor: string
   tables: {
     plans: Row[]
     profiles: Row[]
     accounts: Row[]
     account_members: Row[]
+    departments: Row[]
     workspaces: Row[]
     workspace_members: Row[]
     meetings: Row[]
@@ -23,6 +27,9 @@ export type DemoStore = {
     tasks: Row[]
     task_comments: Row[]
     attachments: Row[]
+    chats: Row[]
+    chat_members: Row[]
+    chat_messages: Row[]
     google_connections: Row[]
     api_tokens: Row[]
   }
@@ -94,15 +101,19 @@ export function buildSeed(anchor: Date): DemoStore {
     created_at: iso(subDays(anchor, 40)),
     updated_at: iso(subDays(anchor, 40)),
   }
+  // Organigrama de ejemplo: Gerente General → Gerente Comercial → Supervisor → Analista; Tecnología aparte
+  const depComercial = { id: id(), account_id: account.id, name: 'Comercial', head_id: users.ana.id, created_at: iso(subDays(anchor, 38)), updated_at: iso(subDays(anchor, 38)) }
+  const depTech = { id: id(), account_id: account.id, name: 'Tecnología', head_id: users.diego.id, created_at: iso(subDays(anchor, 38)), updated_at: iso(subDays(anchor, 38)) }
+  const departments = [depComercial, depTech]
   const account_members = [
-    { account_id: account.id, user_id: users.cesar.id, role: 'owner' },
-    { account_id: account.id, user_id: users.ana.id, role: 'admin' },
-    { account_id: account.id, user_id: users.pepito.id, role: 'member' },
-    { account_id: account.id, user_id: users.lucia.id, role: 'member' },
-    { account_id: account.id, user_id: users.diego.id, role: 'member' },
+    { account_id: account.id, user_id: users.cesar.id, role: 'owner', title: 'Gerente General', department_id: null, reports_to: null },
+    { account_id: account.id, user_id: users.ana.id, role: 'admin', title: 'Gerente Comercial', department_id: depComercial.id, reports_to: users.cesar.id },
+    { account_id: account.id, user_id: users.pepito.id, role: 'member', title: 'Supervisor de campo', department_id: depComercial.id, reports_to: users.ana.id },
+    { account_id: account.id, user_id: users.lucia.id, role: 'member', title: 'Analista de trade', department_id: depComercial.id, reports_to: users.pepito.id },
+    { account_id: account.id, user_id: users.diego.id, role: 'member', title: 'Coordinador de tecnología', department_id: depTech.id, reports_to: users.cesar.id },
   ].map((m) => ({ ...m, created_at: iso(subDays(anchor, 38)) }))
 
-  const mkWs = (name: string, slug: string, key: string, icon: string, color: string, description: string, task_fields: Row[] = []) => ({
+  const mkWs = (name: string, slug: string, key: string, icon: string, color: string, description: string, task_fields: Row[] = [], task_statuses: Row[] = []) => ({
     id: id(),
     account_id: account.id,
     name,
@@ -113,6 +124,7 @@ export function buildSeed(anchor: Date): DemoStore {
     description,
     task_seq: 0,
     task_fields,
+    task_statuses,
     created_by: users.cesar.id,
     created_at: iso(subDays(anchor, 38)),
     updated_at: iso(subDays(anchor, 38)),
@@ -126,10 +138,27 @@ export function buildSeed(anchor: Date): DemoStore {
     { id: 'f_cadena', name: 'Cadena', type: 'select', options: ['Farmatodo', 'Central Madeirense', 'Gama', 'Locatel'] },
     { id: 'f_tiendas', name: 'Tiendas', type: 'number' },
   ])
-  const tv = mkWs('Tech Ve', 'tech-ve', 'TV', 'V', 'ink', 'Producto digital y plataforma interna.', [
-    { id: 'f_repo', name: 'Repositorio', type: 'url' },
-    { id: 'f_sprint', name: 'Sprint', type: 'text' },
-  ])
+  // Tech Ve usa estados propios (flujo de desarrollo); los otros espacios, los estándar
+  const tv = mkWs(
+    'Tech Ve',
+    'tech-ve',
+    'TV',
+    'V',
+    'ink',
+    'Producto digital y plataforma interna.',
+    [
+      { id: 'f_repo', name: 'Repositorio', type: 'url' },
+      { id: 'f_sprint', name: 'Sprint', type: 'text' },
+    ],
+    [
+      { id: 's_ideas', name: 'Ideas', category: 'backlog' },
+      { id: 's_sprint', name: 'En el sprint', category: 'todo' },
+      { id: 's_dev', name: 'En desarrollo', category: 'in_progress' },
+      { id: 's_review', name: 'En revisión', category: 'in_progress' },
+      { id: 's_blocked', name: 'Bloqueada', category: 'blocked' },
+      { id: 's_prod', name: 'En producción', category: 'done' },
+    ],
+  )
   const workspaces = [pro, tm, tv]
 
   const workspace_members = [
@@ -521,6 +550,8 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
       status: string
       priority: string
       assignee: string | null
+      /** varios responsables (el primero queda también en assignee_id) */
+      assignees: string[]
       due: number | null
       labels: string[]
       doc: Row
@@ -532,11 +563,16 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
       start: number
       estimate: number
       custom: Record<string, string | number>
+      statusId: string
     }> = {},
   ) => {
     seq[ws.id as string] = (seq[ws.id as string] ?? 0) + 1
-    const status = o.status ?? 'todo'
+    const own = (ws.task_statuses as { id: string; category: string }[] | undefined) ?? []
+    const statusId = own.length ? (o.statusId ?? own.find((x) => x.category === (o.status ?? 'todo'))?.id ?? null) : null
+    const status = statusId ? own.find((x) => x.id === statusId)!.category : (o.status ?? 'todo')
     const created = ago(o.created ?? 24 * 5)
+    const single = o.assignee === undefined ? users.cesar.id : o.assignee
+    const assignees = o.assignees ?? (single ? [single] : [])
     const row: Row = {
       id: id(),
       workspace_id: ws.id,
@@ -545,8 +581,10 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
       description: o.description ?? null,
       description_text: o.description ? textOf(o.description) : '',
       status,
+      status_id: statusId,
       priority: o.priority ?? 'none',
-      assignee_id: o.assignee === undefined ? users.cesar.id : o.assignee,
+      assignee_id: assignees[0] ?? null,
+      assignee_ids: assignees,
       due_date: o.due == null ? null : day(o.due),
       start_date: o.start == null ? null : day(o.start),
       estimate_hours: o.estimate ?? null,
@@ -589,16 +627,18 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
   mkTask(pro, 'Cerrar presupuesto de material POP', { priority: 'urgent', assignee: ana.id, due: -2, start: -6, estimate: 3, custom: { f_cliente: 'Interno', f_presupuesto: 4500 }, labels: ['presupuesto'], doc: dailyDoc, meeting: mDaily })
   mkTask(pro, 'Confirmar logística de impulsadoras para el fin de semana', { priority: 'high', assignee: pepito.id, due: 1, doc: dailyDoc, meeting: mDaily })
   mkTask(pro, 'Actualizar tablero de KPIs de campaña', { status: 'blocked', priority: 'medium', due: 3, labels: ['reporte'] })
-  mkTask(pro, 'Definir calendario de promociones Q4', { status: 'in_progress', priority: 'high', assignee: ana.id, due: 4, start: -1, estimate: 8, doc: brief })
+  mkTask(pro, 'Definir calendario de promociones Q4', { status: 'in_progress', priority: 'high', assignees: [ana.id, cesar.id], due: 4, start: -1, estimate: 8, doc: brief })
   mkTask(pro, 'Preparar reporte mensual para la gerencia', { priority: 'medium', due: 6, labels: ['reporte'] })
   mkTask(pro, 'Validar artes finales con diseño', { assignee: diego.id, due: 2 })
   mkTask(pro, 'Revisar contrato con agencia de BTL', { status: 'backlog', priority: 'low', assignee: null })
   mkTask(pro, 'Analizar métricas de redes sociales', { status: 'backlog', assignee: null, labels: ['digital'] })
   mkTask(pro, 'Onboarding de nuevas impulsadoras', { status: 'done', priority: 'medium', assignee: pepito.id, due: -1 })
   mkTask(pro, 'Cotizar stands para la feria de noviembre', { status: 'done', priority: 'low', due: -3 })
+  // sin responsable y con fecha: se reparten desde el calendario o desde Tareas
+  mkTask(pro, 'Coordinar muestras para degustación en Farmatodo', { priority: 'medium', assignee: null, due: 2, labels: ['activación'] })
 
   // Trade Marketing
-  mkTask(tm, 'Planograma para cadena Farmatodo', { status: 'in_progress', priority: 'high', assignee: lucia.id, due: 2, start: -2, estimate: 10, custom: { f_cadena: 'Farmatodo', f_tiendas: 24 }, labels: ['retail'], by: lucia.id })
+  mkTask(tm, 'Planograma para cadena Farmatodo', { status: 'in_progress', priority: 'high', assignees: [lucia.id, pepito.id], due: 2, start: -2, estimate: 10, custom: { f_cadena: 'Farmatodo', f_tiendas: 24 }, labels: ['retail'], by: lucia.id })
   mkTask(tm, 'Auditoría de exhibiciones en 20 tiendas', { priority: 'medium', assignee: pepito.id, due: 5, start: 1, estimate: 16, custom: { f_cadena: 'Central Madeirense', f_tiendas: 20 }, labels: ['retail'] })
   mkTask(tm, 'Negociar espacios en cabecera de góndola', { status: 'blocked', priority: 'urgent', due: -1, labels: ['negociación'] })
   mkTask(tm, 'Seguimiento de acuerdos con Polar', { priority: 'high', due: 0, doc: polarDoc, meeting: mPolar, labels: ['cliente'] })
@@ -607,10 +647,11 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
   mkTask(tm, 'Capacitación de mercaderistas', { status: 'backlog', assignee: null })
   mkTask(tm, 'Encuesta de satisfacción en punto de venta', { status: 'backlog', priority: 'low', assignee: lucia.id })
   mkTask(tm, 'Reporte de sell-out de septiembre', { status: 'done', priority: 'medium', assignee: lucia.id, due: -4 })
+  mkTask(tm, 'Relevar precios de la competencia', { priority: 'high', assignee: null, due: 1, labels: ['retail'] })
 
   // Tech Ve
-  mkTask(tv, 'Migrar autenticación a Supabase', { status: 'in_progress', priority: 'high', assignee: diego.id, due: 2, start: -4, estimate: 12, custom: { f_repo: 'https://example.com/veltro/app', f_sprint: 'Sprint 14' }, labels: ['backend'], doc: claudeAuth })
-  mkTask(tv, 'Integrar Google Calendar en Veltro', { status: 'in_progress', priority: 'high', due: 0, start: -2, estimate: 8, custom: { f_sprint: 'Sprint 14' }, labels: ['integración'] })
+  mkTask(tv, 'Migrar autenticación a Supabase', { status: 'in_progress', priority: 'high', assignees: [diego.id, cesar.id], due: 2, start: -4, estimate: 12, custom: { f_repo: 'https://example.com/veltro/app', f_sprint: 'Sprint 14' }, labels: ['backend'], doc: claudeAuth })
+  mkTask(tv, 'Integrar Google Calendar en Veltro', { status: 'in_progress', statusId: 's_review', priority: 'high', due: 0, start: -2, estimate: 8, custom: { f_sprint: 'Sprint 14' }, labels: ['integración'] })
   mkTask(tv, 'Corregir error en exportación a Excel', { status: 'blocked', priority: 'urgent', assignee: diego.id, due: -1, estimate: 4, custom: { f_sprint: 'Sprint 14' }, labels: ['bug'], doc: demoDoc, meeting: mDemo })
   mkTask(tv, 'Revisión de seguridad de RLS', { priority: 'high', assignee: diego.id, due: 3, labels: ['seguridad'], doc: claudeRls })
   mkTask(tv, 'Dashboard de campañas en tiempo real', { priority: 'high', due: 7, labels: ['frontend'] })
@@ -618,6 +659,7 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
   mkTask(tv, 'Configurar CI con tests de integración', { status: 'backlog', priority: 'medium', assignee: diego.id })
   mkTask(tv, 'Documentar API de pedidos', { status: 'done', priority: 'low', assignee: diego.id })
   mkTask(tv, 'Actualizar dependencias de Next.js', { status: 'done', priority: 'low', due: -2 })
+  mkTask(tv, 'Preparar ambiente de pruebas para el cliente', { priority: 'medium', assignee: null, due: 3 })
 
   for (const ws of workspaces) ws.task_seq = seq[ws.id] ?? 0
 
@@ -691,18 +733,16 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
   // ---------- adjuntos (archivos y links) ----------
   const attachments: Row[] = []
   const files: Record<string, string> = {}
-  const mkFile = (
-    ws: Row,
-    name: string,
-    mime: string,
-    dataUrl: string,
-    o: Partial<{ task: Row; meeting: Row; doc: Row; by: string; hours: number }> = {},
-  ) => {
-    const path = `${ws.id}/${id()}-${name}`
+  type FileOpts = Partial<{ task: Row; meeting: Row; doc: Row; by: string; hours: number; title: string; labels: string[] }>
+  const mkFile = (ws: Row | null, name: string, mime: string, dataUrl: string, o: FileOpts = {}) => {
+    const path = `${ws?.id ?? account.id}/${id()}-${name}`
     files[path] = dataUrl
     attachments.push({
       id: id(),
-      workspace_id: ws.id,
+      account_id: account.id,
+      workspace_id: ws?.id ?? null,
+      title: o.title ?? null,
+      labels: o.labels ?? [],
       task_id: o.task?.id ?? null,
       meeting_id: o.meeting?.id ?? null,
       doc_id: o.doc?.id ?? null,
@@ -716,10 +756,13 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
       created_at: ago(o.hours ?? 24),
     })
   }
-  const mkLink = (ws: Row, name: string, url: string, o: Partial<{ task: Row; meeting: Row; doc: Row; by: string; hours: number }> = {}) => {
+  const mkLink = (ws: Row | null, name: string, url: string, o: FileOpts = {}) => {
     attachments.push({
       id: id(),
-      workspace_id: ws.id,
+      account_id: account.id,
+      workspace_id: ws?.id ?? null,
+      title: o.title ?? null,
+      labels: o.labels ?? [],
       task_id: o.task?.id ?? null,
       meeting_id: o.meeting?.id ?? null,
       doc_id: o.doc?.id ?? null,
@@ -735,20 +778,26 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
   }
 
   const popTask = byTitle('Cerrar presupuesto de material POP')
-  mkFile(pro, 'cotizacion-graficas-unidas.pdf', 'application/pdf', pdfDataUrl('Cotización material POP', ['Gráficas Unidas', 'Vinil y cabeceras: 4.380 USD', 'Entrega: 10 días hábiles']), { task: popTask, meeting: mBudget, by: ana.id, hours: 3 })
-  mkFile(pro, 'cotizacion-display-pro.pdf', 'application/pdf', pdfDataUrl('Cotización stands de cartón', ['Display Pro', 'Mínimo 200 unidades', 'Total: 4.950 USD']), { task: popTask, meeting: mBudget, by: ana.id, hours: 3 })
-  mkFile(pro, 'propuesta-activacion-polar.pdf', 'application/pdf', pdfDataUrl('Propuesta de activación Polar', ['40 activaciones en noviembre', 'Farmatodo y Central Madeirense', 'Inversión: 18.500 USD']), { task: polarProp, hours: 20 })
-  mkLink(pro, 'Presentación para Polar (Google Slides)', 'https://docs.google.com/presentation/', { task: polarProp, hours: 18 })
-  mkFile(pro, 'manual-de-marca-2026.pdf', 'application/pdf', pdfDataUrl('Manual de marca 2026', ['Uso del logo', 'Colores y tipografía', 'Material POP']), { by: ana.id, hours: 24 * 8 })
+  mkFile(pro, 'cotizacion-graficas-unidas.pdf', 'application/pdf', pdfDataUrl('Cotización material POP', ['Gráficas Unidas', 'Vinil y cabeceras: 4.380 USD', 'Entrega: 10 días hábiles']), { task: popTask, meeting: mBudget, by: ana.id, hours: 3, title: 'Cotización Gráficas Unidas', labels: ['cotización', 'POP'] })
+  mkFile(pro, 'cotizacion-display-pro.pdf', 'application/pdf', pdfDataUrl('Cotización stands de cartón', ['Display Pro', 'Mínimo 200 unidades', 'Total: 4.950 USD']), { task: popTask, meeting: mBudget, by: ana.id, hours: 3, title: 'Cotización Display Pro', labels: ['cotización', 'POP'] })
+  mkFile(pro, 'propuesta-activacion-polar.pdf', 'application/pdf', pdfDataUrl('Propuesta de activación Polar', ['40 activaciones en noviembre', 'Farmatodo y Central Madeirense', 'Inversión: 18.500 USD']), { task: polarProp, hours: 20, title: 'Propuesta de activación Polar', labels: ['cliente', 'propuesta'] })
+  mkLink(pro, 'Presentación para Polar (Google Slides)', 'https://docs.google.com/presentation/', { task: polarProp, hours: 18, labels: ['cliente', 'propuesta'] })
+  mkFile(pro, 'manual-de-marca-2026.pdf', 'application/pdf', pdfDataUrl('Manual de marca 2026', ['Uso del logo', 'Colores y tipografía', 'Material POP']), { by: ana.id, hours: 24 * 8, title: 'Manual de marca 2026', labels: ['marca'] })
 
   const photosTask = byTitle('Enviar fotos de exhibiciones a cliente')
-  mkFile(tm, 'exhibicion-farmatodo-las-mercedes.svg', 'image/svg+xml', photoDataUrl('Farmatodo Las Mercedes', '#6c47ff'), { meeting: mPolar, task: photosTask, by: pepito.id, hours: 50 })
-  mkFile(tm, 'exhibicion-farmatodo-chacao.svg', 'image/svg+xml', photoDataUrl('Farmatodo Chacao', '#ff8a3d'), { meeting: mPolar, task: photosTask, by: pepito.id, hours: 50 })
-  mkFile(tm, 'sell-out-septiembre.csv', 'text/csv', csvDataUrl(), { meeting: mPolar, by: lucia.id, hours: 52 })
+  mkFile(tm, 'exhibicion-farmatodo-las-mercedes.svg', 'image/svg+xml', photoDataUrl('Farmatodo Las Mercedes', '#6c47ff'), { meeting: mPolar, task: photosTask, by: pepito.id, hours: 50, title: 'Exhibición Farmatodo Las Mercedes', labels: ['fotos', 'retail'] })
+  mkFile(tm, 'exhibicion-farmatodo-chacao.svg', 'image/svg+xml', photoDataUrl('Farmatodo Chacao', '#ff8a3d'), { meeting: mPolar, task: photosTask, by: pepito.id, hours: 50, title: 'Exhibición Farmatodo Chacao', labels: ['fotos', 'retail'] })
+  mkFile(tm, 'sell-out-septiembre.csv', 'text/csv', csvDataUrl(), { meeting: mPolar, by: lucia.id, hours: 52, title: 'Sell-out de septiembre', labels: ['reporte', 'retail'] })
 
   mkLink(tv, 'Google Calendar API: guía', 'https://developers.google.com/calendar/api/guides/overview', { task: byTitle('Integrar Google Calendar en Veltro'), hours: 30 })
   mkLink(tv, 'Diseño del dashboard (Figma)', 'https://www.figma.com/', { meeting: mDemo, by: diego.id, hours: 60 })
   mkFile(tv, 'error-exportacion-5000-filas.log', 'text/plain', textDataUrl('Error: heap out of memory\nat exportWorkbook (export.ts:88)\nfilas: 5214'), { task: byTitle('Corregir error en exportación a Excel'), meeting: mDemo, by: diego.id, hours: 58 })
+
+  // sueltos en la bóveda: no cuelgan de ningún espacio
+  for (const f of LOOSE_FILES(account.id)) {
+    files[f.storage_path] = f.dataUrl
+    attachments.push({ ...f.row, id: id(), uploaded_by: f.by === 'ana' ? ana.id : f.by === 'lucia' ? lucia.id : cesar.id, created_at: ago(f.hours) })
+  }
 
   // Kickoff Q4 (por preparar)
   mkItem(mKickoff, 'agenda', 'Presentación del brief Q4 (Ana, 15 min)')
@@ -770,7 +819,7 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
     updated_at: ago(c.hours),
   }))
 
-  return {
+  const built: DemoStore = {
     version: SEED_VERSION,
     anchor: anchor.toISOString(),
     tables: {
@@ -778,6 +827,7 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
       profiles,
       accounts: [account],
       account_members,
+      departments,
       workspaces,
       workspace_members,
       meetings,
@@ -800,10 +850,64 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
         },
       ],
       api_tokens: [],
+      chats: [],
+      chat_members: [],
+      chat_messages: [],
     },
     events: [],
     files,
   }
+  seedChats(built, anchor)
+  return built
+}
+
+/** Archivos sueltos de la bóveda (sin espacio). También los usa la migración de datos ya guardados. */
+export function LOOSE_FILES(accountId: string) {
+  const mk = (name: string, mime: string, dataUrl: string, o: { title: string; labels: string[]; by: 'cesar' | 'ana' | 'lucia'; hours: number }) => {
+    const storage_path = `${accountId}/vault-${name}`
+    return {
+      storage_path,
+      dataUrl,
+      by: o.by,
+      hours: o.hours,
+      row: {
+        account_id: accountId,
+        workspace_id: null,
+        task_id: null,
+        meeting_id: null,
+        doc_id: null,
+        kind: 'file',
+        name,
+        title: o.title,
+        labels: o.labels,
+        storage_path,
+        url: null,
+        mime_type: mime,
+        size_bytes: Math.round((dataUrl.length * 3) / 4),
+      },
+    }
+  }
+  return [
+    mk('contrato-marco-polar-2026.pdf', 'application/pdf', pdfDataUrl('Contrato marco Polar 2026', ['Vigencia: enero a diciembre 2026', 'Activaciones y material POP', 'Pago a 30 días']), {
+      title: 'Contrato marco con Polar 2026',
+      labels: ['contrato', 'legal', 'cliente'],
+      by: 'cesar',
+      hours: 24 * 12,
+    }),
+    mk('tarifario-proveedores-2026.csv', 'text/csv', textDataUrl('proveedor,servicio,precio_usd\nGráficas Unidas,Vinil por m2,18\nDisplay Pro,Stand de cartón,24\nImpulso VE,Impulsadora por jornada,35'), {
+      title: 'Tarifario de proveedores 2026',
+      labels: ['proveedores', 'precios'],
+      by: 'ana',
+      hours: 24 * 5,
+    }),
+    mk('logo-consorcio.svg', 'image/svg+xml', photoDataUrl('Consorcio Promoting', '#1a3a2e'), { title: 'Logo del consorcio', labels: ['marca'], by: 'cesar', hours: 24 * 20 }),
+    mk('politica-de-viaticos.pdf', 'application/pdf', pdfDataUrl('Política de viáticos', ['Tope diario: 40 USD', 'Comprobantes en 5 días', 'Aprobación del jefe directo']), {
+      title: 'Política de viáticos',
+      labels: ['rrhh', 'legal'],
+      by: 'lucia',
+      hours: 24 * 30,
+    }),
+  ]
 }
 
 // ---------- archivos de ejemplo (contenido real y descargable) ----------

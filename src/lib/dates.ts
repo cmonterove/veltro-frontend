@@ -15,10 +15,6 @@ export function toDateKey(d: Date) {
   return format(d, 'yyyy-MM-dd')
 }
 
-export function parseDateKey(key: string) {
-  return parseISO(key)
-}
-
 export type DueTone = 'overdue' | 'today' | 'soon' | 'later'
 
 export function dueInfo(due: string, now = new Date()): { diff: number; tone: DueTone } {

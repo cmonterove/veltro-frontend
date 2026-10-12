@@ -50,7 +50,7 @@ export const getAppContext = cache(async (): Promise<
   const accountRole = memberships.find((m) => m.account_id === account.id)!.role as AccountRole
   const isAdmin = accountRole === 'owner' || accountRole === 'admin'
 
-  const [{ data: workspaces }, { data: myWsRoles }, { data: accountMembers }, { data: google }] = await Promise.all([
+  const [{ data: workspaces }, { data: myWsRoles }, { data: accountMembers }, { data: google }, { data: departments }] = await Promise.all([
     supabase
       .from('workspaces')
       .select('*')
@@ -58,8 +58,9 @@ export const getAppContext = cache(async (): Promise<
       .is('archived_at', null)
       .order('created_at'),
     supabase.from('workspace_members').select('workspace_id, role').eq('user_id', user.id),
-    supabase.from('account_members').select('user_id, role').eq('account_id', account.id),
+    supabase.from('account_members').select('user_id, role, title, department_id, reports_to').eq('account_id', account.id),
     supabase.rpc('get_my_google_connection'),
+    supabase.from('departments').select('*').eq('account_id', account.id).order('name'),
   ])
 
   const memberIds = (accountMembers ?? []).map((m) => m.user_id)
@@ -68,14 +69,22 @@ export const getAppContext = cache(async (): Promise<
     : { data: [] }
 
   const members: Member[] = (profiles ?? [])
-    .map((p) => ({ ...p, role: accountMembers!.find((m) => m.user_id === p.id)!.role as AccountRole }))
+    .map((p) => {
+      const m = accountMembers!.find((x) => x.user_id === p.id)!
+      return { ...p, role: m.role as AccountRole, title: m.title ?? null, department_id: m.department_id ?? null, reports_to: m.reports_to ?? null }
+    })
     .sort((a, b) => a.full_name.localeCompare(b.full_name))
 
+  // Los espacios que devuelve la base incluyen los visibles por jerarquía (donde trabaja mi gente):
+  // esos no van a la barra lateral, solo sirven para mostrar sus tareas en solo lectura.
   const roleByWs = new Map((myWsRoles ?? []).map((r) => [r.workspace_id, r.role as WorkspaceRole]))
-  const withRole: WorkspaceWithRole[] = (workspaces ?? []).map((w) => ({
-    ...w,
-    my_role: isAdmin ? 'admin' : (roleByWs.get(w.id) ?? 'viewer'),
-  }))
+  const withRole: WorkspaceWithRole[] = []
+  const observed: WorkspaceWithRole[] = []
+  for (const w of workspaces ?? []) {
+    if (isAdmin) withRole.push({ ...w, my_role: 'admin' })
+    else if (roleByWs.has(w.id)) withRole.push({ ...w, my_role: roleByWs.get(w.id)! })
+    else observed.push({ ...w, my_role: 'viewer' })
+  }
 
   const g = google?.[0]
 
@@ -88,7 +97,9 @@ export const getAppContext = cache(async (): Promise<
       accounts: accounts ?? [],
       accountRole,
       workspaces: withRole,
+      observedWorkspaces: observed,
       members,
+      departments: departments ?? [],
       google: g ? { email: g.google_email, selectedCalendarIds: g.selected_calendar_ids } : null,
       googleConfigured: isGoogleConfigured(),
     },

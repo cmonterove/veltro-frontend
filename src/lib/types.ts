@@ -1,5 +1,6 @@
 import type {
   AccountRole,
+  DepartmentRow,
   AccountRow,
   DocRow,
   ProfileRow,
@@ -10,6 +11,9 @@ import type {
 
 export type Member = Pick<ProfileRow, 'id' | 'email' | 'full_name' | 'avatar_url'> & {
   role: AccountRole
+  title: string | null
+  department_id: string | null
+  reports_to: string | null
 }
 
 export type WorkspaceWithRole = WorkspaceRow & { my_role: WorkspaceRole }
@@ -21,7 +25,10 @@ export type AppContextValue = {
   accounts: AccountRow[]
   accountRole: AccountRole
   workspaces: WorkspaceWithRole[]
+  /** espacios donde no soy miembro pero trabaja alguien de mi equipo (solo para leer sus tareas) */
+  observedWorkspaces: WorkspaceWithRole[]
   members: Member[]
+  departments: DepartmentRow[]
   google: { email: string; selectedCalendarIds: string[] } | null
   googleConfigured: boolean
 }

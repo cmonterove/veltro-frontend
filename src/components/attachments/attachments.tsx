@@ -1,18 +1,20 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { formatDistanceToNowStrict } from 'date-fns'
-import { Download, ExternalLink, File, FileImage, FileSpreadsheet, FileText, Link2, Paperclip, Plus, Trash2, UploadCloud } from 'lucide-react'
+import { Download, ExternalLink, File, Link2, Paperclip, Plus, Trash2, UploadCloud } from 'lucide-react'
 import { useMemberMap } from '@/components/app/app-context'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
-import { attachmentPreviewUrl, openAttachment, useAttachmentMutations, useAttachments, type AttachmentParent, type AttachmentScope } from '@/lib/queries/attachments'
+import { openAttachment, useAttachmentMutations, useAttachments, type AttachmentParent, type AttachmentScope } from '@/lib/queries/attachments'
 import { useDateLocale } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { FileKindIcon, fileTitle, safeHost, useImageUrl } from '@/components/vault/file-visual'
 import type { AttachmentRow } from '@/lib/database.types'
+import { useConfirm } from '@/components/ui/confirm'
 
 export function formatBytes(n: number | null) {
   if (n == null) return ''
@@ -21,33 +23,13 @@ export function formatBytes(n: number | null) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
+/** El ícono del tipo de archivo: el mismo que en la bóveda (un solo criterio en toda la app). */
 export function AttachmentIcon({ a, className }: { a: Pick<AttachmentRow, 'kind' | 'mime_type' | 'name'>; className?: string }) {
-  const mime = a.mime_type ?? ''
-  const ext = a.name.split('.').pop()?.toLowerCase() ?? ''
-  const Icon =
-    a.kind === 'link'
-      ? Link2
-      : mime.startsWith('image/')
-        ? FileImage
-        : mime.includes('sheet') || mime.includes('csv') || ['xlsx', 'xls', 'csv'].includes(ext)
-          ? FileSpreadsheet
-          : mime.includes('pdf') || mime.startsWith('text/') || ['pdf', 'doc', 'docx', 'txt', 'md'].includes(ext)
-            ? FileText
-            : File
-  const tone =
-    a.kind === 'link' ? 'text-accent' : mime.startsWith('image/') ? 'text-k-decision' : Icon === FileSpreadsheet ? 'text-success' : mime.includes('pdf') ? 'text-danger' : 'text-fg-muted'
-  return <Icon className={cn('size-4 shrink-0', tone, className)} aria-hidden />
+  return <FileKindIcon a={a} className={className} />
 }
 
 function Thumb({ a }: { a: AttachmentRow }) {
-  const [src, setSrc] = useState<string | null>(null)
-  useEffect(() => {
-    let alive = true
-    if (a.kind === 'file' && a.mime_type?.startsWith('image/')) attachmentPreviewUrl(a).then((u) => alive && setSrc(u))
-    return () => {
-      alive = false
-    }
-  }, [a])
+  const src = useImageUrl(a)
   if (!src) return null
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt="" className="size-10 shrink-0 rounded-md border border-line object-cover" />
@@ -62,6 +44,7 @@ export function AttachmentsSection({
   className,
   dense,
   emptyHint,
+  hideTitle,
 }: {
   scope: AttachmentScope
   parent: AttachmentParent
@@ -69,6 +52,8 @@ export function AttachmentsSection({
   title?: string
   className?: string
   dense?: boolean
+  /** dentro de una pestaña "Adjuntos" el título sobra */
+  hideTitle?: boolean
   emptyHint?: string
 }) {
   const t = useTranslations('attachments')
@@ -76,6 +61,8 @@ export function AttachmentsSection({
   const memberMap = useMemberMap()
   const { data: list, isLoading } = useAttachments(scope)
   const { upload, addLink, remove } = useAttachmentMutations()
+  const confirm = useConfirm()
+  const tConfirm = useTranslations('confirm')
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
@@ -104,11 +91,13 @@ export function AttachmentsSection({
       }}
     >
       <div className="flex items-center gap-2">
-        <h3 className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-fg-subtle">
-          <Paperclip className="size-3.5 shrink-0" />
-          <span className="truncate">{title ?? t('title')}</span>
-          {list?.length ? <span className="tabular-nums">{list.length}</span> : null}
-        </h3>
+        {hideTitle ? null : (
+          <h3 className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-fg-subtle">
+            <Paperclip className="size-3.5 shrink-0" />
+            <span className="truncate">{title ?? t('title')}</span>
+            {list?.length ? <span className="tabular-nums">{list.length}</span> : null}
+          </h3>
+        )}
         {editable ? (
           <span className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap">
             <LinkPopover onAdd={(url, name) => addLink.mutate({ parent, url, name })} pending={addLink.isPending} iconOnly={dense} />
@@ -118,7 +107,17 @@ export function AttachmentsSection({
             </Button>
           </span>
         ) : null}
-        <input ref={inputRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            onFiles(e.target.files)
+            // así se puede volver a elegir el mismo archivo
+            e.target.value = ''
+          }}
+        />
       </div>
 
       <div className={cn('relative rounded-xl transition-colors', dragging && 'bg-highlight ring-2 ring-accent/40')}>
@@ -138,9 +137,9 @@ export function AttachmentsSection({
                     </span>
                   )}
                   <button type="button" onClick={() => openAttachment(a)} className="min-w-0 flex-1 text-left">
-                    <span className="block truncate text-sm font-medium text-fg hover:underline">{a.name}</span>
+                    <span className="block truncate text-sm font-medium text-fg hover:underline">{fileTitle(a)}</span>
                     <span className="block truncate text-xs text-fg-subtle">
-                      {a.kind === 'link' ? new URL(a.url ?? 'https://x').hostname : formatBytes(a.size_bytes)}
+                      {a.kind === 'link' ? safeHost(a.url) : formatBytes(a.size_bytes)}
                       {who ? ` · ${who.full_name.split(' ')[0]}` : ''} · {formatDistanceToNowStrict(new Date(a.created_at), { addSuffix: true, locale })}
                     </span>
                   </button>
@@ -157,7 +156,9 @@ export function AttachmentsSection({
                     {editable ? (
                       <button
                         type="button"
-                        onClick={() => remove.mutate(a)}
+                        onClick={async () => {
+                          if (await confirm({ title: t('deleteConfirm', { name: fileTitle(a) }), danger: true, confirmLabel: tConfirm('delete') })) remove.mutate(a)
+                        }}
                         className="inline-flex size-7 items-center justify-center rounded-md text-fg-subtle hover:bg-danger-soft hover:text-danger"
                         aria-label={t('remove')}
                       >
@@ -193,7 +194,18 @@ export function AttachmentsSection({
   )
 }
 
-function LinkPopover({ onAdd, pending, iconOnly }: { onAdd: (url: string, name?: string) => void; pending: boolean; iconOnly?: boolean }) {
+export function LinkPopover({
+  onAdd,
+  pending,
+  iconOnly,
+  className,
+}: {
+  onAdd: (url: string, name?: string) => void
+  pending: boolean
+  iconOnly?: boolean
+  /** para usarlo como botón grande fuera de la lista de adjuntos */
+  className?: string
+}) {
   const t = useTranslations('attachments')
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState('')
@@ -202,7 +214,7 @@ function LinkPopover({ onAdd, pending, iconOnly }: { onAdd: (url: string, name?:
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-fg-muted hover:bg-hover hover:text-fg"
+        className={cn('inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-fg-muted hover:bg-hover hover:text-fg', className)}
         aria-label={t('addLink')}
         title={iconOnly ? t('addLink') : undefined}
       >

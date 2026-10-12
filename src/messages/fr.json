@@ -62,12 +62,12 @@
       "body": "Veltro écoute votre agenda, vous aide à noter ce qui est décidé et transforme chaque accord en tâche avec un responsable.",
       "live": "En direct",
       "closedBadge": "Clôturée",
-      "meeting": "Revue de campagne avec Polar",
-      "decision": "Prioriser Farmatodo en novembre",
-      "action": "Envoyer les photos des présentoirs",
-      "owner": "Pepito",
+      "meeting": "Revue hebdomadaire avec le client",
+      "decision": "Lancer la campagne en novembre",
+      "action": "Envoyer la proposition finale",
+      "owner": "Ana",
       "due": "demain",
-      "question": "Partage-t-on la tête de gondole avec une autre marque ?",
+      "question": "Augmente-t-on le budget ?",
       "capturing": "Prise de notes en direct",
       "close": "Clôturer avec Veltro",
       "closed": "Clôturée",
@@ -94,10 +94,10 @@
     "subtitle": "Deux infos et c'est parti. Vous pourrez les modifier à tout moment.",
     "accountLabel": "Nom de votre compte",
     "accountHint": "Votre entreprise, cabinet de conseil ou équipe. Tous vos espaces et vos collaborateurs y seront réunis.",
-    "accountPlaceholder": "Groupe Promoting",
+    "accountPlaceholder": "Ex. Mon entreprise",
     "workspaceLabel": "Votre premier espace",
     "workspaceHint": "Un projet, un client ou une entreprise. Chaque espace a ses propres tâches, docs et réunions.",
-    "workspacePlaceholder": "Promoting",
+    "workspacePlaceholder": "Ex. Marketing",
     "submit": "Commencer"
   },
   "seed": {
@@ -108,9 +108,10 @@
     "task3": "Importer la documentation d'une session avec Claude"
   },
   "nav": {
-    "today": "Aujourd'hui",
+    "today": "Pulse",
+    "veltro": "Veltro IA",
     "calendar": "Calendrier",
-    "myTasks": "Mes tâches",
+    "myTasks": "Tâches",
     "search": "Rechercher",
     "newTask": "Nouvelle tâche",
     "workspaces": "Espaces",
@@ -138,11 +139,48 @@
     "tempPasswordBanner": "Vous utilisez un mot de passe temporaire. Modifiez-le dans votre profil.",
     "mesa": "Contrôle",
     "shortcuts": "Raccourcis clavier",
-    "suspendedBanner": "Ce compte est suspendu. Vos données sont en sécurité ; contactez-nous pour le réactiver."
+    "suspendedBanner": "Ce compte est suspendu. Vos données sont en sécurité ; contactez-nous pour le réactiver.",
+    "sidebarCollapse": "Réduire la barre latérale",
+    "sidebarExpand": "Déployer la barre latérale",
+    "themeToLight": "Passer au thème clair",
+    "themeToDark": "Passer au thème sombre",
+    "language": "Langue",
+    "switchLanguage": "Passer la langue en {language}",
+    "documents": "Documents",
+    "vault": "Coffre",
+    "pasillo": "Couloir",
+    "close": "Fermer",
+    "peek": {
+      "workspace": "Espace",
+      "todayLeft": "Encore aujourd'hui",
+      "now": "En cours",
+      "noMeetings": "Plus de réunions aujourd'hui",
+      "more": "{count, plural, other {et # de plus}}",
+      "files": "{count, plural, =0 {Aucun fichier pour l'instant} one {# fichier} other {# fichiers}}",
+      "unread": "{count, plural, one {# discussion non lue} other {# discussions non lues}}",
+      "allRead": "Vous êtes à jour : rien de non lu.",
+      "stat": {
+        "open": "{count, plural, one {ouverte} other {ouvertes}}",
+        "inProgress": "en cours",
+        "overdue": "{count, plural, one {en retard} other {en retard}}",
+        "today": "pour aujourd'hui",
+        "blocked": "{count, plural, one {bloquée} other {bloquées}}",
+        "meetings": "{count, plural, one {réunion} other {réunions}}"
+      },
+      "desc": {
+        "home": "Votre journée en un coup d'œil : l'urgent et vos réunions.",
+        "veltro": "Posez n'importe quelle question sur vos tâches, réunions et fichiers.",
+        "mesa": "Où en sont les espaces et qui est surchargé.",
+        "calendar": "Votre semaine : réunions et tâches datées.",
+        "tasks": "Tout ce qui vous est assigné dans vos espaces.",
+        "vault": "Vos fichiers et liens, avec ou sans espace.",
+        "chat": "Ce dont l'équipe parle."
+      }
+    }
   },
   "command": {
     "title": "Rechercher et exécuter",
-    "placeholder": "Recherchez des tâches, des docs ou tapez une commande…",
+    "placeholder": "Recherchez des tâches, docs, fichiers, conversations ou tapez une commande…",
     "empty": "Aucun résultat.",
     "tasks": "Tâches",
     "docs": "Docs",
@@ -155,7 +193,10 @@
     "meetings": "Réunions",
     "decisions": "Décisions",
     "newMeeting": "Nouvelle réunion",
-    "shortcuts": "Raccourcis clavier"
+    "shortcuts": "Raccourcis clavier",
+    "files": "Coffre",
+    "chats": "Couloir",
+    "vaultLoose": "Libre"
   },
   "dates": {
     "today": "Aujourd'hui",
@@ -165,30 +206,8 @@
     "clear": "Retirer la date",
     "dueDate": "Date d'échéance"
   },
-  "home": {
-    "greeting": {
-      "night": "Bonsoir, {name}",
-      "morning": "Bonjour, {name}",
-      "afternoon": "Bon après-midi, {name}",
-      "evening": "Bonsoir, {name}"
-    },
-    "summaryMeetings": "{count, plural, =0 {Aucune réunion aujourd'hui} one {# réunion aujourd'hui} other {# réunions aujourd'hui}}",
-    "summaryTasks": "{count, plural, =0 {aucune échéance aujourd'hui} one {# tâche due aujourd'hui} other {# tâches dues aujourd'hui}}",
-    "summaryOverdue": "{count, plural, one {# en retard} other {# en retard}}",
-    "agenda": "Agenda du jour",
-    "openCalendar": "Calendrier",
-    "noMeetings": "Aucune réunion aujourd'hui. C'est le moment d'avancer sur vos tâches.",
-    "tomorrow": "Demain",
-    "allDay": "Toute la journée",
-    "yourTasks": "Vos tâches",
-    "allTasks": "Toutes",
-    "addForToday": "Ajouter une tâche pour aujourd'hui…",
-    "noTasks": "Rien en attente cette semaine.",
-    "recentDocs": "Docs récents",
-    "untitled": "Sans titre"
-  },
   "myTasks": {
-    "title": "Mes tâches",
+    "title": "Tâches",
     "subtitle": "{count, plural, =0 {Vous n'avez aucune tâche ouverte} one {# tâche ouverte dans tous vos espaces} other {# tâches ouvertes dans tous vos espaces}}",
     "groups": {
       "overdue": "En retard",
@@ -201,6 +220,38 @@
     "empty": {
       "title": "Tout est à jour",
       "description": "Les tâches qui vous sont attribuées apparaîtront ici, triées par date. Appuyez sur C pour en créer une."
+    },
+    "emptyFiltered": "Aucune tâche dans cette vue",
+    "emptyFilteredHint": "Essayez de retirer un filtre ou changez la personne que vous regardez.",
+    "newTask": "Nouvelle tâche",
+    "subtitleScoped": "{count, plural, =0 {Aucune tâche ouverte} one {# tâche ouverte} other {# tâches ouvertes}} · {who}",
+    "filters": {
+      "label": "Filtres",
+      "search": "Rechercher des tâches…",
+      "clearSearch": "Effacer la recherche",
+      "status": "Statut",
+      "due": "Échéance",
+      "space": "Espace",
+      "who": "Responsable",
+      "priority": "Priorité",
+      "labels": "Étiquettes",
+      "find": "Rechercher…",
+      "noResults": "Aucun résultat",
+      "clear": "Retirer le filtre",
+      "remove": "Retirer le filtre {filter}",
+      "clearAll": "Effacer",
+      "dueHint": "Selon la date d'échéance. Seules les tâches ouvertes comptent.",
+      "andMore": "{first} +{count}",
+      "groupBy": "Grouper par",
+      "groups": {
+        "date": "Échéance",
+        "status": "Statut",
+        "space": "Espace",
+        "assignee": "Responsable",
+        "priority": "Priorité"
+      },
+      "shownOf": "{shown} sur {count, plural, one {# tâche} other {# tâches}}",
+      "clearFilters": "Effacer les filtres"
     }
   },
   "tasks": {
@@ -222,7 +273,8 @@
       "list": "Liste",
       "board": "Tableau",
       "calendar": "Calendrier",
-      "table": "Tableau"
+      "table": "Tableau",
+      "summary": "Résumé"
     },
     "empty": {
       "title": "Aucune tâche pour l'instant",
@@ -312,7 +364,56 @@
       "hint": "Tapez « demain », « ven », « @Ana » ou « !haute » et Veltro complète la date, la personne et la priorité.",
       "understood": "Titre :"
     },
-    "undo": "Annuler"
+    "undo": "Annuler",
+    "back": "Retour",
+    "breadcrumb": "Emplacement de la tâche",
+    "properties": "Propriétés",
+    "subtaskOf": "Sous-tâche de {title}",
+    "readOnly": "Lecture seule",
+    "goToMyTasks": "Aller à Mes tâches",
+    "task": "Tâche",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "editing": "Modification",
+    "unsaved": "Modifications non enregistrées",
+    "saved": "Modifications enregistrées",
+    "discardConfirm": "Abandonner les modifications non enregistrées ?",
+    "markDone": "Marquer comme terminée",
+    "reopen": "Rouvrir",
+    "sections": "Sections de la tâche",
+    "noDescription": "Pas de description.",
+    "addDescription": "En ajouter une",
+    "moreFields": "Autres champs",
+    "subtasksDone": "{done} sur {total} terminées",
+    "noSubtasks": "Découpez la tâche en étapes plus petites.",
+    "noComments": "Pas encore de commentaires.",
+    "tabs": {
+      "detail": "Détails",
+      "subtasks": "Sous-tâches",
+      "comments": "Commentaires",
+      "attachments": "Pièces jointes"
+    },
+    "assignees": "Responsables",
+    "assigneesCount": "{count, plural, one {# responsable} other {# responsables}}",
+    "pickAssignees": "Choisissez les responsables",
+    "clearAssignees": "Retirer tout le monde",
+    "space": "Espace",
+    "expandAll": "Tout déplier",
+    "collapseAll": "Tout replier",
+    "collapseHint": "Alt + clic pour ouvrir ou fermer tous les groupes",
+    "groupSummary": {
+      "overdue": "{count, plural, one {# en retard} other {# en retard}}",
+      "blocked": "{count, plural, one {# bloquée} other {# bloquées}}",
+      "today": "{count} pour aujourd'hui",
+      "moving": "{count} en cours",
+      "next": "Prochaine"
+    },
+    "shareInPasillo": "Partager dans le Couloir",
+    "deleteCommentConfirm": "Supprimer ce commentaire ?",
+    "openTask": "Ouvrir « {title} »",
+    "noMatches": "Aucune tâche ne correspond",
+    "noMatchesHint": "Essayez d'autres mots ou désactivez « Seulement les miennes »."
   },
   "docs": {
     "untitled": "Sans titre",
@@ -415,7 +516,10 @@
       "link": "Lien",
       "remove": "Retirer"
     },
-    "extractCount": "{count, plural, one {Convertir # élément en tâche} other {Convertir # éléments en tâches}}"
+    "extractCount": "{count, plural, one {Convertir # élément en tâche} other {Convertir # éléments en tâches}}",
+    "shareInPasillo": "Partager dans le Couloir",
+    "deleteConfirm": "Supprimer « {title} » ?",
+    "deleteConfirmHint": "Ses sous-pages sont aussi supprimées."
   },
   "meetings": {
     "takeNotes": "Prendre des notes",
@@ -488,13 +592,34 @@
       "cancel": "Annuler",
       "create": "Créer la réunion",
       "created": "Réunion créée dans Google Calendar",
-      "error": "Impossible de créer la réunion."
+      "error": "Impossible de créer la réunion.",
+      "attendeesPlaceholder": "ana@entreprise.com, pierre@entreprise.com"
     },
     "legend": {
       "mine": "Réunions de {workspace}",
       "unlinked": "Non liées"
     },
-    "newAt": "Nouvelle réunion à {time}"
+    "newAt": "Nouvelle réunion à {time}",
+    "filters": {
+      "show": "Afficher",
+      "meetings": "Réunions",
+      "tasks": "Tâches",
+      "space": "Espace",
+      "who": "Responsable",
+      "whoHint": "Par défaut, vous voyez vos tâches et celles qui n'ont pas encore de responsable, pour les répartir d'ici.",
+      "unassignedLegend": "Sans responsable"
+    },
+    "task": {
+      "nobody": "Personne ne l'a encore.",
+      "assignMe": "M'assigner",
+      "me": "Vous",
+      "assignHint": "Touchez une personne pour l’ajouter ou la retirer.",
+      "open": "Ouvrir la tâche"
+    },
+    "moreTasks": "+{count} de plus",
+    "lessTasks": "Voir moins",
+    "loadError": "Impossible de récupérer votre agenda Google.",
+    "retry": "Réessayer"
   },
   "workspace": {
     "summary": "Vue d'ensemble",
@@ -539,7 +664,8 @@
       "files": "Fichiers récents",
       "allFiles": "Voir les fichiers",
       "noFiles": "Pas encore de fichiers. Ajoutez-les depuis une tâche, une réunion ou la bibliothèque."
-    }
+    },
+    "sections": "Sections de l'espace"
   },
   "roles": {
     "owner": "Propriétaire",
@@ -553,11 +679,13 @@
     "title": "Paramètres",
     "nav": {
       "profile": "Profil",
-      "account": "Compte et forfait",
+      "account": "Général et offre",
       "members": "Personnes",
       "workspaces": "Espaces",
-      "integrations": "Intégrations",
-      "api": "API et Claude"
+      "org": "Organigramme",
+      "groupYou": "Vous",
+      "preferences": "Préférences",
+      "newWorkspace": "Nouvel espace"
     },
     "profile": {
       "title": "Profil",
@@ -585,7 +713,14 @@
       "passwordChanged": "Mot de passe mis à jour",
       "passwordShort": "Le mot de passe doit contenir au moins 8 caractères.",
       "passwordMismatch": "Les mots de passe ne correspondent pas.",
-      "passwordError": "Impossible de changer le mot de passe."
+      "passwordError": "Impossible de changer le mot de passe.",
+      "photo": "Photo",
+      "photoHint": "Reprise de votre compte Google ou Apple.",
+      "email": "E-mail",
+      "emailHint": "Vous vous connectez à Veltro avec cet e-mail.",
+      "preferencesDescription": "Comment Veltro s’affiche pour vous. Appliqué tout de suite.",
+      "languageHint": "Langue de toute l’app.",
+      "themeHint": "Système suit les réglages de votre appareil."
     },
     "account": {
       "title": "Compte",
@@ -599,7 +734,9 @@
       "workspaces": "Espaces",
       "members": "Personnes",
       "usage": "{used} sur {max}",
-      "unlimitedCount": "{used} · illimité"
+      "unlimitedCount": "{used} · illimité",
+      "pageTitle": "Général et offre",
+      "nameHint": "Le nom de votre entreprise dans Veltro."
     },
     "members": {
       "title": "Personnes",
@@ -662,7 +799,79 @@
       "archive": "Archiver",
       "archived": "Espace archivé",
       "archiveConfirm": "Archiver {name} ? Il ne sera plus visible pour toute l'équipe.",
-      "iconHint": "1 ou 2 lettres."
+      "iconHint": "1 ou 2 lettres sur la couleur de l’espace.",
+      "statuses": {
+        "title": "Statuts des tâches",
+        "hint": "Créez les statuts de cet espace. Chacun appartient à une catégorie (À faire, En cours, Bloquée, Terminée…), ainsi Pulse et les compteurs savent où en est chaque tâche.",
+        "customize": "Personnaliser les statuts",
+        "namePlaceholder": "Nom du statut",
+        "category": "Catégorie",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
+        "remove": "Retirer",
+        "add": "Ajouter un statut",
+        "reset": "Utiliser les standards",
+        "resetConfirm": "Revenir aux statuts standards ? Les tâches gardent leur catégorie.",
+        "save": "Enregistrer les statuts",
+        "saved": "Statuts enregistrés",
+        "error": "Impossible d’enregistrer les statuts"
+      },
+      "fields": {
+        "title": "Champs des tâches",
+        "hint": "Données propres que portent toutes les tâches de cet espace (par exemple Enseigne, Magasins ou Sprint). Elles apparaissent dans chaque tâche et comme colonnes dans la vue Tableau.",
+        "namePlaceholder": "Nom du champ",
+        "type": "Type",
+        "optionsPlaceholder": "Options séparées par des virgules (ex. : Carrefour, Monoprix)",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
+        "remove": "Retirer le champ",
+        "add": "Ajouter un champ",
+        "empty": "Cet espace n’a pas encore de champs propres.",
+        "discard": "Annuler",
+        "save": "Enregistrer les champs",
+        "saved": "Champs enregistrés",
+        "error": "Impossible d’enregistrer les champs",
+        "removeHint": "Un champ retiré ne s’affiche plus dans les tâches ; recréé, il repart vide."
+      },
+      "summary": "{statuses} statuts · {fields, plural, =0 {aucun champ} one {# champ} other {# champs}}",
+      "newTitle": "Nouvel espace",
+      "newDescription": "Un espace regroupe les tâches, docs et réunions d’un projet ou d’une entreprise. Ensuite vous définissez ses statuts, champs et personnes.",
+      "noDescription": "Pas de description.",
+      "open": "Ouvrir l’espace",
+      "tabs": {
+        "general": "Général",
+        "statuses": "Statuts",
+        "fields": "Champs",
+        "people": "Personnes"
+      },
+      "nameHint": "Toute l’équipe le voit dans la barre latérale.",
+      "colorHint": "Pour le reconnaître d’un coup d’œil.",
+      "descriptionHint": "À quoi sert cet espace.",
+      "key": "Clé des tâches",
+      "keyHint": "Précède le numéro de chaque tâche, comme {key}-12. Elle ne peut pas changer.",
+      "address": "Adresse",
+      "addressHint": "Le lien de l’espace dans Veltro.",
+      "dangerTitle": "Zone sensible",
+      "archiveTitle": "Archiver l’espace",
+      "archiveHint": "Il n’apparaît plus pour l’équipe. Tâches, docs et réunions sont conservés.",
+      "peopleTitle": "Personnes ayant accès",
+      "peopleHint": "Qui travaille dans cet espace et ce qu’il peut faire.",
+      "addPerson": "Ajouter une personne",
+      "addPersonHint": "Personnes du compte",
+      "nobodyToAdd": "Tout le compte a déjà accès.",
+      "inviteNew": "Inviter quelqu’un de nouveau",
+      "noPeople": "Personne n’a encore accès en dehors des admins du compte.",
+      "you": "(vous)",
+      "role": "Rôle",
+      "roleHints": {
+        "admin": "Configure l’espace",
+        "editor": "Crée et modifie",
+        "viewer": "Lecture seule"
+      },
+      "removeAccess": "Retirer l’accès",
+      "accessUpdated": "Accès mis à jour",
+      "adminsTitle": "Admins du compte",
+      "adminsHint": "Ils voient et modifient tous les espaces ; inutile de leur donner accès."
     },
     "integrations": {
       "googleDescription": "Affichez votre agenda dans Veltro, ouvrez des notes pour chaque réunion et créez des réunions avec Google Meet.",
@@ -688,30 +897,62 @@
         "exchange_failed": "Google a refusé la connexion. Vérifiez le client ID et le secret.",
         "not_configured": "L'intégration Google n'est pas configurée.",
         "generic": "Impossible de connecter Google Calendar."
-      }
+      },
+      "pageTitle": "Intégrations",
+      "pageDescription": "Connectez Veltro aux outils que votre équipe utilise déjà."
     },
-    "api": {
-      "title": "Tokens d'API",
-      "description": "Avec un token, Claude (ou n'importe quel script) peut enregistrer de la documentation directement dans vos espaces. Chaque token agit avec vos autorisations.",
-      "namePlaceholder": "Nom du token",
-      "create": "Créer un token",
-      "createdTitle": "Copiez votre token maintenant. Il ne sera plus affiché.",
-      "createdHint": "Enregistrez-le comme variable d'environnement VELTRO_TOKEN là où s'exécute Claude Code.",
-      "error": "Impossible de créer le token.",
-      "lastUsed": "utilisé {when}",
-      "neverUsed": "jamais utilisé",
-      "revoke": "Révoquer",
-      "revoked": "Token révoqué",
-      "copy": "Copier",
-      "copied": "Copié",
-      "howTitle": "Documenter les sessions Claude",
-      "howDescription": "À la fin d'une session, Claude peut créer un doc avec ce qu'il a fait, les décisions et les prochaines étapes.",
-      "step1": "1. Exportez votre token dans le terminal où vous utilisez Claude Code :",
-      "step2": "2. Ajoutez ceci au CLAUDE.md de votre projet :",
-      "step3": "3. Ou testez-le manuellement :",
-      "claudeMdIntro": "À la fin de chaque session, documentez dans Veltro ce qui a été fait, les décisions et les prochaines étapes :",
-      "claudeMdList": "liste les espaces disponibles."
-    }
+    "org": {
+      "chartHint": "Chacun voit ses tâches et celles des personnes en dessous ; le responsable d’un département voit tout le département. Les administrateurs voient tout.",
+      "readOnly": "Seuls les administrateurs peuvent modifier l’organigramme.",
+      "title": "Poste",
+      "titlePlaceholder": "Poste (ex. Superviseur)",
+      "department": "Département",
+      "noDepartment": "Sans département",
+      "reportsTo": "Rapporte à",
+      "noBoss": "Ne rapporte à personne",
+      "departmentsTitle": "Départements",
+      "departmentsHint": "Regroupez les personnes par domaine. Le responsable du département voit les tâches de tous ses membres.",
+      "departmentName": "Nom du département",
+      "head": "Responsable",
+      "noHead": "Sans responsable",
+      "people": "{count, plural, one {# personne} other {# personnes}}",
+      "delete": "Supprimer le département",
+      "deleteConfirm": "Supprimer le département « {name} » ? Ses membres restent sans département.",
+      "deleted": "Département supprimé",
+      "noDepartments": "Pas encore de départements.",
+      "newDepartment": "Nouveau département",
+      "addDepartment": "Ajouter",
+      "created": "Département créé",
+      "pageTitle": "Organigramme",
+      "viewLabel": "Vue",
+      "viewChart": "Organigramme",
+      "viewAreas": "Par département",
+      "departmentsCount": "{count, plural, one {# département} other {# départements}}",
+      "unplaced": "{count, plural, one {# non placée} other {# non placées}}",
+      "search": "Rechercher une personne, un poste ou un département…",
+      "clearSearch": "Effacer la recherche",
+      "dragHint": "Faites glisser une personne sur une autre pour changer son responsable. Touchez une carte pour la modifier.",
+      "dropRoot": "Déposez ici pour qu'elle ne rende compte à personne",
+      "moved": "{name} rend désormais compte à {boss}",
+      "movedRoot": "{name} ne rend plus compte à personne",
+      "you": "Vous",
+      "noTitle": "Sans poste",
+      "expandTeam": "{count, plural, one {Afficher # personne} other {Afficher # personnes}}",
+      "collapseTeam": "Masquer l'équipe",
+      "headOf": "Responsable {name}",
+      "message": "Message",
+      "viewTasks": "Voir ses tâches",
+      "headLabel": "Responsable : {name}",
+      "areaTasks": "Voir les tâches du département",
+      "reportsToName": "Rend compte à {name}",
+      "noMatches": "Personne ne correspond à « {q} »."
+    },
+    "common": {
+      "unsaved": "Vous avez des modifications non enregistrées",
+      "discard": "Annuler",
+      "save": "Enregistrer"
+    },
+    "tabs": "Sections"
   },
   "errors": {
     "generic": "Une erreur s'est produite. Réessayez.",
@@ -734,7 +975,17 @@
     "backHome": "Retour à Aujourd'hui",
     "crashTitle": "Un problème est survenu",
     "crashBody": "Nous avons enregistré l'erreur. Réessayez.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "reports_to_cycle": "Cela créerait une boucle : cette personne est déjà en dessous dans l’organigramme.",
+    "reports_to_self": "Une personne ne peut pas rapporter à elle-même.",
+    "reports_to_not_member": "Le responsable doit appartenir au compte.",
+    "head_not_member": "Le responsable doit appartenir au compte.",
+    "department_other_account": "Ce département ne fait pas partie de ce compte.",
+    "invalid_status": "Ce statut n’existe pas dans l’espace.",
+    "invalid_statuses": "Vérifiez les statuts : chacun a besoin d’un nom et d’une catégorie.",
+    "too_many_assignees": "Une tâche peut avoir jusqu’à 20 responsables.",
+    "loadTitle": "Impossible de charger ceci",
+    "loadBody": "C'est peut-être la connexion. Réessayez dans un instant."
   },
   "demo": {
     "badge": "Mode démo : données de test",
@@ -832,6 +1083,14 @@
       "hint": "Capturez ce qui s’est passé ou laissez Veltro préparer le résumé, les tâches et le suivi.",
       "capture": "Capturer ce qui s’est passé",
       "close": "Clôturer avec Veltro"
+    },
+    "shareSummary": "Partager le résumé dans le Couloir",
+    "shareInvite": "Inviter via le Couloir",
+    "shareText": {
+      "heading": "Résumé de « {title} » ({date})",
+      "decisions": "Décisions",
+      "actions": "Actions",
+      "questions": "Questions ouvertes"
     }
   },
   "assistant": {
@@ -858,7 +1117,8 @@
       "nothing": "Je n'ai rien trouvé de lié dans vos espaces.",
       "tasks": "{count, plural, one {Il reste # tâche ouverte : {list}.} other {Il reste # tâches ouvertes : {list}.}}",
       "decisions": "Décisions liées : {list}.",
-      "docs": "Je l'ai trouvé documenté dans : {list}."
+      "docs": "Je l'ai trouvé documenté dans : {list}.",
+      "files": "Dans le coffre : {list}."
     },
     "record": {
       "summary": "Résumé",
@@ -866,6 +1126,23 @@
       "actions": "Actions",
       "questions": "Questions ouvertes",
       "notes": "Notes"
+    },
+    "intents": {
+      "week": "{who, select, none {Cette semaine dans vos espaces,} other {Cette semaine, pour {who},}} {done, plural, =0 {aucune tâche n’a été terminée} one {# tâche a été terminée} other {# tâches ont été terminées}} et {decisions, plural, =0 {aucune décision n’a été prise} one {# décision a été prise} other {# décisions ont été prises}}. {open, plural, =0 {Plus rien n’est ouvert.} other {Encore ouvertes : {open}, dont {overdue} en retard et {blocked, plural, one {# bloquée} other {# bloquées}}.}} {meetings, plural, =0 {Aucune réunion à venir.} one {# réunion à venir.} other {# réunions à venir.}}",
+      "blocked": "{count, plural, =0 {{who, select, none {Rien n’est bloqué.} other {{who} n’a rien de bloqué.}}} one {{who, select, none {{count} tâche est bloquée.} other {{who} a {count} tâche bloquée.}}} other {{who, select, none {{count} tâches sont bloquées.} other {{who} a {count} tâches bloquées.}}}}",
+      "overdue": "{count, plural, =0 {{who, select, none {Aucune tâche en retard. Tout est à jour.} other {{who} n’a aucune tâche en retard.}}} one {{who, select, none {{count} tâche est en retard} other {{who} a {count} tâche en retard}} ({days, plural, one {# jour} other {# jours}}).} other {{who, select, none {{count} tâches sont en retard} other {{who} a {count} tâches en retard}} ; la plus ancienne a {days, plural, one {# jour} other {# jours}} de retard.}}",
+      "today": "{count, plural, =0 {{who, select, none {Rien n’arrive à échéance aujourd’hui.} other {{who} n’a rien à rendre aujourd’hui.}}} one {{who, select, none {{count} tâche arrive à échéance aujourd’hui.} other {{who} a {count} tâche à rendre aujourd’hui.}}} other {{who, select, none {{count} tâches arrivent à échéance aujourd’hui.} other {{who} a {count} tâches à rendre aujourd’hui.}}}}",
+      "person": "{count, plural, =0 {{name} est à jour : aucune tâche ouverte.} one {{name} a 1 tâche ouverte.} other {{name} a # tâches ouvertes.}} {overdue, plural, =0 {} other {# en retard.}} {blocked, plural, =0 {} one {# bloquée.} other {# bloquées.}}",
+      "follow": {
+        "overdue": "Qu’est-ce qui est en retard ?",
+        "blocked": "Qu’est-ce qui est bloqué ?",
+        "today": "Qu’est-ce qui arrive à échéance aujourd’hui ?",
+        "week": "Résume ma semaine",
+        "personBlocked": "Qu’est-ce qui est bloqué chez {name} ?",
+        "personWeek": "Résume la semaine de {name}",
+        "personOverdue": "Qu’est-ce qui est en retard chez {name} ?",
+        "personToday": "Qu’est-ce qui arrive à échéance aujourd’hui pour {name} ?"
+      }
     }
   },
   "pulse": {
@@ -899,77 +1176,177 @@
     "show": "Voir le fil",
     "summaryBy": "Résumé :",
     "claudeSession": "Session avec Claude documentée par {who}",
-    "focus": {
-      "title": "Priorités du jour",
-      "hint": "Le plus urgent d'abord. Jamais plus de {max}.",
-      "overdue": "{count, plural, one {# en retard} other {# en retard}}",
-      "empty": "Rien d'urgent. Bon moment pour faire avancer l'essentiel.",
-      "lateDays": "{count, plural, one {en retard de # jour} other {en retard de # jours}}",
-      "dueToday": "pour aujourd'hui",
-      "inProgress": "en cours",
-      "from": "de {origin}"
-    },
     "ask": {
       "title": "Demandez à Veltro",
       "hint": "Cherche dans vos réunions, décisions, tâches et docs.",
-      "placeholder": "Qu'est-ce qui reste en suspens avec Polar ?",
       "send": "Demander",
-      "example1": "Qu'est-ce qui reste en suspens avec Polar ?",
-      "example2": "Qu'avons-nous décidé pour le budget POP ?",
-      "example3": "Qu'est-ce qui bloque Tech Ve ?"
+      "dismiss": "Fermer la réponse",
+      "try": "Essayez",
+      "suggest": {
+        "week": "Résume ma semaine",
+        "decided": "Qu’avons-nous décidé dans « {title} » ?",
+        "pending": "Qu’est-ce qui reste en attente de « {title} » ?",
+        "doc": "Que dit « {title} » ?"
+      },
+      "heroPlaceholder": "Demandez à Veltro : ce qui a été décidé, ce qui reste, qui a quoi…",
+      "focusHint": "Appuyez sur",
+      "expand": "Ouvrir dans Veltro IA",
+      "expandShort": "Agrandir",
+      "continueHint": "Poursuivez la conversation avec plus d’espace et de relances.",
+      "moreTasks": "+{count} de plus",
+      "continue": "Continuer dans Veltro IA"
     },
     "closeNow": "Clôturer",
-    "linkToCapture": "Entrez et choisissez l’espace pour capturer notes, décisions et actions."
+    "linkToCapture": "Entrez et choisissez l’espace pour capturer notes, décisions et actions.",
+    "brief": {
+      "greeting": {
+        "morning": "Bonjour, {name}",
+        "afternoon": "Bon après-midi, {name}",
+        "evening": "Bonsoir, {name}"
+      },
+      "back": "Pulse",
+      "timeline": "Chronologie",
+      "now": {
+        "live": "Maintenant",
+        "next": "À suivre",
+        "remaining": "En cours · encore {minutes} min",
+        "inMinutes": "Dans {minutes} min",
+        "atTime": "Aujourd’hui à {time}",
+        "join": "Rejoindre",
+        "free": "Aucune réunion à venir",
+        "freeHint": "Bon moment pour avancer votre liste."
+      },
+      "agenda": {
+        "today": "Aujourd’hui",
+        "tomorrow": "Demain",
+        "empty": "Aucune réunion aujourd’hui.",
+        "open": "Calendrier",
+        "unclosed": "non clôturée",
+        "title": "Agenda",
+        "subtitle": "Vos réunions du jour et les derniers échanges",
+        "live": "en cours"
+      },
+      "recent": {
+        "title": "Ce qui s’est passé",
+        "all": "Chronologie",
+        "empty": "Pas encore de réunions clôturées ni de sessions documentées."
+      },
+      "counters": {
+        "overdue": "En retard",
+        "today": "À rendre aujourd’hui",
+        "in_progress": "En cours",
+        "blocked": "Bloquées",
+        "todo": "À faire",
+        "done": "Terminées (7 jours)"
+      },
+      "today": {
+        "title": "Vos tâches",
+        "titleTeam": "Tâches de votre équipe",
+        "titleAll": "Tâches de toute l’entreprise",
+        "titleOf": "Tâches de {name}",
+        "subtitle": "En retard, à rendre aujourd’hui et en cours",
+        "all": "Tout voir",
+        "empty": "Rien en retard, à rendre aujourd’hui ni en cours. Bon moment pour prendre de l’avance.",
+        "overdue": "En retard",
+        "today": "À rendre aujourd’hui",
+        "progress": "En cours",
+        "complete": "Marquer comme terminée",
+        "late": "{count, plural, one {depuis # jour} other {depuis # jours}}",
+        "add": "Ajouter pour aujourd’hui… @personne, !haute ou « ven »",
+        "understood": "Veltro complète",
+        "workspace": "Espace",
+        "titleDept": "Tâches du département {name}",
+        "progressAbove": "{count, plural, one {Une autre en cours figure déjà plus haut.} other {# autres en cours figurent déjà plus haut.}}"
+      },
+      "loose": {
+        "title": "Suivi des réunions",
+        "subtitle": "Ce qui est resté en suspens après les réunions",
+        "meetings": "Réunions non clôturées",
+        "meetingsHint": "Clôturez-les pour confirmer les décisions et créer leurs tâches.",
+        "ended": "terminée {ago}",
+        "close": "Clôturer",
+        "questions": "Questions sans réponse",
+        "questionsHint": "Posées en réunion et toujours ouvertes.",
+        "unowned": "Actions sans responsable",
+        "unownedHint": "Assignez-les : elles deviennent des tâches à la clôture de la réunion.",
+        "assign": "Assigner",
+        "assignTo": "Assigner à",
+        "empty": "Rien en suspens dans vos réunions."
+      }
+    },
+    "pasillo": {
+      "unread": "{count, plural, one {# message non lu} other {# messages non lus}}",
+      "open": "Ouvrir le Couloir"
+    }
+  },
+  "veltro": {
+    "title": "Veltro IA",
+    "subtitle": "Posez n’importe quelle question sur vos tâches, réunions et docs",
+    "newChat": "Nouvelle conversation",
+    "history": "Conversations",
+    "noHistory": "Aucune conversation pour l’instant.",
+    "deleteChat": "Supprimer la conversation",
+    "emptyTitle": "Que voulez-vous savoir, {name} ?",
+    "emptyHint": "Veltro lit vos tâches, réunions, décisions et docs, et répond avec ce qu’il trouve.",
+    "suggest": {
+      "week": "Résume ma semaine",
+      "blocked": "Qu’est-ce qui est bloqué ?",
+      "overdue": "Qu’est-ce qui est en retard ?",
+      "today": "Qu’est-ce qui arrive à échéance aujourd’hui ?",
+      "decided": "Qu’avons-nous décidé dans « {title} » ?",
+      "person": "Qu’a {name} en cours ?"
+    },
+    "followUp": "Continuer avec",
+    "placeholder": "Demandez ce qui a été décidé, ce qui reste en suspens, qui a quoi…",
+    "followPlaceholder": "Posez une autre question ou demandez plus de détails…",
+    "send": "Envoyer",
+    "composerHint": "Entrée pour envoyer · Maj + Entrée pour un saut de ligne · Les conversations sont enregistrées dans ce navigateur.",
+    "thinking": "Veltro réfléchit",
+    "justNow": "à l’instant"
   },
   "mesa": {
-    "title": "Salle de contrôle",
-    "subtitle": "{workspaces, plural, one {# espace} other {# espaces}} · {people, plural, one {# personne} other {# personnes}} · {open, plural, one {# tâche ouverte} other {# tâches ouvertes}}",
-    "yourDay": "Votre journée",
-    "meetingsToday": "{count, plural, =0 {aucune réunion} one {# réunion} other {# réunions}}",
-    "rows": {
-      "next": "Prochaine réunion",
-      "agreements": "Accords en cours",
-      "stuck": "Bloqué",
-      "progress": "Avance",
-      "memory": "Mémoire"
+    "title": "Tableau de bord",
+    "subtitle": "Comment vont les espaces : leur état, leur avancement et qui est surchargé.",
+    "sentence": "{period} : {closed, plural, =0 {aucune tâche terminée} one {# tâche terminée} other {# tâches terminées}} et {created, plural, =0 {aucune nouvelle} one {# nouvelle} other {# nouvelles}}. {problems, select, none {Rien n’est en retard ni bloqué.} other {Il y a {overdue} en retard et {blocked, plural, one {# bloquée} other {# bloquées}}{atRisk, plural, =0 {.} one { ; # espace est à risque.} other { ; # espaces sont à risque.}}}}",
+    "spaces": {
+      "title": "Espaces",
+      "empty": "Les personnes de ce périmètre n’ont de tâches dans aucun espace.",
+      "space": "Espace",
+      "health": "État",
+      "healthHelpLabel": "Comment l’état est calculé",
+      "healthHelp": "À risque : une tâche en retard de plus de {days} jours, ou {count} tâches ou plus en retard et bloquées. Attention : quelque chose en retard ou bloqué. En ordre : rien en retard ni bloqué.",
+      "progress": "Avancement sur la période",
+      "open": "Ouvertes",
+      "overdue": "En retard",
+      "blocked": "Bloq."
     },
-    "hints": {
-      "next": "À venir",
-      "agreements": "Décisions avec tâches ouvertes",
-      "stuck": "Bloqué ou en retard",
-      "progress": "Tâches terminées et en cours",
-      "memory": "Docs et sessions récents"
+    "health": {
+      "ok": "En ordre",
+      "attention": "Attention",
+      "risk": "À risque"
     },
-    "healthy": "À jour",
-    "blocked": "{count, plural, one {# blocage} other {# blocages}}",
-    "overdue": "{count, plural, one {# en retard} other {# en retard}}",
-    "noMeeting": "Aucune réunion liée à venir.",
-    "liveNow": "En ce moment",
-    "inMinutes": "dans {minutes} min",
-    "inHours": "dans {hours} h",
-    "open": "Ouvrir",
-    "noAgreements": "Aucun accord en attente.",
-    "nothingStuck": "Rien de bloqué.",
-    "days": "{count, plural, one {jour} other {jours}}",
-    "doneOf": "{done} sur {total} terminées",
-    "inProgress": "{count} en cours",
-    "nothingActive": "Rien en cours.",
-    "noMemory": "Aucun doc pour l'instant.",
-    "briefing": {
-      "title": "Briefing de la semaine",
-      "period": "7 derniers jours, tous les espaces",
-      "risks": "Risques",
-      "risksText": "{count, plural, one {# tâche bloquée ou en retard} other {# tâches bloquées ou en retard}} : {refs}.",
-      "noRisks": "Aucun blocage ni retard.",
-      "decisions": "Décisions",
-      "decisionsText": "{count, plural, one {# décision} other {# décisions}} cette semaine. La dernière : « {latest} ».",
-      "noDecisions": "Aucune décision enregistrée cette semaine.",
-      "wins": "Réussites",
-      "winsText": "{count, plural, one {# tâche terminée} other {# tâches terminées}}. La dernière : {latest}.",
-      "noWins": "Aucune tâche terminée cette semaine pour l'instant.",
-      "risksCount": "{count, plural, one {# tâche bloquée ou en retard} other {# tâches bloquées ou en retard}}"
+    "closedIn": "{when} : {count, plural, =0 {aucune terminée} one {# terminée} other {# terminées}}",
+    "closedVsNew": "{closed, plural, one {# terminée} other {# terminées}} · {created, plural, one {# nouvelle} other {# nouvelles}}",
+    "detail": {
+      "risks": "En retard ou bloqué",
+      "late": "{count, plural, one {# jour de retard} other {# jours de retard}}",
+      "blocked": "Bloquée",
+      "more": "+{count} de plus",
+      "noRisks": "Rien en retard ni bloqué.",
+      "load": "Qui porte l’espace",
+      "openCount": "{count, plural, one {# ouverte} other {# ouvertes}}",
+      "noLoad": "Aucune tâche ouverte assignée.",
+      "openTasks": "Voir les tâches",
+      "openSpace": "Ouvrir l’espace"
     },
-    "blockedShort": "bloq."
+    "team": {
+      "title": "Charge de l’équipe",
+      "hint": "Les tâches ouvertes de chaque personne dans tous les espaces. Touchez quelqu’un pour voir ses tâches.",
+      "open": "{count, plural, one {# ouverte} other {# ouvertes}}",
+      "atRisk": "{count} à risque",
+      "closed": "{count, plural, =0 {aucune terminée} one {# terminée} other {# terminées}}",
+      "empty": "Personne n’a de tâches dans ce périmètre."
+    }
   },
   "attachments": {
     "title": "Pièces jointes",
@@ -984,7 +1361,8 @@
     "download": "Télécharger",
     "remove": "Retirer",
     "tooBig": "{name} dépasse 20 Mo.",
-    "uploaded": "{count, plural, one {Fichier importé} other {# fichiers importés}}"
+    "uploaded": "{count, plural, one {Fichier importé} other {# fichiers importés}}",
+    "deleteConfirm": "Supprimer « {name} » ? Action irréversible."
   },
   "shortcuts": {
     "title": "Raccourcis clavier",
@@ -995,15 +1373,403 @@
     "palette": "Rechercher et exécuter",
     "newTask": "Nouvelle tâche",
     "help": "Voir les raccourcis",
-    "goToday": "Aujourd'hui",
+    "goToday": "Pulse",
+    "goVeltro": "Veltro IA",
     "goMesa": "Contrôle",
     "goCalendar": "Calendrier",
-    "goMyTasks": "Mes tâches",
+    "goMyTasks": "Tâches",
     "goWorkspace": "Espace par numéro",
     "action": "Action (devient une tâche)",
     "decision": "Décision",
     "question": "Question ouverte",
     "assign": "Assigner quelqu’un",
-    "then": "puis"
+    "then": "puis",
+    "toggleSidebar": "Réduire ou déployer la barre latérale",
+    "goDocs": "Documents",
+    "goVault": "Coffre",
+    "goPasillo": "Couloir"
+  },
+  "scope": {
+    "me": "Les miennes",
+    "team": "{count, plural, one {Mon équipe (# personne)} other {Mon équipe (# personnes)}}",
+    "all": "Toute l’entreprise",
+    "departments": "Départements",
+    "people": "Personnes",
+    "label": "Voir",
+    "viewing": "Tâches de",
+    "in": "dans",
+    "allWorkspaces": "tous les espaces",
+    "teamShort": "Mon équipe",
+    "deptDisplay": "Département {name}",
+    "hintMe": "Seulement celles qui vous sont assignées",
+    "hintTeam": "Vous et votre équipe : {names}",
+    "hintAll": "Les {count} personnes du compte",
+    "you": "Vous"
+  },
+  "dateRange": {
+    "presets": {
+      "today": "Aujourd’hui",
+      "yesterday": "Hier",
+      "thisWeek": "Cette semaine",
+      "lastWeek": "Semaine dernière",
+      "last7": "7 derniers jours",
+      "last30": "30 derniers jours",
+      "thisMonth": "Ce mois-ci"
+    },
+    "start": "Début",
+    "end": "Fin",
+    "pickEnd": "Choisissez la date de fin",
+    "prev": "Mois précédent",
+    "next": "Mois suivant",
+    "summary": "{days, plural, one {# jour} other {# jours}} · {range}",
+    "apply": "Appliquer",
+    "cancel": "Annuler"
+  },
+  "tasksDashboard": {
+    "subject": "{subject, select, me {Vous avez} other {{who} a}}",
+    "and": "et",
+    "allClear": "{subject, select, me {Vous êtes à jour} other {{who} est à jour}} : rien en retard, bloqué ni à rendre aujourd’hui.",
+    "parts": {
+      "late": "{count, plural, one {# tâche en retard} other {# tâches en retard}}",
+      "stuck": "{count, plural, one {# bloquée} other {# bloquées}}",
+      "due": "{count} à rendre aujourd’hui"
+    },
+    "subline": "{open, plural, one {# tâche ouverte} other {# tâches ouvertes}} dans {spaces, plural, one {# espace} other {# espaces}} · {done, plural, =0 {aucune terminée ces 7 derniers jours} one {# terminée ces 7 derniers jours} other {# terminées ces 7 derniers jours}}",
+    "loadNumbers": "{risk} à risque · {progress} en cours · {rest} à faire",
+    "urgent": {
+      "title": "À traiter",
+      "days": "{count, plural, one {jour} other {jours}}",
+      "blocked": "Bloq.",
+      "today": "Auj.",
+      "empty": "Rien d’urgent : rien en retard, bloqué ni à rendre aujourd’hui.",
+      "more": "Voir {count} de plus dans la liste"
+    },
+    "pace": {
+      "title": "Rythme",
+      "hint": "Tâches terminées et nouvelles ces 14 derniers jours.",
+      "closed": "Terminées",
+      "created": "Nouvelles",
+      "net": "Solde {net}",
+      "tip": "{when} : {closed, plural, =0 {aucune terminée} one {# terminée} other {# terminées}} · {created, plural, =0 {aucune nouvelle} one {# nouvelle} other {# nouvelles}}"
+    },
+    "ahead": {
+      "title": "À venir",
+      "hint": "Échéances des deux prochaines semaines.",
+      "open": "Voir le calendrier",
+      "more": "+{count} de plus"
+    },
+    "bySpace": "Charge par espace",
+    "byPerson": "Charge par personne",
+    "nothingOpen": "Rien d’ouvert.",
+    "riskShort": "{count} à risque"
+  },
+  "charts": {
+    "load": {
+      "overdue": "{count} en retard",
+      "blocked": "{count, plural, one {# bloquée} other {# bloquées}}",
+      "risk": "{count} à risque",
+      "progress": "{count} en cours",
+      "rest": "{count} à faire",
+      "legend": {
+        "risk": "À risque",
+        "progress": "En cours",
+        "rest": "À faire"
+      }
+    }
+  },
+  "docsHub": {
+    "title": "Documents",
+    "subtitle": "{count, plural, =0 {Aucun document} one {# document} other {# documents}} dans {spaces, plural, one {# espace} other {# espaces}}",
+    "newDoc": "Nouveau document",
+    "newIn": "Créer dans…",
+    "resume": "Reprendre là où vous en étiez",
+    "all": "Tous les documents",
+    "search": "Rechercher des documents…",
+    "clearSearch": "Effacer la recherche",
+    "filters": "Filtres",
+    "space": "Espace",
+    "kind": "Type",
+    "author": "Auteur",
+    "clearAll": "Effacer",
+    "groupBy": "Grouper par",
+    "groups": {
+      "date": "Date",
+      "space": "Espace"
+    },
+    "buckets": {
+      "today": "Aujourd'hui",
+      "week": "Cette semaine",
+      "month": "Ce mois-ci",
+      "older": "Plus ancien"
+    },
+    "shownOf": "{shown} sur {count, plural, one {# document} other {# documents}}",
+    "emptyTitle": "Pas encore de documents",
+    "emptyBody": "Les documents de tous vos espaces apparaissent ici : notes de réunion, sessions avec Claude et ce que vous écrivez.",
+    "noMatches": "Aucun document ne correspond",
+    "noMatchesHint": "Essayez d'autres mots ou retirez un filtre.",
+    "clearFilters": "Effacer les filtres"
+  },
+  "vault": {
+    "title": "Coffre",
+    "subtitle": "{count, plural, =0 {Aucun fichier} one {# fichier} other {# fichiers}} · {size}",
+    "upload": "Téléverser des fichiers",
+    "tabs": {
+      "files": "Fichiers",
+      "written": "Écrits"
+    },
+    "filters": "Filtres",
+    "search": "Rechercher des fichiers…",
+    "clearSearch": "Effacer la recherche",
+    "kind": "Type",
+    "space": "Espace",
+    "linkedTo": "Lié à",
+    "labels": "Étiquettes",
+    "uploader": "Ajouté par",
+    "clearAll": "Effacer",
+    "shownOf": "{shown} sur {count, plural, one {# fichier} other {# fichiers}}",
+    "viewLabel": "Affichage",
+    "views": {
+      "grid": "Grille",
+      "list": "Liste"
+    },
+    "emptyTitle": "Votre coffre est vide",
+    "emptyBody": "Ajoutez des contrats, des devis, des photos ou des liens. Chaque fichier peut avoir un titre et des étiquettes, et être lié à un espace, une tâche ou une réunion quand vous le souhaitez.",
+    "noMatches": "Aucun fichier ne correspond",
+    "noMatchesHint": "Essayez d'autres mots ou retirez un filtre.",
+    "clearFilters": "Effacer les filtres",
+    "drop": "Déposez pour enregistrer dans votre coffre",
+    "dropInto": "Déposez pour enregistrer dans {space}",
+    "noSpace": "Sans espace",
+    "loose": "Libre",
+    "links": {
+      "task": "Une tâche",
+      "meeting": "Une réunion",
+      "doc": "Un document",
+      "none": "Rien (libre)"
+    },
+    "kinds": {
+      "pdf": "PDF",
+      "image": "Image",
+      "sheet": "Tableur",
+      "slides": "Présentation",
+      "doc": "Document",
+      "link": "Lien",
+      "other": "Autre"
+    },
+    "close": "Fermer",
+    "open": "Ouvrir",
+    "openLink": "Ouvrir le lien",
+    "titleLabel": "Titre",
+    "uploadedBy": "Ajouté par {who} {when}",
+    "someone": "quelqu'un",
+    "addLabels": "Ajouter des étiquettes",
+    "linkedHint": "Facultatif : le fichier reste dans votre coffre même s'il n'est lié à rien.",
+    "task": "Tâche",
+    "meeting": "Réunion",
+    "doc": "Document",
+    "linked": "Lié",
+    "linkTask": "Lier à une tâche",
+    "linkMeeting": "Lier à une réunion",
+    "searchTasks": "Rechercher des tâches…",
+    "searchMeetings": "Rechercher des réunions…",
+    "untitledMeeting": "Réunion sans titre",
+    "openDoc": "Ouvrir le document",
+    "share": "Partager dans le Couloir",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer « {name} » du coffre ? Action irréversible.",
+    "noResults": "Aucun résultat",
+    "unlink": "Retirer le lien",
+    "fromChat": "D'une conversation",
+    "addLink": "Ajouter un lien",
+    "uploadForm": {
+      "title": "Téléverser dans le coffre",
+      "description": "Ce que vous ajoutez reste dans votre coffre. Titre, étiquettes et liens sont facultatifs.",
+      "what": "Ce que vous ajoutez",
+      "mode": {
+        "files": "Fichiers",
+        "link": "Lien"
+      },
+      "drop": "Glissez des fichiers ici ou",
+      "choose": "choisissez-les sur votre ordinateur",
+      "limit": "Jusqu'à 20 Mo par fichier",
+      "fileTitle": "Titre de {name}",
+      "remove": "Retirer {name}",
+      "tooBig": "Plus de 20 Mo : il ne sera pas envoyé",
+      "url": "Adresse",
+      "linkTitlePlaceholder": "Facultatif : sinon, le nom du site",
+      "linkTo": "Lier à",
+      "optional": "(facultatif)",
+      "looseHint": "Sans lien, il reste libre dans votre coffre ; vous pourrez le lier plus tard.",
+      "linkedHint": "Il apparaîtra aussi là-bas, en plus de votre coffre.",
+      "cancel": "Annuler",
+      "submitFiles": "{count, plural, =0 {Téléverser} one {Téléverser # fichier} other {Téléverser # fichiers}}",
+      "submitLink": "Ajouter le lien"
+    }
+  },
+  "pasillo": {
+    "title": "Couloir",
+    "tagline": "Ce dont parle l'équipe",
+    "new": "Nouveau",
+    "newDirect": "Message direct",
+    "newGroup": "Nouveau groupe",
+    "search": "Rechercher des conversations…",
+    "filterLabel": "Filtrer les conversations",
+    "filters": {
+      "all": "Toutes",
+      "unread": "Non lues",
+      "groups": "Groupes",
+      "direct": "Directs"
+    },
+    "noMatches": "Aucune conversation ne correspond.",
+    "empty": "Pas encore de conversations.",
+    "yesterday": "Hier",
+    "today": "Aujourd'hui",
+    "you": "Vous",
+    "noMessages": "Pas encore de messages",
+    "preview": {
+      "system": "Nouveautés du groupe",
+      "meeting": "Invitation : {title}",
+      "task": "A partagé une tâche",
+      "file": "A partagé un fichier",
+      "doc": "A partagé un document"
+    },
+    "untitledGroup": "Groupe sans nom",
+    "onlyYou": "Vous seul",
+    "notFound": "Cette conversation n'existe pas ou vous n'en faites plus partie.",
+    "back": "Retour",
+    "more": "Plus d'options",
+    "rename": "Renommer le groupe",
+    "addPeople": "Ajouter des personnes",
+    "leave": "Quitter le groupe",
+    "leaveConfirm": "Quitter « {name} » ?",
+    "makeGroup": "Créer un groupe",
+    "membersList": "{count, plural, one {# personne} other {# personnes}} : {names}",
+    "groupNamePlaceholder": "Nom du groupe",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "newMessages": "Nouveaux",
+    "emptyGroup": "Ainsi commence {name}",
+    "emptyDirect": "Votre conversation avec {name}",
+    "emptyHint": "Écrivez quelque chose, partagez une tâche ou un fichier, ou invitez à une réunion.",
+    "welcomeTitle": "Choisissez une conversation",
+    "welcomeBody": "Ou commencez-en une : un message direct à quelqu'un ou un groupe pour un projet.",
+    "system": {
+      "you": "Vous",
+      "created": "{who} a créé le groupe",
+      "joined": "{who} a ajouté {others}",
+      "left": "{others} a quitté le groupe",
+      "renamed": "{who} a renommé le groupe en « {name} »"
+    },
+    "composer": {
+      "attached": {
+        "task": "Tâche",
+        "file": "Fichier",
+        "doc": "Document",
+        "meeting": "Invitation",
+        "text": "",
+        "system": ""
+      },
+      "removeAttached": "Retirer",
+      "commentPlaceholder": "Ajoutez un commentaire (facultatif)…",
+      "placeholder": "Écrire à {name}…",
+      "shareTask": "Partager une tâche",
+      "shareFile": "Partager un fichier",
+      "fromVault": "Depuis le coffre",
+      "fromDevice": "Téléverser depuis l'ordinateur",
+      "shareDoc": "Partager un document",
+      "invite": "Inviter à une réunion",
+      "newMeeting": "Nouvelle réunion",
+      "fromCalendar": "Une réunion de mon agenda",
+      "hint": "Entrée envoie · Maj + Entrée, nouvelle ligne",
+      "send": "Envoyer",
+      "loose": "Libre",
+      "untitledMeeting": "Réunion sans titre",
+      "search": {
+        "task": "Rechercher une tâche…",
+        "file": "Rechercher dans le coffre…",
+        "doc": "Rechercher un document…",
+        "meeting": "Rechercher une réunion des 3 prochaines semaines…"
+      },
+      "closePicker": "Fermer",
+      "nothing": "Rien ici."
+    },
+    "cards": {
+      "missing": "Ceci n'existe plus ou vous n'y avez pas accès.",
+      "unassigned": "Non assignée",
+      "open": "Ouvrir",
+      "openLink": "Ouvrir le lien",
+      "inVault": "Voir dans le coffre",
+      "invite": "Invitation",
+      "join": "Rejoindre",
+      "past": "Cette réunion est passée.",
+      "rsvp": "Votre réponse",
+      "answers": {
+        "yes": "J'y vais",
+        "maybe": "Peut-être",
+        "no": "Je n'y vais pas"
+      },
+      "going": "{count, plural, one {# participe} other {# participent}}",
+      "live": "En cours"
+    },
+    "share": {
+      "title": "Partager dans le Couloir",
+      "description": "« {title} »",
+      "members": "{count, plural, one {# personne} other {# personnes}}",
+      "newDirect": "Nouveau direct",
+      "search": "Rechercher des conversations ou des personnes…",
+      "noMatches": "Rien ne correspond.",
+      "notePlaceholder": "Ajoutez un commentaire (facultatif)…",
+      "cancel": "Annuler",
+      "send": "Envoyer",
+      "sendMany": "Envoyer à {count}",
+      "sent": "{count, plural, one {Partagé dans 1 conversation} other {Partagé dans # conversations}}",
+      "goToChat": "Aller à la conversation"
+    },
+    "people": {
+      "title": {
+        "direct": "Message direct",
+        "group": "Nouveau groupe",
+        "add": "Ajouter des personnes"
+      },
+      "description": {
+        "direct": "Choisissez avec qui parler.",
+        "group": "Donnez-lui un nom et choisissez qui en fait partie.",
+        "add": "Choisissez qui ajouter au groupe."
+      },
+      "name": "Nom du groupe",
+      "namePlaceholder": "Nom du groupe",
+      "search": "Rechercher des personnes…",
+      "nobody": "Il n'y a personne d'autre à ajouter.",
+      "cancel": "Annuler",
+      "add": "{count, plural, one {Ajouter 1 personne} other {Ajouter # personnes}}",
+      "create": "Créer le groupe"
+    },
+    "reply": "Répondre",
+    "copyText": "Copier le texte",
+    "copied": "Texte copié",
+    "quotedCard": "Un élément partagé",
+    "replyingTo": "En réponse à {name}",
+    "cancelReply": "Annuler la réponse",
+    "meetNow": {
+      "label": "Meet maintenant",
+      "hint": "Lance un appel Google Meet et le partage dans la discussion",
+      "titleGroup": "Appel · {name}",
+      "titleDirect": "Appel : {a} et {b}",
+      "ready": "Appel prêt et partagé dans la discussion.",
+      "readyDemo": "Appel créé et partagé dans la discussion. Dans la démo, le lien Meet est fictif.",
+      "join": "Rejoindre",
+      "error": "Impossible de créer l'appel. Réessayez.",
+      "connect": "Connectez votre compte Google pour lancer des appels Meet.",
+      "connectAction": "Connecter"
+    }
+  },
+  "confirm": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "discard": "Abandonner",
+    "leave": "Quitter",
+    "reset": "Réinitialiser",
+    "archive": "Archiver"
   }
 }

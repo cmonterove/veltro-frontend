@@ -1,12 +1,13 @@
-import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
-import { MyTasksView } from '@/components/home/my-tasks-view'
+import { redirect } from 'next/navigation'
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('nav')
-  return { title: t('myTasks') }
-}
-
-export default function MyTasksPage() {
-  return <MyTasksView />
+/** Ruta de antes: Mis tareas ahora es Tareas (/tasks). Conserva el alcance y el filtro (?view= pasa a ?filter=). */
+export default async function MyTasksRedirect({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const sp = await searchParams
+  const next = new URLSearchParams()
+  if (sp.scope) next.set('scope', sp.scope)
+  if (sp.view) {
+    next.set('tab', 'list')
+    next.set('filter', sp.view)
+  }
+  redirect(`/tasks${next.toString() ? `?${next}` : ''}`)
 }
