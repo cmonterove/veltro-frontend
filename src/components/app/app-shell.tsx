@@ -13,6 +13,7 @@ import { LogoMark } from './logo'
 import { isTypingTarget } from '@/lib/hooks'
 import { useApp } from './app-context'
 import { ConfirmProvider } from '@/components/ui/confirm'
+import { TourProvider } from '@/components/tour/tour'
 import { useChats } from '@/lib/queries/chats'
 import Link from 'next/link'
 import { Ban, KeyRound } from 'lucide-react'
@@ -144,6 +145,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
 
   return (
     <ConfirmProvider>
+      <TourProvider>
       <div className="flex h-dvh overflow-hidden bg-canvas">
         {/* sidebar desktop */}
         <div className={cn('hidden shrink-0 md:block', collapsed ? 'w-14' : 'w-[248px]')}>
@@ -221,6 +223,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
         <QuickTaskDialog open={quickTaskOpen} onOpenChange={setQuickTaskOpen} />
         <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       </div>
+      </TourProvider>
     </ConfirmProvider>
   )
 }

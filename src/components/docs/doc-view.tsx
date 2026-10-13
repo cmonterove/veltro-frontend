@@ -46,6 +46,7 @@ import type { EditorChange } from './block-editor'
 import { inlineText, type LooseBlock } from '@/lib/blocks'
 import { useOpenTask } from '@/lib/use-open-task'
 import { useConfirm } from '@/components/ui/confirm'
+import { useCopy } from '@/lib/clipboard'
 
 const BlockEditor = dynamic(() => import('./block-editor').then((m) => m.BlockEditor), {
   ssr: false,
@@ -61,6 +62,7 @@ const BlockEditor = dynamic(() => import('./block-editor').then((m) => m.BlockEd
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspace: WorkspaceWithRole }) {
+  const copy = useCopy()
   const t = useTranslations('docs')
   const router = useRouter()
   const locale = useDateLocale()
@@ -153,8 +155,7 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
     const editor = editorRef.current
     if (!editor) return
     const md = `# ${title || t('untitled')}\n\n${editor.blocksToMarkdownLossy(editor.document)}`
-    await navigator.clipboard.writeText(md)
-    toast.success(t('copied'))
+    await copy(md, t('copied'))
   }
 
   return (

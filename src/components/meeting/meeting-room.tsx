@@ -30,6 +30,7 @@ import { CaptureBox } from './capture-box'
 import { KindChip, KIND_STYLE } from './kinds'
 import { AttachmentsSection } from '@/components/attachments/attachments'
 import { useHydrated, useNow } from '@/lib/hooks'
+import { useCopy } from '@/lib/clipboard'
 
 type View = MeetingPhase
 
@@ -466,6 +467,7 @@ function LiveView({ meeting, items, editable, onClose }: { meeting: MeetingRow; 
 // ---------------- Cerrar ----------------
 
 function CloseView({ meeting, items, editable }: { meeting: MeetingRow; items: MeetingItemRow[]; editable: boolean }) {
+  const copy = useCopy()
   const t = useTranslations('meeting')
   const ta = useTranslations('assistant')
   const router = useRouter()
@@ -614,10 +616,7 @@ function CloseView({ meeting, items, editable }: { meeting: MeetingRow; items: M
               <Button
                 variant="ghost"
                 size="xs"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(meeting.follow_up ?? '')
-                  toast.success(t('copied'))
-                }}
+                onClick={() => copy(meeting.follow_up ?? '', t('copied'))}
               >
                 <ClipboardCopy />
                 {t('copy')}

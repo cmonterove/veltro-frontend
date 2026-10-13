@@ -176,7 +176,8 @@
         "vault": "Tus archivos y links, con o sin espacio.",
         "chat": "Lo que se habla en el equipo."
       }
-    }
+    },
+    "tour": "Ver el recorrido"
   },
   "command": {
     "title": "Buscar y ejecutar",
@@ -985,7 +986,8 @@
     "invalid_statuses": "Revisa los estados: cada uno necesita nombre y categoría.",
     "too_many_assignees": "Una tarea puede tener hasta 20 responsables.",
     "loadTitle": "No pudimos cargar esto",
-    "loadBody": "Puede ser la conexión. Prueba otra vez en un momento."
+    "loadBody": "Puede ser la conexión. Prueba otra vez en un momento.",
+    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo a mano."
   },
   "demo": {
     "badge": "Modo demo: datos de prueba",
@@ -1771,5 +1773,86 @@
     "leave": "Salir",
     "reset": "Reiniciar",
     "archive": "Archivar"
+  },
+  "tour": {
+    "close": "Cerrar recorrido",
+    "later": "Ahora no",
+    "start": "Empezar (1 min)",
+    "next": "Siguiente",
+    "back": "Anterior",
+    "done": "Listo",
+    "progress": "Paso {n} de {total}",
+    "replayHint": "Puedes repetir este recorrido cuando quieras desde tu menú o con ⌘K.",
+    "steps": {
+      "welcome": {
+        "title": "Te damos la bienvenida a Veltro",
+        "body": "Veltro une tus reuniones, lo que se decide en ellas y las tareas del equipo, para que cada reunión termine en trabajo hecho. En un minuto te mostramos dónde está cada cosa."
+      },
+      "ask": {
+        "title": "Pregúntale a Veltro",
+        "body": "Escribe lo que necesites saber: qué vence esta semana, qué se decidió en una reunión o qué tiene alguien bloqueado. Te responde con tus propias tareas, decisiones y docs."
+      },
+      "counters": {
+        "title": "Tu día, de un vistazo",
+        "body": "Lo vencido, lo que vence hoy, lo que está en curso o bloqueado. Toca cualquier número y ves esas tareas."
+      },
+      "spaces": {
+        "title": "Espacios",
+        "body": "Cada proyecto, cliente o área es un espacio, con sus tareas, docs y reuniones. Aquí ves los tuyos; con la flecha abres sus secciones."
+      },
+      "meetings": {
+        "title": "Reuniones que terminan en algo",
+        "body": "Tu Google Calendar, dentro de Veltro. Cada reunión tiene su sala: preparas la agenda, anotas mientras hablan y al cerrarla Veltro crea las tareas, el resumen y el correo de seguimiento."
+      },
+      "notation": {
+        "title": "Escribe como hablas",
+        "body": "En la sala de una reunión, cada línea empieza con un signo que dice qué es. Con @ va el responsable y con «mañana» o «viernes», la fecha. Prueba a cambiar el signo o el texto:"
+      },
+      "tasks": {
+        "title": "Todas tus tareas",
+        "body": "Las de todos tus espacios en lista, tabla, tablero o calendario, con filtros. Si lideras un equipo, también ves las de tu gente."
+      },
+      "mesa": {
+        "title": "Mesa de control",
+        "body": "Para quien lidera: cómo va cada espacio, si el equipo avanza y quién está sobrecargado, sin pedir un reporte."
+      },
+      "vault": {
+        "title": "Bóveda",
+        "body": "Todos los archivos y links de la cuenta, con título y etiquetas, ligados a un espacio, una tarea o una reunión, o sueltos."
+      },
+      "pasillo": {
+        "title": "Pasillo",
+        "body": "Los chats y grupos del equipo. Comparte tareas, archivos o invitaciones, o arma un Meet al instante."
+      },
+      "search": {
+        "title": "Todo a un ⌘K",
+        "body": "Busca tareas, docs, archivos o chats, o escribe un comando. Con la tecla ? ves todos los atajos."
+      }
+    },
+    "notation": {
+      "label": "Prueba la notación",
+      "example": "-> @{name} envía la propuesta mañana",
+      "action": "acción",
+      "decision": "decisión",
+      "question": "pregunta",
+      "hint": "Empieza la línea con uno de los signos de arriba."
+    }
+  },
+  "validation": {
+    "required": "Completa este campo.",
+    "emailMissing": "Escribe tu email.",
+    "passwordMissing": "Escribe tu contraseña.",
+    "checkbox": "Marca esta casilla para seguir.",
+    "select": "Elige una opción.",
+    "emailAt": "A «{value}» le falta la @. Por ejemplo: nombre@empresa.com",
+    "emailFormat": "Revisa el email: debe verse como nombre@empresa.com.",
+    "url": "Escribe el link completo, con https://",
+    "format": "Revisa el formato de este campo.",
+    "tooShort": "Usa al menos {min} caracteres; llevas {count}.",
+    "tooLong": "Máximo {max} caracteres.",
+    "min": "El mínimo es {min}.",
+    "max": "El máximo es {max}.",
+    "number": "Escribe un número válido.",
+    "step": "Ese valor no es válido aquí."
   }
 }

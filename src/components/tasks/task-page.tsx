@@ -59,6 +59,7 @@ import { AttachmentsSection } from '@/components/attachments/attachments'
 import { AddFieldPopover, CustomFieldRows } from './custom-fields'
 import { DocMark, WorkspaceMark } from '@/components/app/marks'
 import { useConfirm } from '@/components/ui/confirm'
+import { useCopy } from '@/lib/clipboard'
 
 const BlockEditor = dynamic(() => import('@/components/docs/block-editor').then((m) => m.BlockEditor), {
   ssr: false,
@@ -162,6 +163,7 @@ type Tab = (typeof TABS)[number]
  * van en pestañas y se agregan sin entrar al modo edición.
  */
 function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
+  const copy = useCopy()
   const t = useTranslations('tasks')
   const tNav = useTranslations('nav')
   const router = useRouter()
@@ -278,10 +280,7 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
     if (target) update.mutate({ id: task.id, patch: statusPatch(target) })
   }
 
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}${taskPath(ws.key, task.number)}`)
-    toast.success(t('linkCopied'))
-  }
+  const copyLink = () => copy(`${window.location.origin}${taskPath(ws.key, task.number)}`, t('linkCopied'))
 
   const counts: Record<Tab, number | null> = {
     subtasks: subtasks?.length ?? 0,

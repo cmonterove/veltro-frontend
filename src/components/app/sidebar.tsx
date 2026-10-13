@@ -33,6 +33,7 @@ import {
   Languages,
   Vault,
   MessagesSquare,
+  Compass,
 } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from './app-context'
 import { useChats } from '@/lib/queries/chats'
@@ -62,6 +63,7 @@ import { Logo, LogoMark } from './logo'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { WorkspaceMark } from '@/components/app/marks'
 import { NavPeekBody, PeekHead, RailPeek, WorkspacePeek } from './rail-peek'
+import { useTour } from '@/components/tour/tour'
 
 export const navItemClass =
   'group/nav flex h-7 w-full min-w-0 items-center gap-2 rounded-md px-2 text-sm text-fg-muted transition-colors hover:bg-hover hover:text-fg [&>svg]:size-4 [&>svg]:shrink-0'
@@ -116,7 +118,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
             </button>
           </Tooltip>
           <Tooltip content={t('search')} shortcut={['⌘', 'K']} side="right">
-            <button type="button" onClick={onSearch} className={railItemClass} aria-label={t('search')}>
+            <button type="button" onClick={onSearch} data-tour="search" className={railItemClass} aria-label={t('search')}>
               <Search />
             </button>
           </Tooltip>
@@ -132,7 +134,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
             <RailPeek
               key={href}
               trigger={
-                <Link href={href} aria-label={badge ? `${label} · ${badge}` : label} className={cn(railItemClass, 'relative', isActive(href) && navActiveClass)}>
+                <Link href={href} data-tour={`nav-${href.slice(1)}`} aria-label={badge ? `${label} · ${badge}` : label} className={cn(railItemClass, 'relative', isActive(href) && navActiveClass)}>
                   <Icon />
                   {badge ? <span className="absolute right-1 top-1 size-2 rounded-full bg-accent ring-2 ring-sidebar" aria-hidden /> : null}
                 </Link>
@@ -144,7 +146,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
           ))}
         </nav>
 
-        <div className="mt-1.5 flex min-h-0 w-full flex-1 flex-col items-center gap-px overflow-y-auto border-t border-line pt-1.5 scrollbar-none">
+        <div className="mt-1.5 flex min-h-0 w-full flex-1 flex-col items-center gap-px overflow-y-auto border-t border-line pt-1.5 scrollbar-none" data-tour="spaces">
           {workspaces.map((ws) => (
             <RailWorkspace key={ws.id} ws={ws} pathname={pathname} />
           ))}
@@ -197,7 +199,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
       </div>
 
       <div className="px-2 pb-2 pt-1">
-        <button type="button" onClick={onSearch} className={cn(navItemClass, 'text-fg-subtle')}>
+        <button type="button" onClick={onSearch} data-tour="search" className={cn(navItemClass, 'text-fg-subtle')}>
           <Search />
           <span className="flex-1 text-left">{t('search')}</span>
           <Kbd>⌘K</Kbd>
@@ -206,7 +208,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
 
       <nav className="flex flex-col gap-px px-2">
         {top.map(({ href, label, icon: Icon, badge }) => (
-          <Link key={href} href={href} className={cn(navItemClass, isActive(href) && navActiveClass)}>
+          <Link key={href} href={href} data-tour={`nav-${href.slice(1)}`} className={cn(navItemClass, isActive(href) && navActiveClass)}>
             <Icon />
             <span className="truncate">{label}</span>
             {badge ? (
@@ -216,7 +218,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
         ))}
       </nav>
 
-      <div className="mt-5 flex min-h-0 flex-1 flex-col">
+      <div className="mt-5 flex min-h-0 flex-1 flex-col" data-tour="spaces">
         <div className="group/section flex h-7 items-center justify-between px-4">
           <span className="text-xs font-medium text-fg-subtle">{t('workspaces')}</span>
           {isAdmin ? (
@@ -418,6 +420,7 @@ function AccountSwitcher({ compact = false }: { compact?: boolean }) {
 
 function UserMenu({ onShortcuts, compact = false }: { onShortcuts: () => void; compact?: boolean }) {
   const t = useTranslations('nav')
+  const tour = useTour()
   const { profile } = useApp()
   const { theme, setTheme } = useTheme()
 
@@ -449,6 +452,10 @@ function UserMenu({ onShortcuts, compact = false }: { onShortcuts: () => void; c
           <Keyboard />
           {t('shortcuts')}
           <Kbd className="ml-auto">?</Kbd>
+        </MenuItem>
+        <MenuItem onClick={tour.start}>
+          <Compass />
+          {t('tour')}
         </MenuItem>
         <MenuSeparator />
         <LanguageSubmenu />

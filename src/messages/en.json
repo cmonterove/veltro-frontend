@@ -176,7 +176,8 @@
         "vault": "Your files and links, with or without a space.",
         "chat": "What the team is talking about."
       }
-    }
+    },
+    "tour": "Take the tour"
   },
   "command": {
     "title": "Search and run",
@@ -985,7 +986,8 @@
     "invalid_statuses": "Check the statuses: each one needs a name and a category.",
     "too_many_assignees": "A task can have up to 20 assignees.",
     "loadTitle": "We couldn't load this",
-    "loadBody": "It may be the connection. Try again in a moment."
+    "loadBody": "It may be the connection. Try again in a moment.",
+    "copyFailed": "Couldn't copy. Select the text and copy it manually."
   },
   "demo": {
     "badge": "Demo mode: sample data",
@@ -1771,5 +1773,86 @@
     "leave": "Leave",
     "reset": "Reset",
     "archive": "Archive"
+  },
+  "tour": {
+    "close": "Close tour",
+    "later": "Not now",
+    "start": "Start (1 min)",
+    "next": "Next",
+    "back": "Back",
+    "done": "Done",
+    "progress": "Step {n} of {total}",
+    "replayHint": "You can take this tour again anytime from your menu or with ⌘K.",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Veltro",
+        "body": "Veltro brings together your meetings, what gets decided in them and your team's tasks, so every meeting turns into work done. In one minute we'll show you where everything is."
+      },
+      "ask": {
+        "title": "Ask Veltro",
+        "body": "Type whatever you need to know: what's due this week, what was decided in a meeting or what someone has blocked. It answers with your own tasks, decisions and docs."
+      },
+      "counters": {
+        "title": "Your day at a glance",
+        "body": "What's overdue, due today, in progress or blocked. Tap any number to see those tasks."
+      },
+      "spaces": {
+        "title": "Spaces",
+        "body": "Each project, client or department is a space, with its own tasks, docs and meetings. Yours are here; use the arrow to open their sections."
+      },
+      "meetings": {
+        "title": "Meetings that lead somewhere",
+        "body": "Your Google Calendar, inside Veltro. Every meeting has its own room: you prepare the agenda, capture notes while you talk and when you close it Veltro creates the tasks, the summary and the follow-up email."
+      },
+      "notation": {
+        "title": "Write the way you talk",
+        "body": "In a meeting room, each line starts with a sign that says what it is. @ marks the owner and “tomorrow” or “friday” sets the date. Try changing the sign or the text:"
+      },
+      "tasks": {
+        "title": "All your tasks",
+        "body": "From all your spaces as a list, table, board or calendar, with filters. If you lead a team, you also see your people's tasks."
+      },
+      "mesa": {
+        "title": "Control room",
+        "body": "For team leads: how each space is doing, whether the team is moving forward and who is overloaded, without asking for a report."
+      },
+      "vault": {
+        "title": "Vault",
+        "body": "All of the account's files and links, with titles and tags, linked to a space, a task or a meeting, or on their own."
+      },
+      "pasillo": {
+        "title": "Hallway",
+        "body": "Your team's chats and groups. Share tasks, files or invites, or start a Meet right away."
+      },
+      "search": {
+        "title": "Everything with ⌘K",
+        "body": "Search tasks, docs, files or chats, or type a command. Press ? to see every shortcut."
+      }
+    },
+    "notation": {
+      "label": "Try the notation",
+      "example": "-> @{name} sends the proposal tomorrow",
+      "action": "action",
+      "decision": "decision",
+      "question": "question",
+      "hint": "Start the line with one of the signs above."
+    }
+  },
+  "validation": {
+    "required": "Please fill in this field.",
+    "emailMissing": "Enter your email.",
+    "passwordMissing": "Enter your password.",
+    "checkbox": "Check this box to continue.",
+    "select": "Choose an option.",
+    "emailAt": "“{value}” is missing the @. For example: name@company.com",
+    "emailFormat": "Check the email: it should look like name@company.com.",
+    "url": "Enter the full link, including https://",
+    "format": "Check the format of this field.",
+    "tooShort": "Use at least {min} characters; you have {count}.",
+    "tooLong": "{max} characters max.",
+    "min": "The minimum is {min}.",
+    "max": "The maximum is {max}.",
+    "number": "Enter a valid number.",
+    "step": "That value isn’t valid here."
   }
 }

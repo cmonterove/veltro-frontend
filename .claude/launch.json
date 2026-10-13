@@ -1,0 +1,36 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "veltro-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "veltro-console",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../veltro-console",
+        "run",
+        "dev"
+      ],
+      "port": 3010
+    },
+    {
+      "name": "veltro-landing",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../veltro-landing",
+        "run",
+        "dev"
+      ],
+      "port": 3001
+    }
+  ]
+}

@@ -3,7 +3,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
 import { addDays, differenceInMinutes, format, isSameDay, isToday, isYesterday } from 'date-fns'
 import {
   ArrowLeft,
@@ -53,6 +52,7 @@ import { DocCard, FileCard, InviteCard, TaskCard } from './message-cards'
 import { PeopleDialog } from './new-chat-dialog'
 import { inviteFrom, useMeetNow } from './meet-now'
 import { useConfirm } from '@/components/ui/confirm'
+import { useCopy } from '@/lib/clipboard'
 
 /** Mensajes seguidos de la misma persona dentro de estos minutos van juntos, sin repetir nombre. */
 const GROUP_MINUTES = 7
@@ -363,6 +363,7 @@ function RichText({ text }: { text: string }) {
 }
 
 function MessageRow({ m, joined, onReply }: { m: ChatMessageRow; joined: boolean; onReply: () => void }) {
+  const copy = useCopy()
   const t = useTranslations('pasillo')
   const { user } = useApp()
   const memberMap = useMemberMap()
@@ -389,10 +390,7 @@ function MessageRow({ m, joined, onReply }: { m: ChatMessageRow; joined: boolean
             <Tooltip content={t('copyText')}>
               <button
                 type="button"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(m.body)
-                  toast.success(t('copied'))
-                }}
+                onClick={() => copy(m.body, t('copied'))}
                 aria-label={t('copyText')}
                 className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg"
               >

@@ -207,11 +207,11 @@ export function PulseView() {
           <ViewSentence scopes={scopes} scope={scope} onScope={setScopeId} workspaces={workspaces} filter={filter} onFilter={setFilter} />
         </header>
 
-        <div className="relative z-20 shrink-0">
+        <div className="relative z-20 shrink-0" data-tour="ask">
           <AskBar tasks={tasks ?? []} items={items ?? []} meetings={meetings ?? []} docs={docs ?? []} />
         </div>
 
-        <div className="shrink-0">
+        <div className="shrink-0" data-tour="counters">
           <Counters model={model} scope={scope} loading={!tasks} />
         </div>
 

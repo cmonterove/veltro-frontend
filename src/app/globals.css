@@ -472,6 +472,23 @@
   border-left: 1px solid var(--org-line);
 }
 
+/* Campos que no pasaron la validación del formulario (ver ui/validation-bubble.tsx) */
+[data-invalid] {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--danger) 14%, transparent) !important;
+}
+
+/* Ícono de los avisos (toasts): entra creciendo, sin rebote */
+@keyframes toast-icon-in {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+}
+@utility toast-icon {
+  animation: toast-icon-in 380ms var(--ease-out-quart) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

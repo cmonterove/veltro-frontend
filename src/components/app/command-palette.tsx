@@ -7,10 +7,11 @@ import { useTheme } from 'next-themes'
 import { Command } from 'cmdk'
 import { Dialog as D } from '@base-ui/react/dialog'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, CalendarDays, CalendarPlus, CircleCheck, Columns3, Diamond, FilePlus2, FileText, Keyboard, Languages, ListTodo, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Search, Settings, Sparkles, SquarePen, Sun, Vault, Video } from 'lucide-react'
+import { Activity, CalendarDays, CalendarPlus, CircleCheck, Columns3, Compass, Diamond, FilePlus2, FileText, Keyboard, Languages, ListTodo, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Search, Settings, Sparkles, SquarePen, Sun, Vault, Video } from 'lucide-react'
 import { format } from 'date-fns'
 import { Kbd } from '@/components/ui/kbd'
 import { useDateLocale } from '@/lib/dates'
+import { useTour } from '@/components/tour/tour'
 import { useApp, canEdit } from './app-context'
 import { createClient } from '@/lib/supabase/client'
 import { useCreateDoc } from '@/lib/queries/docs'
@@ -57,6 +58,7 @@ export function CommandPalette({
 }) {
   const t = useTranslations('command')
   const tNav = useTranslations('nav')
+  const tour = useTour()
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const appLocale = useLocale()
@@ -331,6 +333,17 @@ export function CommandPalette({
                   <Keyboard />
                   {t('shortcuts')}
                   <Kbd className="ml-auto">?</Kbd>
+                </Command.Item>
+                <Command.Item
+                  value={tNav('tour')}
+                  onSelect={() => {
+                    onOpenChange(false)
+                    tour.start()
+                  }}
+                  className={itemClass}
+                >
+                  <Compass />
+                  {tNav('tour')}
                 </Command.Item>
               </Command.Group>
 

@@ -176,7 +176,8 @@
         "vault": "Vos fichiers et liens, avec ou sans espace.",
         "chat": "Ce dont l'équipe parle."
       }
-    }
+    },
+    "tour": "Voir la visite guidée"
   },
   "command": {
     "title": "Rechercher et exécuter",
@@ -985,7 +986,8 @@
     "invalid_statuses": "Vérifiez les statuts : chacun a besoin d’un nom et d’une catégorie.",
     "too_many_assignees": "Une tâche peut avoir jusqu’à 20 responsables.",
     "loadTitle": "Impossible de charger ceci",
-    "loadBody": "C'est peut-être la connexion. Réessayez dans un instant."
+    "loadBody": "C'est peut-être la connexion. Réessayez dans un instant.",
+    "copyFailed": "Impossible de copier. Sélectionnez le texte et copiez-le à la main."
   },
   "demo": {
     "badge": "Mode démo : données de test",
@@ -1771,5 +1773,86 @@
     "leave": "Quitter",
     "reset": "Réinitialiser",
     "archive": "Archiver"
+  },
+  "tour": {
+    "close": "Fermer la visite",
+    "later": "Plus tard",
+    "start": "Commencer (1 min)",
+    "next": "Suivant",
+    "back": "Précédent",
+    "done": "Terminé",
+    "progress": "Étape {n} sur {total}",
+    "replayHint": "Vous pouvez refaire cette visite quand vous voulez depuis votre menu ou avec ⌘K.",
+    "steps": {
+      "welcome": {
+        "title": "Bienvenue dans Veltro",
+        "body": "Veltro réunit vos réunions, ce qui s'y décide et les tâches de l'équipe, pour que chaque réunion finisse en travail accompli. En une minute, on vous montre où se trouve chaque chose."
+      },
+      "ask": {
+        "title": "Demandez à Veltro",
+        "body": "Écrivez ce que vous voulez savoir : ce qui arrive à échéance cette semaine, ce qui a été décidé en réunion ou ce qui bloque quelqu'un. Il répond avec vos propres tâches, décisions et docs."
+      },
+      "counters": {
+        "title": "Votre journée en un coup d'œil",
+        "body": "Ce qui est en retard, pour aujourd’hui, en cours ou bloqué. Touchez un chiffre pour voir ces tâches."
+      },
+      "spaces": {
+        "title": "Espaces",
+        "body": "Chaque projet, client ou service est un espace, avec ses tâches, docs et réunions. Les vôtres sont ici ; la flèche ouvre leurs sections."
+      },
+      "meetings": {
+        "title": "Des réunions qui aboutissent",
+        "body": "Votre Google Agenda, dans Veltro. Chaque réunion a sa salle : vous préparez l'ordre du jour, notez pendant qu'on parle et à la clôture Veltro crée les tâches, le résumé et l'e-mail de suivi."
+      },
+      "notation": {
+        "title": "Écrivez comme vous parlez",
+        "body": "Dans la salle d'une réunion, chaque ligne commence par un signe qui dit ce qu'elle est. Avec @ vient le responsable et avec « demain » ou « vendredi », l'échéance. Essayez de changer le signe ou le texte :"
+      },
+      "tasks": {
+        "title": "Toutes vos tâches",
+        "body": "Celles de tous vos espaces en liste, tableau, kanban ou calendrier, avec des filtres. Si vous dirigez une équipe, vous voyez aussi celles de vos collaborateurs."
+      },
+      "mesa": {
+        "title": "Contrôle",
+        "body": "Pour les managers : où en est chaque espace, si l'équipe avance et qui est surchargé, sans demander de rapport."
+      },
+      "vault": {
+        "title": "Coffre",
+        "body": "Tous les fichiers et liens du compte, avec titre et étiquettes, rattachés à un espace, une tâche ou une réunion, ou libres."
+      },
+      "pasillo": {
+        "title": "Couloir",
+        "body": "Les chats et groupes de l'équipe. Partagez tâches, fichiers ou invitations, ou lancez un Meet tout de suite."
+      },
+      "search": {
+        "title": "Tout avec ⌘K",
+        "body": "Cherchez tâches, docs, fichiers ou chats, ou tapez une commande. La touche ? affiche tous les raccourcis."
+      }
+    },
+    "notation": {
+      "label": "Essayez la notation",
+      "example": "-> @{name} envoie la proposition demain",
+      "action": "action",
+      "decision": "décision",
+      "question": "question",
+      "hint": "Commencez la ligne par l'un des signes ci-dessus."
+    }
+  },
+  "validation": {
+    "required": "Remplissez ce champ.",
+    "emailMissing": "Saisissez votre e-mail.",
+    "passwordMissing": "Saisissez votre mot de passe.",
+    "checkbox": "Cochez cette case pour continuer.",
+    "select": "Choisissez une option.",
+    "emailAt": "Il manque le @ dans « {value} ». Par exemple : nom@entreprise.com",
+    "emailFormat": "Vérifiez l’e-mail : il doit ressembler à nom@entreprise.com.",
+    "url": "Saisissez le lien complet, avec https://",
+    "format": "Vérifiez le format de ce champ.",
+    "tooShort": "Utilisez au moins {min} caractères ; vous en avez {count}.",
+    "tooLong": "{max} caractères maximum.",
+    "min": "Le minimum est {min}.",
+    "max": "Le maximum est {max}.",
+    "number": "Saisissez un nombre valide.",
+    "step": "Cette valeur n’est pas valide ici."
   }
 }

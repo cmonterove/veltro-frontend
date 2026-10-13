@@ -21,6 +21,7 @@ import type { Member } from '@/lib/types'
 import { SettingsHeader } from './ui'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Select } from '@/components/ui/select'
+import { useCopy } from '@/lib/clipboard'
 
 type Assignment = { workspace_id: string; user_id: string; role: WorkspaceRole }
 type Usage = { max_members: number | null; members_count: number } | null
@@ -262,6 +263,7 @@ function AddMemberDialog({
   canPromote: boolean
   onDone: () => void
 }) {
+  const copy = useCopy()
   const t = useTranslations('settings.members.addDialog')
   const te = useTranslations('errors')
   const tRole = useTranslations('roles')
@@ -319,10 +321,7 @@ function AddMemberDialog({
             </DialogBody>
             <DialogFooter>
               <Button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(credentials)
-                  toast.success(t('copied'))
-                }}
+                onClick={() => copy(credentials, t('copied'))}
               >
                 <Copy />
                 {t('copy')}
