@@ -1,18 +1,21 @@
 import 'server-only'
 import { notFound, redirect } from 'next/navigation'
 import { requireAppContext } from '@/lib/session'
+import { DEMO } from '@/lib/demo/config'
+import { api } from '@/lib/api/server'
+import type { ApiWorkspace } from '@/lib/api/types'
 
 /** Resuelve el espacio de la URL dentro del contexto actual; cambia de cuenta si hace falta. */
 export async function requireWorkspace(slug: string) {
   const ctx = await requireAppContext()
   const ws = ctx.workspaces.find((w) => w.slug === slug)
   if (ws) return { ctx, ws }
+  if (DEMO) notFound()
 
-  const { createClient } = await import('@/lib/supabase/server')
-  const supabase = await createClient()
-  const { data } = await supabase.from('workspaces').select('account_id').eq('slug', slug).maybeSingle()
-  if (data && data.account_id !== ctx.account.id) {
-    redirect(`/auth/switch?account=${data.account_id}&next=${encodeURIComponent(`/w/${slug}`)}`)
+  // ¿Es de otra de mis cuentas? (la API solo lo devuelve si lo puedo ver)
+  const other = await api<ApiWorkspace>(`/v1/workspaces/${encodeURIComponent(slug)}`).catch(() => null)
+  if (other && other.accountId !== ctx.account.id) {
+    redirect(`/auth/switch?account=${other.accountId}&next=${encodeURIComponent(`/w/${slug}`)}`)
   }
   notFound()
 }

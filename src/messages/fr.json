@@ -33,7 +33,9 @@
       "user_exists": "Un compte existe déjà avec cet e-mail.",
       "link_expired": "Le lien a expiré ou a déjà été utilisé. Reconnectez-vous.",
       "generic": "Une erreur s'est produite. Réessayez.",
-      "oauth_unavailable": "Ce mode de connexion n’est pas encore actif. Utilisez votre e-mail pour le moment."
+      "oauth_unavailable": "Ce mode de connexion n’est pas encore actif. Utilisez votre e-mail pour le moment.",
+      "too_many_attempts": "Trop de tentatives. Patientez quelques minutes et réessayez.",
+      "user_banned": "Ce compte ne peut pas se connecter pour le moment. Écrivez-nous si vous pensez qu’il s’agit d’une erreur."
     },
     "tabs": {
       "login": "Se connecter",

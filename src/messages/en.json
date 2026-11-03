@@ -33,7 +33,9 @@
       "user_exists": "An account with that email already exists.",
       "link_expired": "This link has expired or was already used. Sign in again.",
       "generic": "Something went wrong. Try again.",
-      "oauth_unavailable": "That sign-in option is not active yet. Use your email for now."
+      "oauth_unavailable": "That sign-in option is not active yet. Use your email for now.",
+      "too_many_attempts": "Too many attempts. Wait a few minutes and try again.",
+      "user_banned": "This account can’t sign in right now. Write to us if you think this is a mistake."
     },
     "tabs": {
       "login": "Sign in",

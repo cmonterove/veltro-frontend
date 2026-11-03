@@ -38,3 +38,5 @@ next-env.d.ts
 # datos del modo demo
 /.demo/
 /.next-prod/
+# compilaciones con NEXT_DIST_DIR propio (instancias demo o de prueba en paralelo)
+/.next-*/

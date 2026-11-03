@@ -1,11 +1,9 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
-import { createClient } from '@/lib/supabase/server'
-import { slugify, workspaceKeyFrom } from '@/lib/utils'
 import { toErrorCode } from '@/lib/errors'
-import { seedWorkspace } from '@/lib/seed'
+import { api } from '@/lib/api/server'
+import type { ApiWorkspace } from '@/lib/api/types'
 
 export type OnboardingState = { error?: string } | undefined
 
@@ -17,32 +15,18 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
   const timezone = String(formData.get('timezone') ?? '')
   if (!accountName || !workspaceName) return { error: 'missing_fields' }
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: account, error: accErr } = await supabase.rpc('create_account', { p_name: accountName })
-  if (accErr || !account) {
-    if (toErrorCode(accErr) === 'already_in_account') redirect('/home')
-    return { error: toErrorCode(accErr) }
+  // La API crea la cuenta, el primer espacio y el contenido de bienvenida en una sola transacción.
+  let workspace: ApiWorkspace
+  try {
+    ;({ workspace } = await api<{ workspace: ApiWorkspace }>('/v1/me/onboarding', {
+      method: 'POST',
+      body: { accountName, workspaceName, icon: icon || undefined, color, timezone: timezone || undefined, seed: true },
+    }))
+  } catch (e) {
+    const code = toErrorCode(e as { message?: string })
+    if (code === 'already_in_account') redirect('/home')
+    return { error: code }
   }
 
-  const { data: ws, error: wsErr } = await supabase.rpc('create_workspace', {
-    p_account_id: account.id,
-    p_name: workspaceName,
-    p_slug: slugify(workspaceName),
-    p_key: workspaceKeyFrom(workspaceName),
-    p_icon: icon,
-    p_color: color,
-  })
-  if (wsErr || !ws) return { error: toErrorCode(wsErr) }
-
-  if (timezone) await supabase.from('profiles').update({ timezone }).eq('id', user.id)
-
-  const t = await getTranslations('seed')
-  await seedWorkspace(supabase, ws.id, user.id, t)
-
-  redirect(`/w/${ws.slug}`)
+  redirect(`/w/${workspace.slug}`)
 }

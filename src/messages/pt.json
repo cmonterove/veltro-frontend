@@ -33,7 +33,9 @@
       "user_exists": "Já existe uma conta com esse e-mail.",
       "link_expired": "O link expirou ou já foi usado. Entre novamente.",
       "generic": "Algo deu errado. Tente novamente.",
-      "oauth_unavailable": "Essa forma de entrar ainda não está ativa. Use seu e-mail por enquanto."
+      "oauth_unavailable": "Essa forma de entrar ainda não está ativa. Use seu e-mail por enquanto.",
+      "too_many_attempts": "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
+      "user_banned": "Esta conta não pode entrar agora. Escreva para nós se achar que é um erro."
     },
     "tabs": {
       "login": "Entrar",

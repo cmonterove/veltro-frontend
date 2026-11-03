@@ -1,6 +1,6 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { DEMO } from '@/lib/demo/config'
+import { ACCESS_COOKIE, REFRESH_COOKIE, refreshSession, sessionCookies, tokenTtl, type ApiSession } from '@/lib/api/session-cookies'
 
 const PUBLIC_PATHS = ['/login', '/register', '/auth']
 
@@ -12,31 +12,19 @@ export async function middleware(request: NextRequest) {
   // Modo demo: sin Supabase, el usuario demo siempre tiene sesión
   if (DEMO) return NextResponse.next({ request })
 
-  let response = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
-        },
-      },
-    },
-  )
-
-  // getUser() valida el JWT con Supabase y refresca tokens vencidos.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // La sesión es de la API (cookies httpOnly). Si el token está por vencer se renueva acá,
+  // antes de que las páginas llamen a la API; la firma la verifica la API en cada llamada.
+  let renewed: ApiSession | null = null
+  let authed = tokenTtl(request.cookies.get(ACCESS_COOKIE)?.value) > 60
+  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value
+  if (!authed && refreshToken) {
+    renewed = await refreshSession(refreshToken)
+    authed = Boolean(renewed)
+  }
 
   const { pathname } = request.nextUrl
 
-  if (!user && !isPublic(pathname) && pathname !== '/') {
+  if (!authed && !isPublic(pathname) && pathname !== '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.search = ''
@@ -44,13 +32,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && (pathname === '/login' || pathname === '/register')) {
+  if (authed && (pathname === '/login' || pathname === '/register')) {
     const url = request.nextUrl.clone()
     url.pathname = '/home'
     url.search = ''
-    return NextResponse.redirect(url)
+    return withSession(NextResponse.redirect(url), renewed)
   }
 
+  // las páginas de esta misma petición leen el token nuevo
+  if (renewed) for (const c of sessionCookies(renewed)) request.cookies.set(c.name, c.value)
+  return withSession(NextResponse.next({ request }), renewed)
+}
+
+function withSession(response: NextResponse, renewed: ApiSession | null) {
+  if (renewed) for (const c of sessionCookies(renewed)) response.cookies.set(c)
   return response
 }
 

@@ -2,105 +2,71 @@ import 'server-only'
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
-import type { AppContextValue, Member, WorkspaceWithRole } from '@/lib/types'
+import type { AccountRole } from '@/lib/database.types'
+import type { AppContextValue } from '@/lib/types'
 import { isGoogleConfigured } from '@/lib/google/config'
+import { DEMO } from '@/lib/demo/config'
+import { getDemoAppContext, getDemoUser } from '@/lib/demo/session-context'
+import { api } from '@/lib/api/server'
+import { ApiError } from '@/lib/api/shared'
+import { toAccount, toDepartment, toMember, toProfile, toWorkspace } from '@/lib/api/adapters'
+import type { ApiContext, ApiProfile } from '@/lib/api/types'
 
 export const ACCOUNT_COOKIE = 'veltro-account'
 
-export const getUser = cache(async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  return user
+/** null si no hay sesión válida (la API verifica el token). */
+async function orAnonymous<T>(p: Promise<T>): Promise<T | null> {
+  try {
+    return await p
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) return null
+    throw e
+  }
+}
+
+export const getUser = cache(async (): Promise<{ id: string; email: string } | null> => {
+  if (DEMO) {
+    const u = await getDemoUser()
+    return u ? { id: u.id, email: u.email ?? '' } : null
+  }
+  const me = await orAnonymous(api<{ user: ApiProfile }>('/v1/me'))
+  return me ? { id: me.user.id, email: me.user.email } : null
 })
 
 /**
- * Contexto completo de la app para el usuario actual.
- * - null si no hay sesión
- * - account null si aún no completó el onboarding
+ * Contexto completo de la app para el usuario actual, en una sola llamada a la API
+ * (GET /v1/me/context). La cuenta actual la elige la cookie veltro-account.
+ * - anonymous si no hay sesión
+ * - onboarding si aún no pertenece a ninguna cuenta
  */
 export const getAppContext = cache(async (): Promise<
   | { status: 'anonymous' }
   | { status: 'onboarding'; profile: AppContextValue['profile'] }
   | { status: 'ready'; ctx: AppContextValue }
 > => {
-  const user = await getUser()
-  if (!user) return { status: 'anonymous' }
-
-  const supabase = await createClient()
-
-  const [{ data: profile }, { data: memberships }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('account_members').select('account_id, role').eq('user_id', user.id),
-  ])
-
-  if (!profile) return { status: 'anonymous' }
-  if (!memberships || memberships.length === 0) return { status: 'onboarding', profile }
-
-  const accountIds = memberships.map((m) => m.account_id)
-  const { data: accounts } = await supabase.from('accounts').select('*').in('id', accountIds).order('created_at')
+  if (DEMO) return getDemoAppContext()
 
   const preferred = (await cookies()).get(ACCOUNT_COOKIE)?.value
-  const account = accounts?.find((a) => a.id === preferred) ?? accounts?.[0]
-  if (!account) return { status: 'onboarding', profile }
+  const res = await orAnonymous(api<ApiContext>('/v1/me/context', { query: { accountId: preferred } }))
+  if (!res) return { status: 'anonymous' }
 
-  const accountRole = memberships.find((m) => m.account_id === account.id)!.role as AccountRole
-  const isAdmin = accountRole === 'owner' || accountRole === 'admin'
-
-  const [{ data: workspaces }, { data: myWsRoles }, { data: accountMembers }, { data: google }, { data: departments }] = await Promise.all([
-    supabase
-      .from('workspaces')
-      .select('*')
-      .eq('account_id', account.id)
-      .is('archived_at', null)
-      .order('created_at'),
-    supabase.from('workspace_members').select('workspace_id, role').eq('user_id', user.id),
-    supabase.from('account_members').select('user_id, role, title, department_id, reports_to').eq('account_id', account.id),
-    supabase.rpc('get_my_google_connection'),
-    supabase.from('departments').select('*').eq('account_id', account.id).order('name'),
-  ])
-
-  const memberIds = (accountMembers ?? []).map((m) => m.user_id)
-  const { data: profiles } = memberIds.length
-    ? await supabase.from('profiles').select('id, email, full_name, avatar_url').in('id', memberIds)
-    : { data: [] }
-
-  const members: Member[] = (profiles ?? [])
-    .map((p) => {
-      const m = accountMembers!.find((x) => x.user_id === p.id)!
-      return { ...p, role: m.role as AccountRole, title: m.title ?? null, department_id: m.department_id ?? null, reports_to: m.reports_to ?? null }
-    })
-    .sort((a, b) => a.full_name.localeCompare(b.full_name))
-
-  // Los espacios que devuelve la base incluyen los visibles por jerarquía (donde trabaja mi gente):
-  // esos no van a la barra lateral, solo sirven para mostrar sus tareas en solo lectura.
-  const roleByWs = new Map((myWsRoles ?? []).map((r) => [r.workspace_id, r.role as WorkspaceRole]))
-  const withRole: WorkspaceWithRole[] = []
-  const observed: WorkspaceWithRole[] = []
-  for (const w of workspaces ?? []) {
-    if (isAdmin) withRole.push({ ...w, my_role: 'admin' })
-    else if (roleByWs.has(w.id)) withRole.push({ ...w, my_role: roleByWs.get(w.id)! })
-    else observed.push({ ...w, my_role: 'viewer' })
-  }
-
-  const g = google?.[0]
+  const profile = toProfile(res.user)
+  if (res.status === 'onboarding' || !res.account) return { status: 'onboarding', profile }
 
   return {
     status: 'ready',
     ctx: {
-      user: { id: user.id, email: user.email ?? profile.email },
+      user: { id: res.user.id, email: res.user.email },
       profile,
-      account,
-      accounts: accounts ?? [],
-      accountRole,
-      workspaces: withRole,
-      observedWorkspaces: observed,
-      members,
-      departments: departments ?? [],
-      google: g ? { email: g.google_email, selectedCalendarIds: g.selected_calendar_ids } : null,
+      account: toAccount(res.account),
+      accounts: res.accounts.map(toAccount),
+      accountRole: res.account.role,
+      workspaces: res.workspaces.map((w) => toWorkspace(w)),
+      // los que veo solo por jerarquía: no van a la barra lateral, sirven para leer las tareas de mi gente
+      observedWorkspaces: res.observedWorkspaces.map((w) => toWorkspace(w, 'viewer')),
+      members: res.members.map(toMember).sort((a, b) => a.full_name.localeCompare(b.full_name)),
+      departments: res.departments.map(toDepartment),
+      google: res.google.connected ? { email: res.google.email ?? '', selectedCalendarIds: res.google.selectedCalendarIds } : null,
       googleConfigured: isGoogleConfigured(),
     },
   }
