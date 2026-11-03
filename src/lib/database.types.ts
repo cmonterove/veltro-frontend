@@ -349,6 +349,8 @@ export type Database = {
         Returns: WorkspaceRow
       }
       workspace_role_for: { Args: { p_workspace: string; p_user: string }; Returns: WorkspaceRole | null }
+      // Pasillo: respuesta a una invitación (se guarda en meta.invite.rsvp del mensaje)
+      chat_rsvp: { Args: { p_message: string; p_answer: RsvpAnswer }; Returns: undefined }
       get_my_google_connection: {
         Args: Record<string, never>
         Returns: { google_email: string; selected_calendar_ids: string[]; connected_at: string }[]

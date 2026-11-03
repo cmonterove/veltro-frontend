@@ -186,9 +186,10 @@ export function useChatMutations() {
   const addMembers = useMutation({
     mutationFn: async ({ chatId, userIds }: { chatId: string; userIds: string[] }) => {
       if (!userIds.length) return
+      // quien ya está no se ofrece (PeopleDialog lo excluye), así que es un alta simple
       const { error } = await supabase()
         .from('chat_members')
-        .upsert(userIds.map((id) => ({ chat_id: chatId, user_id: id, role: 'member' as const })))
+        .insert(userIds.map((id) => ({ chat_id: chatId, user_id: id, role: 'member' as const })))
       if (error) throw error
       await insertMessage({ chatId, kind: 'system', meta: { system: 'joined', users: userIds } })
     },
@@ -206,13 +207,11 @@ export function useChatMutations() {
     onError,
   })
 
-  /** Respuesta a una invitación: se guarda en el mensaje (en la base irá en su propia tabla). */
+  /** Respuesta a una invitación: se guarda en el mensaje, por RPC porque el mensaje es de otra persona. */
   const rsvp = useMutation({
     mutationFn: async ({ message, answer }: { message: ChatMessageRow; answer: RsvpAnswer }) => {
-      const invite = message.meta.invite
-      if (!invite) return
-      const meta = { ...message.meta, invite: { ...invite, rsvp: { ...invite.rsvp, [user.id]: answer } } }
-      const { error } = await supabase().from('chat_messages').update({ meta }).eq('id', message.id)
+      if (!message.meta.invite) return
+      const { error } = await supabase().rpc('chat_rsvp', { p_message: message.id, p_answer: answer })
       if (error) throw error
     },
     onMutate: ({ message, answer }) =>

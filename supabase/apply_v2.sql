@@ -4373,4 +4373,1797 @@ $$;
 
 revoke execute on function public.admin_storage(uuid, integer) from public, anon;
 grant execute on function public.admin_storage(uuid, integer) to authenticated, service_role;
+-- ============================================================
+-- Veltro v2: soporte (tickets) y requerimientos (pedidos de función a Veltro)
+--
+-- Nacen en la app móvil. Un TICKET reporta un problema; a quién le llega depende del rol de
+-- quien lo crea, según accounts.support_routing (lo cambia solo el dueño):
+--   account_admins → dueño y admins de la cuenta · account_owner → el dueño · veltro → equipo de Veltro (consola)
+-- Un REQUERIMIENTO es un pedido de función a Veltro con estados recibido → en evaluación →
+-- planificado → hecho (o descartado); los miembros de la cuenta lo apoyan.
+--
+-- El destino, el código correlativo (VT-0001, RQ-001) y los cambios de estado los calcula la
+-- base, no el cliente.
+-- ============================================================
+
+-- ---------- cuenta: destino por rol y correlativos ----------
+
+alter table public.accounts
+  add column if not exists support_routing jsonb not null
+    default '{"member":"account_admins","admin":"veltro","owner":"veltro"}'::jsonb,
+  add column if not exists ticket_seq integer not null default 0,
+  add column if not exists request_seq integer not null default 0;
+
+-- los correlativos no cuentan como «la cuenta cambió»: updated_at solo se mueve con cambios reales
+drop trigger if exists accounts_updated_at on public.accounts;
+create trigger accounts_updated_at before update on public.accounts
+  for each row
+  when ((to_jsonb(old) - 'ticket_seq' - 'request_seq' - 'updated_at') is distinct from (to_jsonb(new) - 'ticket_seq' - 'request_seq' - 'updated_at'))
+  execute function public.set_updated_at();
+
+alter table public.accounts drop constraint if exists accounts_support_routing_valid;
+alter table public.accounts add constraint accounts_support_routing_valid check (
+  support_routing ?& array['member', 'admin', 'owner']
+  and support_routing->>'member' in ('account_admins', 'account_owner', 'veltro')
+  and support_routing->>'admin' in ('account_admins', 'account_owner', 'veltro')
+  and support_routing->>'owner' in ('account_admins', 'account_owner', 'veltro')
+  -- el dueño no se escribe a sí mismo
+  and support_routing->>'owner' <> 'account_owner'
+);
+
+-- ---------- tickets ----------
+
+create table public.support_tickets (
+  id              uuid primary key default gen_random_uuid(),
+  account_id      uuid not null references public.accounts(id) on delete cascade,
+  workspace_id    uuid references public.workspaces(id) on delete set null,
+  code            text not null,
+  title           text not null check (char_length(trim(title)) between 4 and 120),
+  category        text not null default 'other' check (category in ('error', 'access', 'data', 'calendar', 'other')),
+  urgent          boolean not null default false,
+  where_text      text check (where_text is null or char_length(where_text) <= 80),
+  screenshots     text[] not null default '{}' check (cardinality(screenshots) <= 3),
+  status          text not null default 'open' check (status in ('open', 'in_review', 'answered', 'resolved')),
+  destination     text not null check (destination in ('account_admins', 'account_owner', 'veltro')),
+  created_by      uuid not null references public.profiles(id),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  last_message_at timestamptz not null default now(),
+  resolved_at     timestamptz,
+  unique (account_id, code)
+);
+create index support_tickets_account_idx on public.support_tickets (account_id, last_message_at desc);
+create index support_tickets_creator_idx on public.support_tickets (created_by, last_message_at desc);
+create index support_tickets_veltro_idx on public.support_tickets (status, last_message_at desc) where destination = 'veltro';
+
+-- author_kind: member (alguien de la cuenta), veltro (equipo de Veltro; la app muestra «Veltro», no
+-- el nombre de la persona) o system (cambio de estado; body = el estado nuevo, la app lo traduce).
+create table public.support_ticket_messages (
+  id          uuid primary key default gen_random_uuid(),
+  ticket_id   uuid not null references public.support_tickets(id) on delete cascade,
+  author_id   uuid references public.profiles(id) on delete set null,
+  author_kind text not null default 'member' check (author_kind in ('member', 'veltro', 'system')),
+  body        text not null check (char_length(body) between 1 and 4000),
+  created_at  timestamptz not null default now()
+);
+create index support_ticket_messages_ticket_idx on public.support_ticket_messages (ticket_id, created_at);
+
+create table public.support_ticket_reads (
+  ticket_id    uuid not null references public.support_tickets(id) on delete cascade,
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (ticket_id, user_id)
+);
+
+-- ---------- requerimientos ----------
+
+create table public.feature_requests (
+  id           uuid primary key default gen_random_uuid(),
+  account_id   uuid not null references public.accounts(id) on delete cascade,
+  workspace_id uuid references public.workspaces(id) on delete set null,
+  code         text not null,
+  title        text not null check (char_length(trim(title)) between 4 and 120),
+  need         text not null check (char_length(trim(need)) between 10 and 2000),
+  why          text check (why is null or char_length(why) <= 600),
+  impact       text not null default 'nice' check (impact in ('blocks', 'saves_time', 'nice')),
+  status       text not null default 'received' check (status in ('received', 'evaluating', 'planned', 'done', 'declined')),
+  created_by   uuid not null references public.profiles(id),
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  unique (account_id, code)
+);
+create index feature_requests_account_idx on public.feature_requests (account_id, updated_at desc);
+create index feature_requests_status_idx on public.feature_requests (status, updated_at desc);
+
+-- cada cambio de estado deja una actualización con su texto (por defecto, de Veltro)
+create table public.feature_request_updates (
+  id          uuid primary key default gen_random_uuid(),
+  request_id  uuid not null references public.feature_requests(id) on delete cascade,
+  status      text not null check (status in ('received', 'evaluating', 'planned', 'done', 'declined')),
+  body        text not null default '' check (char_length(body) <= 2000),
+  author_kind text not null default 'veltro' check (author_kind in ('veltro', 'member')),
+  author_id   uuid references public.profiles(id) on delete set null,
+  created_at  timestamptz not null default now()
+);
+create index feature_request_updates_request_idx on public.feature_request_updates (request_id, created_at);
+
+create table public.feature_request_supporters (
+  request_id uuid not null references public.feature_requests(id) on delete cascade,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (request_id, user_id)
+);
+
+create table public.feature_request_reads (
+  request_id   uuid not null references public.feature_requests(id) on delete cascade,
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  last_read_at timestamptz not null default now(),
+  primary key (request_id, user_id)
+);
+
+-- ---------- reglas ----------
+
+create or replace function public.account_role_of(p_account uuid, p_user uuid)
+returns text
+language sql stable security definer set search_path = public
+as $$
+  select role from account_members where account_id = p_account and user_id = p_user;
+$$;
+
+-- ¿A esta persona le llegan los tickets con ese destino? (veltro → nadie de la cuenta)
+create or replace function public.support_ticket_recipient(p_ticket public.support_tickets, p_user uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select case p_ticket.destination
+    when 'account_owner' then exists (select 1 from accounts a where a.id = p_ticket.account_id and a.owner_id = p_user)
+    when 'account_admins' then public.account_role_of(p_ticket.account_id, p_user) in ('owner', 'admin')
+    else false
+  end;
+$$;
+
+create or replace function public.support_tickets_before_insert()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_role text;
+  v_seq  integer;
+  v_routing jsonb;
+begin
+  new.created_by := coalesce(new.created_by, (select auth.uid()));
+  v_role := public.account_role_of(new.account_id, new.created_by);
+  if v_role is null then
+    raise exception 'not_account_member' using errcode = '42501';
+  end if;
+  update accounts set ticket_seq = ticket_seq + 1
+    where id = new.account_id
+    returning ticket_seq, support_routing into v_seq, v_routing;
+  new.code := 'VT-' || lpad(v_seq::text, 4, '0');
+  -- el destino lo decide la base, según el rol de quien lo crea
+  new.destination := coalesce(v_routing->>v_role, 'veltro');
+  new.status := 'open';
+  new.created_at := now();
+  new.updated_at := now();
+  new.last_message_at := now();
+  new.resolved_at := null;
+  return new;
+end;
+$$;
+
+create trigger support_tickets_before_insert before insert on public.support_tickets
+  for each row execute function public.support_tickets_before_insert();
+
+-- Lo que escribió quien lo creó no cambia. Al cambiar el estado queda un mensaje de sistema;
+-- resolver marca resolved_at. Qué estado puede poner cada quien desde la app lo decide la política
+-- support_tickets_update (más abajo).
+create or replace function public.support_tickets_before_update()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+begin
+  new.id := old.id;
+  new.account_id := old.account_id;
+  new.code := old.code;
+  new.destination := old.destination;
+  new.created_by := old.created_by;
+  new.created_at := old.created_at;
+  new.title := old.title;
+  new.category := old.category;
+  new.urgent := old.urgent;
+  new.where_text := old.where_text;
+  new.screenshots := old.screenshots;
+  new.workspace_id := old.workspace_id;
+  if new.status is distinct from old.status then
+    new.resolved_at := case when new.status = 'resolved' then now() else null end;
+    -- clock_timestamp: el aviso queda después del mensaje que lo provocó (misma transacción)
+    insert into support_ticket_messages (ticket_id, author_id, author_kind, body, created_at)
+      values (new.id, v_uid, 'system', new.status, clock_timestamp());
+    new.last_message_at := clock_timestamp();
+  else
+    new.last_message_at := greatest(old.last_message_at, new.last_message_at);
+    new.resolved_at := old.resolved_at;
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+create trigger support_tickets_before_update before update on public.support_tickets
+  for each row execute function public.support_tickets_before_update();
+
+-- Responder mueve el estado: si responde quien lo recibe (o Veltro) queda «respondido»; si
+-- vuelve a escribir quien lo creó sobre un ticket respondido, queda «en revisión».
+create or replace function public.support_ticket_messages_after_insert()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare
+  t public.support_tickets;
+begin
+  if new.author_kind = 'system' then
+    return new;
+  end if;
+  select * into t from support_tickets where id = new.ticket_id;
+  update support_tickets
+    set last_message_at = new.created_at,
+        status = case
+          when t.status = 'resolved' then t.status
+          when new.author_kind = 'veltro' or new.author_id is distinct from t.created_by then 'answered'
+          when t.status = 'answered' then 'in_review'
+          else t.status
+        end
+    where id = new.ticket_id;
+  -- quien escribe ya leyó hasta aquí
+  if new.author_id is not null then
+    insert into support_ticket_reads (ticket_id, user_id, last_read_at) values (new.ticket_id, new.author_id, new.created_at)
+      on conflict (ticket_id, user_id) do update set last_read_at = excluded.last_read_at;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger support_ticket_messages_after_insert after insert on public.support_ticket_messages
+  for each row execute function public.support_ticket_messages_after_insert();
+
+create or replace function public.feature_requests_before_insert()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_seq integer;
+begin
+  new.created_by := coalesce(new.created_by, (select auth.uid()));
+  if public.account_role_of(new.account_id, new.created_by) is null then
+    raise exception 'not_account_member' using errcode = '42501';
+  end if;
+  update accounts set request_seq = request_seq + 1 where id = new.account_id returning request_seq into v_seq;
+  new.code := 'RQ-' || lpad(v_seq::text, 3, '0');
+  new.status := 'received';
+  new.created_at := now();
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+create trigger feature_requests_before_insert before insert on public.feature_requests
+  for each row execute function public.feature_requests_before_insert();
+
+-- quien lo pide ya lo apoya, y queda la primera actualización (recibido)
+create or replace function public.feature_requests_after_insert()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  insert into feature_request_supporters (request_id, user_id) values (new.id, new.created_by) on conflict do nothing;
+  insert into feature_request_updates (request_id, status, body, author_kind) values (new.id, 'received', '', 'veltro');
+  insert into feature_request_reads (request_id, user_id) values (new.id, new.created_by) on conflict do nothing;
+  return new;
+end;
+$$;
+
+create trigger feature_requests_after_insert after insert on public.feature_requests
+  for each row execute function public.feature_requests_after_insert();
+
+-- una actualización nueva mueve el estado del requerimiento
+create or replace function public.feature_request_updates_after_insert()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  update feature_requests set status = new.status, updated_at = new.created_at where id = new.request_id;
+  return new;
+end;
+$$;
+
+create trigger feature_request_updates_after_insert after insert on public.feature_request_updates
+  for each row execute function public.feature_request_updates_after_insert();
+
+-- Destino por rol: solo el dueño de la cuenta.
+create or replace function public.set_support_routing(p_account uuid, p_routing jsonb)
+returns jsonb
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if not exists (select 1 from accounts where id = p_account and owner_id = (select auth.uid())) then
+    raise exception 'only_owner' using errcode = '42501';
+  end if;
+  update accounts set support_routing = p_routing where id = p_account;
+  return p_routing;
+end;
+$$;
+
+-- ---------- RLS ----------
+
+alter table public.support_tickets enable row level security;
+alter table public.support_ticket_messages enable row level security;
+alter table public.support_ticket_reads enable row level security;
+alter table public.feature_requests enable row level security;
+alter table public.feature_request_updates enable row level security;
+alter table public.feature_request_supporters enable row level security;
+alter table public.feature_request_reads enable row level security;
+
+-- Un ticket lo ven quien lo creó y quienes lo reciben dentro de la cuenta.
+create policy support_tickets_select on public.support_tickets for select to authenticated
+  using (created_by = (select auth.uid()) or public.support_ticket_recipient(support_tickets, (select auth.uid())));
+create policy support_tickets_insert on public.support_tickets for insert to authenticated
+  with check (created_by = (select auth.uid()) and public.is_account_member(account_id));
+-- Desde la app: quien lo creó solo puede resolverlo o reabrirlo; quienes lo reciben pueden además
+-- tomarlo (en revisión). «Respondido» lo pone la base al responder (el trigger de mensajes corre como
+-- dueño de la tabla y no pasa por esta política), igual que las funciones admin_* de la consola.
+create policy support_tickets_update on public.support_tickets for update to authenticated
+  using (created_by = (select auth.uid()) or public.support_ticket_recipient(support_tickets, (select auth.uid())))
+  with check (
+    (created_by = (select auth.uid()) and status in ('open', 'resolved'))
+    or (public.support_ticket_recipient(support_tickets, (select auth.uid())) and status in ('open', 'in_review', 'resolved'))
+  );
+
+create policy support_ticket_messages_select on public.support_ticket_messages for select to authenticated
+  using (exists (select 1 from support_tickets t where t.id = ticket_id));
+create policy support_ticket_messages_insert on public.support_ticket_messages for insert to authenticated
+  with check (
+    author_kind = 'member' and author_id = (select auth.uid())
+    and exists (select 1 from support_tickets t where t.id = ticket_id)
+  );
+
+create policy support_ticket_reads_all on public.support_ticket_reads for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+-- Los requerimientos los ve toda la cuenta; el estado solo lo cambia Veltro (consola).
+create policy feature_requests_select on public.feature_requests for select to authenticated
+  using (public.is_account_member(account_id));
+create policy feature_requests_insert on public.feature_requests for insert to authenticated
+  with check (created_by = (select auth.uid()) and public.is_account_member(account_id));
+
+create policy feature_request_updates_select on public.feature_request_updates for select to authenticated
+  using (exists (select 1 from feature_requests r where r.id = request_id));
+
+create policy feature_request_supporters_select on public.feature_request_supporters for select to authenticated
+  using (exists (select 1 from feature_requests r where r.id = request_id));
+create policy feature_request_supporters_insert on public.feature_request_supporters for insert to authenticated
+  with check (user_id = (select auth.uid()) and exists (select 1 from feature_requests r where r.id = request_id));
+create policy feature_request_supporters_delete on public.feature_request_supporters for delete to authenticated
+  using (user_id = (select auth.uid()));
+
+create policy feature_request_reads_all on public.feature_request_reads for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+grant select, insert, update on public.support_tickets to authenticated;
+grant select, insert on public.support_ticket_messages to authenticated;
+grant select, insert, update, delete on public.support_ticket_reads to authenticated;
+grant select, insert on public.feature_requests to authenticated;
+grant select on public.feature_request_updates to authenticated;
+grant select, insert, delete on public.feature_request_supporters to authenticated;
+grant select, insert, update, delete on public.feature_request_reads to authenticated;
+grant execute on function public.set_support_routing(uuid, jsonb) to authenticated;
+-- ============================================================
+-- Veltro v2: consola, soporte y requerimientos
+--
+-- La app móvil crea tickets y requerimientos (20261103090000_v2_support.sql). Estas funciones son
+-- las que usa el equipo de Veltro para atenderlos desde veltro-console (/support):
+--   admin_support_tickets, admin_support_ticket          leer tickets (por defecto, los que van a Veltro)
+--   admin_support_reply, admin_support_set_status        responder como «Veltro» y cambiar el estado
+--   admin_feature_requests, admin_feature_request        leer los requerimientos de todas las cuentas
+--   admin_feature_request_set_status                     mover el estado con un texto para quien lo pidió
+--
+-- Leen todos los roles de la consola; responden y cambian estados owner, admin y support.
+-- Cada escritura queda en admin_audit_log. Solo se atienden los tickets cuyo destino es «veltro»:
+-- los demás les llegan al dueño o a los admins de la cuenta, y la consola los muestra sin poder
+-- responderlos (la persona vería «Veltro» metido en una conversación que no le escribió a Veltro).
+--
+-- También redefine admin_badges y admin_overview para sumar los contadores de soporte: mismo cuerpo
+-- que en 20261010180000_v2_admin.sql más la parte nueva. Si se cambian allá, hay que cambiarlas acá.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- Ayudas internas
+-- ------------------------------------------------------------
+
+-- ¿Desde cuándo espera este ticket una respuesta de Veltro? null si no la espera: no va a Veltro,
+-- está resuelto o lo último que se escribió es de Veltro. Si Veltro nunca respondió, desde que se creó.
+create or replace function public.support_veltro_waiting_since(p_ticket public.support_tickets)
+returns timestamptz
+language sql stable security definer set search_path = public
+as $$
+  select case
+    when p_ticket.destination <> 'veltro' or p_ticket.status = 'resolved' then null
+    when v.last_veltro is null then p_ticket.created_at
+    else (
+      select min(m.created_at) from support_ticket_messages m
+      where m.ticket_id = p_ticket.id and m.author_kind = 'member' and m.created_at > v.last_veltro
+    )
+  end
+  from (
+    select max(m.created_at) as last_veltro from support_ticket_messages m
+    where m.ticket_id = p_ticket.id and m.author_kind = 'veltro'
+  ) v;
+$$;
+
+-- Palabras con peso de un título (minúsculas, sin tildes, 5 letras o más, sin muletillas).
+-- Sirven para encontrar el mismo pedido escrito por distintas cuentas.
+create or replace function public.request_title_words(p_title text)
+returns text[]
+language sql immutable set search_path = public
+as $$
+  select coalesce(array_agg(distinct w), '{}'::text[])
+  from regexp_split_to_table(translate(lower(coalesce(p_title, '')), 'áéíóúüñ', 'aeiouun'), '[^a-z0-9]+') as w
+  where char_length(w) >= 5
+    and w <> all (array[
+      'desde', 'sobre', 'entre', 'cuando', 'donde', 'poder', 'puedo', 'pueda', 'puedan', 'quiero', 'queremos',
+      'necesito', 'necesitamos', 'tener', 'hacer', 'todos', 'todas', 'otras', 'otros', 'mismo', 'misma',
+      'nuestro', 'nuestra', 'nuestros', 'nuestras', 'tambien', 'mejor', 'favor', 'veltro'
+    ]);
+$$;
+
+-- ¿Dos títulos piden lo mismo? Al menos dos palabras en común (o la única que tenga el más corto).
+create or replace function public.request_words_match(p_a text[], p_b text[])
+returns boolean
+language sql immutable set search_path = public
+as $$
+  select p_a && p_b
+    and (select count(*) from unnest(p_a) x where x = any (p_b)) >= least(2, cardinality(p_a), cardinality(p_b));
+$$;
+
+-- ------------------------------------------------------------
+-- Tickets: lecturas
+-- ------------------------------------------------------------
+
+-- p_status: active (sin resolver) | waiting (esperan a Veltro) | open | in_review | answered | resolved | all
+-- p_scope:  veltro (los que le llegan a Veltro) | all (también los que atiende la cuenta)
+-- p_sort:   recent (último mensaje) | waiting (los que más esperan primero) | created
+create or replace function public.admin_support_tickets(
+  p_search text default null,
+  p_status text default 'active',
+  p_scope text default 'veltro',
+  p_account uuid default null,
+  p_urgent boolean default false,
+  p_sort text default 'recent',
+  p_limit integer default 50,
+  p_offset integer default 0
+)
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+declare
+  v_q text := nullif(trim(coalesce(p_search, '')), '');
+  v_out jsonb;
+begin
+  perform platform_assert();
+
+  with base as materialized (
+    select t.*, support_veltro_waiting_since(t) as waiting_since
+    from support_tickets t
+    join accounts a on a.id = t.account_id
+    join profiles p on p.id = t.created_by
+    where (coalesce(p_scope, 'veltro') = 'all' or t.destination = 'veltro')
+      and (p_account is null or t.account_id = p_account)
+      and (not coalesce(p_urgent, false) or t.urgent)
+      and (v_q is null or t.title ilike '%' || v_q || '%' or t.code ilike v_q or a.name ilike '%' || v_q || '%'
+           or p.email ilike '%' || v_q || '%' or p.full_name ilike '%' || v_q || '%' or t.id::text = v_q)
+  ),
+  filtered as (
+    select * from base b
+    where case coalesce(p_status, 'active')
+      when 'active' then b.status <> 'resolved'
+      when 'waiting' then b.waiting_since is not null
+      when 'all' then true
+      else b.status = p_status
+    end
+  ),
+  ranked as (
+    select f.*, count(*) over () as total,
+      row_number() over (order by
+        case when p_sort = 'waiting' then f.waiting_since end asc nulls last,
+        case when p_sort = 'created' then f.created_at end desc,
+        f.last_message_at desc, f.id) as ord
+    from filtered f
+  ),
+  page as (
+    select * from ranked
+    where ord > greatest(coalesce(p_offset, 0), 0)
+      and ord <= greatest(coalesce(p_offset, 0), 0) + least(greatest(coalesce(p_limit, 50), 1), 200)
+  )
+  select jsonb_build_object(
+    'total', coalesce((select total from page limit 1), 0),
+    -- para las pestañas: cuántos hay en cada estado con los demás filtros puestos
+    'counts', (
+      select jsonb_build_object(
+        'active', count(*) filter (where b.status <> 'resolved'),
+        'waiting', count(*) filter (where b.waiting_since is not null),
+        'open', count(*) filter (where b.status = 'open'),
+        'in_review', count(*) filter (where b.status = 'in_review'),
+        'answered', count(*) filter (where b.status = 'answered'),
+        'resolved', count(*) filter (where b.status = 'resolved'),
+        'all', count(*),
+        'urgent', count(*) filter (where b.urgent and b.status <> 'resolved')
+      )
+      from base b
+    ),
+    'rows', coalesce(jsonb_agg(jsonb_build_object(
+      'id', pg.id, 'code', pg.code, 'title', pg.title, 'category', pg.category, 'urgent', pg.urgent,
+      'where_text', pg.where_text, 'status', pg.status, 'destination', pg.destination,
+      'created_at', pg.created_at, 'last_message_at', pg.last_message_at, 'resolved_at', pg.resolved_at,
+      'screenshots', cardinality(pg.screenshots), 'waiting_since', pg.waiting_since,
+      'account', jsonb_build_object('id', a.id, 'name', a.name, 'plan_id', a.plan_id, 'status', a.status),
+      'workspace', case when w.id is null then null else jsonb_build_object('id', w.id, 'name', w.name, 'key', w.key, 'color', w.color, 'icon', w.icon) end,
+      'created_by', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'avatar_url', p.avatar_url,
+        'role', (select am.role from account_members am where am.account_id = pg.account_id and am.user_id = pg.created_by)),
+      'messages', (select count(*) from support_ticket_messages m where m.ticket_id = pg.id and m.author_kind <> 'system'),
+      'last_message', (
+        select jsonb_build_object('body', left(m.body, 200), 'author_kind', m.author_kind, 'created_at', m.created_at, 'author_name', ap.full_name)
+        from support_ticket_messages m left join profiles ap on ap.id = m.author_id
+        where m.ticket_id = pg.id and m.author_kind <> 'system'
+        order by m.created_at desc, m.id desc
+        limit 1
+      )
+    ) order by pg.ord), '[]'::jsonb)
+  ) into v_out
+  from page pg
+  join accounts a on a.id = pg.account_id
+  join profiles p on p.id = pg.created_by
+  left join workspaces w on w.id = pg.workspace_id;
+
+  return v_out;
+end;
+$$;
+
+-- Detalle de un ticket con la conversación. Los mensajes de sistema (cambios de estado) traen el
+-- estado nuevo en body; `staff` dice si quien lo hizo es del equipo de Veltro.
+create or replace function public.admin_support_ticket(p_ticket uuid)
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+declare
+  v_out jsonb;
+begin
+  perform platform_assert();
+
+  select jsonb_build_object(
+    'ticket', to_jsonb(t) || jsonb_build_object('waiting_since', support_veltro_waiting_since(t)),
+    'account', jsonb_build_object(
+      'id', a.id, 'name', a.name, 'plan_id', a.plan_id, 'status', a.status, 'support_routing', a.support_routing,
+      'owner', jsonb_build_object('id', o.id, 'full_name', o.full_name, 'email', o.email, 'avatar_url', o.avatar_url)
+    ),
+    'workspace', (select jsonb_build_object('id', w.id, 'name', w.name, 'key', w.key, 'color', w.color, 'icon', w.icon) from workspaces w where w.id = t.workspace_id),
+    'created_by', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'avatar_url', p.avatar_url,
+      'role', account_role_of(t.account_id, t.created_by)),
+    'messages', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', m.id, 'author_kind', m.author_kind, 'body', m.body, 'created_at', m.created_at,
+        'author', case when ap.id is null then null else jsonb_build_object(
+          'id', ap.id, 'full_name', ap.full_name, 'email', ap.email, 'avatar_url', ap.avatar_url,
+          'staff', exists (select 1 from platform_admins pa where pa.user_id = ap.id)
+        ) end
+      -- el aviso de estado va después del mensaje que lo provocó (comparten la hora de la transacción)
+      ) order by m.created_at, (m.author_kind = 'system'), m.id), '[]'::jsonb)
+      from support_ticket_messages m left join profiles ap on ap.id = m.author_id
+      where m.ticket_id = t.id
+    ),
+    -- a quién le llega dentro de la cuenta (vacío si va a Veltro)
+    'recipients', case when t.destination = 'veltro' then '[]'::jsonb else (
+      select coalesce(jsonb_agg(jsonb_build_object('id', rp.id, 'full_name', rp.full_name, 'email', rp.email, 'avatar_url', rp.avatar_url, 'role', am.role)
+        order by case am.role when 'owner' then 0 when 'admin' then 1 else 2 end, rp.full_name), '[]'::jsonb)
+      from account_members am join profiles rp on rp.id = am.user_id
+      where am.account_id = t.account_id and support_ticket_recipient(t, am.user_id)
+    ) end,
+    'related', (
+      select coalesce(jsonb_agg(x order by x.last_message_at desc), '[]'::jsonb)
+      from (
+        select r.id, r.code, r.title, r.status, r.urgent, r.destination, r.last_message_at
+        from support_tickets r
+        where r.account_id = t.account_id and r.id <> t.id
+        order by r.last_message_at desc
+        limit 6
+      ) x
+    ),
+    'audit', (
+      select coalesce(jsonb_agg(x order by x.created_at desc, x.id desc), '[]'::jsonb)
+      from (
+        select l.id, l.action, l.summary, l.details, l.created_at, ap.full_name as actor
+        from admin_audit_log l left join profiles ap on ap.id = l.actor_id
+        where l.subject_type = 'support_ticket' and l.subject_id = t.id::text
+        order by l.created_at desc, l.id desc limit 20
+      ) x
+    )
+  ) into v_out
+  from support_tickets t
+  join accounts a on a.id = t.account_id
+  join profiles o on o.id = a.owner_id
+  join profiles p on p.id = t.created_by
+  where t.id = p_ticket;
+
+  return v_out;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- Tickets: escrituras
+-- ------------------------------------------------------------
+
+-- Responde como Veltro. El trigger de support_ticket_messages deja el ticket «respondido» (salvo que
+-- esté resuelto) y marca la hora del último mensaje. La app muestra «Veltro»; la consola, quién fue.
+create or replace function public.admin_support_reply(p_ticket uuid, p_body text)
+returns uuid
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_t support_tickets;
+  v_body text := trim(coalesce(p_body, ''));
+  v_id uuid;
+  v_status text;
+begin
+  perform platform_assert(array['admin', 'support']);
+  if v_body = '' then
+    raise exception 'empty_message' using errcode = 'P0001';
+  end if;
+  if char_length(v_body) > 4000 then
+    raise exception 'message_too_long' using errcode = 'P0001';
+  end if;
+  select * into v_t from support_tickets where id = p_ticket for update;
+  if v_t.id is null then
+    raise exception 'not_found' using errcode = 'P0001';
+  end if;
+  if v_t.destination <> 'veltro' then
+    raise exception 'not_for_veltro' using errcode = 'P0001';
+  end if;
+
+  insert into support_ticket_messages (ticket_id, author_id, author_kind, body)
+  values (p_ticket, (select auth.uid()), 'veltro', v_body)
+  returning id into v_id;
+
+  select status into v_status from support_tickets where id = p_ticket;
+  perform platform_log('support.replied', 'support_ticket', p_ticket::text, v_t.code || ' · ' || v_t.title,
+    jsonb_strip_nulls(jsonb_build_object(
+      'account_id', v_t.account_id,
+      'from', case when v_status <> v_t.status then v_t.status end,
+      'to', case when v_status <> v_t.status then v_status end,
+      'excerpt', left(v_body, 160)
+    )));
+  return v_id;
+end;
+$$;
+
+-- Cambia el estado. El trigger deja el mensaje de sistema y marca (o borra) resolved_at.
+create or replace function public.admin_support_set_status(p_ticket uuid, p_status text)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_t support_tickets;
+begin
+  perform platform_assert(array['admin', 'support']);
+  if p_status is null or p_status not in ('open', 'in_review', 'answered', 'resolved') then
+    raise exception 'invalid_status' using errcode = 'P0001';
+  end if;
+  select * into v_t from support_tickets where id = p_ticket for update;
+  if v_t.id is null then
+    raise exception 'not_found' using errcode = 'P0001';
+  end if;
+  if v_t.destination <> 'veltro' then
+    raise exception 'not_for_veltro' using errcode = 'P0001';
+  end if;
+  if v_t.status = p_status then
+    return;
+  end if;
+
+  update support_tickets set status = p_status where id = p_ticket;
+  perform platform_log('support.status_changed', 'support_ticket', p_ticket::text, v_t.code || ' · ' || v_t.title,
+    jsonb_build_object('account_id', v_t.account_id, 'from', v_t.status, 'to', p_status));
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- Requerimientos: lecturas
+-- ------------------------------------------------------------
+
+-- p_status: open (recibido, en evaluación o planificado) | received | evaluating | planned | done | declined | all
+-- p_impact: blocks | saves_time | nice | null (todos)
+-- p_sort:   supporters (más apoyos) | recent (pedido) | updated (última actualización) | impact
+-- `similar` cuenta cuántas OTRAS cuentas pidieron algo parecido (por las palabras del título).
+create or replace function public.admin_feature_requests(
+  p_search text default null,
+  p_status text default 'open',
+  p_impact text default null,
+  p_account uuid default null,
+  p_sort text default 'supporters',
+  p_limit integer default 50,
+  p_offset integer default 0
+)
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+declare
+  v_q text := nullif(trim(coalesce(p_search, '')), '');
+  v_out jsonb;
+begin
+  perform platform_assert();
+
+  with base as materialized (
+    select r.*, (select count(*) from feature_request_supporters s where s.request_id = r.id) as supporters
+    from feature_requests r
+    join accounts a on a.id = r.account_id
+    join profiles p on p.id = r.created_by
+    where (p_account is null or r.account_id = p_account)
+      and (p_impact is null or p_impact = 'all' or r.impact = p_impact)
+      and (v_q is null or r.title ilike '%' || v_q || '%' or r.need ilike '%' || v_q || '%' or r.code ilike v_q
+           or a.name ilike '%' || v_q || '%' or p.email ilike '%' || v_q || '%' or p.full_name ilike '%' || v_q || '%' or r.id::text = v_q)
+  ),
+  filtered as (
+    select * from base b
+    where case coalesce(p_status, 'open')
+      when 'open' then b.status in ('received', 'evaluating', 'planned')
+      when 'all' then true
+      else b.status = p_status
+    end
+  ),
+  ranked as (
+    select f.*, count(*) over () as total,
+      row_number() over (order by
+        case when p_sort = 'recent' then f.created_at end desc,
+        case when p_sort = 'updated' then f.updated_at end desc,
+        case when p_sort = 'impact' then case f.impact when 'blocks' then 0 when 'saves_time' then 1 else 2 end end asc,
+        f.supporters desc, f.created_at desc, f.id) as ord
+    from filtered f
+  ),
+  page as (
+    select * from ranked
+    where ord > greatest(coalesce(p_offset, 0), 0)
+      and ord <= greatest(coalesce(p_offset, 0), 0) + least(greatest(coalesce(p_limit, 50), 1), 200)
+  ),
+  words as materialized (
+    select r.id, r.account_id, request_title_words(r.title) as w from feature_requests r
+  )
+  select jsonb_build_object(
+    'total', coalesce((select total from page limit 1), 0),
+    'counts', (
+      select jsonb_build_object(
+        'open', count(*) filter (where b.status in ('received', 'evaluating', 'planned')),
+        'received', count(*) filter (where b.status = 'received'),
+        'evaluating', count(*) filter (where b.status = 'evaluating'),
+        'planned', count(*) filter (where b.status = 'planned'),
+        'done', count(*) filter (where b.status = 'done'),
+        'declined', count(*) filter (where b.status = 'declined'),
+        'all', count(*)
+      )
+      from base b
+    ),
+    'rows', coalesce(jsonb_agg(jsonb_build_object(
+      'id', pg.id, 'code', pg.code, 'title', pg.title, 'need', left(pg.need, 220), 'impact', pg.impact, 'status', pg.status,
+      'created_at', pg.created_at, 'updated_at', pg.updated_at, 'supporters', pg.supporters,
+      'similar', (
+        select count(distinct o.account_id) from words o, words me
+        where me.id = pg.id and o.account_id <> pg.account_id and request_words_match(me.w, o.w)
+      ),
+      'account', jsonb_build_object('id', a.id, 'name', a.name, 'plan_id', a.plan_id, 'status', a.status),
+      'workspace', case when w.id is null then null else jsonb_build_object('id', w.id, 'name', w.name, 'key', w.key, 'color', w.color, 'icon', w.icon) end,
+      'created_by', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'avatar_url', p.avatar_url,
+        'role', (select am.role from account_members am where am.account_id = pg.account_id and am.user_id = pg.created_by)),
+      'last_update', (
+        select jsonb_build_object('status', u.status, 'body', left(u.body, 200), 'author_kind', u.author_kind, 'created_at', u.created_at)
+        from feature_request_updates u
+        where u.request_id = pg.id
+        order by u.created_at desc, u.id desc
+        limit 1
+      )
+    ) order by pg.ord), '[]'::jsonb)
+  ) into v_out
+  from page pg
+  join accounts a on a.id = pg.account_id
+  join profiles p on p.id = pg.created_by
+  left join workspaces w on w.id = pg.workspace_id;
+
+  return v_out;
+end;
+$$;
+
+-- Detalle de un requerimiento: el pedido, su historial, quienes lo apoyan y los parecidos de otras cuentas.
+create or replace function public.admin_feature_request(p_request uuid)
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+declare
+  v_out jsonb;
+begin
+  perform platform_assert();
+
+  select jsonb_build_object(
+    'request', to_jsonb(r),
+    'account', jsonb_build_object('id', a.id, 'name', a.name, 'plan_id', a.plan_id, 'status', a.status,
+      'members', (select count(*) from account_members am where am.account_id = a.id)),
+    'workspace', (select jsonb_build_object('id', w.id, 'name', w.name, 'key', w.key, 'color', w.color, 'icon', w.icon) from workspaces w where w.id = r.workspace_id),
+    'created_by', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'avatar_url', p.avatar_url,
+      'role', account_role_of(r.account_id, r.created_by)),
+    'updates', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', u.id, 'status', u.status, 'body', u.body, 'author_kind', u.author_kind, 'created_at', u.created_at,
+        'author', case when ap.id is null then null else jsonb_build_object(
+          'id', ap.id, 'full_name', ap.full_name, 'email', ap.email, 'avatar_url', ap.avatar_url,
+          'staff', exists (select 1 from platform_admins pa where pa.user_id = ap.id)
+        ) end
+      ) order by u.created_at, u.id), '[]'::jsonb)
+      from feature_request_updates u left join profiles ap on ap.id = u.author_id
+      where u.request_id = r.id
+    ),
+    'supporters', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', sp.id, 'full_name', sp.full_name, 'email', sp.email, 'avatar_url', sp.avatar_url,
+        'role', account_role_of(r.account_id, sp.id), 'created_at', s.created_at
+      ) order by s.created_at, sp.full_name), '[]'::jsonb)
+      from feature_request_supporters s join profiles sp on sp.id = s.user_id
+      where s.request_id = r.id
+    ),
+    'similar', (
+      select coalesce(jsonb_agg(x order by x.supporters desc, x.created_at desc), '[]'::jsonb)
+      from (
+        select o.id, o.code, o.title, o.status, o.impact, o.created_at, o.account_id, oa.name as account_name,
+          (select count(*) from feature_request_supporters s where s.request_id = o.id) as supporters
+        from feature_requests o join accounts oa on oa.id = o.account_id
+        where o.account_id <> r.account_id
+          and request_words_match(request_title_words(r.title), request_title_words(o.title))
+        order by supporters desc, o.created_at desc
+        limit 20
+      ) x
+    ),
+    'audit', (
+      select coalesce(jsonb_agg(x order by x.created_at desc, x.id desc), '[]'::jsonb)
+      from (
+        select l.id, l.action, l.summary, l.details, l.created_at, ap.full_name as actor
+        from admin_audit_log l left join profiles ap on ap.id = l.actor_id
+        where l.subject_type = 'feature_request' and l.subject_id = r.id::text
+        order by l.created_at desc, l.id desc limit 20
+      ) x
+    )
+  ) into v_out
+  from feature_requests r
+  join accounts a on a.id = r.account_id
+  join profiles p on p.id = r.created_by
+  where r.id = p_request;
+
+  return v_out;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- Requerimientos: escrituras
+-- ------------------------------------------------------------
+
+-- Publica una actualización de Veltro: el trigger mueve el estado. Sirve también para escribir sin
+-- cambiar de estado (con texto). Descartar exige explicarle a quien lo pidió por qué.
+create or replace function public.admin_feature_request_set_status(p_request uuid, p_status text, p_body text default null)
+returns uuid
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_r feature_requests;
+  v_body text := trim(coalesce(p_body, ''));
+  v_id uuid;
+begin
+  perform platform_assert(array['admin', 'support']);
+  if p_status is null or p_status not in ('received', 'evaluating', 'planned', 'done', 'declined') then
+    raise exception 'invalid_status' using errcode = 'P0001';
+  end if;
+  if char_length(v_body) > 2000 then
+    raise exception 'body_too_long' using errcode = 'P0001';
+  end if;
+  select * into v_r from feature_requests where id = p_request for update;
+  if v_r.id is null then
+    raise exception 'not_found' using errcode = 'P0001';
+  end if;
+  if v_r.status = p_status and v_body = '' then
+    raise exception 'nothing_to_change' using errcode = 'P0001';
+  end if;
+  if p_status = 'declined' and v_body = '' then
+    raise exception 'reason_required' using errcode = 'P0001';
+  end if;
+
+  insert into feature_request_updates (request_id, status, body, author_kind, author_id)
+  values (p_request, p_status, v_body, 'veltro', (select auth.uid()))
+  returning id into v_id;
+
+  perform platform_log(case when p_status = v_r.status then 'request.commented' else 'request.status_changed' end,
+    'feature_request', p_request::text, v_r.code || ' · ' || v_r.title,
+    jsonb_strip_nulls(jsonb_build_object(
+      'account_id', v_r.account_id,
+      'from', case when p_status <> v_r.status then v_r.status end,
+      'to', case when p_status <> v_r.status then p_status end,
+      'excerpt', nullif(left(v_body, 160), '')
+    )));
+  return v_id;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- Contadores: barra lateral y Resumen (redefinidas, ver arriba)
+-- ------------------------------------------------------------
+
+create or replace function public.admin_badges()
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+begin
+  perform platform_assert();
+  return jsonb_build_object(
+    'online', (select count(*) from profiles where last_seen_at > now() - interval '5 minutes'),
+    'payments_attention', (select count(*) from payments where status in ('failed', 'pending') and created_at >= now() - interval '60 days'),
+    'past_due', (select count(*) from subscriptions where status = 'past_due'),
+    'suspended', (select count(*) from accounts where status = 'suspended'),
+    'support_waiting', (select count(*) from support_tickets t where t.destination = 'veltro' and t.status <> 'resolved' and support_veltro_waiting_since(t) is not null),
+    'requests_new', (select count(*) from feature_requests where status = 'received')
+  );
+end;
+$$;
+
+-- Resumen general del periodo (igual que en v2_admin, más 'support')
+create or replace function public.admin_overview(p_days integer default 30)
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+declare
+  v_days integer := least(greatest(coalesce(p_days, 30), 1), 400);
+  v_from timestamptz := date_trunc('day', now()) - make_interval(days => v_days - 1);
+  v_prev timestamptz := v_from - make_interval(days => v_days);
+  v_out jsonb;
+begin
+  perform platform_assert();
+
+  select jsonb_build_object(
+    'period', jsonb_build_object('days', v_days, 'from', v_from, 'to', now()),
+    'users', jsonb_build_object(
+      'total', (select count(*) from profiles),
+      'new', (select count(*) from profiles where created_at >= v_from),
+      'new_prev', (select count(*) from profiles where created_at >= v_prev and created_at < v_from),
+      'active', (select count(distinct user_id) from user_sessions where last_seen_at >= v_from),
+      'active_prev', (select count(distinct user_id) from user_sessions where last_seen_at >= v_prev and started_at < v_from),
+      'online', (select count(*) from profiles where last_seen_at > now() - interval '5 minutes'),
+      'dau', (select count(distinct user_id) from user_sessions where last_seen_at >= date_trunc('day', now())),
+      'wau', (select count(distinct user_id) from user_sessions where last_seen_at >= now() - interval '7 days'),
+      'mau', (select count(distinct user_id) from user_sessions where last_seen_at >= now() - interval '30 days'),
+      'suspended', (select count(*) from profiles where suspended_at is not null)
+    ),
+    'accounts', jsonb_build_object(
+      'total', (select count(*) from accounts),
+      'new', (select count(*) from accounts where created_at >= v_from),
+      'new_prev', (select count(*) from accounts where created_at >= v_prev and created_at < v_from),
+      'paying', (select count(*) from subscriptions where subscription_mrr_cents(status, billing_interval, unit_amount_cents) > 0),
+      'trialing', (select count(*) from subscriptions where status = 'trialing'),
+      'suspended', (select count(*) from accounts where status = 'suspended')
+    ),
+    'workspaces', jsonb_build_object(
+      'total', (select count(*) from workspaces where archived_at is null),
+      'active', (select count(distinct workspace_id) from usage_events where occurred_at >= v_from and workspace_id is not null)
+    ),
+    'content', jsonb_build_object(
+      'tasks', (select count(*) from tasks),
+      'tasks_new', (select count(*) from tasks where created_at >= v_from),
+      'tasks_done', (select count(*) from tasks where completed_at >= v_from),
+      'docs', (select count(*) from docs where archived_at is null),
+      'docs_new', (select count(*) from docs where created_at >= v_from),
+      'meetings', (select count(*) from meetings),
+      'meetings_closed', (select count(*) from meetings where closed_at >= v_from),
+      'storage_bytes', (select coalesce(sum(size_bytes), 0) from attachments where kind = 'file')
+    ),
+    'revenue', jsonb_build_object(
+      'currency', coalesce((select currency from plans where price_monthly_cents > 0 order by sort limit 1), 'USD'),
+      'mrr_cents', (select coalesce(sum(subscription_mrr_cents(status, billing_interval, unit_amount_cents)), 0) from subscriptions),
+      'mrr_prev_cents', (
+        select coalesce(sum(case when billing_interval = 'year' then round(unit_amount_cents / 12.0) else unit_amount_cents end), 0)::bigint
+        from subscriptions
+        where started_at < v_from and (canceled_at is null or canceled_at >= v_from)
+          and (trial_ends_at is null or trial_ends_at < v_from)
+      ),
+      'collected_cents', (select coalesce(sum(amount_cents - refunded_cents), 0) from payments where status in ('paid', 'refunded') and paid_at >= v_from),
+      'collected_prev_cents', (select coalesce(sum(amount_cents - refunded_cents), 0) from payments where status in ('paid', 'refunded') and paid_at >= v_prev and paid_at < v_from),
+      'failed', (select count(*) from payments where status = 'failed' and created_at >= v_from)
+    ),
+    'series', (
+      with days as (
+        select generate_series(v_from, date_trunc('day', now()), interval '1 day') as day
+      ),
+      su as (select date_trunc('day', created_at) as day, count(*) as n from profiles where created_at >= v_from group by 1),
+      ac as (select date_trunc('day', started_at) as day, count(distinct user_id) as n from user_sessions where started_at >= v_from group by 1),
+      ev as (select date_trunc('day', occurred_at) as day, count(*) as n from usage_events where occurred_at >= v_from group by 1),
+      rv as (
+        select date_trunc('day', paid_at) as day, sum(amount_cents - refunded_cents) as n
+        from payments where status in ('paid', 'refunded') and paid_at >= v_from group by 1
+      )
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'day', d.day::date,
+        'signups', coalesce(su.n, 0),
+        'active', coalesce(ac.n, 0),
+        'events', coalesce(ev.n, 0),
+        'revenue_cents', coalesce(rv.n, 0)
+      ) order by d.day), '[]'::jsonb)
+      from days d
+      left join su on su.day = d.day
+      left join ac on ac.day = d.day
+      left join ev on ev.day = d.day
+      left join rv on rv.day = d.day
+    ),
+    'plans', (
+      select coalesce(jsonb_agg(jsonb_build_object('plan_id', p.id, 'name', p.name, 'accounts', x.n, 'mrr_cents', x.mrr) order by p.sort, p.created_at), '[]'::jsonb)
+      from plans p
+      cross join lateral (
+        select count(a.id) as n, coalesce(sum(subscription_mrr_cents(s.status, s.billing_interval, s.unit_amount_cents)), 0) as mrr
+        from accounts a left join subscriptions s on s.account_id = a.id
+        where a.plan_id = p.id
+      ) x
+    ),
+    'top_features', (
+      select coalesce(jsonb_agg(t order by t.count desc), '[]'::jsonb)
+      from (
+        select event, count(*) as count, count(distinct user_id) as users
+        from usage_events
+        where occurred_at >= v_from and event not like 'user.%' and event not like 'account.%'
+        group by event
+        order by count(*) desc
+        limit 8
+      ) t
+    ),
+    'recent_signups', (
+      select coalesce(jsonb_agg(t order by t.created_at desc), '[]'::jsonb)
+      from (
+        select p.id, p.full_name, p.email, p.avatar_url, p.created_at,
+          coalesce(u.raw_app_meta_data ->> 'provider', 'email') as provider,
+          (select a.name from account_members am join accounts a on a.id = am.account_id where am.user_id = p.id order by am.created_at limit 1) as account_name
+        from profiles p left join auth.users u on u.id = p.id
+        order by p.created_at desc
+        limit 6
+      ) t
+    ),
+    'online_now', (
+      select coalesce(jsonb_agg(t order by t.last_seen_at desc), '[]'::jsonb)
+      from (
+        select p.id, p.full_name, p.email, p.avatar_url, p.last_seen_at,
+          (select s.device from user_sessions s where s.user_id = p.id order by s.last_seen_at desc limit 1) as device
+        from profiles p
+        where p.last_seen_at > now() - interval '5 minutes'
+        order by p.last_seen_at desc
+        limit 12
+      ) t
+    ),
+    -- soporte: tickets que van a Veltro y requerimientos de todas las cuentas
+    'support', (
+      select jsonb_build_object(
+        'tickets_open', count(*) filter (where t.status <> 'resolved'),
+        'tickets_waiting', count(*) filter (where t.status <> 'resolved' and support_veltro_waiting_since(t) is not null),
+        'tickets_urgent', count(*) filter (where t.status <> 'resolved' and t.urgent),
+        'tickets_new', count(*) filter (where t.created_at >= v_from),
+        'tickets_resolved', count(*) filter (where t.resolved_at >= v_from),
+        'requests_received', (select count(*) from feature_requests where status = 'received'),
+        'requests_open', (select count(*) from feature_requests where status in ('received', 'evaluating', 'planned')),
+        'requests_new', (select count(*) from feature_requests where created_at >= v_from)
+      )
+      from support_tickets t
+      where t.destination = 'veltro'
+    )
+  ) into v_out;
+
+  return v_out;
+end;
+$$;
+
+-- ------------------------------------------------------------
+-- Privilegios de ejecución
+-- ------------------------------------------------------------
+
+-- internas: solo las usan las funciones de arriba
+revoke execute on function public.support_veltro_waiting_since(public.support_tickets) from public, anon, authenticated;
+revoke execute on function public.request_title_words(text) from public, anon, authenticated;
+revoke execute on function public.request_words_match(text[], text[]) from public, anon, authenticated;
+grant execute on function public.support_veltro_waiting_since(public.support_tickets) to service_role;
+grant execute on function public.request_title_words(text) to service_role;
+grant execute on function public.request_words_match(text[], text[]) to service_role;
+
+-- consola: usuarios autenticados (cada función valida el rol)
+revoke execute on function public.admin_support_tickets(text, text, text, uuid, boolean, text, integer, integer) from public, anon;
+revoke execute on function public.admin_support_ticket(uuid) from public, anon;
+revoke execute on function public.admin_support_reply(uuid, text) from public, anon;
+revoke execute on function public.admin_support_set_status(uuid, text) from public, anon;
+revoke execute on function public.admin_feature_requests(text, text, text, uuid, text, integer, integer) from public, anon;
+revoke execute on function public.admin_feature_request(uuid) from public, anon;
+revoke execute on function public.admin_feature_request_set_status(uuid, text, text) from public, anon;
+revoke execute on function public.admin_badges() from public, anon;
+revoke execute on function public.admin_overview(integer) from public, anon;
+grant execute on function public.admin_support_tickets(text, text, text, uuid, boolean, text, integer, integer) to authenticated, service_role;
+grant execute on function public.admin_support_ticket(uuid) to authenticated, service_role;
+grant execute on function public.admin_support_reply(uuid, text) to authenticated, service_role;
+grant execute on function public.admin_support_set_status(uuid, text) to authenticated, service_role;
+grant execute on function public.admin_feature_requests(text, text, text, uuid, text, integer, integer) to authenticated, service_role;
+grant execute on function public.admin_feature_request(uuid) to authenticated, service_role;
+grant execute on function public.admin_feature_request_set_status(uuid, text, text) to authenticated, service_role;
+grant execute on function public.admin_badges() to authenticated, service_role;
+grant execute on function public.admin_overview(integer) to authenticated, service_role;
+-- ============================================================
+-- Veltro v2: Pasillo (chats del equipo)
+--
+-- chats          conversación directa o grupo dentro de una cuenta
+-- chat_members   quién está en cada chat y hasta dónde leyó
+-- chat_messages  mensajes y tarjetas (tarea, archivo, doc, invitación) y avisos de sistema
+--
+-- La web escribe directo, sin RPC: crea el chat, se agrega con los demás y después escribe.
+-- Las políticas siguen ese orden. Las respuestas a invitaciones van por chat_rsvp(), porque
+-- se guardan en el mensaje de otra persona.
+-- ============================================================
+
+create table public.chats (
+  id               uuid primary key default gen_random_uuid(),
+  account_id       uuid not null references public.accounts(id) on delete cascade,
+  kind             text not null check (kind in ('direct', 'group')),
+  name             text,
+  created_by       uuid references public.profiles(id) on delete set null,
+  last_message_at  timestamptz,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  -- un directo se muestra con el nombre de la otra persona
+  check ((kind = 'group' and char_length(trim(name)) between 1 and 80) or (kind = 'direct' and name is null))
+);
+
+create index chats_account_recent_idx on public.chats(account_id, last_message_at desc);
+
+create trigger chats_updated_at before update on public.chats
+  for each row execute function public.set_updated_at();
+
+create table public.chat_members (
+  chat_id       uuid not null references public.chats(id) on delete cascade,
+  user_id       uuid not null references public.profiles(id) on delete cascade,
+  role          text not null default 'member' check (role in ('owner', 'member')),
+  last_read_at  timestamptz,
+  created_at    timestamptz not null default now(),
+  primary key (chat_id, user_id)
+);
+
+create index chat_members_user_idx on public.chat_members(user_id);
+
+create table public.chat_messages (
+  id          uuid primary key default gen_random_uuid(),
+  chat_id     uuid not null references public.chats(id) on delete cascade,
+  user_id     uuid references public.profiles(id) on delete set null,
+  kind        text not null default 'text' check (kind in ('text', 'task', 'file', 'doc', 'meeting', 'system')),
+  body        text not null default '' check (char_length(body) <= 4000),
+  -- lo compartido (tarea, adjunto o doc); sin FK porque apunta a tablas distintas
+  ref_id      uuid,
+  meta        jsonb not null default '{}'::jsonb,
+  created_at  timestamptz not null default now(),
+  edited_at   timestamptz,
+  check (kind not in ('task', 'file', 'doc') or ref_id is not null),
+  check (kind <> 'meeting' or meta ? 'invite')
+);
+
+create index chat_messages_chat_time_idx on public.chat_messages(chat_id, created_at desc);
+
+-- ============================================================
+-- Permisos (SECURITY DEFINER para evitar recursión en RLS)
+-- ============================================================
+
+-- Miembro de la cuenta, con la cuenta activa y la persona sin suspender
+create or replace function public.is_active_account_member(p_account uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1
+    from account_members am
+    join accounts a on a.id = am.account_id and a.status = 'active'
+    join profiles p on p.id = am.user_id and p.suspended_at is null
+    where am.account_id = p_account and am.user_id = (select auth.uid())
+  );
+$$;
+
+-- Los chats donde estoy (de cuentas activas y sin estar suspendido)
+create or replace function public.my_chat_ids()
+returns setof uuid
+language sql stable security definer set search_path = public
+as $$
+  select m.chat_id
+  from chat_members m
+  join chats c on c.id = m.chat_id
+  join accounts a on a.id = c.account_id and a.status = 'active'
+  join profiles p on p.id = m.user_id and p.suspended_at is null
+  where m.user_id = (select auth.uid());
+$$;
+
+-- Quién puede sumar gente a un chat: quien lo creó, mientras está vacío (el alta inicial),
+-- o cualquier miembro de un grupo. STABLE a propósito: en el insert de varias filas, todas
+-- ven el chat todavía vacío.
+create or replace function public.can_add_chat_members(p_chat uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from chats c
+    where c.id = p_chat
+      and public.is_active_account_member(c.account_id)
+      and (
+        (c.created_by = (select auth.uid()) and not exists (select 1 from chat_members m where m.chat_id = c.id))
+        or (c.kind = 'group' and exists (select 1 from chat_members m where m.chat_id = c.id and m.user_id = (select auth.uid())))
+      )
+  );
+$$;
+
+-- ============================================================
+-- Triggers
+-- ============================================================
+
+create or replace function public.chats_before_write()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_by := coalesce((select auth.uid()), new.created_by);
+    new.last_message_at := null;
+    new.created_at := now();
+  else
+    new.account_id := old.account_id;
+    new.kind := old.kind;
+    new.created_by := old.created_by;
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger chats_before_write before insert or update on public.chats
+  for each row execute function public.chats_before_write();
+
+-- Solo personas de la cuenta del chat; un directo tiene dos personas
+create or replace function public.chat_members_before_write()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_chat chats%rowtype;
+begin
+  if tg_op = 'UPDATE' then
+    new.chat_id := old.chat_id;
+    new.user_id := old.user_id;
+    new.role := old.role;
+    new.created_at := old.created_at;
+    return new;
+  end if;
+  select * into v_chat from chats where id = new.chat_id;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0001';
+  end if;
+  if not exists (select 1 from account_members where account_id = v_chat.account_id and user_id = new.user_id) then
+    raise exception 'member_not_in_account' using errcode = 'P0001';
+  end if;
+  if v_chat.kind = 'direct' and (select count(*) from chat_members where chat_id = new.chat_id) >= 2 then
+    raise exception 'chat_direct_full' using errcode = 'P0001';
+  end if;
+  new.last_read_at := null;
+  new.created_at := now();
+  return new;
+end;
+$$;
+
+create trigger chat_members_before_write before insert or update on public.chat_members
+  for each row execute function public.chat_members_before_write();
+
+-- Al salir de la cuenta, sale de sus chats
+create or replace function public.cleanup_chat_memberships()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  delete from chat_members cm
+  using chats c
+  where cm.chat_id = c.id
+    and c.account_id = old.account_id
+    and cm.user_id = old.user_id;
+  return old;
+end;
+$$;
+
+create trigger account_members_cleanup_chats after delete on public.account_members
+  for each row execute function public.cleanup_chat_memberships();
+
+create or replace function public.chat_messages_before_write()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.user_id := coalesce((select auth.uid()), new.user_id);
+    new.created_at := now();
+    new.edited_at := null;
+  else
+    new.chat_id := old.chat_id;
+    new.user_id := old.user_id;
+    new.kind := old.kind;
+    new.ref_id := old.ref_id;
+    new.created_at := old.created_at;
+    if new.body is distinct from old.body then
+      new.edited_at := now();
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger chat_messages_before_write before insert or update on public.chat_messages
+  for each row execute function public.chat_messages_before_write();
+
+-- El chat sube en la lista y quien escribe ya leyó hasta aquí
+create or replace function public.chat_messages_after_insert()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  update chats set last_message_at = new.created_at where id = new.chat_id;
+  if new.user_id is not null then
+    update chat_members set last_read_at = new.created_at
+    where chat_id = new.chat_id and user_id = new.user_id;
+  end if;
+  return null;
+end;
+$$;
+
+create trigger chat_messages_after_insert after insert on public.chat_messages
+  for each row execute function public.chat_messages_after_insert();
+
+-- ============================================================
+-- RLS
+-- ============================================================
+
+alter table public.chats enable row level security;
+alter table public.chat_members enable row level security;
+alter table public.chat_messages enable row level security;
+
+-- quien crea el chat lo ve aunque todavía no haya miembros (el insert devuelve la fila)
+create policy chats_select on public.chats for select to authenticated
+  using (
+    id in (select public.my_chat_ids())
+    or (created_by = (select auth.uid()) and public.is_active_account_member(account_id))
+  );
+create policy chats_insert on public.chats for insert to authenticated
+  with check (created_by = (select auth.uid()) and public.is_active_account_member(account_id));
+-- renombrar un grupo (único campo editable, por grant de columna)
+create policy chats_update on public.chats for update to authenticated
+  using (kind = 'group' and id in (select public.my_chat_ids()))
+  with check (kind = 'group' and id in (select public.my_chat_ids()));
+
+create policy chat_members_select on public.chat_members for select to authenticated
+  using (chat_id in (select public.my_chat_ids()));
+create policy chat_members_insert on public.chat_members for insert to authenticated
+  with check (
+    public.can_add_chat_members(chat_id)
+    and (role = 'member' or user_id = (select auth.uid()))
+  );
+-- marcar como leído (único campo editable)
+create policy chat_members_update on public.chat_members for update to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+-- salir del chat
+create policy chat_members_delete on public.chat_members for delete to authenticated
+  using (user_id = (select auth.uid()));
+
+create policy chat_messages_select on public.chat_messages for select to authenticated
+  using (chat_id in (select public.my_chat_ids()));
+create policy chat_messages_insert on public.chat_messages for insert to authenticated
+  with check (user_id = (select auth.uid()) and chat_id in (select public.my_chat_ids()));
+create policy chat_messages_update on public.chat_messages for update to authenticated
+  using (user_id = (select auth.uid()) and chat_id in (select public.my_chat_ids()))
+  with check (user_id = (select auth.uid()) and chat_id in (select public.my_chat_ids()));
+create policy chat_messages_delete on public.chat_messages for delete to authenticated
+  using (user_id = (select auth.uid()) and chat_id in (select public.my_chat_ids()));
+
+revoke update on public.chats from anon, authenticated;
+grant update (name) on public.chats to authenticated;
+revoke update on public.chat_members from anon, authenticated;
+grant update (last_read_at) on public.chat_members to authenticated;
+revoke update on public.chat_messages from anon, authenticated;
+grant update (body) on public.chat_messages to authenticated;
+revoke all on public.chats, public.chat_members, public.chat_messages from anon;
+
+-- ============================================================
+-- Respuesta a una invitación de reunión: se guarda en meta.invite.rsvp del mensaje
+-- ============================================================
+
+create or replace function public.chat_rsvp(p_message uuid, p_answer text)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = 'P0001';
+  end if;
+  if p_answer is null or p_answer not in ('yes', 'maybe', 'no') then
+    raise exception 'invalid_answer' using errcode = 'P0001';
+  end if;
+  update chat_messages
+  set meta = jsonb_set(meta, '{invite,rsvp}', coalesce(meta #> '{invite,rsvp}', '{}'::jsonb) || jsonb_build_object(v_uid::text, p_answer))
+  where id = p_message
+    and kind = 'meeting'
+    and chat_id in (select public.my_chat_ids());
+  if not found then
+    raise exception 'not_found' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+revoke execute on function public.chat_rsvp(uuid, text) from public, anon;
+grant execute on function public.chat_rsvp(uuid, text) to authenticated;
+
+-- ============================================================
+-- Tiempo real (Realtime respeta RLS). Fuera de Supabase la publicación no existe.
+-- ============================================================
+
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    alter publication supabase_realtime add table public.chats, public.chat_members, public.chat_messages;
+  end if;
+end;
+$$;
+-- ============================================================
+-- Veltro v2: Bóveda (todos los archivos y links de la cuenta)
+--
+-- attachments  + account_id: la cuenta dueña (sale del espacio si lo hay)
+--              + workspace_id opcional: sin espacio, el archivo queda suelto en la cuenta
+--              + title, labels: título visible y etiquetas
+--              + chat_id: subido en Pasillo, solo lo ven los miembros del chat
+-- Un archivo se puede mover entre espacios de la misma cuenta; el objeto de Storage
+-- conserva su ruta original, que empieza por la cuenta o por un espacio de esa cuenta.
+-- ============================================================
+
+alter table public.attachments
+  add column if not exists account_id uuid references public.accounts(id) on delete cascade,
+  add column if not exists title text check (title is null or char_length(trim(title)) between 1 and 300),
+  add column if not exists labels text[] not null default '{}' check (cardinality(labels) <= 20),
+  add column if not exists chat_id uuid references public.chats(id) on delete cascade;
+
+update public.attachments a
+set account_id = w.account_id
+from public.workspaces w
+where w.id = a.workspace_id and a.account_id is null;
+
+alter table public.attachments
+  alter column account_id set not null,
+  alter column workspace_id drop not null;
+
+create index if not exists attachments_account_idx on public.attachments(account_id, created_at desc);
+create index if not exists attachments_chat_idx on public.attachments(chat_id);
+create index if not exists attachments_labels_idx on public.attachments using gin (labels);
+create index if not exists attachments_storage_path_idx on public.attachments(storage_path);
+
+-- Integridad: lo vinculado manda sobre el espacio; el espacio, sobre la cuenta
+create or replace function public.attachments_before_write()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_ws uuid;
+  v_acc uuid;
+  v_relinked boolean := false;
+begin
+  if tg_op = 'INSERT' then
+    new.uploaded_by := coalesce((select auth.uid()), new.uploaded_by);
+  else
+    new.uploaded_by := old.uploaded_by;
+    new.account_id := old.account_id;
+    new.chat_id := old.chat_id;
+    new.kind := old.kind;
+    new.storage_path := old.storage_path;
+    new.created_at := old.created_at;
+    -- al vincular a otra tarea, reunión o doc sin elegir espacio, el espacio sale del vínculo
+    v_relinked := new.workspace_id is not distinct from old.workspace_id
+      and (new.task_id is distinct from old.task_id or new.meeting_id is distinct from old.meeting_id or new.doc_id is distinct from old.doc_id);
+  end if;
+
+  if new.task_id is not null then
+    select workspace_id into v_ws from tasks where id = new.task_id;
+  elsif new.meeting_id is not null then
+    select workspace_id into v_ws from meetings where id = new.meeting_id;
+  elsif new.doc_id is not null then
+    select workspace_id into v_ws from docs where id = new.doc_id;
+  end if;
+  if v_ws is not null then
+    if new.workspace_id is not null and new.workspace_id <> v_ws and not v_relinked then
+      raise exception 'attachment_other_workspace' using errcode = 'P0001';
+    end if;
+    new.workspace_id := v_ws;
+  end if;
+  if (new.task_id is not null and not exists (select 1 from tasks where id = new.task_id and workspace_id = new.workspace_id))
+    or (new.meeting_id is not null and not exists (select 1 from meetings where id = new.meeting_id and workspace_id = new.workspace_id))
+    or (new.doc_id is not null and not exists (select 1 from docs where id = new.doc_id and workspace_id = new.workspace_id)) then
+    raise exception 'attachment_other_workspace' using errcode = 'P0001';
+  end if;
+
+  if new.workspace_id is not null then
+    select account_id into v_acc from workspaces where id = new.workspace_id;
+    if tg_op = 'INSERT' and new.account_id is null then
+      new.account_id := v_acc;
+    end if;
+    if v_acc is distinct from new.account_id then
+      raise exception 'attachment_other_workspace' using errcode = 'P0001';
+    end if;
+  end if;
+
+  if new.chat_id is not null and not exists (select 1 from chats where id = new.chat_id and account_id = new.account_id) then
+    raise exception 'attachment_other_workspace' using errcode = 'P0001';
+  end if;
+
+  if tg_op = 'INSERT' and new.kind = 'file'
+    and split_part(new.storage_path, '/', 1) <> new.account_id::text
+    and not exists (select 1 from workspaces where id::text = split_part(new.storage_path, '/', 1) and account_id = new.account_id) then
+    raise exception 'attachment_bad_path' using errcode = 'P0001';
+  end if;
+  if new.kind = 'link' and new.url !~* '^https?://' then
+    raise exception 'attachment_bad_url' using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;
+
+-- de un espacio: según el espacio; suelto: personas de la cuenta (y del chat, si vino de uno)
+drop policy if exists attachments_select on public.attachments;
+drop policy if exists attachments_insert on public.attachments;
+drop policy if exists attachments_update on public.attachments;
+drop policy if exists attachments_delete on public.attachments;
+
+create policy attachments_select on public.attachments for select to authenticated
+  using (
+    (workspace_id is not null and workspace_id in (select public.my_workspace_ids()))
+    or (workspace_id is null and public.is_active_account_member(account_id)
+        and (chat_id is null or chat_id in (select public.my_chat_ids())))
+  );
+create policy attachments_insert on public.attachments for insert to authenticated
+  with check (
+    (workspace_id is not null and workspace_id in (select public.my_editable_workspace_ids()))
+    or (workspace_id is null and public.is_active_account_member(account_id)
+        and (chat_id is null or chat_id in (select public.my_chat_ids())))
+  );
+-- suelto: lo edita quien lo subió o un admin de la cuenta; moverlo a un espacio exige ser editor del destino
+create policy attachments_update on public.attachments for update to authenticated
+  using (
+    (workspace_id is not null and workspace_id in (select public.my_editable_workspace_ids()))
+    or (workspace_id is null and public.is_active_account_member(account_id)
+        and (uploaded_by = (select auth.uid()) or public.is_account_admin(account_id)))
+  )
+  with check (
+    (workspace_id is not null and workspace_id in (select public.my_editable_workspace_ids()))
+    or (workspace_id is null and public.is_active_account_member(account_id)
+        and (uploaded_by = (select auth.uid()) or public.is_account_admin(account_id)))
+  );
+create policy attachments_delete on public.attachments for delete to authenticated
+  using (
+    (workspace_id is not null and workspace_id in (select public.my_editable_workspace_ids()))
+    or (workspace_id is null and public.is_active_account_member(account_id)
+        and (uploaded_by = (select auth.uid()) or public.is_account_admin(account_id)))
+  );
+
+-- Telemetría: la cuenta viene en la fila; también se sube a un chat o suelto
+create or replace function public.usage_on_attachments()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  perform log_usage('attachment.added', new.account_id, new.workspace_id, new.uploaded_by,
+    jsonb_strip_nulls(jsonb_build_object(
+      'kind', new.kind,
+      'bytes', new.size_bytes,
+      'on', case
+        when new.task_id is not null then 'task'
+        when new.meeting_id is not null then 'meeting'
+        when new.doc_id is not null then 'doc'
+        when new.chat_id is not null then 'chat'
+        when new.workspace_id is null then 'account'
+        else 'workspace' end)));
+  return null;
+end;
+$$;
+
+-- ============================================================
+-- Storage: la carpeta puede ser un espacio o una cuenta
+-- ============================================================
+
+create or replace function public.storage_folder_id(p_name text)
+returns uuid
+language plpgsql immutable
+as $$
+begin
+  return (split_part(p_name, '/', 1))::uuid;
+exception when others then
+  return null;
+end;
+$$;
+
+drop policy if exists attachments_select on storage.objects;
+drop policy if exists attachments_insert on storage.objects;
+drop policy if exists attachments_delete on storage.objects;
+
+-- carpeta de un espacio que puedo leer (las imágenes del editor de docs no tienen fila),
+-- o una fila de attachments visible para mí con esa ruta (archivos sueltos, de chat o movidos)
+create policy attachments_select on storage.objects for select to authenticated
+  using (
+    bucket_id = 'attachments'
+    and (
+      public.storage_folder_id(name) in (select public.my_workspace_ids())
+      or exists (select 1 from public.attachments a where a.storage_path = objects.name)
+    )
+  );
+create policy attachments_insert on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'attachments'
+    and (
+      public.storage_folder_id(name) in (select public.my_editable_workspace_ids())
+      or public.is_active_account_member(public.storage_folder_id(name))
+    )
+  );
+create policy attachments_delete on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'attachments'
+    and (
+      public.storage_folder_id(name) in (select public.my_editable_workspace_ids())
+      or (public.is_active_account_member(public.storage_folder_id(name))
+          and (owner_id = (select auth.uid())::text or public.is_account_admin(public.storage_folder_id(name))))
+    )
+  );
+
+-- ============================================================
+-- Consola: admin_storage cuenta por attachments.account_id (incluye los archivos sueltos)
+-- ============================================================
+
+create or replace function public.admin_storage(p_account uuid default null, p_days integer default 30)
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+declare
+  v_days integer := least(greatest(coalesce(p_days, 30), 1), 730);
+  v_since timestamptz := date_trunc('day', now()) - make_interval(days => v_days - 1);
+  v_prev timestamptz := date_trunc('day', now()) - make_interval(days => 2 * v_days - 1);
+  v_out jsonb;
+begin
+  perform platform_assert();
+
+  -- cada adjunto con su cuenta (también los sueltos); todo lo de abajo sale de acá
+  with f0 as materialized (
+    select at.id, at.name, at.mime_type, coalesce(at.size_bytes, 0)::bigint as bytes, at.kind, at.created_at, at.uploaded_by, at.workspace_id, at.account_id
+    from attachments at
+  )
+  select jsonb_build_object(
+    'days', v_days,
+    'totals', (
+      select jsonb_build_object(
+        'bytes', coalesce(sum(f.bytes) filter (where f.kind = 'file'), 0),
+        'files', count(*) filter (where f.kind = 'file'),
+        'links', count(*) filter (where f.kind = 'link'),
+        'accounts', count(distinct f.account_id) filter (where f.kind = 'file'),
+        'workspaces', count(distinct f.workspace_id) filter (where f.kind = 'file'),
+        'uploaders', count(distinct f.uploaded_by) filter (where f.kind = 'file'),
+        'period_bytes', coalesce(sum(f.bytes) filter (where f.kind = 'file' and f.created_at >= v_since), 0),
+        'period_files', count(*) filter (where f.kind = 'file' and f.created_at >= v_since),
+        'prev_bytes', coalesce(sum(f.bytes) filter (where f.kind = 'file' and f.created_at >= v_prev and f.created_at < v_since), 0)
+      )
+      from f0 f
+    ),
+    -- lo que se sube por día en el período (en bytes y archivos)
+    'series', (
+      select coalesce(jsonb_agg(jsonb_build_object('day', d.day::date, 'bytes', coalesce(s.bytes, 0), 'files', coalesce(s.files, 0)) order by d.day), '[]'::jsonb)
+      from generate_series(v_since, date_trunc('day', now()), interval '1 day') as d(day)
+      left join (
+        select date_trunc('day', f.created_at) as day, sum(f.bytes) as bytes, count(*) as files
+        from f0 f
+        where f.kind = 'file' and f.created_at >= v_since
+        group by 1
+      ) s on s.day = d.day
+    ),
+    'by_type', (
+      select coalesce(jsonb_agg(jsonb_build_object('type', x.t, 'files', x.n, 'bytes', x.b) order by x.b desc), '[]'::jsonb)
+      from (
+        -- el orden importa: los tipos de Office dicen "officedocument" aunque sean hojas o presentaciones
+        select case
+            when f.mime_type like 'image/%' then 'image'
+            when f.mime_type like 'video/%' then 'video'
+            when f.mime_type = 'application/pdf' then 'pdf'
+            when f.mime_type ~ '(spreadsheet|excel|csv)' then 'sheet'
+            when f.mime_type ~ '(presentation|powerpoint)' then 'slides'
+            when f.mime_type ~ '(word|document|text/)' then 'doc'
+            else 'other' end as t,
+          count(*) as n, coalesce(sum(f.bytes), 0) as b
+        from f0 f
+        where f.kind = 'file' and (p_account is null or f.account_id = p_account)
+        group by 1
+      ) x
+    ),
+    -- todas las cuentas con archivos, de la que más ocupa a la que menos
+    'accounts', (
+      select coalesce(jsonb_agg(to_jsonb(x) order by x.bytes desc, x.files desc), '[]'::jsonb)
+      from (
+        select a.id, a.name, a.plan_id, a.status,
+          coalesce(sum(f.bytes) filter (where f.kind = 'file'), 0) as bytes,
+          count(*) filter (where f.kind = 'file') as files,
+          count(*) filter (where f.kind = 'link') as links,
+          count(distinct f.workspace_id) filter (where f.kind = 'file') as workspaces,
+          count(distinct f.uploaded_by) filter (where f.kind = 'file') as uploaders,
+          coalesce(sum(f.bytes) filter (where f.kind = 'file' and f.created_at >= v_since), 0) as period_bytes,
+          max(f.created_at) filter (where f.kind = 'file') as last_upload_at,
+          coalesce(max(f.bytes) filter (where f.kind = 'file'), 0) as largest_bytes
+        from f0 f join accounts a on a.id = f.account_id
+        group by a.id
+        having count(*) filter (where f.kind = 'file') > 0
+        order by 5 desc
+        limit 500
+      ) x
+    ),
+    'top_workspaces', (
+      select coalesce(jsonb_agg(to_jsonb(x) order by x.bytes desc), '[]'::jsonb)
+      from (
+        select w.id, w.name, w.icon, w.color, w.archived_at, a.id as account_id, a.name as account_name,
+          sum(f.bytes) as bytes, count(*) as files, max(f.created_at) as last_upload_at
+        from f0 f join workspaces w on w.id = f.workspace_id join accounts a on a.id = f.account_id
+        where f.kind = 'file' and (p_account is null or f.account_id = p_account)
+        group by w.id, a.id
+        order by 8 desc
+        limit case when p_account is null then 15 else 200 end
+      ) x
+    ),
+    -- por persona dentro de cada cuenta: quien sube a dos cuentas aparece en las dos
+    'top_users', (
+      select coalesce(jsonb_agg(to_jsonb(x) order by x.bytes desc), '[]'::jsonb)
+      from (
+        select p.id, p.full_name, p.email, p.avatar_url, a.id as account_id, a.name as account_name,
+          sum(f.bytes) as bytes, count(*) as files, count(distinct f.workspace_id) as workspaces, max(f.created_at) as last_upload_at
+        from f0 f join accounts a on a.id = f.account_id left join profiles p on p.id = f.uploaded_by
+        where f.kind = 'file' and (p_account is null or f.account_id = p_account)
+        group by p.id, a.id
+        order by 7 desc
+        limit case when p_account is null then 15 else 200 end
+      ) x
+    ),
+    -- detalle de una cuenta: lo de arriba ya viene filtrado; acá sus datos y sus archivos más pesados
+    'account', case when p_account is null then null else (
+      select jsonb_build_object(
+        'id', a.id, 'name', a.name, 'plan_id', a.plan_id, 'status', a.status,
+        'bytes', coalesce((select sum(f.bytes) from f0 f where f.account_id = a.id and f.kind = 'file'), 0),
+        'files', (select count(*) from f0 f where f.account_id = a.id and f.kind = 'file'),
+        'links', (select count(*) from f0 f where f.account_id = a.id and f.kind = 'link'),
+        'period_bytes', coalesce((select sum(f.bytes) from f0 f where f.account_id = a.id and f.kind = 'file' and f.created_at >= v_since), 0),
+        'largest', (
+          select coalesce(jsonb_agg(to_jsonb(x) order by x.bytes desc), '[]'::jsonb)
+          from (
+            select f.id, f.name, f.mime_type, f.bytes, f.created_at, w.id as workspace_id, w.name as workspace_name,
+              p.id as uploader_id, p.full_name as uploader_name
+            from f0 f left join workspaces w on w.id = f.workspace_id left join profiles p on p.id = f.uploaded_by
+            where f.account_id = a.id and f.kind = 'file'
+            order by f.bytes desc
+            limit 15
+          ) x
+        )
+      )
+      from accounts a where a.id = p_account
+    ) end
+  ) into v_out;
+
+  return v_out;
+end;
+$$;
+
+revoke execute on function public.admin_storage(uuid, integer) from public, anon;
+grant execute on function public.admin_storage(uuid, integer) to authenticated, service_role;
 commit;

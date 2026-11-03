@@ -658,6 +658,14 @@ export function executeRpc(name: string, args: Record<string, unknown>): Result 
       case 'touch_presence':
       case 'track_events':
         return { data: null, error: null }
+      case 'chat_rsvp': {
+        const msg = s.tables.chat_messages.find((m) => m.id === args.p_message)
+        const invite = (msg?.meta as { invite?: { rsvp?: Record<string, string> } } | undefined)?.invite
+        if (!msg || !invite) throw new DbError('not_found')
+        invite.rsvp = { ...invite.rsvp, [DEMO_USER_ID]: String(args.p_answer) }
+        persist()
+        return { data: null, error: null }
+      }
       case 'workspace_role_for':
         return { data: workspaceRoleFor(s, String(args.p_workspace), String(args.p_user)), error: null }
       case 'create_account': {
