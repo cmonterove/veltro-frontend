@@ -14,7 +14,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { useChats } from '@/lib/queries/chats'
 import { useTasks } from '@/lib/queries/tasks'
 import { useMeetingsInRange } from '@/lib/queries/meetings'
-import { useVaultFiles } from '@/lib/queries/attachments'
+import { useVaultPage, useVaultSummary } from '@/lib/queries/attachments'
 import { isAssignedTo } from '@/lib/assignees'
 import { matchesCounter, type Counter } from '@/lib/scope'
 import { cn } from '@/lib/utils'
@@ -196,13 +196,18 @@ function MeetingsPeek() {
   )
 }
 
+const NO_VAULT_FILTERS = {}
+
 function VaultPeek() {
   const tp = useTranslations('nav.peek')
-  const { data } = useVaultFiles()
-  if (!data) return <PeekLoading />
+  // los tres más nuevos (primera página de la bóveda) y el total que da el resumen
+  const { data } = useVaultPage(NO_VAULT_FILTERS)
+  const { data: summary } = useVaultSummary(NO_VAULT_FILTERS)
+  const recent = data?.pages[0]?.items
+  if (!recent) return <PeekLoading />
   return (
-    <PeekSection title={tp('files', { count: data.length })}>
-      {data.slice(0, 3).map((a) => (
+    <PeekSection title={tp('files', { count: summary?.total.count ?? recent.length })}>
+      {recent.slice(0, 3).map((a) => (
         <Link key={a.id} href={`/vault?file=${a.id}`} className="flex h-8 items-center gap-2 rounded-md px-2 hover:bg-hover">
           <FileKindIcon a={a} />
           <span className="min-w-0 flex-1 truncate">{fileTitle(a)}</span>

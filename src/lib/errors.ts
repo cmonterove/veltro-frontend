@@ -18,6 +18,28 @@ const KNOWN = [
   'department_other_account',
   'invalid_statuses',
   'invalid_status',
+  // adjuntos y bóveda (API)
+  'file_type',
+  'file_too_large',
+  'file_empty',
+  'file_content_mismatch',
+  'file_size_mismatch',
+  'file_not_uploaded',
+  'invalid_upload_token',
+  'upload_failed',
+  'already_registered',
+  'attachment_other_workspace',
+  'chat_attachment_linked',
+  // Pasillo (API)
+  'group_needs_people',
+  'chat_direct_full',
+  'chat_is_direct',
+  'direct_self',
+  'ref_not_found',
+  'ref_other_account',
+  'reply_not_found',
+  'invite_past',
+  'not_an_invite',
 ] as const
 
 export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email'

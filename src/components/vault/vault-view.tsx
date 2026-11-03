@@ -1,6 +1,6 @@
 'use client'
 
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { formatDistanceToNowStrict } from 'date-fns'
@@ -12,13 +12,14 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { Tooltip } from '@/components/ui/tooltip'
 import { FilterFacet, type FilterOption } from '@/components/tasks/task-filters'
 import { LabelChip } from '@/components/tasks/pickers'
 import { formatBytes } from '@/components/attachments/attachments'
 import { ShareToChatDialog, type ShareItem } from '@/components/chat/share-to-chat'
 import { DocsHub } from '@/components/docs/docs-hub'
-import { useVaultFiles } from '@/lib/queries/attachments'
+import { useAttachment, useVaultPage, useVaultSummary, type VaultQuery } from '@/lib/queries/attachments'
 import { useDocsIn } from '@/lib/queries/docs'
 import { useTasks } from '@/lib/queries/tasks'
 import { useDateLocale } from '@/lib/dates'
@@ -36,15 +37,27 @@ const NO_FILTERS: VaultFilters = { kind: [], ws: [], link: [], label: [], who: [
 const NONE = 'none'
 const LINKS = ['task', 'meeting', 'doc', NONE] as const
 
-const linkKeys = (a: AttachmentRow) => {
-  const keys = [a.task_id && 'task', a.meeting_id && 'meeting', a.doc_id && 'doc'].filter(Boolean) as string[]
-  return keys.length ? keys : [NONE]
+/** Cuántos quedan con una opción de un filtro (lo cuenta el servidor aplicando los demás filtros). */
+const countIn = (facet: { value: string; count: number }[] | undefined) => {
+  const m = new Map((facet ?? []).map((f) => [f.value, f.count]))
+  return (v: string) => m.get(v) ?? 0
+}
+
+/** Lo que se escribe en el buscador llega al servidor con una pequeña pausa (no en cada tecla). */
+function useDebounced<T>(value: T, ms = 250) {
+  const [v, setV] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), ms)
+    return () => clearTimeout(id)
+  }, [value, ms])
+  return v
 }
 
 /**
  * La bóveda: todos los archivos y links de la cuenta en un lugar. Cada uno puede tener título y
  * etiquetas y colgar de un espacio, una tarea o una reunión, pero no hace falta: lo que se sube aquí
  * queda suelto hasta que se vincule. La pestaña "Escritos" junta los documentos de los espacios.
+ * Filtros, conteos y etiquetas los resuelve la API; la lista llega de a páginas.
  */
 export function VaultView() {
   const t = useTranslations('vault')
@@ -55,12 +68,18 @@ export function VaultView() {
   const wsMap = useWorkspaceMap()
   const memberMap = useMemberMap()
   const wsIds = useMemo(() => [...workspaces, ...observedWorkspaces].map((w) => w.id), [workspaces, observedWorkspaces])
-  const { data: files, isLoading, isError, refetch } = useVaultFiles()
+  const [query, setQuery] = useState('')
+  const [filters, setFilters] = useLocalStorage<VaultFilters>('veltro:vault-filters', NO_FILTERS)
+  const q = useDebounced(query.trim()).slice(0, 200)
+  const serverFilters: VaultQuery = useMemo(
+    () => ({ q: q || undefined, category: filters.kind, workspaceId: filters.ws, linkedTo: filters.link, label: filters.label, uploadedBy: filters.who }),
+    [q, filters],
+  )
+  const page = useVaultPage(serverFilters)
+  const { data: summary } = useVaultSummary(serverFilters)
   const { data: docs } = useDocsIn(wsIds)
   const { data: tasks } = useTasks({ kind: 'workspaces', workspaceIds: wsIds })
   const taskById = useMemo(() => new Map((tasks ?? []).map((x) => [x.id, x])), [tasks])
-  const [query, setQuery] = useState('')
-  const [filters, setFilters] = useLocalStorage<VaultFilters>('veltro:vault-filters', NO_FILTERS)
   const [view, setView] = useLocalStorage<'grid' | 'list'>('veltro:vault-view', 'grid')
   const [dragging, setDragging] = useState(false)
   const [sharing, setSharing] = useState<ShareItem | null>(null)
@@ -75,38 +94,19 @@ export function VaultView() {
     window.history.replaceState(null, '', `${pathname}${next.toString() ? `?${next}` : ''}`)
   }
 
-  // la búsqueda filtra con un pequeño margen: escribir no recalcula todo en cada tecla
-  const deferredQuery = useDeferredValue(query)
-  const q = deferredQuery.trim().toLowerCase()
-  const matches = (a: AttachmentRow, skip?: FilterKey) =>
-    (!q ||
-      fileTitle(a).toLowerCase().includes(q) ||
-      a.name.toLowerCase().includes(q) ||
-      a.labels.some((l) => l.toLowerCase().includes(q)) ||
-      (a.url ?? '').toLowerCase().includes(q)) &&
-    (skip === 'kind' || !filters.kind.length || filters.kind.includes(fileKindOf(a))) &&
-    (skip === 'ws' || !filters.ws.length || filters.ws.includes(a.workspace_id ?? NONE)) &&
-    (skip === 'link' || !filters.link.length || linkKeys(a).some((k) => filters.link.includes(k))) &&
-    (skip === 'label' || !filters.label.length || a.labels.some((l) => filters.label.includes(l))) &&
-    (skip === 'who' || !filters.who.length || filters.who.includes(a.uploaded_by ?? ''))
-
-  const all = useMemo(() => files ?? [], [files])
-  const shown = all.filter((a) => matches(a))
-  const selected = selectedId ? all.find((a) => a.id === selectedId) : undefined
+  const shown = useMemo(() => page.data?.pages.flatMap((p) => p.items) ?? [], [page.data])
+  // el abierto puede no estar en lo cargado (un link desde un chat, o filtrado): se pide aparte
+  const { data: selected } = useAttachment(selectedId)
+  const total = summary?.total.count ?? 0
+  const loaded = Boolean(page.data && summary)
   const active = filters.kind.length + filters.ws.length + filters.link.length + filters.label.length + filters.who.length
   const filtering = active > 0 || q !== ''
-  const labels = useMemo(() => [...new Set(all.flatMap((a) => a.labels))].sort((a, b) => a.localeCompare(b)), [all])
+  const labels = useMemo(() => (summary?.facets.label ?? []).map((l) => l.value).sort((a, b) => a.localeCompare(b)), [summary])
 
-  const tally = (k: FilterKey, keysOf: (a: AttachmentRow) => string[]) => {
-    const m = new Map<string, number>()
-    for (const a of all) if (matches(a, k)) for (const key of keysOf(a)) m.set(key, (m.get(key) ?? 0) + 1)
-    return (v: string) => m.get(v) ?? 0
-  }
-  const kindN = tally('kind', (a) => [fileKindOf(a)])
-  const wsN = tally('ws', (a) => [a.workspace_id ?? NONE])
-  const linkN = tally('link', linkKeys)
-  const labelN = tally('label', (a) => a.labels)
-  const whoN = tally('who', (a) => (a.uploaded_by ? [a.uploaded_by] : []))
+  const kindN = countIn(summary?.facets.category)
+  const wsN = countIn(summary?.facets.workspace)
+  const linkN = countIn(summary?.facets.linkedTo)
+  const labelN = countIn(summary?.facets.label)
   const options: Record<FilterKey, FilterOption[]> = {
     kind: FILE_KINDS.map((k) => {
       const Icon = KIND_STYLE[k].icon
@@ -135,21 +135,37 @@ export function VaultView() {
       count: linkN(k),
     })),
     label: labels.map((l) => ({ value: l, label: l, icon: <span className="mx-[3px] size-2 shrink-0 rounded-full bg-fg-subtle" />, count: labelN(l) })),
-    who: [...new Set(all.flatMap((a) => (a.uploaded_by ? [a.uploaded_by] : [])))]
-      .map((id) => {
-        const m = memberMap.get(id)
-        return { value: id, label: m?.full_name ?? '?', icon: <Avatar name={m?.full_name} src={m?.avatar_url} seed={id} size={18} />, count: whoN(id) }
+    who: (summary?.facets.uploadedBy ?? [])
+      .map((u) => {
+        const m = memberMap.get(u.value)
+        const name = m?.full_name ?? u.fullName ?? '?'
+        return { value: u.value, label: name, icon: <Avatar name={name} src={m?.avatar_url ?? u.avatarUrl} seed={u.value} size={18} />, count: u.count }
       })
       .sort((a, b) => Number(b.value === user.id) - Number(a.value === user.id) || a.label.localeCompare(b.label)),
   }
   const toggle = (k: FilterKey) => (v: string, on: boolean) => setFilters((f) => ({ ...f, [k]: on ? [...f[k].filter((x) => x !== v), v] : f[k].filter((x) => x !== v) }))
   const clear = (k: FilterKey) => () => setFilters((f) => ({ ...f, [k]: [] }))
 
+  // al llegar al final de lo cargado, la página siguiente
+  const more = useRef<HTMLDivElement>(null)
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = page
+  useEffect(() => {
+    const el = more.current
+    if (!el || !hasNextPage) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && !isFetchingNextPage) fetchNextPage()
+      },
+      { rootMargin: '400px 0px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, shown.length])
+
   // lo que se sube va al espacio filtrado (si hay uno solo y se puede editar); si no, queda suelto
   const target = filters.ws.length === 1 && filters.ws[0] !== NONE && canEdit(wsMap.get(filters.ws[0])) ? filters.ws[0] : null
   // subir abre el formulario (título, etiquetas, vínculos); soltar archivos también, ya con ellos cargados
   const [uploading, setUploading] = useState<{ mode: UploadMode; files?: File[] } | null>(null)
-  const totalBytes = all.reduce((n, a) => n + (a.size_bytes ?? 0), 0)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -157,7 +173,7 @@ export function VaultView() {
         <div className="flex flex-wrap items-start gap-3">
           <div className="mr-auto min-w-0">
             <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
-            <p className="truncate text-sm text-fg-muted">{files ? t('subtitle', { count: all.length, size: formatBytes(totalBytes) || '0 KB' }) : ' '}</p>
+            <p className="truncate text-sm text-fg-muted">{summary ? t('subtitle', { count: total, size: formatBytes(summary.total.bytes) || '0 KB' }) : ' '}</p>
           </div>
           {tab === 'files' ? (
             <>
@@ -186,7 +202,7 @@ export function VaultView() {
             >
               {id === 'files' ? <Vault className="size-4" /> : <FileText className="size-4" />}
               {t(`tabs.${id}`)}
-              <span className="text-xs tabular-nums text-fg-subtle">{id === 'files' ? (files?.length ?? '') : (docs?.length ?? '')}</span>
+              <span className="text-xs tabular-nums text-fg-subtle">{id === 'files' ? (summary ? total : '') : (docs?.length ?? '')}</span>
             </button>
           ))}
         </nav>
@@ -245,8 +261,8 @@ export function VaultView() {
               ) : null}
             </div>
             <div className="flex h-8 shrink-0 items-center gap-2">
-              {filtering && files ? (
-                <span className="whitespace-nowrap text-xs tabular-nums text-fg-subtle">{t('shownOf', { shown: shown.length, count: all.length })}</span>
+              {filtering && summary ? (
+                <span className="whitespace-nowrap text-xs tabular-nums text-fg-subtle">{t('shownOf', { shown: summary.matching.count, count: total })}</span>
               ) : null}
               <div className="flex items-center rounded-lg bg-hover p-0.5" role="group" aria-label={t('viewLabel')}>
                 {(['grid', 'list'] as const).map((v) => (
@@ -288,15 +304,15 @@ export function VaultView() {
               }}
             >
               <div className="px-4 pb-24 pt-5 sm:px-6">
-                {isError ? (
-                  <ErrorState onRetry={() => refetch()} />
-                ) : isLoading || !files ? (
+                {page.isError ? (
+                  <ErrorState onRetry={() => page.refetch()} />
+                ) : !loaded ? (
                   <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-3 @5xl:grid-cols-4">
                     {[0, 1, 2, 3, 4, 5].map((i) => (
                       <Skeleton key={i} className="h-52 rounded-xl" />
                     ))}
                   </div>
-                ) : all.length === 0 ? (
+                ) : total === 0 ? (
                   <EmptyState
                     icon={<Vault />}
                     title={t('emptyTitle')}
@@ -395,6 +411,12 @@ export function VaultView() {
                     })}
                   </ul>
                 )}
+                {/* al acercarse, se pide la página siguiente */}
+                {loaded && hasNextPage ? (
+                  <div ref={more} className="flex justify-center py-6">
+                    {isFetchingNextPage ? <Spinner className="size-4 text-fg-subtle" /> : null}
+                  </div>
+                ) : null}
               </div>
 
               {dragging ? (

@@ -41,20 +41,20 @@ export function FileKindIcon({ a, className }: { a: Pick<AttachmentRow, 'kind' |
   return <Icon className={cn('size-4 shrink-0', tone, className)} aria-hidden />
 }
 
-/** URL para ver una imagen (en el demo es una data URL). */
-export function useImageUrl(a: Pick<AttachmentRow, 'kind' | 'mime_type' | 'storage_path'> | null) {
-  const [src, setSrc] = useState<{ path: string; url: string | null } | null>(null)
-  const path = a && a.kind === 'file' && a.mime_type?.startsWith('image/') ? a.storage_path : null
-  // depende de la ruta, no del objeto: así un refresco de la lista no vuelve a firmar ni parpadea
+/** URL para ver una imagen (la vista previa que firma la API). */
+export function useImageUrl(a: Pick<AttachmentRow, 'id' | 'kind' | 'mime_type'> | null) {
+  const [src, setSrc] = useState<{ id: string; url: string | null } | null>(null)
+  const id = a && a.kind === 'file' && a.mime_type?.startsWith('image/') ? a.id : null
+  // depende del id, no del objeto: así un refresco de la lista no vuelve a firmar ni parpadea
   useEffect(() => {
-    if (!path) return
+    if (!id) return
     let alive = true
-    attachmentPreviewUrl({ storage_path: path } as AttachmentRow).then((url) => alive && setSrc({ path, url }))
+    attachmentPreviewUrl(id).then((url) => alive && setSrc({ id, url }))
     return () => {
       alive = false
     }
-  }, [path])
-  return path && src?.path === path ? src.url : null
+  }, [id])
+  return id && src?.id === id ? src.url : null
 }
 
 export function safeHost(url: string | null) {

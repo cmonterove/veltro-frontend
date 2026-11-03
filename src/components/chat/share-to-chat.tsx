@@ -26,7 +26,7 @@ export function ShareToChatDialog({ open, onOpenChange, item }: { open: boolean;
   const router = useRouter()
   const { members, user } = useApp()
   const { data: chats } = useChats()
-  const { share, openDirect } = useChatMutations()
+  const { share } = useChatMutations()
   const chatName = useChatName()
   const [picked, setPicked] = useState<string[]>([])
   const [q, setQ] = useState('')
@@ -64,15 +64,18 @@ export function ShareToChatDialog({ open, onOpenChange, item }: { open: boolean;
     if (!item || !picked.length) return
     setSending(true)
     try {
-      const chatIds: string[] = []
-      for (const key of picked) chatIds.push(key.startsWith('user:') ? await openDirect.mutateAsync(key.slice(5)) : key)
+      // a las personas sin directo les llega por uno nuevo: lo abre el servidor en el mismo paso
+      const chatIds = picked.filter((key) => !key.startsWith('user:'))
+      const userIds = picked.filter((key) => key.startsWith('user:')).map((key) => key.slice(5))
       const body = [note.trim(), item.text ?? ''].filter(Boolean).join('\n\n')
-      await share.mutateAsync({ chatIds, kind: item.kind, refId: item.refId ?? null, body, meta: item.meta })
+      const sentTo = await share.mutateAsync({ chatIds, userIds, kind: item.kind, refId: item.refId ?? null, body, meta: item.meta })
       toast.success(
-        t('sent', { count: chatIds.length }),
-        chatIds.length === 1 ? { action: { label: t('goToChat'), onClick: () => router.push(`/chat/${chatIds[0]}`) } } : undefined,
+        t('sent', { count: sentTo.length }),
+        sentTo.length === 1 ? { action: { label: t('goToChat'), onClick: () => router.push(`/chat/${sentTo[0]}`) } } : undefined,
       )
       close(false)
+    } catch {
+      // el aviso del error ya lo mostró la mutación
     } finally {
       setSending(false)
     }

@@ -36,7 +36,7 @@ import {
   Compass,
 } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from './app-context'
-import { useChats } from '@/lib/queries/chats'
+import { useChatUnread } from '@/lib/queries/chats'
 import {
   Menu,
   MenuContent,
@@ -87,8 +87,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
   const { workspaces, accounts } = useApp()
   const isAdmin = useIsAccountAdmin()
   // mensajes sin leer en Pasillo, sumando todos los chats
-  const { data: chats } = useChats()
-  const unread = (chats ?? []).reduce((n, c) => n + c.unread, 0)
+  const unread = useChatUnread().data?.total ?? 0
 
   const top: { href: string; label: string; icon: typeof Activity; keys: string[]; badge?: number }[] = [
     { href: '/home', label: t('today'), icon: Activity, keys: ['G', 'H'] },

@@ -14,7 +14,7 @@ import { isTypingTarget } from '@/lib/hooks'
 import { useApp } from './app-context'
 import { ConfirmProvider } from '@/components/ui/confirm'
 import { TourProvider } from '@/components/tour/tour'
-import { useChats } from '@/lib/queries/chats'
+import { useChatUnread } from '@/lib/queries/chats'
 import Link from 'next/link'
 import { Ban, KeyRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -75,8 +75,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [paletteOpen])
 
   // lo que falta leer en Pasillo también se ve en la pestaña del navegador: "(3) Pulso · Veltro"
-  const { data: chats } = useChats()
-  const unread = (chats ?? []).reduce((n, c) => n + c.unread, 0)
+  const unread = useChatUnread().data?.total ?? 0
   useEffect(() => {
     const prefix = unread ? `(${unread > 99 ? '99+' : unread}) ` : ''
     const apply = () => {

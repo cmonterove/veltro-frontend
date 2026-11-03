@@ -57,16 +57,16 @@ export function FileInspector({ file, labelSuggestions, onClose, onShare }: { fi
   const task = file.task_id ? (tasks ?? []).find((x) => x.id === file.task_id) : undefined
   const meeting = file.meeting_id ? (meetings ?? []).find((m) => m.id === file.meeting_id) : undefined
 
-  // al vincular a algo de otro espacio, lo que colgaba del espacio anterior se suelta
+  // al vincular a algo de otro espacio, el archivo se muda ahí y lo que colgaba del espacio anterior se suelta
   const linkTask = (id: string) => {
     const target = (tasks ?? []).find((x) => x.id === id)
     const moves = target && target.workspace_id !== file.workspace_id
-    set({ task_id: id, ...(moves ? { meeting_id: null, doc_id: null } : {}) })
+    set({ task_id: id, ...(moves ? { workspace_id: target.workspace_id, meeting_id: null, doc_id: null } : {}) })
   }
   const linkMeeting = (id: string) => {
     const target = (meetings ?? []).find((m) => m.id === id)
     const moves = target && target.workspace_id !== file.workspace_id
-    set({ meeting_id: id, ...(moves ? { task_id: null, doc_id: null } : {}) })
+    set({ meeting_id: id, ...(moves ? { workspace_id: target.workspace_id, task_id: null, doc_id: null } : {}) })
   }
   const saveTitle = () => {
     const next = title.trim()
