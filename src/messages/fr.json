@@ -1017,7 +1017,6 @@
     "google_unreachable": "Impossible de joindre Google. Réessayez.",
     "google_error": "Google Agenda a renvoyé une erreur. Réessayez.",
     "unknown_calendar": "Cet agenda n’est plus dans votre compte Google.",
-    "rate_limited": "Trop de tentatives d’affilée. Patientez un instant.",
     "email_taken": "Cet e-mail est déjà utilisé.",
     "invalid_email": "Cet e-mail n'est pas valide.",
     "notFoundTitle": "Page introuvable",

@@ -1017,7 +1017,6 @@
     "google_unreachable": "We couldn’t reach Google. Try again.",
     "google_error": "Google Calendar returned an error. Try again.",
     "unknown_calendar": "That calendar is no longer in your Google account.",
-    "rate_limited": "Too many attempts in a row. Wait a moment.",
     "email_taken": "That email is already in use.",
     "invalid_email": "That email isn't valid.",
     "notFoundTitle": "We couldn't find this page",
