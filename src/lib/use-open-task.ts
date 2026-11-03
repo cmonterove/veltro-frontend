@@ -38,8 +38,8 @@ export function useOpenTask() {
         // sin sessionStorage, Volver lleva a las tareas del espacio
       }
       if (task && ws) {
+        // la fila de una lista no trae la descripción: la página pide la tarea completa
         qc.setQueryData(taskRefKey(ws.id, task.number), task.id)
-        qc.setQueryData(taskKeys.one(task.id), task)
         router.push(taskPath(ws.key, task.number))
       } else router.push(`/tasks/${id}`)
     },

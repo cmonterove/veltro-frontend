@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { addDays, differenceInCalendarDays, format, isToday, parseISO, startOfDay } from 'date-fns'
+import { differenceInCalendarDays, format, isToday, parseISO, startOfDay } from 'date-fns'
 import { ArrowRight, CheckCheck, OctagonPause } from 'lucide-react'
 import { useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
@@ -12,6 +12,8 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { LoadBar, LoadLegend, type Load } from '@/components/charts/load-bar'
 import type { Counter, ScopeOption } from '@/lib/scope'
 import { assigneesOf } from '@/lib/assignees'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { ApiTaskStats } from '@/lib/api/tareas'
 import { useOpenTask } from '@/lib/use-open-task'
 import { useDateLocale, toDateKey } from '@/lib/dates'
 import { cn, taskRef } from '@/lib/utils'
@@ -19,17 +21,29 @@ import type { TaskRow } from '@/lib/database.types'
 
 type Tab = 'list' | 'calendar'
 
+/** Carga de la API (en riesgo, en curso, resto) con los nombres de la barra. */
+const toLoad = (l: { atRisk: number; inProgress: number; rest: number; overdue?: number; blocked?: number }): Load => ({
+  risk: l.atRisk,
+  progress: l.inProgress,
+  rest: l.rest,
+  overdue: l.overdue,
+  blocked: l.blocked,
+})
+
 /**
  * Resumen de las tareas del alcance. De arriba abajo: qué urge (frase y lista accionable), cómo viene el
  * ritmo (cerradas contra nuevas), qué se viene (próximas dos semanas) y dónde está la carga.
  */
 export function TasksDashboard({
   tasks,
+  stats,
   scope,
   onFilter,
   onTab,
 }: {
   tasks: TaskRow[]
+  /** cifras del alcance calculadas por la API (GET /v1/tasks/stats de los últimos 14 días) */
+  stats: ApiTaskStats | undefined
   scope: ScopeOption
   onFilter: (c: Counter) => void
   onTab: (tab: Tab) => void
@@ -43,81 +57,62 @@ export function TasksDashboard({
   const todayKey = toDateKey(today)
   const multi = scope.kind !== 'me'
 
+  // listas (lo que se puede abrir): de las tareas cargadas
   const open = useMemo(() => tasks.filter((x) => x.status !== 'done'), [tasks])
   const lateDays = (x: TaskRow) => (x.due_date && x.due_date < todayKey ? differenceInCalendarDays(today, parseISO(x.due_date)) : 0)
   const overdue = open.filter((x) => lateDays(x) > 0).sort((a, b) => lateDays(b) - lateDays(a))
   const blocked = open.filter((x) => x.status === 'blocked')
   const dueToday = open.filter((x) => x.due_date === todayKey)
-  const doneWeek = tasks.filter((x) => x.status === 'done' && x.completed_at && new Date(x.completed_at) >= addDays(today, -6)).length
-  const spaces = new Set(open.map((x) => x.workspace_id)).size
-
-  const loadOf = (list: TaskRow[]): Load => {
-    const risky = list.filter((x) => lateDays(x) > 0 || x.status === 'blocked')
-    const progress = list.filter((x) => x.status === 'in_progress' && !risky.includes(x)).length
-    return {
-      risk: risky.length,
-      progress,
-      rest: list.length - risky.length - progress,
-      overdue: list.filter((x) => lateDays(x) > 0).length,
-      blocked: list.filter((x) => x.status === 'blocked').length,
-    }
-  }
-  const total = loadOf(open)
 
   // lo que urge: atrasadas (más atrasadas primero), bloqueadas y lo de hoy
   const urgent = [...new Set([...overdue, ...blocked, ...dueToday])]
 
+  // cifras: de la API
+  const c = stats?.counters
+  const openCount = c?.open ?? 0
+  const total: Load = stats ? toLoad({ ...stats.load, overdue: c!.overdue, blocked: c!.blocked }) : { risk: 0, progress: 0, rest: 0 }
+  const doneWeek = c?.done7d ?? 0
+  const spaces = stats ? stats.workspaces.filter((w) => w.open > 0).length : 0
+
   // ritmo: cerradas y nuevas por día, últimos 14 días
-  const pace = useMemo(
-    () =>
-      Array.from({ length: 14 }, (_, i) => {
-        const d = addDays(today, i - 13)
-        const key = toDateKey(d)
-        return {
-          d,
-          closed: tasks.filter((x) => x.completed_at && toDateKey(new Date(x.completed_at)) === key).length,
-          created: tasks.filter((x) => toDateKey(new Date(x.created_at)) === key).length,
-        }
-      }),
-    [tasks, today],
-  )
+  const pace = useMemo(() => (stats?.daily ?? []).map((p) => ({ d: parseISO(p.day), closed: p.closed, created: p.created })), [stats])
   const closed14 = pace.reduce((n, p) => n + p.closed, 0)
   const created14 = pace.reduce((n, p) => n + p.created, 0)
   const maxPace = Math.max(1, ...pace.map((p) => Math.max(p.closed, p.created)))
 
-  // lo que viene: próximas dos semanas
+  // lo que viene: próximas dos semanas (la cifra de la API; los títulos, de la lista)
   const ahead = useMemo(
-    () =>
-      Array.from({ length: 14 }, (_, i) => {
-        const d = addDays(today, i)
-        const key = toDateKey(d)
-        return { d, list: open.filter((x) => x.due_date === key) }
-      }),
-    [open, today],
+    () => (stats?.upcoming ?? []).map((u) => ({ d: parseISO(u.day), n: u.due, list: open.filter((x) => x.due_date === u.day) })),
+    [stats, open],
   )
-  const maxAhead = Math.max(1, ...ahead.map((a) => a.list.length))
+  const maxAhead = Math.max(1, ...ahead.map((a) => a.n))
 
-  const bySpace = useMemo(() => {
-    const m = new Map<string, TaskRow[]>()
-    open.forEach((x) => m.set(x.workspace_id, [...(m.get(x.workspace_id) ?? []), x]))
-    return [...m].flatMap(([id, list]) => (wsMap.get(id) ? [{ ws: wsMap.get(id)!, list, load: loadOf(list) }] : [])).sort((a, b) => b.list.length - a.list.length)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, wsMap, todayKey])
+  const bySpace = useMemo(
+    () =>
+      (stats?.workspaces ?? [])
+        .filter((w) => w.open > 0)
+        .flatMap((w) => (wsMap.get(w.id) ? [{ ws: wsMap.get(w.id)!, total: w.open, load: toLoad(w) }] : []))
+        .sort((a, b) => b.total - a.total),
+    [stats, wsMap],
+  )
   const byPerson = useMemo(() => {
     if (!multi) return []
-    const m = new Map<string, TaskRow[]>()
-    open.forEach((x) =>
-      assigneesOf(x).forEach((id) => {
-        if (scope.kind === 'all' || scope.userIds.has(id)) m.set(id, [...(m.get(id) ?? []), x])
-      }),
+    return (stats?.people ?? [])
+      .filter((p) => p.open > 0)
+      .flatMap((p) => (memberMap.get(p.userId) ? [{ member: memberMap.get(p.userId)!, total: p.open, load: toLoad(p) }] : []))
+  }, [stats, memberMap, multi])
+  const maxSpace = Math.max(1, ...bySpace.map((s) => s.total))
+  const maxPerson = Math.max(1, ...byPerson.map((p) => p.total))
+
+  if (!stats) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 px-4 pb-16 pt-8 sm:px-6">
+        <Skeleton className="h-7 w-2/3" />
+        <Skeleton className="h-4 w-1/3" />
+        <Skeleton className="mt-6 h-40" />
+      </div>
     )
-    return [...m]
-      .flatMap(([id, list]) => (memberMap.get(id) ? [{ member: memberMap.get(id)!, list, load: loadOf(list) }] : []))
-      .sort((a, b) => b.load.risk - a.load.risk || b.list.length - a.list.length)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, memberMap, scope, multi, todayKey])
-  const maxSpace = Math.max(1, ...bySpace.map((s) => s.list.length))
-  const maxPerson = Math.max(1, ...byPerson.map((p) => p.list.length))
+  }
 
   // solo se nombra lo que existe: "4 tareas atrasadas y 2 bloqueadas"; cada parte filtra la lista
   const pill = (counter: Counter, tone: string, text: string) => (
@@ -126,9 +121,9 @@ export function TasksDashboard({
     </button>
   )
   const parts = [
-    overdue.length ? pill('overdue', 'text-danger decoration-danger/30', t('parts.late', { count: overdue.length })) : null,
-    blocked.length ? pill('blocked', 'text-st-blocked decoration-st-blocked/30', t('parts.stuck', { count: blocked.length })) : null,
-    dueToday.length ? pill('today', 'text-mandarina-ink decoration-mandarina/40', t('parts.due', { count: dueToday.length })) : null,
+    c!.overdue ? pill('overdue', 'text-danger decoration-danger/30', t('parts.late', { count: c!.overdue })) : null,
+    c!.blocked ? pill('blocked', 'text-st-blocked decoration-st-blocked/30', t('parts.stuck', { count: c!.blocked })) : null,
+    c!.today ? pill('today', 'text-mandarina-ink decoration-mandarina/40', t('parts.due', { count: c!.today })) : null,
   ].filter(Boolean) as React.ReactElement[]
   const joined = parts.flatMap((p, i) => (i === 0 ? [p] : [i === parts.length - 1 ? ` ${t('and')} ` : ', ', p]))
   const net = closed14 - created14
@@ -146,10 +141,10 @@ export function TasksDashboard({
             t('allClear', { subject: multi ? 'other' : 'me', who: scope.display })
           )}
         </p>
-        <p className="mt-2 text-sm text-fg-muted">{t('subline', { open: open.length, spaces, done: doneWeek })}</p>
+        <p className="mt-2 text-sm text-fg-muted">{t('subline', { open: openCount, spaces, done: doneWeek })}</p>
 
         <div className="mt-6 flex flex-col gap-2.5">
-          <LoadBar load={total} max={Math.max(1, open.length)} className="!h-3.5" />
+          <LoadBar load={total} max={Math.max(1, openCount)} className="!h-3.5" />
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
             <LoadLegend />
             <span className="ml-auto text-xs tabular-nums text-fg-muted">{t('loadNumbers', { risk: total.risk, progress: total.progress, rest: total.rest })}</span>
@@ -254,8 +249,7 @@ export function TasksDashboard({
           </button>
         </div>
         <div className="mt-4 grid grid-cols-7 gap-1.5 sm:grid-cols-14">
-          {ahead.map(({ d, list }) => {
-            const n = list.length
+          {ahead.map(({ d, n, list }) => {
             const strength = n / maxAhead
             const tip = n
               ? [format(d, 'EEE d MMM', { locale }), ...list.slice(0, 4).map((x) => `· ${x.title}`), ...(n > 4 ? [t('ahead.more', { count: n - 4 })] : [])].join('\n')
@@ -292,7 +286,7 @@ export function TasksDashboard({
             label: s.ws.name,
             icon: <WorkspaceMark ws={s.ws} size={18} />,
             load: s.load,
-            total: s.list.length,
+            total: s.total,
             href: `/w/${s.ws.slug}/tasks`,
           }))}
           max={maxSpace}
@@ -306,7 +300,7 @@ export function TasksDashboard({
               label: p.member.full_name,
               icon: <Avatar name={p.member.full_name} src={p.member.avatar_url} seed={p.member.id} size={20} />,
               load: p.load,
-              total: p.list.length,
+              total: p.total,
               href: `/tasks?tab=list&scope=${encodeURIComponent(`person:${p.member.id}`)}`,
             }))}
             max={maxPerson}

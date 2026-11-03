@@ -989,7 +989,11 @@
     "too_many_assignees": "Una tarea puede tener hasta 20 responsables.",
     "loadTitle": "No pudimos cargar esto",
     "loadBody": "Puede ser la conexión. Prueba otra vez en un momento.",
-    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo a mano."
+    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo a mano.",
+    "validation_error": "Revisa los datos: alguno no es válido.",
+    "start_after_due": "La fecha de inicio no puede ser posterior a la de entrega.",
+    "parent_is_subtask": "Solo hay un nivel de subtareas: una subtarea no puede tener subtareas.",
+    "scope_not_allowed": "No tienes acceso a ese alcance."
   },
   "demo": {
     "badge": "Modo demo: datos de prueba",

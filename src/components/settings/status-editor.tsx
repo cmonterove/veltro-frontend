@@ -8,7 +8,8 @@ import { ArrowDown, ArrowUp, Plus, RotateCcw, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { inputClass } from '@/components/ui/input'
 import { StatusIcon } from '@/components/tasks/status-icon'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/lib/api/client'
+import type { ApiTaskStatuses } from '@/lib/api/tareas'
 import { TASK_STATUSES } from '@/lib/constants'
 import { defaultStatusDefs } from '@/lib/statuses'
 import { cn } from '@/lib/utils'
@@ -35,13 +36,16 @@ export function StatusEditor({ workspace }: { workspace: WorkspaceWithRole }) {
   const save = (next: TaskStatusDef[]) =>
     start(async () => {
       const clean = next.map((s) => ({ ...s, name: s.name.trim().slice(0, 40) })).filter((s) => s.name)
-      const { error } = await createClient().from('workspaces').update({ task_statuses: clean }).eq('id', workspace.id)
-      if (error) {
+      let saved: ApiTaskStatuses
+      try {
+        // la lista vacía vuelve a los estándar; las tareas de un estado quitado se quedan con su categoría
+        saved = await api<ApiTaskStatuses>(`/v1/workspaces/${workspace.id}/task-statuses`, { method: 'PUT', body: { statuses: clean } })
+      } catch {
         toast.error(t('error'))
         return
       }
       toast.success(t('saved'))
-      setDraft(clean.length ? clean : null)
+      setDraft(saved.custom ? saved.items.map((s) => ({ id: s.id!, name: s.name, category: s.category })) : null)
       router.refresh()
     })
 

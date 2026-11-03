@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useTasks } from '@/lib/queries/tasks'
+import { useTaskStats, useTasks } from '@/lib/queries/tasks'
 import type { TaskRow } from '@/lib/database.types'
 import { CollapseAllButton, TaskGroupList, type CollapsedGroups } from '@/components/tasks/task-list'
 import { GROUP_BYS, useTaskGroupsBy, type GroupBy } from '@/components/tasks/my-task-groups'
@@ -27,7 +27,6 @@ import { isCounter, useScopes } from '@/lib/scope'
 import { NO_FILTERS, activeFilterCount, counterFilters, matchesTaskFilters, matchesTaskQuery, parseTaskFilters, writeTaskFilters, type TaskFilters } from '@/lib/task-filters'
 import { track } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
-import { assigneesOf, isAssignedTo } from '@/lib/assignees'
 
 const TABS = ['summary', 'list', 'table', 'board', 'calendar'] as const
 const NO_TASKS: TaskRow[] = []
@@ -72,16 +71,16 @@ export function MyTasksView() {
     if (tabParam && TABS.includes(tabParam) && tabParam !== lastTab) setLastTab(tabParam)
   }, [tabParam, lastTab, setLastTab])
 
-  const wsIds = useMemo(() => [...workspaces, ...observedWorkspaces].map((w) => w.id), [workspaces, observedWorkspaces])
-  const tasksQuery = useTasks({ kind: 'workspaces', workspaceIds: wsIds })
+  // el alcance lo resuelve la API (mías, mi equipo, un departamento, una persona o toda la empresa,
+  // que incluye las que no tienen responsable); búsqueda y filtros siguen en el navegador
+  const hasSpaces = workspaces.length + observedWorkspaces.length > 0
+  const tasksQuery = useTasks(hasSpaces ? { kind: 'scope', scopeId: scope.id } : null)
   // sin espacios no hay nada que pedir: vacío, no "cargando"
-  const all = wsIds.length ? tasksQuery.data : NO_TASKS
-  const isLoading = wsIds.length > 0 && tasksQuery.isLoading
-  // mirando a toda la empresa también se ven las tareas que todavía no tienen responsable
-  const scoped = useMemo(
-    () => (all ? all.filter((x) => isAssignedTo(x, scope.userIds) || (scope.kind === 'all' && assigneesOf(x).length === 0)) : undefined),
-    [all, scope],
-  )
+  const scoped = hasSpaces ? tasksQuery.data : NO_TASKS
+  const isLoading = hasSpaces && tasksQuery.isLoading
+  // cifras del Resumen (últimos 14 días), en paralelo con la lista
+  const [statsFrom, statsTo] = useMemo(() => [toDateKey(subDays(new Date(), 13)), toDateKey(new Date())], [])
+  const stats = useTaskStats(scope.id, { from: statsFrom, to: statsTo, enabled: tab === 'summary' })
 
   const q = query.trim().toLowerCase()
   const searched = useMemo(() => scoped?.filter((x) => matchesTaskQuery(x, q, wsMap.get(x.workspace_id)?.key)), [scoped, q, wsMap])
@@ -214,6 +213,7 @@ export function MyTasksView() {
         ) : tab === 'summary' ? (
           <TasksDashboard
             tasks={scoped}
+            stats={stats.data}
             scope={scope}
             onFilter={(c) => setFilters({ ...NO_FILTERS, ...counterFilters(c) }, 'list')}
             onTab={(next) => setFilters(NO_FILTERS, next)}

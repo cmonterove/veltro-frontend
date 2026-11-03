@@ -10,7 +10,7 @@ import {
   parseISO,
 } from 'date-fns'
 import { ArrowUpRight, ChevronDown, CircleAlert, CircleCheck, Info, OctagonAlert } from 'lucide-react'
-import { useApp, useMemberMap } from '@/components/app/app-context'
+import { useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { ScopeMenu, ScopePeople } from '@/components/app/scope-menu'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
@@ -19,10 +19,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/ui/error-state'
 import { Tooltip } from '@/components/ui/tooltip'
 import { StatusIcon } from '@/components/tasks/status-icon'
-import { useTasks } from '@/lib/queries/tasks'
+import { useTaskStats, useTasks } from '@/lib/queries/tasks'
+import type { ApiTaskStats } from '@/lib/api/tareas'
 import { useLocalStorage, useNow } from '@/lib/hooks'
 import { useScopes, type ScopeOption } from '@/lib/scope'
-import { assigneesOf, isAssignedTo } from '@/lib/assignees'
+import { assigneesOf } from '@/lib/assignees'
 import { useOpenTask } from '@/lib/use-open-task'
 import { LoadBar, LoadLegend } from '@/components/charts/load-bar'
 import { useDateLocale, toDateKey } from '@/lib/dates'
@@ -43,17 +44,17 @@ type Health = 'ok' | 'attention' | 'risk'
 const RISK_DAYS = 3
 const RISK_COUNT = 4
 
-const inRange = (iso: string | null | undefined, from: Date, to: Date) => {
-  if (!iso) return false
-  const d = new Date(iso)
-  return d >= from && d < to
+/** Suma las cerradas por día (claves AAAA-MM-DD) que caen en el tramo [start, end). */
+const closedIn = (byDay: Record<string, number>, b: Bucket) => {
+  let n = 0
+  for (let d = b.start; d < b.end; d = addDays(d, 1)) n += byDay[toDateKey(d)] ?? 0
+  return n
 }
 
-
-const NO_TASKS: TaskRow[] = []
 export function MesaView() {
   const t = useTranslations('mesa')
-  const { workspaces, observedWorkspaces, accountRole } = useApp()
+  const { accountRole } = useApp()
+  const wsMap = useWorkspaceMap()
   const now = useNow()
   const locale = useDateLocale()
   const tr = useTranslations('dateRange')
@@ -70,42 +71,29 @@ export function MesaView() {
     return { ...r, end: addDays(r.to, 1), buckets: rangeBuckets(r, weekStartsOn) }
   }, [rangeValue, dayKey, weekStartsOn])
 
-  const spaces = useMemo(() => [...workspaces, ...observedWorkspaces], [workspaces, observedWorkspaces])
-  const wsIds = useMemo(() => spaces.map((w) => w.id), [spaces])
-  const tasksQuery = useTasks({ kind: 'workspaces', workspaceIds: wsIds })
-  const tasks = wsIds.length ? tasksQuery.data : NO_TASKS
+  // Salud de cada espacio, carga por persona y cerradas del período: las calcula la API.
+  // "Toda la empresa" incluye lo que no tiene responsable; los demás alcances, lo asignado a esas personas.
+  const statsQuery = useTaskStats(scope.id, { from: toDateKey(range.from), to: toDateKey(range.to) })
+  const data = statsQuery.data
 
-  // "Toda la empresa" incluye lo que no tiene responsable; los demás alcances, lo asignado a esas personas
-  const scoped = useMemo(() => (tasks ?? []).filter((x) => scope.kind === 'all' || isAssignedTo(x, scope.userIds)), [tasks, scope])
-  const todayKey = toDateKey(now)
-  const lateDays = (x: TaskRow) => (x.due_date && x.due_date < todayKey ? differenceInCalendarDays(now, parseISO(x.due_date)) : 0)
-
-  const stats = useMemo(() => {
-    return spaces
-      .map((ws) => {
-        const mine = scoped.filter((x) => x.workspace_id === ws.id)
-        const open = mine.filter((x) => x.status !== 'done')
-        const overdue = open.filter((x) => lateDays(x) > 0)
-        const blocked = open.filter((x) => x.status === 'blocked')
-        const risky = [...new Set([...overdue, ...blocked])].sort((a, b) => lateDays(b) - lateDays(a) || (a.status === 'blocked' ? -1 : 1))
-        const oldest = overdue.reduce((m, x) => Math.max(m, lateDays(x)), 0)
-        const health: Health = oldest > RISK_DAYS || risky.length >= RISK_COUNT ? 'risk' : risky.length ? 'attention' : 'ok'
-        const closed = mine.filter((x) => x.status === 'done' && inRange(x.completed_at, range.from, range.end))
-        const created = mine.filter((x) => inRange(x.created_at, range.from, range.end))
-        const buckets = range.buckets.map((b) => closed.filter((x) => inRange(x.completed_at, b.start, b.end)).length)
-        return { ws, open, overdue, blocked, risky, oldest, health, closed: closed.length, created: created.length, buckets, touched: mine.length > 0 }
-      })
-      .filter((s) => scope.kind === 'all' || s.touched)
-      .sort((a, b) => HEALTH_ORDER[a.health] - HEALTH_ORDER[b.health] || b.risky.length - a.risky.length)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spaces, scoped, range, scope.kind, todayKey])
+  // la API ya los ordena: primero los en riesgo, luego los que piden atención
+  const stats = useMemo<SpaceStat[]>(
+    () =>
+      (data?.workspaces ?? []).flatMap((w) => {
+        const ws = wsMap.get(w.id)
+        if (!ws) return []
+        const buckets = range.buckets.map((b) => closedIn(w.closedByDay, b))
+        return [{ ws, open: w.open, overdue: w.overdue, blocked: w.blocked, atRisk: w.atRisk, oldest: w.oldestOverdueDays, health: w.health, closed: w.closed, created: w.created, buckets }]
+      }),
+    [data, wsMap, range],
+  )
 
   const totals = stats.reduce(
     (acc, s) => ({
       closed: acc.closed + s.closed,
       created: acc.created + s.created,
-      overdue: acc.overdue + s.overdue.length,
-      blocked: acc.blocked + s.blocked.length,
+      overdue: acc.overdue + s.overdue,
+      blocked: acc.blocked + s.blocked,
       atRisk: acc.atRisk + (s.health === 'risk' ? 1 : 0),
     }),
     { closed: 0, created: 0, overdue: 0, blocked: 0, atRisk: 0 },
@@ -126,9 +114,9 @@ export function MesaView() {
         <ScopePeople scope={scope} />
       </div>
 
-      {tasksQuery.isError ? (
-        <ErrorState onRetry={() => tasksQuery.refetch()} className="mt-4" />
-      ) : !tasks ? (
+      {statsQuery.isError ? (
+        <ErrorState onRetry={() => statsQuery.refetch()} className="mt-4" />
+      ) : !data ? (
         <div className="mt-8 flex flex-col gap-2">
           <Skeleton className="h-5 w-2/3" />
           <Skeleton className="mt-4 h-40" />
@@ -149,24 +137,22 @@ export function MesaView() {
             })}
           </p>
 
-          <SpacesTable stats={stats} range={range} now={now} lateDays={lateDays} />
-          <TeamLoad scope={scope} tasks={scoped} range={range} lateDays={lateDays} />
+          <SpacesTable stats={stats} scope={scope} range={range} now={now} />
+          <TeamLoad people={data.people} />
         </>
       )}
     </div>
   )
 }
 
-const HEALTH_ORDER: Record<Health, number> = { risk: 0, attention: 1, ok: 2 }
-
 // ---------------- espacios ----------------
 
 type SpaceStat = {
   ws: WorkspaceWithRole
-  open: TaskRow[]
-  overdue: TaskRow[]
-  blocked: TaskRow[]
-  risky: TaskRow[]
+  open: number
+  overdue: number
+  blocked: number
+  atRisk: number
   oldest: number
   health: Health
   closed: number
@@ -176,7 +162,7 @@ type SpaceStat = {
 
 const COLS = 'grid-cols-[minmax(0,1fr)_7.5rem_3.5rem] sm:grid-cols-[minmax(0,1.6fr)_8.5rem_minmax(9rem,1fr)_4.5rem_4.5rem_4.5rem_1.5rem]'
 
-function SpacesTable({ stats, range, now, lateDays }: { stats: SpaceStat[]; range: { from: Date; end: Date; buckets: Bucket[] }; now: Date; lateDays: (x: TaskRow) => number }) {
+function SpacesTable({ stats, scope, range, now }: { stats: SpaceStat[]; scope: ScopeOption; range: { from: Date; end: Date; buckets: Bucket[] }; now: Date }) {
   const t = useTranslations('mesa')
   const [openId, setOpenId] = useState<string | null>(null)
 
@@ -222,12 +208,12 @@ function SpacesTable({ stats, range, now, lateDays }: { stats: SpaceStat[]; rang
                     <MiniColumns values={s.buckets} buckets={range.buckets} now={now} />
                     <NetChange closed={s.closed} created={s.created} />
                   </span>
-                  <span className="text-right text-sm tabular-nums text-fg">{s.open.length}</span>
-                  <span className={cn('hidden text-right text-sm tabular-nums sm:block', s.overdue.length ? 'font-medium text-danger' : 'text-fg-subtle')}>{s.overdue.length}</span>
-                  <span className={cn('hidden text-right text-sm tabular-nums sm:block', s.blocked.length ? 'font-medium text-danger' : 'text-fg-subtle')}>{s.blocked.length}</span>
+                  <span className="text-right text-sm tabular-nums text-fg">{s.open}</span>
+                  <span className={cn('hidden text-right text-sm tabular-nums sm:block', s.overdue ? 'font-medium text-danger' : 'text-fg-subtle')}>{s.overdue}</span>
+                  <span className={cn('hidden text-right text-sm tabular-nums sm:block', s.blocked ? 'font-medium text-danger' : 'text-fg-subtle')}>{s.blocked}</span>
                   <ChevronDown className={cn('hidden size-4 text-fg-subtle transition-transform sm:block', expanded && 'rotate-180')} />
                 </button>
-                {expanded ? <SpaceDetail stat={s} lateDays={lateDays} /> : null}
+                {expanded ? <SpaceDetail stat={s} scope={scope} now={now} /> : null}
               </Fragment>
             )
           })}
@@ -298,27 +284,39 @@ function NetChange({ closed, created }: { closed: number; created: number }) {
   )
 }
 
-function SpaceDetail({ stat, lateDays }: { stat: SpaceStat; lateDays: (x: TaskRow) => number }) {
+function SpaceDetail({ stat, scope, now }: { stat: SpaceStat; scope: ScopeOption; now: Date }) {
   const t = useTranslations('mesa')
   const memberMap = useMemberMap()
   const { open } = useOpenTask()
+  // las abiertas del alcance en este espacio, recién al abrir la fila
+  const { data: tasks } = useTasks({ kind: 'scope', scopeId: scope.id, workspaceIds: [stat.ws.id], openOnly: true })
+  const todayKey = toDateKey(now)
+  const lateDays = (x: TaskRow) => (x.due_date && x.due_date < todayKey ? differenceInCalendarDays(now, parseISO(x.due_date)) : 0)
+  const risky = (tasks ?? [])
+    .filter((x) => lateDays(x) > 0 || x.status === 'blocked')
+    .sort((a, b) => lateDays(b) - lateDays(a) || (a.status === 'blocked' ? -1 : 1))
   // quién carga este espacio: tareas abiertas por responsable
   const load = useMemo(() => {
     const m = new Map<string, number>()
-    stat.open.forEach((x) => assigneesOf(x).forEach((id) => m.set(id, (m.get(id) ?? 0) + 1)))
+    ;(tasks ?? []).forEach((x) => assigneesOf(x).forEach((id) => m.set(id, (m.get(id) ?? 0) + 1)))
     return [...m]
       .map(([id, n]) => ({ member: memberMap.get(id), n }))
       .filter((x): x is { member: Member; n: number } => Boolean(x.member))
       .sort((a, b) => b.n - a.n)
-  }, [stat.open, memberMap])
+  }, [tasks, memberMap])
 
   return (
     <div className="grid gap-6 border-b border-line-soft bg-sidebar/40 px-5 py-5 last:border-0 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <div className="min-w-0">
         <p className="mb-2 text-xs font-medium text-fg-subtle">{t('detail.risks')}</p>
-        {stat.risky.length ? (
+        {!tasks ? (
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-7" />
+            <Skeleton className="h-7" />
+          </div>
+        ) : risky.length ? (
           <ul className="flex flex-col">
-            {stat.risky.slice(0, 6).map((x) => {
+            {risky.slice(0, 6).map((x) => {
               const late = lateDays(x)
               const people = assigneesOf(x).flatMap((id) => memberMap.get(id) ?? [])
               return (
@@ -333,7 +331,7 @@ function SpaceDetail({ stat, lateDays }: { stat: SpaceStat; lateDays: (x: TaskRo
                 </li>
               )
             })}
-            {stat.risky.length > 6 ? <li className="pt-1 text-xs text-fg-subtle">{t('detail.more', { count: stat.risky.length - 6 })}</li> : null}
+            {risky.length > 6 ? <li className="pt-1 text-xs text-fg-subtle">{t('detail.more', { count: risky.length - 6 })}</li> : null}
           </ul>
         ) : (
           <p className="text-sm text-fg-muted">{t('detail.noRisks')}</p>
@@ -341,7 +339,9 @@ function SpaceDetail({ stat, lateDays }: { stat: SpaceStat; lateDays: (x: TaskRo
       </div>
       <div className="min-w-0">
         <p className="mb-2 text-xs font-medium text-fg-subtle">{t('detail.load')}</p>
-        {load.length ? (
+        {!tasks ? (
+          <Skeleton className="h-7" />
+        ) : load.length ? (
           <ul className="flex flex-col gap-1.5">
             {load.slice(0, 6).map(({ member, n }) => (
               <li key={member.id} className="flex items-center gap-2 text-sm">
@@ -371,28 +371,20 @@ function SpaceDetail({ stat, lateDays }: { stat: SpaceStat; lateDays: (x: TaskRo
 
 // ---------------- carga del equipo ----------------
 
-function TeamLoad({ scope, tasks, range, lateDays }: { scope: ScopeOption; tasks: TaskRow[]; range: { from: Date; end: Date }; lateDays: (x: TaskRow) => number }) {
+function TeamLoad({ people }: { people: ApiTaskStats['people'] }) {
   const t = useTranslations('mesa')
   const memberMap = useMemberMap()
 
-  const rows = useMemo(() => {
-    const ids = scope.kind === 'all' ? [...memberMap.keys()] : [...scope.userIds]
-    return ids
-      .flatMap((id) => {
-        const member = memberMap.get(id)
+  // la API ya trae a quienes tienen abiertas o cerradas en el período, de más a menos en riesgo
+  const rows = useMemo(
+    () =>
+      people.flatMap((p) => {
+        const member = memberMap.get(p.userId)
         if (!member) return []
-        const theirs = tasks.filter((x) => assigneesOf(x).includes(id))
-        const open = theirs.filter((x) => x.status !== 'done')
-        const overdue = open.filter((x) => lateDays(x) > 0).length
-        const blocked = open.filter((x) => x.status === 'blocked').length
-        const risk = open.filter((x) => lateDays(x) > 0 || x.status === 'blocked').length
-        const progress = open.filter((x) => x.status === 'in_progress' && !(lateDays(x) > 0)).length
-        const closed = theirs.filter((x) => x.status === 'done' && inRange(x.completed_at, range.from, range.end)).length
-        return open.length || closed ? [{ member, open: open.length, risk, progress, rest: open.length - risk - progress, overdue, blocked, closed }] : []
-      })
-      .sort((a, b) => b.risk - a.risk || b.open - a.open)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, tasks, memberMap, range])
+        return [{ member, open: p.open, risk: p.atRisk, progress: p.inProgress, rest: p.rest, overdue: p.overdue, blocked: p.blocked, closed: p.closed }]
+      }),
+    [people, memberMap],
+  )
   const max = Math.max(1, ...rows.map((r) => r.open))
 
   return (

@@ -38,11 +38,11 @@ import { AutoTextarea } from '@/components/ui/auto-textarea'
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip } from '@/components/ui/tooltip'
-import { taskKeys, useCreateTask, useDeleteTaskWithUndo, useSubtasks, useTask, useTasks, useUpdateTask } from '@/lib/queries/tasks'
+import { fetchTaskByRef, useCreateTask, useDeleteTaskWithUndo, useSubtasks, useTask, useTaskOrigin, useUpdateTask, useWorkspaceLabels } from '@/lib/queries/tasks'
 import { useAddComment, useDeleteComment, useTaskComments } from '@/lib/queries/comments'
 import { useAttachments } from '@/lib/queries/attachments'
+import { ApiError } from '@/lib/api/client'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
-import { createClient } from '@/lib/supabase/client'
 import { isTypingTarget } from '@/lib/hooks'
 import { TASK_BACK_KEY, taskPath, taskRefKey, useOpenTask } from '@/lib/use-open-task'
 import { useDateLocale } from '@/lib/dates'
@@ -73,6 +73,7 @@ export function TaskPage({ param }: { param: string }) {
   const t = useTranslations('tasks')
   const router = useRouter()
   const qc = useQueryClient()
+  const { account } = useApp()
   const wsMap = useWorkspaceMap()
   const isId = UUID.test(param)
 
@@ -88,15 +89,20 @@ export function TaskPage({ param }: { param: string }) {
   const resolved = useQuery({
     queryKey: byRef ? taskRefKey(byRef.ws.id, byRef.number) : ['task-ref', 'none'],
     enabled: Boolean(byRef),
+    // la referencia no cambia de tarea: si ya se conoce, no se vuelve a preguntar (la tarea la pide useTask)
+    staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await createClient().from('tasks').select('*').eq('workspace_id', byRef!.ws.id).eq('number', byRef!.number).maybeSingle()
-      if (error) throw error
-      if (data) qc.setQueryData(taskKeys.one(data.id), data)
-      return (data as TaskRow | null)?.id ?? null
+      try {
+        return (await fetchTaskByRef(qc, `${byRef!.ws.key}-${byRef!.number}`, account.id)).id
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) return null
+        throw e
+      }
     },
   })
   const id = isId ? param : (resolved.data ?? null)
-  const { data: task, isLoading, isError } = useTask(id)
+  // en una lista no viene la descripción: la página espera la tarea completa
+  const { data: task, isLoading, isError, isPlaceholderData } = useTask(id)
   const ws = task ? wsMap.get(task.workspace_id) : undefined
 
   // llegó por id: dejar la URL legible sin agregar otra entrada al historial (con la referencia ya resuelta)
@@ -118,7 +124,7 @@ export function TaskPage({ param }: { param: string }) {
       </div>
     )
   }
-  if (isLoading || !task || !ws) {
+  if (isLoading || isPlaceholderData || !task || !ws) {
     return (
       <div className="flex flex-col">
         <div className="h-12 border-b border-line" />
@@ -616,7 +622,8 @@ function PriorityValue({ value, editing, onChange }: { value: TaskRow['priority'
 function AssigneeValue({ task, editing, onChange }: { task: TaskRow; editing: boolean; onChange: (ids: string[]) => void }) {
   const t = useTranslations('tasks')
   const memberMap = useMemberMap()
-  const members = useWorkspaceMembers(task.workspace_id)
+  // solo al editar: en lectura alcanza con las personas de la cuenta (y un espacio observado no deja ver su gente)
+  const members = useWorkspaceMembers(editing ? task.workspace_id : null)
   const people = assigneesOf(task).flatMap((id) => memberMap.get(id) ?? [])
   const content = people.length ? (
     <>
@@ -667,8 +674,7 @@ function DateValue({ value, done, editing, onChange, start }: { value: string | 
 
 function LabelsValue({ task, editing, onChange }: { task: TaskRow; editing: boolean; onChange: (labels: string[]) => void }) {
   const t = useTranslations('tasks')
-  const { data: wsTasks } = useTasks(editing ? { kind: 'workspace', workspaceId: task.workspace_id } : null)
-  const suggestions = [...new Set((wsTasks ?? []).flatMap((x) => x.labels))]
+  const { data: suggestions = [] } = useWorkspaceLabels(editing ? task.workspace_id : null)
   if (!editing) {
     return (
       <span className="flex min-h-9 flex-wrap items-center gap-1">
@@ -707,17 +713,8 @@ function CreatedBy({ task }: { task: TaskRow }) {
 
 function Origin({ task, slug }: { task: TaskRow; slug: string }) {
   const t = useTranslations('tasks')
-  const { data } = useQuery({
-    queryKey: ['task-origin', task.doc_id, task.meeting_id],
-    queryFn: async () => {
-      const supabase = createClient()
-      const [doc, meeting] = await Promise.all([
-        task.doc_id ? supabase.from('docs').select('id, title, source').eq('id', task.doc_id).maybeSingle() : Promise.resolve({ data: null }),
-        task.meeting_id ? supabase.from('meetings').select('id, title').eq('id', task.meeting_id).maybeSingle() : Promise.resolve({ data: null }),
-      ])
-      return { doc: doc.data, meeting: meeting.data }
-    },
-  })
+  // viene en el detalle de la tarea (ya en caché al abrir la página)
+  const { data } = useTaskOrigin(task.id)
   return (
     <div className="flex flex-col items-start gap-1">
       {data?.meeting ? (
@@ -773,7 +770,8 @@ function Subtasks({ task, ws, editable }: { task: TaskRow; ws: WorkspaceWithRole
             {s.due_date ? <DueDate due={s.due_date} done={s.status === 'done'} withIcon={false} /> : null}
           </div>
         ))}
-        {editable ? (
+        {/* un solo nivel de subtareas (la API no deja colgar subtareas de una subtarea) */}
+        {editable && !task.parent_id ? (
           <label className="flex h-11 items-center gap-2.5 px-3 text-fg-subtle focus-within:text-fg">
             <Plus className="size-4 shrink-0" />
             <input

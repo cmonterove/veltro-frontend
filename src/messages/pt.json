@@ -989,7 +989,11 @@
     "too_many_assignees": "Uma tarefa pode ter até 20 responsáveis.",
     "loadTitle": "Não conseguimos carregar isto",
     "loadBody": "Pode ser a conexão. Tente de novo em um instante.",
-    "copyFailed": "Não foi possível copiar. Selecione o texto e copie manualmente."
+    "copyFailed": "Não foi possível copiar. Selecione o texto e copie manualmente.",
+    "validation_error": "Revise os dados: algum não é válido.",
+    "start_after_due": "A data de início não pode ser posterior à de entrega.",
+    "parent_is_subtask": "Só há um nível de subtarefas: uma subtarefa não pode ter subtarefas.",
+    "scope_not_allowed": "Você não tem acesso a essa visão."
   },
   "demo": {
     "badge": "Modo demo: dados de teste",

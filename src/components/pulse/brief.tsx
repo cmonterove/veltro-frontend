@@ -20,7 +20,8 @@ import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { useDateLocale, toDateKey } from '@/lib/dates'
 import { parseQuickTask } from '@/lib/quick-parse'
 import { PRIORITY_WEIGHT } from '@/lib/constants'
-import { COUNTERS, matchesCounter, type Counter, type ScopeOption } from '@/lib/scope'
+import { COUNTERS, type Counter, type ScopeOption } from '@/lib/scope'
+import type { ApiTaskStats } from '@/lib/api/tareas'
 import { cn, taskRef } from '@/lib/utils'
 import type { MeetingItemRow, MeetingRow, TaskRow } from '@/lib/database.types'
 import type { CalendarEvent, DocSummary, WorkspaceWithRole } from '@/lib/types'
@@ -46,8 +47,28 @@ export type BriefData = {
   wsMap: Map<string, WorkspaceWithRole>
 }
 
-/** Derivados de Hoy para el alcance elegido (mías, mi equipo, un departamento, una persona o todo). */
-export function useBriefModel({ now, scopeIds, filter, events, meetings, tasks }: BriefData, people: Set<string>) {
+/** Contadores de la API con los nombres de la web. */
+const toCounts = (c: ApiTaskStats['counters']): Record<Counter, number> => ({
+  overdue: c.overdue,
+  today: c.today,
+  in_progress: c.inProgress,
+  blocked: c.blocked,
+  todo: c.todo,
+  done: c.done7d,
+})
+
+/**
+ * Derivados de Hoy para el alcance elegido (mías, mi equipo, un departamento, una persona o todo).
+ * Las cifras las calcula la API (`counters`); las listas salen de las tareas cargadas.
+ */
+export function useBriefModel(
+  { now, scopeIds, filter, events, meetings, tasks }: BriefData,
+  scope: Pick<ScopeOption, 'kind' | 'userIds'>,
+  counters: ApiTaskStats['counters'] | undefined,
+) {
+  const people = scope.userIds
+  // "Toda la empresa" incluye lo que no tiene responsable (como las cifras de la API)
+  const everyone = scope.kind === 'all'
   return useMemo(() => {
     const meetingByEvent = new Map(meetings.map((m) => [m.google_event_id, m]))
     const inScope = (e: CalendarEvent) => filter === 'all' || e.links.some((l) => scopeIds.includes(l.workspaceId))
@@ -59,8 +80,8 @@ export function useBriefModel({ now, scopeIds, filter, events, meetings, tasks }
     const nextDay = nextDayStart ? timed.filter((e) => isSameDay(new Date(e.start), new Date(nextDayStart.start))) : []
 
     const todayKey = toDateKey(now)
-    const scoped = (tasks ?? []).filter((x) => isAssignedTo(x, people) && scopeIds.includes(x.workspace_id))
-    const counts = Object.fromEntries(COUNTERS.map((c) => [c, scoped.filter((x) => matchesCounter(x, c, now)).length])) as Record<Counter, number>
+    const scoped = (tasks ?? []).filter((x) => (everyone || isAssignedTo(x, people)) && scopeIds.includes(x.workspace_id))
+    const counts = counters ? toCounts(counters) : null
     const overdue = scoped.filter((x) => x.status !== 'done' && x.due_date && x.due_date < todayKey)
     const dueToday = scoped.filter((x) => x.status !== 'done' && x.due_date === todayKey)
     const inProgress = scoped.filter((x) => x.status === 'in_progress' && !(x.due_date && x.due_date <= todayKey))
@@ -70,7 +91,7 @@ export function useBriefModel({ now, scopeIds, filter, events, meetings, tasks }
       .sort((a, b) => b.starts_at.localeCompare(a.starts_at))
 
     return { meetingByEvent, live, next, today, nextDay, counts, overdue, dueToday, inProgress, unclosed }
-  }, [now, scopeIds, filter, events, meetings, tasks, people])
+  }, [now, scopeIds, filter, events, meetings, tasks, people, everyone, counters])
 }
 
 export type BriefModel = ReturnType<typeof useBriefModel>
@@ -161,7 +182,7 @@ export function Counters({ model, scope, loading }: { model: BriefModel; scope: 
   return (
     <div className="grid grid-cols-2 gap-2 @min-[520px]/pulse:grid-cols-3 @min-[900px]/pulse:grid-cols-6">
       {COUNTERS.map((c) => {
-        const n = model.counts[c]
+        const n = model.counts?.[c] ?? 0
         return (
           <Link
             key={c}

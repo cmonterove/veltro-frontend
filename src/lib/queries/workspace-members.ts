@@ -2,8 +2,9 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import { useApp } from '@/components/app/app-context'
+import { api, ApiError } from '@/lib/api/client'
+import type { ApiWorkspaceMember } from '@/lib/api/tareas'
 import type { Member } from '@/lib/types'
 
 /** Personas asignables en un espacio: miembros del espacio + admins de la cuenta. */
@@ -19,17 +20,18 @@ export function useWorkspaceMembersState(workspaceId: string | null | undefined)
     enabled: Boolean(workspaceId),
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await createClient()
-        .from('workspace_members')
-        .select('user_id, role')
-        .eq('workspace_id', workspaceId!)
-      if (error) throw error
-      return data
+      try {
+        return (await api<{ items: ApiWorkspaceMember[] }>(`/v1/workspaces/${workspaceId}/members`)).items.map((m) => m.id)
+      } catch (e) {
+        // un espacio que veo solo por el organigrama no me deja ver su gente: quedan los admins
+        if (e instanceof ApiError && e.status === 404) return []
+        throw e
+      }
     },
   })
 
   return useMemo(() => {
-    const ids = new Set((data ?? []).map((r) => r.user_id))
+    const ids = new Set(data ?? [])
     return { members: members.filter((m) => m.role === 'owner' || m.role === 'admin' || ids.has(m.id)), loaded: data !== undefined }
   }, [data, members])
 }
