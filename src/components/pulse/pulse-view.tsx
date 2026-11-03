@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { ConnectCalendar } from '@/components/calendar/connect-calendar'
 import { CalendarError, useCalendarEvents } from '@/lib/queries/calendar'
-import { useTasks } from '@/lib/queries/tasks'
+import { useTaskStats, useTasks } from '@/lib/queries/tasks'
 import { useMeetingsInRange, useWorkspaceItems } from '@/lib/queries/meetings'
 import { useRecentDocs } from '@/lib/queries/docs'
 import { useLocalStorage, useNow } from '@/lib/hooks'
@@ -128,7 +128,9 @@ export function PulseView() {
   const { options: scopes, resolve } = useScopes()
   const [scopeId, setScopeId] = useLocalStorage<string>('veltro:home-scope', 'me')
   const scope = resolve(scopeId)
-  const model = useBriefModel(briefData, scope.userIds)
+  // las cifras del alcance las calcula la API (en el espacio elegido, si hay uno)
+  const stats = useTaskStats(scope.id, { ws: filter === 'all' ? undefined : [filter] })
+  const model = useBriefModel(briefData, scope, stats.data?.counters)
   const hour = now.getHours()
   const greeting = hour < 12 ? 'morning' : hour < 19 ? 'afternoon' : 'evening'
   const dateLine = `${new Intl.DateTimeFormat(appLocale, { weekday: 'long', day: 'numeric', month: 'long' }).format(now)} · ${t('weekOf', { week: format(now, 'w', { locale }) })}`
@@ -212,7 +214,7 @@ export function PulseView() {
         </div>
 
         <div className="shrink-0" data-tour="counters">
-          <Counters model={model} scope={scope} loading={!tasks} />
+          <Counters model={model} scope={scope} loading={!model.counts} />
         </div>
 
         {scope.kind === 'me' ? (

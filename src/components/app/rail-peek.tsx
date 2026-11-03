@@ -12,10 +12,9 @@ import { ChatAvatar, useChatName, useChatPreview } from '@/components/chat/chat-
 import { FileKindIcon, fileTitle } from '@/components/vault/file-visual'
 import { Kbd } from '@/components/ui/kbd'
 import { useChats } from '@/lib/queries/chats'
-import { useTasks } from '@/lib/queries/tasks'
+import { useTaskStats, useTasks } from '@/lib/queries/tasks'
 import { useMeetingsInRange } from '@/lib/queries/meetings'
 import { useVaultFiles } from '@/lib/queries/attachments'
-import { isAssignedTo } from '@/lib/assignees'
 import { matchesCounter, type Counter } from '@/lib/scope'
 import { cn } from '@/lib/utils'
 import type { TaskRow } from '@/lib/database.types'
@@ -124,7 +123,7 @@ export function WorkspacePeek({ ws }: { ws: WorkspaceWithRole }) {
 
 function TodayPeek() {
   const tp = useTranslations('nav.peek')
-  const stats = useCounts(useMyTasks())
+  const stats = useMyCounts()
   const meetings = useTodayMeetings()
   return (
     <Stats
@@ -139,7 +138,7 @@ function TodayPeek() {
 
 function MyTasksPeek() {
   const tp = useTranslations('nav.peek')
-  const stats = useCounts(useMyTasks())
+  const stats = useMyCounts()
   return (
     <Stats
       items={[
@@ -292,10 +291,12 @@ function useAllTasks() {
   return useTasks(wsIds.length ? { kind: 'workspaces', workspaceIds: wsIds } : null).data
 }
 
-function useMyTasks() {
-  const { user } = useApp()
-  const all = useAllTasks()
-  return useMemo(() => all?.filter((x) => isAssignedTo(x, user.id)), [all, user.id])
+/** Mis cifras, calculadas por la API (las mismas de Pulso). */
+function useMyCounts() {
+  const { data } = useTaskStats('me')
+  if (!data) return null
+  const c = data.counters
+  return { open: c.open, overdue: c.overdue, today: c.today, in_progress: c.inProgress, blocked: c.blocked }
 }
 
 function useCounts(tasks: TaskRow[] | undefined) {

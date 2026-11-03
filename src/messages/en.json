@@ -989,7 +989,11 @@
     "too_many_assignees": "A task can have up to 20 assignees.",
     "loadTitle": "We couldn't load this",
     "loadBody": "It may be the connection. Try again in a moment.",
-    "copyFailed": "Couldn't copy. Select the text and copy it manually."
+    "copyFailed": "Couldn't copy. Select the text and copy it manually.",
+    "validation_error": "Check the details: something isn't valid.",
+    "start_after_due": "The start date can't be after the due date.",
+    "parent_is_subtask": "Subtasks only go one level deep: a subtask can't have subtasks.",
+    "scope_not_allowed": "You don't have access to that view."
   },
   "demo": {
     "badge": "Demo mode: sample data",

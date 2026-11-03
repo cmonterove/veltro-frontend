@@ -8,7 +8,8 @@ import { ExternalLink, Hash, Calendar, List, Link2, Plus, Type } from 'lucide-re
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/components/ui/menu'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/lib/api/client'
+import type { ApiTaskFieldChange } from '@/lib/api/tareas'
 import { cn } from '@/lib/utils'
 import type { TaskFieldDef, TaskFieldType, TaskRow } from '@/lib/database.types'
 import type { WorkspaceWithRole } from '@/lib/types'
@@ -169,17 +170,15 @@ export function AddFieldPopover({ ws }: { ws: WorkspaceWithRole }) {
 
   const save = () =>
     start(async () => {
-      const def: TaskFieldDef = {
-        id: `f_${crypto.randomUUID().slice(0, 8)}`,
+      // el id lo pone la API
+      const def: Omit<TaskFieldDef, 'id'> = {
         name: name.trim().slice(0, 40),
         type,
-        ...(type === 'select' ? { options: options.split(',').map((o) => o.trim()).filter(Boolean).slice(0, 30) } : {}),
+        ...(type === 'select' ? { options: [...new Set(options.split(',').map((o) => o.trim()).filter(Boolean))].slice(0, 30) } : {}),
       }
-      const { error } = await createClient()
-        .from('workspaces')
-        .update({ task_fields: [...(ws.task_fields ?? []), def] })
-        .eq('id', ws.id)
-      if (error) {
+      try {
+        await api<ApiTaskFieldChange>(`/v1/workspaces/${ws.id}/task-fields`, { method: 'POST', body: def })
+      } catch {
         toast.error(t('error'))
         return
       }

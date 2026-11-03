@@ -989,7 +989,11 @@
     "too_many_assignees": "Une tâche peut avoir jusqu’à 20 responsables.",
     "loadTitle": "Impossible de charger ceci",
     "loadBody": "C'est peut-être la connexion. Réessayez dans un instant.",
-    "copyFailed": "Impossible de copier. Sélectionnez le texte et copiez-le à la main."
+    "copyFailed": "Impossible de copier. Sélectionnez le texte et copiez-le à la main.",
+    "validation_error": "Vérifiez les données : l'une d'elles n'est pas valide.",
+    "start_after_due": "La date de début ne peut pas être postérieure à l'échéance.",
+    "parent_is_subtask": "Les sous-tâches n'ont qu'un niveau : une sous-tâche ne peut pas en avoir.",
+    "scope_not_allowed": "Vous n'avez pas accès à cette vue."
   },
   "demo": {
     "badge": "Mode démo : données de test",

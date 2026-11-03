@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { inputClass } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { FIELD_ICONS } from '@/components/tasks/custom-fields'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import { SettingsCard } from './ui'
 import type { TaskFieldDef, TaskFieldType } from '@/lib/database.types'
@@ -50,12 +50,16 @@ export function FieldsEditor({ workspace }: { workspace: WorkspaceWithRole }) {
 
   const save = () =>
     start(async () => {
-      const { error } = await createClient().from('workspaces').update({ task_fields: clean(draft) }).eq('id', workspace.id)
-      if (error) {
+      let fields: TaskFieldDef[]
+      try {
+        // los campos nuevos reciben su id en la API
+        fields = (await api<{ fields: TaskFieldDef[] }>(`/v1/workspaces/${workspace.id}/task-fields`, { method: 'PUT', body: { fields: clean(draft) } })).fields
+      } catch {
         toast.error(t('error'))
         return
       }
       toast.success(t('saved'))
+      setDraft(fields.map((f) => ({ ...f, optionsText: (f.options ?? []).join(', ') })))
       router.refresh()
     })
 

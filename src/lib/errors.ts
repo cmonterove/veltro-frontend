@@ -18,6 +18,11 @@ const KNOWN = [
   'department_other_account',
   'invalid_statuses',
   'invalid_status',
+  // de la API de tareas
+  'validation_error',
+  'start_after_due',
+  'parent_is_subtask',
+  'scope_not_allowed',
 ] as const
 
 export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email'
