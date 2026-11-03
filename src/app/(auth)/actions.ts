@@ -1,6 +1,6 @@
 'use server'
 
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { appUrl } from '@/lib/google/config'
@@ -56,8 +56,8 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (password.length < 8) return { error: 'weak_password', email }
 
   const locale = (await cookies()).get(LOCALE_COOKIE)?.value
-  const lang = (await headers()).get('accept-language')?.split(',')[0]?.split('-')[0]
-  const resolvedLocale = isLocale(locale) ? locale : isLocale(lang) ? lang : 'es'
+  // el que eligió en la pantalla (cookie) o español, nunca el del navegador
+  const resolvedLocale = isLocale(locale) ? locale : 'es'
 
   // La API crea el usuario; el enlace del correo de confirmación vuelve a /auth/callback.
   let res: { session: ApiSessionResponse | null; confirmationRequired: boolean }
