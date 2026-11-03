@@ -18,7 +18,7 @@ export function DialogContent({
   const t = useTranslations('nav')
   return (
     <D.Portal>
-      <D.Backdrop className="backdrop-motion fixed inset-0 z-50 bg-[oklch(0.2_0.01_165/0.32)] dark:bg-[oklch(0_0_0/0.55)]" />
+      <D.Backdrop className="backdrop-motion fixed inset-0 z-50 bg-[oklch(0.2_0.04_311/0.32)] dark:bg-[oklch(0_0_0/0.55)]" />
       <D.Viewport className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-[12vh]">
         <D.Popup
           className={cn(

@@ -10,7 +10,7 @@ export function Switch({ className, ...props }: React.ComponentProps<typeof S.Ro
   return (
     <S.Root
       className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-line-strong p-0.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[checked]:bg-accent data-[disabled]:cursor-default data-[disabled]:opacity-50',
+        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-line-control p-0.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[checked]:bg-accent data-[disabled]:cursor-default data-[disabled]:opacity-50',
         className,
       )}
       {...props}
@@ -25,7 +25,7 @@ export function Checkbox({ className, ...props }: React.ComponentProps<typeof C.
   return (
     <C.Root
       className={cn(
-        'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-line-strong bg-panel outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[checked]:border-accent data-[checked]:bg-accent data-[disabled]:cursor-default data-[disabled]:opacity-50',
+        'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-line-control bg-panel outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[checked]:border-accent data-[checked]:bg-accent data-[disabled]:cursor-default data-[disabled]:opacity-50',
         className,
       )}
       {...props}

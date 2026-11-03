@@ -204,7 +204,7 @@ export function TasksDashboard({
             </ul>
           ) : (
             <p className="flex flex-1 items-center gap-2.5 px-5 pb-6 pt-2 text-sm text-fg-muted">
-              <CheckCheck className="size-4 text-success" />
+              <CheckCheck className="size-4 text-done" />
               {t('urgent.empty')}
             </p>
           )}

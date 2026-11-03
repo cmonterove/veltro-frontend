@@ -1,6 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="15" fill="#6c47ff"/>
-  <path d="M19 19 L32 45" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="9" stroke-linecap="round"/>
-  <path d="M45 19 L32 45" fill="none" stroke="#6c47ff" stroke-width="14" stroke-linecap="round"/>
-  <path d="M45 19 L32 45" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 23.3 724.3 851">
+  <title>Veltro</title>
+  <style>
+    #seal { fill: #5B1F7A; }
+    #check-tip { fill: #C2185B; }
+    @media (prefers-color-scheme: dark) {
+      #seal { fill: #C4A3F2; }
+      #check-tip { fill: #FF6F9C; }
+    }
+  </style>
+  <path id="seal" d="M670.8 188.9A360 360 0 1 0 770.4 261.3L483.6 758L305.6 530.1L371.6 415.8L468.4 539.6Z"/>
+  <path id="check-tip" d="M686.2 162.4L765.4 25.2L871.4 86.4L786.2 233.9A390.6 390.6 0 0 0 686.2 162.4Z"/>
 </svg>

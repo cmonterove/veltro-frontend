@@ -24,7 +24,7 @@ const base = {
     hovered: { text: 'var(--fg)', background: 'var(--hover)' },
     selected: { text: 'var(--accent-fg)', background: 'var(--accent)' },
     disabled: { text: 'var(--fg-subtle)', background: 'var(--hover)' },
-    shadow: 'oklch(0.2 0.01 165 / 0.14)',
+    shadow: 'oklch(0.2 0.04 311 / 0.14)',
     border: 'var(--line)',
     sideMenu: 'var(--fg-subtle)',
   },

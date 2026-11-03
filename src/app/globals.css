@@ -6,190 +6,250 @@
 @custom-variant short (@media (max-height: 820px));
 
 /* ============================================================
-   Veltro: tokens de marca
-   Violeta Veltro (acciones, marca, selección) · Mandarina (en curso, avisos)
-   · Tinta (texto, modo oscuro). Neutros teñidos hacia el violeta (hue ~298).
+   Veltro: tokens de marca (identidad 1.0, noviembre 2026)
+   Ciruela (acciones, marca, selección) · Tinta (texto) · Frambuesa (lo que quedó hecho)
+   · Crema (fondo cálido). En oscuro: Noche de fondo, Lila en lugar de Ciruela,
+   Rosa en lugar de Frambuesa y Perla para el texto.
+   Mandarina sigue como color funcional de «en curso» y avisos; no es color de marca.
+   Contraste verificado (WCAG 2.1 AA): texto ≥ 4,5:1 sobre canvas, sidebar, panel y hover.
    ============================================================ */
 
 :root {
   color-scheme: light;
 
-  /* superficies */
-  --canvas: oklch(0.997 0.002 298);
-  --sidebar: oklch(0.965 0.011 298);
-  --panel: oklch(0.999 0.001 298);
-  --hover: oklch(0.948 0.013 300);
-  --active: oklch(0.928 0.018 300);
-  --line: oklch(0.923 0.018 300);
-  --line-soft: oklch(0.948 0.012 301);
-  --line-strong: oklch(0.86 0.026 300);
+  /* superficies: crema de fondo, blanco para lo que se eleva */
+  --canvas: oklch(0.976 0.008 61.5); /* crema #FBF6F2 */
+  --sidebar: oklch(0.95 0.007 39.5); /* #F3EDEB */
+  --panel: oklch(1 0 0); /* blanco */
+  --hover: oklch(0.932 0.007 28.8); /* #EDE7E6 */
+  --active: oklch(0.911 0.014 336.2); /* #E8DEE5 */
+  --line: oklch(0.914 0.009 0.1); /* #E8E0E2 */
+  --line-soft: oklch(0.935 0.007 28.8); /* #EEE8E7 */
+  --line-strong: oklch(0.852 0.014 340.6); /* #D5CBD1 */
+  --line-control: oklch(0.6 0.022 311); /* #847D8A: borde de campos, casillas e interruptores · 3,7:1 sobre crema, 4:1 sobre blanco */
 
   /* texto (tinta) */
-  --fg: oklch(0.2 0.022 297);
-  --fg-muted: oklch(0.519 0.029 300);
-  --fg-subtle: oklch(0.625 0.028 300);
+  --fg: oklch(0.243 0.088 312.7); /* tinta #2E0F3D · 15,6:1 sobre crema */
+  --fg-muted: oklch(0.47 0.019 309.9); /* gris 600 #5E5863 · 6,4:1 sobre crema, 5,6:1 sobre hover */
+  --fg-subtle: oklch(0.52 0.022 311); /* #6D6673 · 5,2:1 sobre crema, 4,8:1 sobre sidebar, 4,55:1 sobre hover */
 
   /* marca */
-  --accent: oklch(0.557 0.254 283.7); /* violeta veltro #6C47FF */
-  --accent-hover: oklch(0.459 0.238 279.9); /* violeta profundo #4B2BD6 */
-  --accent-fg: oklch(0.995 0.003 298);
-  --accent-mid: oklch(0.557 0.254 283.7);
-  --accent-soft: oklch(0.929 0.038 295.5); /* selección #E9E3FF */
-  --accent-ink: oklch(0.403 0.211 279.6); /* #3D22B5 */
-  --highlight: oklch(0.954 0.024 296.1); /* niebla #F1EDFF */
-  --highlight-ink: oklch(0.307 0.142 282.8); /* #2B1A73 */
-  --lavender: oklch(0.779 0.123 292.3); /* #B9A8FF */
+  --accent: oklch(0.377 0.15 311.4); /* ciruela #5B1F7A · blanco encima 10,9:1 */
+  --accent-hover: oklch(0.31 0.135 311.7); /* ciruela 700 #460F60 */
+  --accent-fg: oklch(1 0 0);
+  --accent-mid: oklch(0.377 0.15 311.4); /* ciruela: foco y bordes activos, 10,2:1 sobre crema */
+  --accent-soft: oklch(0.923 0.037 312.1); /* selección #EEDFF8 (entre ciruela 100 y 200) */
+  --accent-ink: oklch(0.377 0.15 311.4); /* ciruela · 9,2:1 sobre ciruela 100 */
+  --highlight: oklch(0.945 0.027 312.6); /* ciruela 100 #F3E8FA */
+  --highlight-ink: oklch(0.31 0.135 311.7); /* ciruela 700 #460F60 · 11,8:1 sobre ciruela 100 */
+  --lavender: oklch(0.773 0.115 303); /* lila #C4A3F2 */
   --mandarina: oklch(0.75 0.167 50.5); /* #FF8A3D */
-  --mandarina-ink: oklch(0.577 0.159 45.1); /* #C2530F, texto sobre claro */
+  --mandarina-ink: oklch(0.545 0.152 45); /* #B54B09, texto sobre claro · 4,9:1 sobre crema */
   --on-mandarina: oklch(0.26 0.06 51); /* texto sobre relleno mandarina */
 
-  /* semánticos */
-  --danger: oklch(0.57 0.2 22);
+  /* lo hecho: la punta del check (frambuesa) */
+  --done: oklch(0.531 0.202 5.6); /* frambuesa #C2185B · 5,5:1 sobre crema */
+  --done-soft: oklch(0.936 0.034 6.4); /* frambuesa 100 #FFE1E6 · frambuesa encima 4,8:1 */
+
+  /* semánticos (el error es rojo bermellón, separado del tono de la frambuesa) */
+  --danger: oklch(0.55 0.19 28); /* #C93029 · 5,0:1 sobre crema */
   --danger-soft: oklch(0.955 0.025 22);
   --success-soft: oklch(0.955 0.035 155);
-  --warning: oklch(0.577 0.159 45.1);
+  --warning: oklch(0.545 0.152 45);
   --warning-soft: oklch(0.962 0.035 60);
-  --success: oklch(0.58 0.13 155);
-  --info: oklch(0.459 0.238 279.9);
-  --info-soft: oklch(0.954 0.024 296.1);
+  --success: oklch(0.51 0.115 158); /* #0E794C · 5,1:1 sobre crema: salud y en línea, no «hecho» */
+  --info: oklch(0.377 0.15 311.4);
+  --info-soft: oklch(0.945 0.027 312.6);
 
   /* estados de tarea */
-  --st-backlog: oklch(0.72 0.02 300);
-  --st-todo: oklch(0.625 0.028 300);
+  --st-backlog: oklch(0.65 0.025 318); /* #968B99 · 3:1 sobre crema y blanco */
+  --st-todo: oklch(0.52 0.022 311);
   --st-progress: oklch(0.75 0.167 50.5);
-  --st-blocked: oklch(0.6 0.2 22);
-  --st-done: oklch(0.557 0.254 283.7);
-  /* gráficos de Mesa (validados con dataviz/validate_palette: carga = riesgo · en curso · resto) */
-  --chart-risk: oklch(0.57 0.2 22);
+  --st-blocked: oklch(0.55 0.19 28);
+  --st-done: oklch(0.531 0.202 5.6); /* frambuesa */
+  /* gráficos de Mesa (carga = riesgo · en curso · resto) */
+  --chart-risk: oklch(0.55 0.19 28);
   --chart-progress: oklch(0.75 0.167 50.5);
-  --chart-rest: oklch(0.86 0.026 300);
-  --chart-bar: oklch(0.557 0.254 283.7);
-  --chart-track: oklch(0.948 0.013 300);
+  --chart-rest: oklch(0.852 0.014 340.6);
+  --chart-bar: oklch(0.377 0.15 311.4);
+  --chart-track: oklch(0.93 0.012 311); /* mismo tono que ciruela: las mezclas del mapa de calor no viran a rosa */
 
   /* prioridad */
-  --pr-urgent: oklch(0.6 0.2 22);
+  --pr-urgent: oklch(0.55 0.19 28);
   --pr-high: oklch(0.75 0.167 50.5);
 
   /* tipos de captura en reuniones */
-  --k-decision: oklch(0.56 0.1 190);
+  --k-decision: oklch(0.52 0.1 190);
   --k-decision-soft: oklch(0.955 0.025 190);
-  --k-action: oklch(0.557 0.254 283.7);
-  --k-action-soft: oklch(0.954 0.024 296.1);
-  --k-question: oklch(0.6 0.15 48);
+  --k-action: oklch(0.377 0.15 311.4);
+  --k-action-soft: oklch(0.945 0.027 312.6);
+  --k-question: oklch(0.545 0.152 45);
   --k-question-soft: oklch(0.965 0.03 60);
 
-  /* isotipo */
-  --logo-a: oklch(0.779 0.123 292.3);
-  --logo-b: oklch(0.557 0.254 283.7);
+  /* logo: versión a color (fondos claros) */
+  --logo-a: oklch(0.377 0.15 311.4); /* sello, ciruela #5B1F7A */
+  --logo-b: oklch(0.531 0.202 5.6); /* punta del check, frambuesa #C2185B */
+  --logo-ink: oklch(0.243 0.088 312.7); /* logotipo, tinta #2E0F3D */
 
   /* paleta de espacios: color de baldosa y color de la letra */
-  --ws-violet: oklch(0.557 0.254 283.7);
-  --ws-violet-on: oklch(0.995 0.003 298);
+  --ws-violet: oklch(0.377 0.15 311.4);
+  --ws-violet-on: oklch(1 0 0);
   --ws-mandarina: oklch(0.75 0.167 50.5);
   --ws-mandarina-on: oklch(0.26 0.06 51);
-  --ws-ink: oklch(0.2 0.022 297);
-  --ws-ink-on: oklch(0.995 0.003 298);
-  --ws-lavender: oklch(0.779 0.123 292.3);
-  --ws-lavender-on: oklch(0.25 0.1 285);
+  --ws-ink: oklch(0.243 0.088 312.7);
+  --ws-ink-on: oklch(1 0 0);
+  --ws-lavender: oklch(0.773 0.115 303);
+  --ws-lavender-on: oklch(0.243 0.088 312.7);
   --ws-blue: oklch(0.58 0.16 255);
-  --ws-blue-on: oklch(0.995 0.003 298);
+  --ws-blue-on: oklch(1 0 0);
   --ws-teal: oklch(0.66 0.11 190);
   --ws-teal-on: oklch(0.2 0.04 200);
   --ws-green: oklch(0.64 0.14 155);
   --ws-green-on: oklch(0.2 0.04 155);
   --ws-pink: oklch(0.66 0.2 350);
-  --ws-pink-on: oklch(0.995 0.003 298);
-  --ws-red: oklch(0.6 0.2 22);
-  --ws-red-on: oklch(0.995 0.003 298);
+  --ws-pink-on: oklch(1 0 0);
+  --ws-red: oklch(0.6 0.2 28);
+  --ws-red-on: oklch(1 0 0);
   --ws-amber: oklch(0.82 0.15 85);
   --ws-amber-on: oklch(0.26 0.06 70);
 
-  /* elevación */
-  --elev-popover: 0 0 0 1px oklch(0.2 0.022 297 / 0.07), 0 10px 28px -8px oklch(0.3 0.08 290 / 0.2),
-    0 2px 6px -2px oklch(0.2 0.022 297 / 0.08);
-  --elev-panel: -1px 0 0 oklch(0.2 0.022 297 / 0.06), -16px 0 40px -14px oklch(0.3 0.08 290 / 0.16);
-  --elev-card: 0 1px 2px oklch(0.2 0.022 297 / 0.05), 0 0 0 1px oklch(0.2 0.022 297 / 0.06);
-  --elev-lift: 0 14px 36px -10px oklch(0.3 0.12 285 / 0.28), 0 0 0 1px oklch(0.2 0.022 297 / 0.07);
+  /* elevación (sombras teñidas de tinta) */
+  --elev-popover: 0 0 0 1px oklch(0.243 0.088 312.7 / 0.07), 0 10px 28px -8px oklch(0.3 0.09 312 / 0.18),
+    0 2px 6px -2px oklch(0.243 0.088 312.7 / 0.08);
+  --elev-panel: -1px 0 0 oklch(0.243 0.088 312.7 / 0.06), -16px 0 40px -14px oklch(0.3 0.09 312 / 0.15);
+  --elev-card: 0 1px 2px oklch(0.243 0.088 312.7 / 0.05), 0 0 0 1px oklch(0.243 0.088 312.7 / 0.06);
+  --elev-lift: 0 14px 36px -10px oklch(0.3 0.12 312 / 0.26), 0 0 0 1px oklch(0.243 0.088 312.7 / 0.07);
 }
 
 .dark {
   color-scheme: dark;
 
-  --canvas: oklch(0.188 0.014 298);
-  --sidebar: oklch(0.17 0.015 298);
-  --panel: oklch(0.222 0.022 297);
-  --hover: oklch(0.25 0.022 297);
-  --active: oklch(0.285 0.026 298);
-  --line: oklch(0.279 0.024 299);
-  --line-soft: oklch(0.256 0.023 296);
-  --line-strong: oklch(0.36 0.03 298);
+  /* superficies: noche de fondo, más clara hacia arriba */
+  --canvas: oklch(0.2 0.042 310.7); /* noche #1C1024 */
+  --sidebar: oklch(0.172 0.036 311); /* #150B1B */
+  --panel: oklch(0.232 0.044 311); /* #24172D */
+  --hover: oklch(0.262 0.046 311); /* #2C1E35 */
+  --active: oklch(0.3 0.058 311); /* #372543 */
+  --line: oklch(0.29 0.042 311);
+  --line-soft: oklch(0.255 0.04 311);
+  --line-strong: oklch(0.375 0.046 311);
+  --line-control: oklch(0.55 0.035 311); /* #786C81 · 3,4:1 sobre panel */
 
-  --fg: oklch(0.94 0.016 297.5);
-  --fg-muted: oklch(0.677 0.036 299);
-  --fg-subtle: oklch(0.581 0.04 297.5);
+  --fg: oklch(0.969 0.011 54.5); /* perla #FBF3EE · 16,7:1 sobre noche */
+  --fg-muted: oklch(0.765 0.03 311); /* #B9AEC1 · 7,4:1 sobre hover */
+  --fg-subtle: oklch(0.68 0.034 311); /* #9F93A8 · 5,4:1 sobre hover */
 
-  --accent: oklch(0.557 0.254 283.7);
-  --accent-hover: oklch(0.62 0.22 287);
-  --accent-fg: oklch(0.995 0.003 298);
-  --accent-mid: oklch(0.695 0.173 289.9);
-  --accent-soft: oklch(0.28 0.07 292);
-  --accent-ink: oklch(0.863 0.075 294);
-  --highlight: oklch(0.255 0.059 290);
-  --highlight-ink: oklch(0.89 0.06 294);
-  --lavender: oklch(0.474 0.147 287.7);
+  /* en oscuro, lila toma el lugar de ciruela (con texto tinta encima, 7,9:1) */
+  --accent: oklch(0.773 0.115 303); /* lila #C4A3F2 */
+  --accent-hover: oklch(0.82 0.084 311.6); /* ciruela 300 #D6B5EC */
+  --accent-fg: oklch(0.243 0.088 312.7); /* tinta */
+  --accent-mid: oklch(0.773 0.115 303);
+  --accent-soft: oklch(0.28 0.07 311); /* #341D42 · lila encima 7,0:1 */
+  --accent-ink: oklch(0.773 0.115 303); /* lila · 8,6:1 sobre noche */
+  --highlight: oklch(0.27 0.06 311);
+  --highlight-ink: oklch(0.895 0.052 311.9); /* ciruela 200 #E8D3F6 */
+  --lavender: oklch(0.45 0.13 311);
   --mandarina: oklch(0.794 0.134 52.5);
   --mandarina-ink: oklch(0.794 0.134 52.5);
 
-  --danger: oklch(0.68 0.17 22);
-  --danger-soft: oklch(0.29 0.06 22);
+  /* lo hecho: rosa sobre fondos oscuros */
+  --done: oklch(0.728 0.18 3.1); /* rosa #FF6F9C · 7,0:1 sobre noche */
+  --done-soft: oklch(0.29 0.075 5); /* #491826 · rosa encima 5,6:1 */
+
+  --danger: oklch(0.71 0.16 32); /* coral #F37763, lejos del rosa · 6,6:1 sobre noche */
+  --danger-soft: oklch(0.29 0.06 28);
   --success-soft: oklch(0.28 0.05 155);
   --warning: oklch(0.794 0.134 52.5);
   --warning-soft: oklch(0.29 0.05 55);
   --success: oklch(0.72 0.12 155);
-  --info: oklch(0.863 0.075 294);
-  --info-soft: oklch(0.28 0.07 292);
+  --info: oklch(0.773 0.115 303);
+  --info-soft: oklch(0.28 0.07 311);
 
-  --st-backlog: oklch(0.5 0.03 298);
-  --st-todo: oklch(0.677 0.036 299);
+  --st-backlog: oklch(0.55 0.035 311); /* 3,4:1 sobre panel */
+  --st-todo: oklch(0.68 0.034 311);
   --st-progress: oklch(0.794 0.134 52.5);
-  --st-blocked: oklch(0.68 0.17 22);
-  --st-done: oklch(0.638 0.208 288.5);
-  /* modo oscuro: pasos propios (rojo y naranja separados ≥15 ΔE, dentro de la banda L 0.48–0.67) */
-  --chart-risk: oklch(0.56 0.19 20);
+  --st-blocked: oklch(0.71 0.16 32);
+  --st-done: oklch(0.728 0.18 3.1); /* rosa */
+  /* modo oscuro: pasos propios (rojo y naranja separados, dentro de la banda L 0.48–0.67) */
+  --chart-risk: oklch(0.56 0.18 28);
   --chart-progress: oklch(0.665 0.15 64);
-  --chart-rest: oklch(0.36 0.03 298);
-  --chart-bar: oklch(0.695 0.173 289.9);
-  --chart-track: oklch(0.279 0.024 299);
+  --chart-rest: oklch(0.375 0.046 311);
+  --chart-bar: oklch(0.773 0.115 303);
+  --chart-track: oklch(0.29 0.042 311);
 
-  --pr-urgent: oklch(0.7 0.17 25);
+  --pr-urgent: oklch(0.72 0.16 32);
   --pr-high: oklch(0.794 0.134 52.5);
 
-  --logo-a: oklch(0.474 0.147 287.7);
-  --logo-b: oklch(0.695 0.173 289.9);
+  /* logo: versión oscuro (fondos noche y modo oscuro) */
+  --logo-a: oklch(0.773 0.115 303); /* sello, lila #C4A3F2 */
+  --logo-b: oklch(0.728 0.18 3.1); /* punta del check, rosa #FF6F9C */
+  --logo-ink: oklch(0.969 0.011 54.5); /* logotipo, perla #FBF3EE */
 
   --k-decision: oklch(0.74 0.1 190);
   --k-decision-soft: oklch(0.27 0.04 195);
-  --k-action: oklch(0.75 0.15 290);
-  --k-action-soft: oklch(0.27 0.06 290);
+  --k-action: oklch(0.8 0.09 305);
+  --k-action-soft: oklch(0.27 0.06 311);
   --k-question: oklch(0.79 0.13 52);
   --k-question-soft: oklch(0.28 0.05 55);
 
-  --ws-violet: oklch(0.6 0.23 286);
+  --ws-violet: oklch(0.56 0.14 311); /* blanco encima 5,0:1 */
   --ws-mandarina: oklch(0.794 0.134 52.5);
-  --ws-ink: oklch(0.94 0.016 297.5);
-  --ws-ink-on: oklch(0.2 0.022 297);
-  --ws-lavender: oklch(0.78 0.11 292);
+  --ws-ink: oklch(0.969 0.011 54.5);
+  --ws-ink-on: oklch(0.243 0.088 312.7);
+  --ws-lavender: oklch(0.773 0.115 303);
   --ws-blue: oklch(0.66 0.14 255);
   --ws-teal: oklch(0.72 0.1 190);
   --ws-green: oklch(0.72 0.13 155);
   --ws-pink: oklch(0.72 0.17 350);
-  --ws-red: oklch(0.66 0.18 22);
+  --ws-red: oklch(0.66 0.18 28);
   --ws-amber: oklch(0.84 0.13 85);
 
-  --elev-popover: 0 0 0 1px oklch(1 0 0 / 0.07), 0 12px 30px -8px oklch(0 0 0 / 0.6);
-  --elev-panel: -1px 0 0 oklch(1 0 0 / 0.06), -16px 0 40px -12px oklch(0 0 0 / 0.6);
+  --elev-popover: 0 0 0 1px oklch(1 0 0 / 0.07), 0 12px 30px -8px oklch(0.08 0.03 311 / 0.6);
+  --elev-panel: -1px 0 0 oklch(1 0 0 / 0.06), -16px 0 40px -12px oklch(0.08 0.03 311 / 0.6);
   --elev-card: 0 0 0 1px oklch(1 0 0 / 0.07);
-  --elev-lift: 0 16px 40px -10px oklch(0 0 0 / 0.7), 0 0 0 1px oklch(1 0 0 / 0.08);
+  --elev-lift: 0 16px 40px -10px oklch(0.08 0.03 311 / 0.7), 0 0 0 1px oklch(1 0 0 / 0.08);
+}
+
+/* Paleta del kit de identidad (06-Color/veltro-tailwind-theme.css): clases bg-ciruela-100, text-frambuesa, etc. */
+@theme {
+  --color-ciruela: #5b1f7a;
+  --color-tinta: #2e0f3d;
+  --color-frambuesa: #c2185b;
+  --color-crema: #fbf6f2;
+  --color-lila: #c4a3f2;
+  --color-rosa: #ff6f9c;
+  --color-noche: #1c1024;
+  --color-perla: #fbf3ee;
+  --color-ciruela-50: #faf4fe;
+  --color-ciruela-100: #f3e8fa;
+  --color-ciruela-200: #e8d3f6;
+  --color-ciruela-300: #d6b5ec;
+  --color-ciruela-400: #ba8bd8;
+  --color-ciruela-500: #9760b9;
+  --color-ciruela-600: #5b1f7a;
+  --color-ciruela-700: #460f60;
+  --color-ciruela-800: #35064a;
+  --color-ciruela-900: #230234;
+  --color-frambuesa-50: #fef1f4;
+  --color-frambuesa-100: #ffe1e6;
+  --color-frambuesa-200: #fec4cf;
+  --color-frambuesa-300: #f79cb0;
+  --color-frambuesa-400: #e7678a;
+  --color-frambuesa-500: #c2185b;
+  --color-frambuesa-600: #9e0247;
+  --color-frambuesa-700: #790034;
+  --color-frambuesa-800: #590125;
+  --color-frambuesa-900: #3c0117;
+  --color-gris-50: #fcf9fe;
+  --color-gris-100: #f5f0f9;
+  --color-gris-200: #e8e2ec;
+  --color-gris-300: #d4ced9;
+  --color-gris-400: #a8a2ac;
+  --color-gris-500: #7e7782;
+  --color-gris-600: #5e5863;
+  --color-gris-700: #433d48;
+  --color-gris-800: #2a242e;
+  --color-gris-900: #17111b;
 }
 
 @theme inline {
@@ -201,6 +261,7 @@
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-line-soft: var(--line-soft);
+  --color-line-control: var(--line-control);
   --color-highlight: var(--highlight);
   --color-highlight-ink: var(--highlight-ink);
   --color-lavender: var(--lavender);
@@ -228,6 +289,8 @@
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-success: var(--success);
+  --color-done: var(--done);
+  --color-done-soft: var(--done-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
   --color-st-backlog: var(--st-backlog);
@@ -240,7 +303,6 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-brand: var(--font-sora), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
   --text-2xs: 0.6875rem;
   --text-2xs--line-height: 1rem;

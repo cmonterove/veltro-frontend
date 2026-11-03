@@ -132,7 +132,7 @@ export function CommandPalette({
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
-        <D.Backdrop className="backdrop-motion fixed inset-0 z-50 bg-[oklch(0.2_0.01_165/0.25)] dark:bg-[oklch(0_0_0/0.5)]" />
+        <D.Backdrop className="backdrop-motion fixed inset-0 z-50 bg-[oklch(0.2_0.04_311/0.25)] dark:bg-[oklch(0_0_0/0.5)]" />
         <D.Popup className="popup-motion fixed left-1/2 top-[14vh] z-50 w-[min(640px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-xl border border-line bg-panel shadow-lift outline-none">
           <D.Title className="sr-only">{t('title')}</D.Title>
           <Command loop className="flex flex-col">

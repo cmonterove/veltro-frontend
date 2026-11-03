@@ -51,9 +51,9 @@ export function Select<V extends string = string>({
         id={id}
         aria-label={ariaLabel}
         className={cn(
-          'inline-flex h-9 w-full min-w-0 items-center gap-2 rounded-md border border-line bg-canvas px-2.5 text-left text-sm text-fg outline-none transition-colors',
-          'hover:border-line-strong focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 data-[popup-open]:border-accent',
-          'data-[disabled]:cursor-default data-[disabled]:opacity-60 data-[disabled]:hover:border-line',
+          'inline-flex h-9 w-full min-w-0 items-center gap-2 rounded-md border border-line-control bg-canvas px-2.5 text-left text-sm text-fg outline-none transition-colors',
+          'hover:border-fg-subtle focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20 data-[popup-open]:border-accent',
+          'data-[disabled]:cursor-default data-[disabled]:opacity-60 data-[disabled]:hover:border-line-control',
           className,
         )}
       >

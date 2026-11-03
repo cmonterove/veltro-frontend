@@ -38,7 +38,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           visibleToasts={4}
           icons={{
             success: (
-              <ToastIcon tone="bg-success-soft text-success">
+              <ToastIcon tone="bg-done-soft text-done">
                 <Check className="size-3.5" strokeWidth={3} />
               </ToastIcon>
             ),

@@ -200,7 +200,7 @@ export function PulseView() {
         <header className="flex shrink-0 flex-wrap items-end gap-x-6 gap-y-2">
           <div className="mr-auto min-w-0">
             <p className="text-xs font-medium text-fg-subtle first-letter:uppercase">{dateLine}</p>
-            <h1 className="font-brand text-[28px] font-semibold leading-tight tracking-[-0.03em]">
+            <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
               {t(`brief.greeting.${greeting}`, { name: profile.full_name.split(' ')[0] })}
             </h1>
           </div>

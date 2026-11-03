@@ -115,7 +115,7 @@ export function MesaView() {
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col px-4 pb-16 pt-8 sm:px-8">
       <header>
-        <h1 className="font-brand text-[28px] font-semibold leading-tight tracking-[-0.03em]">{t('title')}</h1>
+        <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">{t('title')}</h1>
         <p className="mt-1 text-sm text-fg-muted">{t('subtitle')}</p>
       </header>
 
