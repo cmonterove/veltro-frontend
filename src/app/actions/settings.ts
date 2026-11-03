@@ -5,7 +5,6 @@ import { randomInt } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getAppContext } from '@/lib/session'
-import { randomToken, sha256 } from '@/lib/crypto'
 import { slugify, workspaceKeyFrom } from '@/lib/utils'
 import { toErrorCode } from '@/lib/errors'
 import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
@@ -210,38 +209,5 @@ export async function updateProfile(patch: { full_name?: string; timezone?: stri
   const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
   if (error) return { ok: false as const, error: toErrorCode(error) }
   revalidatePath('/', 'layout')
-  return { ok: true as const }
-}
-
-// ---------- API tokens (Claude / integraciones) ----------
-
-export async function listApiTokens() {
-  const res = await getAppContext()
-  if (res.status !== 'ready') return []
-  const { data } = await createAdminClient()
-    .from('api_tokens')
-    .select('id, name, token_prefix, last_used_at, created_at')
-    .eq('user_id', res.ctx.user.id)
-    .order('created_at', { ascending: false })
-  return data ?? []
-}
-
-export async function createApiToken(name: string) {
-  const res = await getAppContext()
-  if (res.status !== 'ready') return { ok: false as const, error: 'not_authenticated' }
-  const token = `vlt_${randomToken(30)}`
-  const { error } = await createAdminClient()
-    .from('api_tokens')
-    .insert({ user_id: res.ctx.user.id, name: name.trim().slice(0, 80) || 'Claude', token_hash: sha256(token), token_prefix: token.slice(0, 10) })
-  if (error) return { ok: false as const, error: 'generic' }
-  revalidatePath('/settings/api')
-  return { ok: true as const, token }
-}
-
-export async function revokeApiToken(id: string) {
-  const res = await getAppContext()
-  if (res.status !== 'ready') return { ok: false as const, error: 'not_authenticated' }
-  await createAdminClient().from('api_tokens').delete().eq('id', id).eq('user_id', res.ctx.user.id)
-  revalidatePath('/settings/api')
   return { ok: true as const }
 }

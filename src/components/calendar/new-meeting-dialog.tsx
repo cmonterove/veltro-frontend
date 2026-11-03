@@ -11,8 +11,9 @@ import { useApp, canEdit } from '@/components/app/app-context'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
-import { calendarKeys } from '@/lib/queries/calendar'
+import { calendarKeys, createCalendarEvent } from '@/lib/queries/calendar'
 import { openMeeting } from '@/app/actions/meetings'
+import { toErrorCode } from '@/lib/errors'
 import type { CalendarEvent } from '@/lib/types'
 import { Select } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -34,6 +35,7 @@ export function NewMeetingDialog({
   onCreated?: (event: CalendarEvent) => void
 }) {
   const t = useTranslations('calendar.meetingDialog')
+  const tErrors = useTranslations('errors')
   const router = useRouter()
   const qc = useQueryClient()
   const { workspaces, members, profile } = useApp()
@@ -80,21 +82,14 @@ export function NewMeetingDialog({
     const endAt = addMinutes(startAt, duration)
     setPending(true)
     try {
-      const res = await fetch('/api/calendar/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim(),
-          start: startAt.toISOString(),
-          end: endAt.toISOString(),
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || profile.timezone,
-          attendees: emails,
-          withMeet,
-        }),
+      const event = await createCalendarEvent({
+        title: title.trim(),
+        start: startAt.toISOString(),
+        end: endAt.toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || profile.timezone,
+        attendees: emails,
+        withMeet,
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      const event = json.event as CalendarEvent
       qc.invalidateQueries({ queryKey: calendarKeys.all })
       toast.success(t('created'))
       onOpenChange(false)
@@ -103,8 +98,9 @@ export function NewMeetingDialog({
         const res = await openMeeting({ event, workspaceId })
         if (res.ok) router.push(`/m/${res.meetingId}`)
       }
-    } catch {
-      toast.error(t('error'))
+    } catch (e) {
+      const code = toErrorCode(e as Error)
+      toast.error(code === 'generic' ? t('error') : tErrors(code))
     } finally {
       setPending(false)
     }

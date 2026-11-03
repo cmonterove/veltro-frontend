@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { addMinutes } from 'date-fns'
 import { toast } from 'sonner'
 import { useApp, useMemberMap } from '@/components/app/app-context'
-import { calendarKeys } from '@/lib/queries/calendar'
+import { calendarKeys, createCalendarEvent } from '@/lib/queries/calendar'
 import { useChatMutations, type ChatSummary } from '@/lib/queries/chats'
 import { DEMO } from '@/lib/demo/config'
 import { track } from '@/lib/telemetry'
@@ -59,21 +59,14 @@ export function useMeetNow(chat: ChatSummary) {
           ? t('titleGroup', { name: chatName(chat) })
           : t('titleDirect', { a: first(user.id), b: first(others[0].user_id) })
       const now = new Date()
-      const res = await fetch('/api/calendar/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          start: now.toISOString(),
-          end: addMinutes(now, MEET_MINUTES).toISOString(),
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || profile.timezone,
-          attendees: others.flatMap((m) => memberMap.get(m.user_id)?.email ?? []),
-          withMeet: true,
-        }),
+      const event = await createCalendarEvent({
+        title,
+        start: now.toISOString(),
+        end: addMinutes(now, MEET_MINUTES).toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || profile.timezone,
+        attendees: others.flatMap((m) => memberMap.get(m.user_id)?.email ?? []),
+        withMeet: true,
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      const event = json.event as CalendarEvent
       qc.invalidateQueries({ queryKey: calendarKeys.all })
       send.mutate({ chatId: chat.id, kind: 'meeting', body: '', meta: { invite: inviteFrom(event, user.id) } })
       track('feature.chat_meet_now')

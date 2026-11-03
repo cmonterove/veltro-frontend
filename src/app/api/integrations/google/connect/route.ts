@@ -1,39 +1,31 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
-import { getUser } from '@/lib/session'
-import { buildAuthUrl } from '@/lib/google/oauth'
-import { isGoogleConfigured } from '@/lib/google/config'
-import { randomToken } from '@/lib/crypto'
-import { DEMO } from '@/lib/demo/config'
-import { connectDemoGoogle } from '@/lib/demo/calendar'
+import { googleReason, type ApiGoogleConnect } from '@/lib/api/integraciones'
+import { apiWithSession, BINDING_COOKIE, BINDING_PATH, safeReturn, withSession } from '../_shared'
 
-const STATE_COOKIE = 'veltro-google-state'
-
+/**
+ * Conectar Google Calendar: la API arma la URL de Google con un estado firmado y entrega un secreto
+ * que se queda en ESTE navegador (cookie httpOnly). Al volver, la API exige la misma sesión y el
+ * mismo secreto, y el estado sirve una sola vez.
+ */
 export async function GET(request: NextRequest) {
-  const user = await getUser()
-  if (!user) return NextResponse.redirect(new URL('/login', request.url))
-  if (!isGoogleConfigured()) {
-    return NextResponse.redirect(new URL('/settings/integrations?google=not_configured', request.url))
+  const returnTo = safeReturn(request.nextUrl.searchParams.get('returnTo'))
+  const { renewed, data, error } = await apiWithSession<ApiGoogleConnect>(request, '/v1/integrations/google/connect', { returnTo })
+
+  if (error?.status === 401) return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(returnTo)}`, request.url))
+  if (error) {
+    const target = new URL(returnTo, request.url)
+    target.searchParams.set('google', googleReason(error.code))
+    return withSession(NextResponse.redirect(target), renewed)
   }
 
-  const returnTo = request.nextUrl.searchParams.get('returnTo')
-  const safeReturn = returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/settings/integrations'
-  if (DEMO) {
-    connectDemoGoogle(true)
-    const target = new URL(safeReturn, request.url)
-    target.searchParams.set('google', 'connected')
-    return NextResponse.redirect(target)
-  }
-
-  const state = randomToken(24)
-
-  ;(await cookies()).set(STATE_COOKIE, JSON.stringify({ state, returnTo: safeReturn, uid: user.id }), {
+  const res = NextResponse.redirect(data.url)
+  res.cookies.set(BINDING_COOKIE, data.binding, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
+    // lax: viaja en la vuelta de Google (navegación GET de primer nivel)
     sameSite: 'lax',
-    path: '/api/integrations/google',
-    maxAge: 600,
+    path: BINDING_PATH,
+    maxAge: data.expiresIn,
   })
-
-  return NextResponse.redirect(buildAuthUrl(state, user.email))
+  return withSession(res, renewed)
 }

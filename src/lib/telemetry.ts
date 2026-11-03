@@ -1,14 +1,28 @@
 'use client'
 
-// Telemetría para la consola de administración (veltro-console):
-// - presencia: un latido cada 2 minutos mientras la pestaña está visible (tabla user_sessions)
-// - eventos: pantallas (view.*) y funciones (feature.*), en lotes (tabla usage_events)
+// Telemetría para la consola de administración (veltro-console), por la API:
+// - presencia: un latido cada 2 minutos mientras la pestaña está visible (POST /v1/me/presence → user_sessions)
+// - eventos: pantallas (view.*) y funciones (feature.*), en lotes (POST /v1/telemetry/events → usage_events)
 // Las escrituras (tareas, docs, reuniones...) ya se registran solas con triggers en la base.
-// Nunca rompe la app: todo error se ignora.
+// Nunca rompe la app: todo error se ignora (y un 401 no manda al login, a diferencia de api()).
 
-import { createClient } from '@/lib/supabase/client'
+type TrackedEvent = { event: string; workspaceId?: string | null; accountId?: string | null; props?: Record<string, string | number | boolean> }
 
-type TrackedEvent = { event: string; workspace_id?: string | null; account_id?: string | null; props?: Record<string, string | number | boolean> }
+// lo mismo que valida la API: un nombre inválido haría rechazar el lote entero
+const EVENT_NAME = /^(view|feature)\.[a-z0-9_]+(\.[a-z0-9_]+)?$/
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const uuidOrNull = (v: string | null | undefined) => (v && UUID.test(v) ? v : null)
+
+/** Por el puente /api/veltro; keepalive para que el último lote salga aunque se cierre la pestaña. */
+function send(path: string, body: unknown) {
+  fetch(`/api/veltro${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    credentials: 'same-origin',
+    keepalive: true,
+  }).catch(() => {})
+}
 
 let queue: TrackedEvent[] = []
 let timer: ReturnType<typeof setTimeout> | null = null
@@ -19,8 +33,8 @@ export function setTelemetryAccount(id: string | null) {
 }
 
 export function track(event: `view.${string}` | `feature.${string}`, opts: { workspaceId?: string | null; props?: TrackedEvent['props'] } = {}) {
-  if (typeof window === 'undefined') return
-  queue.push({ event, workspace_id: opts.workspaceId ?? null, account_id: accountId, props: opts.props })
+  if (typeof window === 'undefined' || !EVENT_NAME.test(event)) return
+  queue.push({ event, workspaceId: uuidOrNull(opts.workspaceId), accountId: uuidOrNull(accountId), props: opts.props })
   if (queue.length >= 20) flushEvents()
   else timer ??= setTimeout(flushEvents, 8000)
 }
@@ -31,12 +45,8 @@ export function flushEvents() {
   if (!queue.length) return
   const batch = queue.slice(0, 25)
   queue = queue.slice(25)
-  createClient()
-    .rpc('track_events', { p_events: batch })
-    .then(
-      () => {},
-      () => {},
-    )
+  send('/v1/telemetry/events', { events: batch })
+  if (queue.length) timer = setTimeout(flushEvents, 8000)
 }
 
 export function clientInfo() {
@@ -48,12 +58,7 @@ export function clientInfo() {
 }
 
 export function ping() {
-  createClient()
-    .rpc('touch_presence', { p_client: clientInfo() })
-    .then(
-      () => {},
-      () => {},
-    )
+  send('/v1/me/presence', clientInfo())
 }
 
 /** Pantalla actual a partir de la ruta (los ids no se registran). */
