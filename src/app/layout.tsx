@@ -31,10 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#5B1F7A' }, // ciruela, como pide el kit
-    { media: '(prefers-color-scheme: dark)', color: '#1C1024' }, // noche
-  ],
+  // ciruela, como pide el kit; sin variante oscura: el tema por defecto es claro aunque el sistema esté en oscuro
+  themeColor: '#5B1F7A',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
