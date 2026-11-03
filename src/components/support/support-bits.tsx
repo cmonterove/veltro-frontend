@@ -101,7 +101,7 @@ export function ToneTile({ icon: Icon, tone, size = 36, unread }: { icon: Lucide
 export function VeltroTile({ size = 32, className }: { size?: number; className?: string }) {
   return (
     <span className={cn('flex shrink-0 items-center justify-center rounded-[30%] bg-highlight', className)} style={{ width: size, height: size }} aria-hidden>
-      <LogoMark cut="var(--highlight)" className="size-[62%]" />
+      <LogoMark className="size-[62%]" />
     </span>
   )
 }
