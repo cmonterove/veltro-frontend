@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, ChevronDown, Copy, MoreHorizontal, UserPlus } from 'lucide-react'
+import { Check, ChevronDown, Copy, KeyRound, MoreHorizontal, UserPlus } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/switch'
@@ -17,41 +17,59 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { addMember, removeMember, setMemberWorkspaces, updateMemberRole } from '@/app/actions/settings'
 import { cn } from '@/lib/utils'
 import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
-import type { Member } from '@/lib/types'
+import type { AccountMember, Assignment, Usage } from '@/lib/api/ajustes'
+import type { ErrorCode } from '@/lib/errors'
 import { SettingsHeader } from './ui'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Select } from '@/components/ui/select'
+import { useConfirm } from '@/components/ui/confirm'
 import { useCopy } from '@/lib/clipboard'
 
-type Assignment = { workspace_id: string; user_id: string; role: WorkspaceRole }
-type Usage = { max_members: number | null; members_count: number } | null
+type Result = { ok: true } | { ok: false; error: ErrorCode }
 
-export function MembersSettings({ assignments, usage }: { assignments: Assignment[]; usage: Usage }) {
+export function MembersSettings({ members, usage }: { members: AccountMember[]; usage: Usage | null }) {
   const t = useTranslations('settings.members')
   const te = useTranslations('errors')
+  const tConfirm = useTranslations('confirm')
   const router = useRouter()
-  const { members, workspaces, user, accountRole } = useApp()
+  const confirm = useConfirm()
+  const { workspaces, user, account, accountRole } = useApp()
   const [addOpen, setAddOpen] = useState(false)
   const [, start] = useTransition()
   const full = usage?.max_members != null && usage.members_count >= usage.max_members
 
-  const byUser = useMemo(() => {
-    const m = new Map<string, Assignment[]>()
-    assignments.forEach((a) => m.set(a.user_id, [...(m.get(a.user_id) ?? []), a]))
-    return m
-  }, [assignments])
-
   const qc = useQueryClient()
-  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, success: string) =>
+  const done = () => {
+    router.refresh()
+    // las listas de asignables por espacio también cambian
+    qc.invalidateQueries({ queryKey: ['workspace-members'] })
+  }
+  const run = (fn: () => Promise<Result & { unassignedTasks?: number }>, success: string) =>
     start(async () => {
       const res = await fn()
       if (res.ok) {
-        toast.success(success)
-        router.refresh()
-        // las listas de asignables por espacio también cambian
-        qc.invalidateQueries({ queryKey: ['workspace-members'] })
-      } else toast.error(te(res.error ?? 'generic'))
+        toast.success(success, { description: res.unassignedTasks ? t('unassignedTasks', { count: res.unassignedTasks }) : undefined })
+        done()
+      } else toast.error(te(res.error))
     })
+
+  // quitar exige confirmación: sale de sus espacios y de sus tareas abiertas
+  // (la confirmación va antes de la transición: dentro, el diálogo no se pintaría hasta que terminara)
+  const remove = async (m: AccountMember) => {
+    const ok = await confirm({
+      title: t('removeConfirm', { name: m.full_name }),
+      description: t('removeConfirmHint'),
+      danger: true,
+      confirmLabel: tConfirm('remove'),
+    })
+    if (!ok) return
+    start(async () => {
+      const res = await removeMember(account.id, m.id)
+      if (!res.ok) return void toast.error(te(res.error))
+      toast.success(t('removed'), { description: res.unassignedTasks ? t('unassignedTasks', { count: res.unassignedTasks }) : undefined })
+      done()
+    })
+  }
 
   return (
     <div>
@@ -74,17 +92,17 @@ export function MembersSettings({ assignments, usage }: { assignments: Assignmen
               member={m}
               isSelf={m.id === user.id}
               canPromote={accountRole === 'owner'}
-              assignments={byUser.get(m.id) ?? []}
+              assignments={m.assignments}
               workspaces={workspaces}
-              onRole={(role) => run(() => updateMemberRole(m.id, role), t('roleUpdated'))}
-              onRemove={() => run(() => removeMember(m.id), t('removed'))}
-              onWorkspaces={(rows) => run(() => setMemberWorkspaces(m.id, rows), t('workspacesUpdated'))}
+              onRole={(role) => run(() => updateMemberRole(account.id, m.id, role), t('roleUpdated'))}
+              onRemove={() => remove(m)}
+              onWorkspaces={(rows) => run(() => setMemberWorkspaces(account.id, m.id, rows), t('workspacesUpdated'))}
             />
           ))}
         </ul>
       </div>
 
-      <AddMemberDialog open={addOpen} onOpenChange={setAddOpen} canPromote={accountRole === 'owner'} onDone={() => router.refresh()} />
+      <AddMemberDialog open={addOpen} onOpenChange={setAddOpen} canPromote={accountRole === 'owner'} onDone={done} />
     </div>
   )
 }
@@ -99,7 +117,7 @@ function MemberRow({
   onRemove,
   onWorkspaces,
 }: {
-  member: Member
+  member: AccountMember
   isSelf: boolean
   canPromote: boolean
   assignments: Assignment[]
@@ -122,7 +140,15 @@ function MemberRow({
           {member.full_name}
           {isSelf ? <span className="ml-1.5 text-xs font-normal text-fg-subtle">{t('you')}</span> : null}
         </p>
-        <p className="truncate text-xs text-fg-muted">{member.email}</p>
+        <p className="flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
+          <span className="truncate">{member.email}</span>
+          {member.must_change_password ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-soft px-1.5 py-px text-2xs font-medium text-warning" title={t('tempPasswordHint')}>
+              <KeyRound className="size-2.5" />
+              {t('tempPassword')}
+            </span>
+          ) : null}
+        </p>
       </div>
 
       {isAdmin ? (
@@ -267,7 +293,8 @@ function AddMemberDialog({
   const t = useTranslations('settings.members.addDialog')
   const te = useTranslations('errors')
   const tRole = useTranslations('roles')
-  const { workspaces } = useApp()
+  const { workspaces, account } = useApp()
+  const [error, setError] = useState<ErrorCode | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'admin' | 'member'>('member')
@@ -281,18 +308,25 @@ function AddMemberDialog({
     setRole('member')
     setSelected(new Map())
     setResult(null)
+    setError(null)
+  }
+  // los botones del pie cierran desde afuera (el Dialog no avisa): sin limpiar, al reabrir saldría la contraseña anterior
+  const close = () => {
+    onOpenChange(false)
+    reset()
   }
 
   const submit = () =>
     start(async () => {
-      const res = await addMember({
+      setError(null)
+      const res = await addMember(account.id, {
         fullName: name,
         email,
         role,
         workspaces: role === 'admin' ? [] : [...selected].map(([id, r]) => ({ id, role: r })),
       })
       if (!res.ok) {
-        toast.error(te(res.error))
+        setError(res.error)
         return
       }
       setResult({ email: email.trim().toLowerCase(), password: res.tempPassword, existing: res.existing })
@@ -326,7 +360,7 @@ function AddMemberDialog({
                 <Copy />
                 {t('copy')}
               </Button>
-              <Button variant="primary" onClick={() => onOpenChange(false)}>
+              <Button variant="primary" onClick={close}>
                 {t('close')}
               </Button>
             </DialogFooter>
@@ -403,12 +437,17 @@ function AddMemberDialog({
                   </div>
                 </div>
               ) : null}
+              {error ? (
+                <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-fg">
+                  {te(error)}
+                </p>
+              ) : null}
             </DialogBody>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => onOpenChange(false)}>
+              <Button variant="ghost" onClick={close}>
                 {t('cancel')}
               </Button>
-              <Button type="submit" variant="primary" loading={pending} disabled={!name.trim() || !email.trim()}>
+              <Button type="submit" variant="primary" loading={pending} disabled={name.trim().length < 2 || !email.trim()}>
                 {t('submit')}
               </Button>
             </DialogFooter>

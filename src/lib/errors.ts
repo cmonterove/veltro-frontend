@@ -18,9 +18,20 @@ const KNOWN = [
   'department_other_account',
   'invalid_statuses',
   'invalid_status',
+  // ajustes: personas, contraseña, espacios y suspensión (códigos de la API)
+  'owner_only',
+  'member_in_other_account',
+  'already_member',
+  'current_password_required',
+  'current_password_wrong',
+  'same_password',
+  'password_change_required',
+  'workspace_archived',
+  'user_suspended',
+  'account_suspended',
 ] as const
 
-export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email'
+export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email' | 'weak_password' | 'name_too_short' | 'rate_limited'
 
 export function toErrorCode(error: { message?: string } | null | undefined): ErrorCode {
   const msg = error?.message ?? ''

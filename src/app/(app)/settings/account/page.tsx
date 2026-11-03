@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { createClient } from '@/lib/supabase/server'
 import { requireAppContext } from '@/lib/session'
+import { api } from '@/lib/api/server'
+import { isSuspended, toUsage } from '@/lib/api/ajustes'
+import type { ApiUsage } from '@/lib/api/types'
 import { AccountSettings } from '@/components/settings/account-settings'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,7 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AccountPage() {
   const ctx = await requireAppContext()
-  const supabase = await createClient()
-  const { data } = await supabase.rpc('get_account_usage', { p_account: ctx.account.id })
-  return <AccountSettings usage={data?.[0] ?? null} />
+  // suspendida: el shell muestra el aviso en lugar de la página
+  if (isSuspended(ctx)) return null
+  const usage = await api<ApiUsage>(`/v1/accounts/${ctx.account.id}/usage`)
+  return <AccountSettings usage={toUsage(usage)} />
 }
