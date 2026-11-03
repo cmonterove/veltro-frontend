@@ -1,5 +1,6 @@
 import { addDays, format, subDays, subHours } from 'date-fns'
 import { seedChats } from './chats-seed'
+import { seedSupport } from './support'
 import type { CalendarEvent } from '@/lib/types'
 import { DEMO_USER_ID } from './config'
 import { anchorEvents, lastOccurrence, nextOccurrence, PEOPLE } from './calendar-gen'
@@ -32,6 +33,13 @@ export type DemoStore = {
     chat_messages: Row[]
     google_connections: Row[]
     api_tokens: Row[]
+    support_tickets: Row[]
+    support_ticket_messages: Row[]
+    support_ticket_reads: Row[]
+    feature_requests: Row[]
+    feature_request_updates: Row[]
+    feature_request_supporters: Row[]
+    feature_request_reads: Row[]
   }
   /** eventos creados desde "Nueva reunión" */
   events: CalendarEvent[]
@@ -853,11 +861,19 @@ if (!user && !isPublic(pathname)) return NextResponse.redirect('/login')
       chats: [],
       chat_members: [],
       chat_messages: [],
+      support_tickets: [],
+      support_ticket_messages: [],
+      support_ticket_reads: [],
+      feature_requests: [],
+      feature_request_updates: [],
+      feature_request_supporters: [],
+      feature_request_reads: [],
     },
     events: [],
     files,
   }
   seedChats(built, anchor)
+  seedSupport(built, anchor)
   return built
 }
 

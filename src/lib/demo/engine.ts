@@ -5,6 +5,18 @@ import { DEMO_USER_ID } from './config'
 import type { Filter, Query, Result } from './query'
 import { buildSeed, LOOSE_FILES, SEED_VERSION, type DemoStore } from './seed'
 import { seedChats } from './chats-seed'
+import {
+  ensureSupport,
+  seedSupport,
+  SUPPORT_CONFLICT,
+  SUPPORT_DEFAULTS,
+  SUPPORT_NO_ID,
+  SUPPORT_NO_UPDATED,
+  supportAfterDelete,
+  supportBeforeInsert,
+  supportBeforeUpdate,
+  SupportError,
+} from './support'
 
 // ============================================================
 // Base de datos en memoria para el modo demo.
@@ -43,8 +55,9 @@ export function store(): DemoStore {
  * 1: tasks.assignee_ids (varios responsables).
  * 2: tareas sin responsable con fecha esta semana, para repartirlas desde el calendario.
  * 3: bóveda (account_id, title y labels en adjuntos, archivos sueltos) y Pasillo (chats de ejemplo).
+ * 4: soporte y requerimientos (tablas, destino por rol en la cuenta y ejemplos).
  */
-const DEMO_SCHEMA = 3
+const DEMO_SCHEMA = 4
 const UNASSIGNED_DEMO_TASKS = ['Coordinar muestras para degustación en Farmatodo', 'Relevar precios de la competencia', 'Preparar ambiente de pruebas para el cliente']
 function upgrade(saved: DemoStore) {
   const from = saved.schema ?? 0
@@ -91,6 +104,7 @@ function upgrade(saved: DemoStore) {
     }
     seedChats(saved, new Date())
   }
+  if (from < 4) seedSupport(saved, new Date())
   saved.schema = DEMO_SCHEMA
 }
 
@@ -300,10 +314,11 @@ const DEFAULTS: Record<string, () => Row> = {
   google_connections: () => ({ access_token: null, access_token_expires_at: null, scopes: [], selected_calendar_ids: ['primary'] }),
   api_tokens: () => ({ last_used_at: null }),
   plans: () => ({}),
+  ...SUPPORT_DEFAULTS,
 }
 
-const NO_ID = new Set(['profiles', 'account_members', 'workspace_members', 'google_connections', 'plans', 'chat_members'])
-const NO_UPDATED = new Set(['account_members', 'workspace_members', 'api_tokens', 'plans', 'attachments', 'chat_members', 'chat_messages'])
+const NO_ID = new Set(['profiles', 'account_members', 'workspace_members', 'google_connections', 'plans', 'chat_members', ...SUPPORT_NO_ID])
+const NO_UPDATED = new Set(['account_members', 'workspace_members', 'api_tokens', 'plans', 'attachments', 'chat_members', 'chat_messages', ...SUPPORT_NO_UPDATED])
 
 /** Un adjunto vinculado a una tarea, reunión o doc vive en el espacio de eso; suelto, es de la cuenta. */
 function placeAttachment(s: DemoStore, row: Row) {
@@ -385,6 +400,7 @@ function syncAssignees(s: DemoStore, next: Row, prev: Row | null) {
 }
 
 function beforeInsert(s: DemoStore, table: string, row: Row) {
+  supportBeforeInsert(s, table, row, DEMO_USER_ID)
   if (table === 'tasks') {
     const ws = s.tables.workspaces.find((w) => w.id === row.workspace_id)
     if (!ws) throw new DbError('forbidden')
@@ -484,11 +500,13 @@ function beforeUpdate(s: DemoStore, table: string, row: Row, patch: Row) {
     const ids = new Set(((patch.task_statuses as Row[]) ?? []).map((x) => x.id))
     s.tables.tasks.forEach((t) => t.workspace_id === row.id && t.status_id && !ids.has(t.status_id) && (t.status_id = null))
   }
+  supportBeforeUpdate(s, table, row, next, DEMO_USER_ID)
   if (!NO_UPDATED.has(table)) next.updated_at = now()
   return next
 }
 
 function afterDelete(s: DemoStore, table: string, row: Row) {
+  supportAfterDelete(s, table, row)
   if (table === 'departments') {
     s.tables.account_members.forEach((m) => m.department_id === row.id && (m.department_id = null))
   }
@@ -517,6 +535,7 @@ function afterDelete(s: DemoStore, table: string, row: Row) {
 
 export function executeQuery(q: Query): Result {
   const s = store()
+  ensureSupport(s)
   const tables = s.tables as Record<string, Row[]>
   const table = tables[q.table]
   if (!table) return { data: null, error: { message: `unknown table ${q.table}` } }
@@ -594,11 +613,12 @@ export function executeQuery(q: Query): Result {
     }
     return { data: rows, error: null, count: q.count ? total : null }
   } catch (e) {
-    return { data: null, error: { message: e instanceof DbError ? e.code : String(e), code: 'P0001' } }
+    return { data: null, error: { message: e instanceof DbError || e instanceof SupportError ? e.code : String(e), code: 'P0001' } }
   }
 }
 
 function defaultConflict(table: string) {
+  if (SUPPORT_CONFLICT[table]) return SUPPORT_CONFLICT[table]
   if (table === 'workspace_members') return ['workspace_id', 'user_id']
   if (table === 'chat_members') return ['chat_id', 'user_id']
   if (table === 'account_members') return ['account_id', 'user_id']
