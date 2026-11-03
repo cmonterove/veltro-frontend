@@ -989,7 +989,11 @@
     "too_many_assignees": "Una tarea puede tener hasta 20 responsables.",
     "loadTitle": "No pudimos cargar esto",
     "loadBody": "Puede ser la conexión. Prueba otra vez en un momento.",
-    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo a mano."
+    "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo a mano.",
+    "meeting_closed": "La reunión está cerrada. Reábrela para cambiar lo capturado.",
+    "doc_archived": "Este doc está archivado. Restáuralo para editarlo.",
+    "file_type": "Ese tipo de archivo no se admite.",
+    "file_too_large": "El archivo pesa más de 20 MB."
   },
   "demo": {
     "badge": "Modo demo: datos de prueba",

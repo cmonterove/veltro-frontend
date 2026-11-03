@@ -18,6 +18,10 @@ const KNOWN = [
   'department_other_account',
   'invalid_statuses',
   'invalid_status',
+  'meeting_closed',
+  'doc_archived',
+  'file_type',
+  'file_too_large',
 ] as const
 
 export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email'

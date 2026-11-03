@@ -989,7 +989,11 @@
     "too_many_assignees": "A task can have up to 20 assignees.",
     "loadTitle": "We couldn't load this",
     "loadBody": "It may be the connection. Try again in a moment.",
-    "copyFailed": "Couldn't copy. Select the text and copy it manually."
+    "copyFailed": "Couldn't copy. Select the text and copy it manually.",
+    "meeting_closed": "This meeting is closed. Reopen it to change what was captured.",
+    "doc_archived": "This doc is archived. Restore it to edit it.",
+    "file_type": "That file type isn't supported.",
+    "file_too_large": "The file is larger than 20 MB."
   },
   "demo": {
     "badge": "Demo mode: sample data",

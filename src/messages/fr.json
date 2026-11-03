@@ -989,7 +989,11 @@
     "too_many_assignees": "Une tâche peut avoir jusqu’à 20 responsables.",
     "loadTitle": "Impossible de charger ceci",
     "loadBody": "C'est peut-être la connexion. Réessayez dans un instant.",
-    "copyFailed": "Impossible de copier. Sélectionnez le texte et copiez-le à la main."
+    "copyFailed": "Impossible de copier. Sélectionnez le texte et copiez-le à la main.",
+    "meeting_closed": "La réunion est clôturée. Rouvrez-la pour modifier ce qui a été noté.",
+    "doc_archived": "Ce doc est archivé. Restaurez-le pour le modifier.",
+    "file_type": "Ce type de fichier n'est pas accepté.",
+    "file_too_large": "Le fichier dépasse 20 Mo."
   },
   "demo": {
     "badge": "Mode démo : données de test",

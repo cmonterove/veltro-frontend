@@ -1,16 +1,24 @@
 'use client'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
-import type { Database, DocRow } from '@/lib/database.types'
+import { api } from '@/lib/api/client'
+import {
+  allPages,
+  docCreateBody,
+  docPatchBody,
+  toDocRow,
+  toDocSummary,
+  type ApiDoc,
+  type ApiDocInList,
+  type ApiPage,
+  type DocCreate,
+  type DocPatch,
+} from '@/lib/api/docs-reuniones'
+import type { DocRow } from '@/lib/database.types'
 import type { DocSummary } from '@/lib/types'
 import { toErrorCode } from '@/lib/errors'
-
-import { DOC_SUMMARY_COLUMNS } from './doc-columns'
-
-export { DOC_SUMMARY_COLUMNS }
 
 export const docKeys = {
   all: ['docs'] as const,
@@ -19,21 +27,24 @@ export const docKeys = {
   one: (id: string) => ['doc', id] as const,
 }
 
+type ListQuery = { sort: 'updated' | 'position'; limit?: number }
+
+/** Docs vivos de un espacio (sin contenido): todas las páginas, o solo los primeros `limit`. */
+async function listDocs(workspaceId: string, q: ListQuery) {
+  const page = (cursor?: string) =>
+    api<ApiPage<ApiDocInList>>(`/v1/workspaces/${workspaceId}/docs`, { query: { sort: q.sort, limit: Math.min(q.limit ?? 200, 200), cursor } })
+  const rows = q.limit ? (await page()).items : await allPages(page)
+  return rows.map(toDocSummary)
+}
+
+const byUpdated = (a: DocSummary, b: DocSummary) => b.updated_at.localeCompare(a.updated_at)
+
 export function useWorkspaceDocs(workspaceId: string | null, initialData?: DocSummary[]) {
   return useQuery({
     queryKey: workspaceId ? docKeys.workspace(workspaceId) : ['docs', 'none'],
     enabled: Boolean(workspaceId),
     initialData,
-    queryFn: async () => {
-      const { data, error } = await createClient()
-        .from('docs')
-        .select(DOC_SUMMARY_COLUMNS)
-        .eq('workspace_id', workspaceId!)
-        .is('archived_at', null)
-        .order('position')
-      if (error) throw error
-      return data as DocSummary[]
-    },
+    queryFn: () => listDocs(workspaceId!, { sort: 'position' }),
   })
 }
 
@@ -42,15 +53,9 @@ export function useRecentDocs(workspaceIds: string[], limit = 8) {
     queryKey: [...docKeys.recent(workspaceIds), limit],
     enabled: workspaceIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await createClient()
-        .from('docs')
-        .select(DOC_SUMMARY_COLUMNS)
-        .in('workspace_id', workspaceIds)
-        .is('archived_at', null)
-        .order('updated_at', { ascending: false })
-        .limit(limit)
-      if (error) throw error
-      return data as DocSummary[]
+      // los últimos de cada espacio y, juntos, los más recientes
+      const lists = await Promise.all(workspaceIds.map((id) => listDocs(id, { sort: 'updated', limit })))
+      return lists.flat().sort(byUpdated).slice(0, limit)
     },
   })
 }
@@ -61,14 +66,8 @@ export function useDocsIn(workspaceIds: string[]) {
     queryKey: ['docs', 'in', workspaceIds],
     enabled: workspaceIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await createClient()
-        .from('docs')
-        .select(DOC_SUMMARY_COLUMNS)
-        .in('workspace_id', workspaceIds)
-        .is('archived_at', null)
-        .order('updated_at', { ascending: false })
-      if (error) throw error
-      return data as DocSummary[]
+      const lists = await Promise.all(workspaceIds.map((id) => listDocs(id, { sort: 'updated' })))
+      return lists.flat().sort(byUpdated)
     },
   })
 }
@@ -79,16 +78,9 @@ export function useDoc(id: string, initialData?: DocRow) {
     initialData,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const { data, error } = await createClient().from('docs').select('*').eq('id', id).single()
-      if (error) throw error
-      return data as DocRow
-    },
+    queryFn: async () => toDocRow(await api<ApiDoc>(`/v1/docs/${id}`)),
   })
 }
-
-type DocInsert = Database['public']['Tables']['docs']['Insert']
-type DocUpdate = Database['public']['Tables']['docs']['Update']
 
 function useErrorToast() {
   const t = useTranslations('errors')
@@ -99,11 +91,8 @@ export function useCreateDoc() {
   const qc = useQueryClient()
   const onError = useErrorToast()
   return useMutation({
-    mutationFn: async (input: DocInsert) => {
-      const { data, error } = await createClient().from('docs').insert(input).select('*').single()
-      if (error) throw error
-      return data as DocRow
-    },
+    mutationFn: async (input: DocCreate) =>
+      toDocRow(await api<ApiDoc>(`/v1/workspaces/${input.workspace_id}/docs`, { method: 'POST', body: docCreateBody(input) })),
     onSuccess: (doc) => {
       qc.setQueryData(docKeys.one(doc.id), doc)
       qc.setQueryData<DocSummary[]>(docKeys.workspace(doc.workspace_id), (old) => (old ? [...old, doc] : old))
@@ -117,38 +106,35 @@ export function useCreateDoc() {
 export function useSaveDoc() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: DocUpdate }) => {
-      const { data, error } = await createClient()
-        .from('docs')
-        .update(patch)
-        .eq('id', id)
-        .select(DOC_SUMMARY_COLUMNS)
-        .single()
-      if (error) throw error
-      return data as DocSummary
-    },
+    mutationFn: async ({ id, patch }: { id: string; patch: DocPatch }) =>
+      toDocSummary(await api<ApiDoc>(`/v1/docs/${id}`, { method: 'PATCH', body: docPatchBody(patch) })),
     onSuccess: (summary, { id, patch }) => {
-      qc.setQueryData<DocRow>(docKeys.one(id), (old) => (old ? { ...old, ...patch, updated_at: summary.updated_at } as DocRow : old))
+      qc.setQueryData<DocRow>(docKeys.one(id), (old) => (old ? ({ ...old, ...patch, updated_at: summary.updated_at } as DocRow) : old))
       // todas las listas (espacio, Escritos de la bóveda, recientes de Pulso, tarjetas de chat)
       qc.setQueriesData<DocSummary[]>({ queryKey: docKeys.all }, (old) => (Array.isArray(old) ? old.map((d) => (d.id === id ? summary : d)) : old))
     },
   })
 }
 
+/** El doc y sus descendientes según las listas en caché (para sacarlos al instante). */
+function withDescendants(qc: QueryClient, id: string) {
+  const parentOf = new Map<string, string | null>()
+  for (const [, list] of qc.getQueriesData<DocSummary[]>({ queryKey: docKeys.all })) {
+    if (Array.isArray(list)) for (const d of list) parentOf.set(d.id, d.parent_id)
+  }
+  const ids = [id]
+  for (let i = 0; i < ids.length; i++) for (const [docId, parent] of parentOf) if (parent === ids[i] && !ids.includes(docId)) ids.push(docId)
+  return ids
+}
+
 export function useArchiveDoc() {
   const qc = useQueryClient()
   const onError = useErrorToast()
   return useMutation({
-    // con sus subpáginas (y las de ellas): si no, quedaban vivas y sueltas
+    // la API archiva también sus subpáginas (y las de ellas)
     mutationFn: async (id: string) => {
-      const supabase = createClient()
-      const { data: doc } = await supabase.from('docs').select('workspace_id').eq('id', id).single()
-      const { data: all } = doc ? await supabase.from('docs').select('id, parent_id').eq('workspace_id', doc.workspace_id).is('archived_at', null) : { data: [] }
-      const ids = [id]
-      for (let i = 0; i < ids.length; i++) for (const d of (all ?? []) as { id: string; parent_id: string | null }[]) if (d.parent_id === ids[i]) ids.push(d.id)
-      const { error } = await supabase.from('docs').update({ archived_at: new Date().toISOString() }).in('id', ids)
-      if (error) throw error
-      return ids
+      await api<{ affected: number }>(`/v1/docs/${id}/archive`, { method: 'POST' })
+      return withDescendants(qc, id)
     },
     onSuccess: (ids) => {
       qc.setQueriesData<DocSummary[]>({ queryKey: docKeys.all }, (old) => (Array.isArray(old) ? old.filter((d) => !ids.includes(d.id)) : old))
