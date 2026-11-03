@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 
 export const inputClass =
-  'flex h-9 w-full min-w-0 rounded-md border border-line bg-panel px-3 text-base text-fg shadow-[0_1px_0_0_oklch(0_0_0/0.02)] transition-[border-color,box-shadow] duration-150 outline-none placeholder:text-fg-subtle hover:border-line-strong focus:border-accent-mid focus:ring-3 focus:ring-accent-mid/20 disabled:opacity-60 aria-[invalid=true]:border-danger aria-[invalid=true]:ring-danger/15'
+  'flex h-9 w-full min-w-0 rounded-md border border-line-control bg-panel px-3 text-base text-fg shadow-[0_1px_0_0_oklch(0_0_0/0.02)] transition-[border-color,box-shadow] duration-150 outline-none placeholder:text-fg-subtle hover:border-fg-subtle focus:border-accent-mid focus:ring-3 focus:ring-accent-mid/20 disabled:opacity-60 aria-[invalid=true]:border-danger aria-[invalid=true]:ring-danger/15'
 
 export function Input({ className, ...props }: React.ComponentProps<'input'>) {
   return <input className={cn(inputClass, className)} {...props} />

@@ -47,17 +47,16 @@ export function AuthStory() {
 
   return (
     <aside className="relative hidden overflow-hidden p-3 lg:sticky lg:top-0 lg:block lg:h-dvh">
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] bg-accent px-12 pb-10 pt-14 text-accent-fg xl:px-16 short:pb-7 short:pt-10">
-        {/* textura: el isotipo enorme */}
-        <svg viewBox="0 0 64 64" className="pointer-events-none absolute -bottom-40 -right-32 size-[720px] opacity-[0.16]" aria-hidden>
-          <path d="M15 15 L32 49" fill="none" stroke="var(--logo-a)" strokeWidth="12" strokeLinecap="round" />
-          <path d="M49 15 L32 49" fill="none" stroke="var(--accent)" strokeWidth="19" strokeLinecap="round" />
-          <path d="M49 15 L32 49" fill="none" stroke="white" strokeWidth="12" strokeLinecap="round" />
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] bg-ciruela px-12 pb-10 pt-14 text-white xl:px-16 short:pb-7 short:pt-10">
+        {/* textura: el isotipo enorme, en su versión blanco (la que va sobre ciruela). El panel es ciruela en claro y en oscuro. */}
+        <svg viewBox="150 23.3 724.3 851" className="pointer-events-none absolute -bottom-40 -right-24 size-[720px] text-white opacity-[0.07]" aria-hidden>
+          <path fill="currentColor" d="M670.8 188.9A360 360 0 1 0 770.4 261.3L483.6 758L305.6 530.1L371.6 415.8L468.4 539.6Z" />
+          <path fill="currentColor" d="M686.2 162.4L765.4 25.2L871.4 86.4L786.2 233.9A390.6 390.6 0 0 0 686.2 162.4Z" />
         </svg>
 
         <div className="relative max-w-[30rem]">
-          <p className="font-brand text-[40px] font-semibold leading-[1.05] tracking-[-0.04em] xl:text-[46px] short:text-[34px] xl:short:text-[38px]">{t('tagline')}</p>
-          <p className="mt-4 max-w-[26rem] text-[15px] leading-relaxed text-accent-fg/75 short:mt-3">{t('body')}</p>
+          <p className="text-[40px] font-semibold leading-[1.05] tracking-[-0.03em] xl:text-[46px] short:text-[34px] xl:short:text-[38px]">{t('tagline')}</p>
+          <p className="mt-4 max-w-[26rem] text-[15px] leading-relaxed text-white/80 short:mt-3">{t('body')}</p>
         </div>
 
         {/* escena: alturas fijas para que nada empuje el resto de la pantalla */}
@@ -96,7 +95,7 @@ export function AuthStory() {
                       <Line key="action" layoutId="story-action" kindClass="bg-k-action-soft text-k-action" icon={<ArrowRight className="size-3" strokeWidth={2.4} />} kind={tk('action')}>
                         <span>{t('action')}</span>
                         <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-k-action-soft px-1.5 py-0.5 align-middle text-[11px] font-medium text-k-action">
-                          <span className="flex size-3.5 items-center justify-center rounded-full bg-[var(--ws-mandarina)] text-[8px] font-bold text-[var(--ws-mandarina-on)]">P</span>
+                          <span className="flex size-3.5 items-center justify-center rounded-full bg-[var(--ws-mandarina)] text-[8px] font-semibold text-[var(--ws-mandarina-on)]">P</span>
                           {t('owner')}
                         </span>
                         <span className="ml-1 rounded-full bg-hover px-1.5 py-0.5 align-middle text-[11px] text-fg-muted">{t('due')}</span>
@@ -114,7 +113,7 @@ export function AuthStory() {
                   <AnimatePresence mode="wait" initial={false}>
                     {closed ? (
                       <motion.span key="summary" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="inline-flex items-center gap-1.5 text-xs text-fg-muted">
-                        <Check className="size-3.5 text-accent" />
+                        <Check className="size-3.5 text-done" />
                         {t('summary')}
                       </motion.span>
                     ) : (
@@ -184,9 +183,9 @@ export function AuthStory() {
         {/* pasos */}
         <ol className="relative mt-10 flex gap-6 text-sm short:mt-6">
           {(['meet', 'decide', 'advance'] as const).map((s, i) => (
-            <li key={s} className={cn('flex items-center gap-2 transition-opacity duration-300', i === phase ? 'opacity-100' : 'opacity-50')}>
-              <span className="relative h-1 w-8 overflow-hidden rounded-full bg-accent-fg/25">
-                {i === phase ? <motion.span layoutId="story-step" className="absolute inset-0 rounded-full bg-accent-fg" /> : null}
+            <li key={s} className={cn('flex items-center gap-2 transition-opacity duration-300', i === phase ? 'opacity-100' : 'opacity-60')}>
+              <span className="relative h-1 w-8 overflow-hidden rounded-full bg-white/25">
+                {i === phase ? <motion.span layoutId="story-step" className="absolute inset-0 rounded-full bg-white" /> : null}
               </span>
               {t(`steps.${s}`)}
             </li>

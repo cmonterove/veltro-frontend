@@ -221,10 +221,10 @@ function TourOverlay({ step, onStep, onClose }: { step: number; onStep: (n: numb
         <div
           aria-hidden
           className="pointer-events-none absolute rounded-xl ring-2 ring-accent ring-offset-2 ring-offset-transparent transition-[top,left,width,height] duration-300 ease-[var(--ease-out-quart)]"
-          style={{ ...box, boxShadow: '0 0 0 9999px oklch(0.16 0.03 290 / 0.55)' }}
+          style={{ ...box, boxShadow: '0 0 0 9999px oklch(0.16 0.04 311 / 0.55)' }}
         />
       ) : (
-        <div aria-hidden className="pointer-events-none absolute inset-0 animate-in fade-in bg-[oklch(0.16_0.03_290/0.55)] duration-200" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 animate-in fade-in bg-[oklch(0.16_0.04_311/0.55)] duration-200" />
       )}
 
       <div
@@ -238,11 +238,11 @@ function TourOverlay({ step, onStep, onClose }: { step: number; onStep: (n: numb
         <div key={s.id} className="animate-in fade-in slide-in-from-bottom-1 px-5 pb-4 pt-5 duration-300">
           {s.id === 'welcome' ? (
             <span className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-accent-soft">
-              <LogoMark className="size-7" cut="var(--accent-soft)" />
+              <LogoMark className="size-7" />
             </span>
           ) : null}
           <div className="flex items-start gap-3">
-            <h2 id={titleId} className="min-w-0 flex-1 font-brand text-lg font-semibold leading-snug tracking-[-0.02em]">
+            <h2 id={titleId} className="min-w-0 flex-1 text-lg font-semibold leading-snug tracking-[-0.01em]">
               {t(`steps.${s.id}.title`)}
             </h2>
             <button

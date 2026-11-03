@@ -158,7 +158,7 @@ function NextUp({ ws, meetings, now }: { ws: WorkspaceWithRole; meetings: Meetin
       </div>
 
       <div className="min-w-0">
-        <Link href={`/m/${next.id}`} className="block truncate font-brand text-xl font-semibold tracking-[-0.02em] hover:underline">
+        <Link href={`/m/${next.id}`} className="block truncate text-xl font-semibold tracking-[-0.015em] hover:underline">
           {next.title}
         </Link>
         <p className="mt-1 text-sm text-fg-muted first-letter:uppercase">
@@ -218,7 +218,7 @@ function Health({ ws, tasks, loading, now }: { ws: WorkspaceWithRole; tasks: Tas
       ) : (
         <>
           <div className="-mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="font-brand text-lg font-semibold tracking-[-0.02em]">{t('doneOf', { done: stats.counts.done, total: stats.total })}</span>
+            <span className="text-lg font-semibold tracking-[-0.01em]">{t('doneOf', { done: stats.counts.done, total: stats.total })}</span>
             {stats.counts.blocked ? <span className="text-xs font-medium text-danger">{t('blocked', { count: stats.counts.blocked })}</span> : null}
             {stats.overdue ? <span className="text-xs font-medium text-danger">{t('overdue', { count: stats.overdue })}</span> : null}
             {stats.hours ? <span className="ml-auto text-xs tabular-nums text-fg-muted">{t('hoursLeft', { hours: stats.hours })}</span> : null}

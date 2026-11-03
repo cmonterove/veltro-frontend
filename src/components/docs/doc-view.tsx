@@ -252,7 +252,7 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
             }}
             readOnly={!editable}
             placeholder={t('untitled')}
-            className="max-w-[44ch] bg-transparent font-brand text-[34px] font-semibold leading-[1.15] tracking-[-0.03em] text-fg outline-none placeholder:text-fg-subtle/70"
+            className="max-w-[44ch] bg-transparent text-[34px] font-semibold leading-[1.15] tracking-[-0.02em] text-fg outline-none placeholder:text-fg-subtle/70"
           />
 
           <div className="-mx-[18px] mt-6 max-w-[calc(72ch+108px)] sm:-mx-[54px]">

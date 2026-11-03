@@ -159,7 +159,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
 
         {/* sidebar móvil */}
         <div
-          className={cn('fixed inset-0 z-40 bg-[oklch(0.2_0.01_165/0.3)] transition-opacity duration-200 md:hidden', mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0')}
+          className={cn('fixed inset-0 z-40 bg-[oklch(0.2_0.04_311/0.3)] transition-opacity duration-200 md:hidden', mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0')}
           onClick={() => setMobileOpen(false)}
         />
         {/* cerrado no se puede enfocar ni leer con lector de pantalla */}

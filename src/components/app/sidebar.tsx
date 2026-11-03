@@ -106,7 +106,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
       <aside className="flex h-full flex-col items-center border-r border-line bg-sidebar">
         <div className="flex h-11 shrink-0 items-center">
           <Link href="/home" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent-mid/40" aria-label="Veltro">
-            <LogoMark className="size-[22px]" cut="var(--sidebar)" />
+            <LogoMark className="size-[22px]" />
           </Link>
         </div>
 
@@ -171,7 +171,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
     <aside className="flex h-full flex-col border-r border-line bg-sidebar">
       <div className="flex h-12 items-center gap-0.5 pl-3.5 pr-2 pt-1">
         <Link href="/home" className="mr-auto rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent-mid/40" aria-label="Veltro">
-          <Logo cut="var(--sidebar)" />
+          <Logo />
         </Link>
         {onToggleCollapsed ? (
           <Tooltip content={t('sidebarCollapse')} shortcut={['[']}>

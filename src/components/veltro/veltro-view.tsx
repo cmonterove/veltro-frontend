@@ -198,7 +198,7 @@ export function VeltroView() {
                 <span className="flex size-14 items-center justify-center rounded-2xl bg-accent text-accent-fg shadow-card">
                   <Sparkles className="size-7" />
                 </span>
-                <h2 className="mt-5 font-brand text-[30px] font-semibold tracking-[-0.03em]">{t('emptyTitle', { name: profile.full_name.split(' ')[0] })}</h2>
+                <h2 className="mt-5 text-[30px] font-semibold tracking-[-0.02em]">{t('emptyTitle', { name: profile.full_name.split(' ')[0] })}</h2>
                 <p className="mt-1.5 max-w-md text-[15px] text-fg-muted">{t('emptyHint')}</p>
                 <div className="mt-8 grid w-full grid-cols-1 gap-2 text-left sm:grid-cols-2">
                   {suggestions.map((s) => (

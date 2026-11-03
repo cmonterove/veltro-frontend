@@ -197,7 +197,7 @@ export function Counters({ model, scope, loading }: { model: BriefModel; scope: 
             {loading ? (
               <Skeleton className="h-7 w-10" />
             ) : (
-              <span className={cn('font-brand text-[26px] font-semibold leading-none tabular-nums', n ? COUNTER_TONE[c] : 'text-fg-subtle')}>{n}</span>
+              <span className={cn('text-[26px] font-semibold leading-none tabular-nums', n ? COUNTER_TONE[c] : 'text-fg-subtle')}>{n}</span>
             )}
           </Link>
         )
@@ -624,7 +624,7 @@ export function LooseColumn({ data, model }: { data: BriefData; model: BriefMode
         </div>
       ) : total === 0 ? (
         <div className="flex items-center gap-2.5 px-4 py-6 text-sm text-fg-muted">
-          <CheckCheck className="size-4 shrink-0 text-success" />
+          <CheckCheck className="size-4 shrink-0 text-done" />
           {t('empty')}
         </div>
       ) : (

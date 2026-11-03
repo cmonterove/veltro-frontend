@@ -95,7 +95,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                     <span className="flex size-12 items-center justify-center rounded-2xl bg-highlight text-accent">
                       <MailCheck className="size-6" />
                     </span>
-                    <h1 className="font-brand text-[28px] font-semibold leading-tight tracking-[-0.03em]">
+                    <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
                       {mode === 'register' ? t('register.checkEmailTitle') : t('reset.sentTitle')}
                     </h1>
                     <p className="text-base leading-relaxed text-fg-muted">
@@ -162,7 +162,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                           exit={{ opacity: 0, y: -10, filter: 'blur(3px)' }}
                         >
-                          <h1 className="font-brand text-[30px] font-semibold leading-[1.1] tracking-[-0.035em] short:text-[26px]">{t(`${mode}.title`)}</h1>
+                          <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] short:text-[26px]">{t(`${mode}.title`)}</h1>
                           <p className="mt-2 text-[15px] leading-relaxed text-fg-muted short:mt-1.5 short:text-sm">{t(`${mode}.subtitle`)}</p>
                         </motion.div>
                       </AnimatePresence>
@@ -338,7 +338,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
 }
 
 const inputCls =
-  'h-12 short:h-11 w-full rounded-xl border border-line bg-panel px-4 text-[15px] text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle hover:border-line-strong focus:border-accent focus:ring-4 focus:ring-accent/15'
+  'h-12 short:h-11 w-full rounded-xl border border-line-control bg-panel px-4 text-[15px] text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle hover:border-fg-subtle focus:border-accent focus:ring-4 focus:ring-accent/15'
 
 function FieldShell({ label, htmlFor, aside, children }: { label: string; htmlFor: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (

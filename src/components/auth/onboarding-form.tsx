@@ -25,7 +25,7 @@ export function OnboardingForm({ firstName }: { firstName: string }) {
   return (
     <form action={action} className="flex flex-col gap-8">
       <div className="flex flex-col gap-1.5">
-        <h1 className="font-brand text-2xl font-semibold tracking-[-0.03em]">{t('title', { name: firstName })}</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em]">{t('title', { name: firstName })}</h1>
         <p className="text-sm text-fg-muted">{t('subtitle')}</p>
       </div>
 
