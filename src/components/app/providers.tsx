@@ -25,8 +25,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    // claro por defecto (pedido del usuario, 2026-11-03); «Sistema» y «Oscuro» siguen en Preferencias
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+    // claro por defecto (pedido del usuario, 2026-11-03); «Sistema» y «Oscuro» siguen en Preferencias.
+    // Clave propia: lo guardado con la clave de antes ('theme') dejaba a algunos navegadores en oscuro.
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange storageKey="veltro-theme">
       <QueryClientProvider client={queryClient}>
         <Tooltip.Provider delay={500} closeDelay={0}>
           {children}
