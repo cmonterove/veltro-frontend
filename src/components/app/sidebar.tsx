@@ -64,6 +64,7 @@ import type { WorkspaceWithRole } from '@/lib/types'
 import { WorkspaceMark } from '@/components/app/marks'
 import { NavPeekBody, PeekHead, RailPeek, WorkspacePeek } from './rail-peek'
 import { useTour } from '@/components/tour/tour'
+import { SupportNavLink } from '@/components/support/support-nav'
 
 export const navItemClass =
   'group/nav flex h-7 w-full min-w-0 items-center gap-2 rounded-md px-2 text-sm text-fg-muted transition-colors hover:bg-hover hover:text-fg [&>svg]:size-4 [&>svg]:shrink-0'
@@ -154,6 +155,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
         <div className="flex flex-col items-center gap-px border-t border-line py-1.5">
           {/* invitar vive en Ajustes y la cuenta solo aparece si hay más de una: el alto es para los espacios */}
           {DEMO ? <DemoBadge compact /> : null}
+          <SupportNavLink compact />
           <Tooltip content={t('settings')} side="right">
             <Link href="/settings" aria-label={t('settings')} className={cn(railItemClass, pathname.startsWith('/settings') && navActiveClass)}>
               <Settings />
@@ -249,6 +251,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
             <span>{t('invite')}</span>
           </Link>
         ) : null}
+        <SupportNavLink />
         <Link href="/settings" className={cn(navItemClass, settingsActive && navActiveClass)}>
           <Settings />
           <span>{t('settings')}</span>

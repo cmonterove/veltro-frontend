@@ -9,6 +9,7 @@ import { WorkspaceMark } from '@/components/app/marks'
 import { Menu, MenuContent, MenuGroup, MenuLabel, MenuLinkItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { cn } from '@/lib/utils'
 import { navItemClass, navActiveClass } from '@/components/app/sidebar'
+import { SupportIcon } from '@/components/support/support-bits'
 
 type Item = { href: string; label: string; icon: React.ReactNode; active: (p: string) => boolean }
 type Group = { id: string; label: string; items: Item[] }
@@ -34,6 +35,7 @@ function useSettingsGroups(admin: boolean): Group[] {
         { href: '/settings/account', label: t('account'), icon: <Building2 />, active: exact('/settings/account') },
         ...(admin ? [{ href: '/settings/members', label: t('members'), icon: <Users />, active: exact('/settings/members') }] : []),
         { href: '/settings/org', label: t('org'), icon: <Network />, active: exact('/settings/org') },
+        { href: '/settings/support', label: t('support'), icon: <SupportIcon />, active: exact('/settings/support') },
       ],
     },
   ]

@@ -66,6 +66,11 @@ const KNOWN = [
   'workspace_archived',
   'user_suspended',
   'account_suspended',
+  // soporte: archivos, estados y destino por rol (la API los manda en error.code)
+  'duplicate_file',
+  'ticket_resolved',
+  'status_not_allowed',
+  'workspace_not_in_account',
 ] as const
 
 export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email' | 'weak_password' | 'name_too_short' | 'rate_limited'

@@ -25,6 +25,7 @@ import { AskBar } from './ask-bar'
 import { AgendaColumn, Counters, LooseColumn, TodayColumn, ViewSentence, useBriefModel, type BriefData } from './brief'
 import { DocThread, LiveCard, MeetingThread, UpcomingCard } from './cards'
 import { useOpenTask } from '@/lib/use-open-task'
+import { SupportPulse } from '@/components/support/support-pulse'
 
 type Entry =
   | { type: 'event'; at: Date; event: CalendarEvent; meeting: MeetingRow | null }
@@ -222,6 +223,8 @@ export function PulseView() {
             <PasilloStrip />
           </div>
         ) : null}
+
+        {scope.kind === 'me' ? <SupportPulse /> : null}
 
         <div className="grid grid-cols-1 gap-4 @min-[1000px]/pulse:min-h-0 @min-[1000px]/pulse:flex-1 @min-[1000px]/pulse:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <TodayColumn data={briefData} model={model} scope={scope} />
