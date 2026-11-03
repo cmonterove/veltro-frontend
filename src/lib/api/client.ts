@@ -1,4 +1,5 @@
 import { ApiError, parseResponse, queryString, type Query } from './shared'
+import { SUSPENDED_EVENT, SUSPENSION_CODES } from './ajustes'
 
 /**
  * La API desde el navegador: pasa por el puente /api/veltro de esta misma web, que agrega la
@@ -22,6 +23,10 @@ export async function api<T>(path: string, init: Init = {}): Promise<T> {
     // la sesión ya no sirve: de vuelta al login, conservando dónde estaba
     if (e instanceof ApiError && e.status === 401 && typeof window !== 'undefined' && !location.pathname.startsWith('/login')) {
       location.href = `/login?next=${encodeURIComponent(location.pathname + location.search)}`
+    }
+    // suspendida (la persona o la cuenta): el shell recarga el contexto y muestra el aviso
+    if (e instanceof ApiError && e.status === 403 && typeof window !== 'undefined' && (SUSPENSION_CODES as readonly string[]).includes(e.code)) {
+      window.dispatchEvent(new Event(SUSPENDED_EVENT))
     }
     throw e
   }

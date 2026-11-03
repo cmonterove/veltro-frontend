@@ -7,17 +7,9 @@ import { toast } from 'sonner'
 import { useApp, useIsAccountAdmin } from '@/components/app/app-context'
 import { Input } from '@/components/ui/input'
 import { updateAccountName } from '@/app/actions/settings'
+import type { Usage } from '@/lib/api/ajustes'
 import { cn } from '@/lib/utils'
 import { SaveBar, SettingsCard, SettingsHeader, SettingsRow } from './ui'
-
-type Usage = {
-  plan_id: string
-  plan_name: string
-  max_workspaces: number | null
-  max_members: number | null
-  workspaces_count: number
-  members_count: number
-} | null
 
 function Meter({ label, used, max }: { label: string; used: number; max: number | null }) {
   const t = useTranslations('settings.account')
@@ -40,8 +32,9 @@ function Meter({ label, used, max }: { label: string; used: number; max: number 
   )
 }
 
-export function AccountSettings({ usage }: { usage: Usage }) {
+export function AccountSettings({ usage }: { usage: Usage | null }) {
   const t = useTranslations('settings.account')
+  const te = useTranslations('errors')
   const router = useRouter()
   const { account } = useApp()
   const isAdmin = useIsAccountAdmin()
@@ -51,11 +44,11 @@ export function AccountSettings({ usage }: { usage: Usage }) {
 
   const save = () =>
     start(async () => {
-      const res = await updateAccountName(name.trim())
+      const res = await updateAccountName(account.id, name.trim())
       if (res.ok) {
         toast.success(t('saved'))
         router.refresh()
-      } else toast.error(t('error'))
+      } else toast.error(te(res.error))
     })
 
   return (

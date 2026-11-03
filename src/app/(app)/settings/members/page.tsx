@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { requireAppContext, isAccountAdmin } from '@/lib/session'
+import { api } from '@/lib/api/server'
+import { isSuspended, toAccountMember, toUsage, type ApiAccountMember } from '@/lib/api/ajustes'
+import type { ApiUsage } from '@/lib/api/types'
 import { MembersSettings } from '@/components/settings/members-settings'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,10 +15,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MembersPage() {
   const ctx = await requireAppContext()
   if (!isAccountAdmin(ctx.accountRole)) redirect('/settings/profile')
-  const supabase = await createClient()
-  const [{ data: rows }, { data: usage }] = await Promise.all([
-    supabase.from('workspace_members').select('workspace_id, user_id, role').in('workspace_id', ctx.workspaces.map((w) => w.id)),
-    supabase.rpc('get_account_usage', { p_account: ctx.account.id }),
+  if (isSuspended(ctx)) return null
+  const [{ items }, usage] = await Promise.all([
+    api<{ items: ApiAccountMember[] }>(`/v1/accounts/${ctx.account.id}/members`),
+    api<ApiUsage>(`/v1/accounts/${ctx.account.id}/usage`),
   ])
-  return <MembersSettings assignments={rows ?? []} usage={usage?.[0] ?? null} />
+  return <MembersSettings members={items.map(toAccountMember)} usage={toUsage(usage)} />
 }

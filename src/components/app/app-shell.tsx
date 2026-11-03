@@ -15,8 +15,8 @@ import { useApp } from './app-context'
 import { ConfirmProvider } from '@/components/ui/confirm'
 import { TourProvider } from '@/components/tour/tour'
 import { useChatUnread } from '@/lib/queries/chats'
-import Link from 'next/link'
-import { Ban, KeyRound } from 'lucide-react'
+import { Ban } from 'lucide-react'
+import { AccountSuspendedNotice, SUSPENDED_ALLOWED, TempPasswordGate, useSuspensionWatcher } from './suspended-notice'
 import { cn } from '@/lib/utils'
 import { SIDEBAR_COOKIE } from '@/lib/constants'
 import { flushEvents, ping, setTelemetryAccount, track, viewEvent } from '@/lib/telemetry'
@@ -40,6 +40,9 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [])
   // `G` seguido de una tecla navega (estilo Linear); la espera dura poco para no secuestrar el teclado.
   const goPending = useRef<number | null>(null)
+  // contraseña temporal o cuenta suspendida: la API no deja hacer casi nada, en lugar de la página va el aviso
+  const gate = profile.must_change_password && pathname !== '/settings/profile' ? 'password' : account.status === 'suspended' && !SUSPENDED_ALLOWED.includes(pathname) ? 'suspended' : null
+  useSuspensionWatcher()
 
   useEffect(() => setMobileOpen(false), [pathname])
   // Esc cierra el menú del celular
@@ -188,23 +191,16 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
             </button>
             <LogoMark className="size-5" />
           </div>
-          {profile.must_change_password && pathname !== '/settings/profile' ? (
-            <Link
-              href="/settings/profile"
-              className="flex shrink-0 items-center justify-center gap-2 border-b border-line bg-warning-soft px-4 py-2 text-sm text-fg hover:underline"
-            >
-              <KeyRound className="size-4 text-warning" />
-              {t('tempPasswordBanner')}
-            </Link>
-          ) : null}
-          {account.status === 'suspended' ? (
+          {account.status === 'suspended' && gate !== 'suspended' ? (
             <div role="alert" className="flex shrink-0 items-center justify-center gap-2 border-b border-line bg-danger-soft px-4 py-2 text-sm text-fg">
               <Ban className="size-4 shrink-0 text-danger" />
               {t('suspendedBanner')}
             </div>
           ) : null}
           <main className="relative flex min-h-0 flex-1">
-            <div className="min-w-0 flex-1 overflow-y-auto scrollbar-thin">{children}</div>
+            <div className="min-w-0 flex-1 overflow-y-auto scrollbar-thin">
+              {gate === 'password' ? <TempPasswordGate /> : gate === 'suspended' ? <AccountSuspendedNotice /> : children}
+            </div>
             <Suspense>
               <LegacyTaskParam />
             </Suspense>

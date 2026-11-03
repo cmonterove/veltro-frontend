@@ -55,14 +55,16 @@ export function useTour() {
 }
 
 export function TourProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useApp()
+  const { user, profile, account } = useApp()
   const pathname = usePathname()
   const router = useRouter()
   const [step, setStep] = useState<number | null>(null)
+  // con contraseña temporal o la cuenta suspendida, en Pulso va el aviso: el recorrido espera
+  const gated = profile.must_change_password || account.status === 'suspended'
 
   // la primera vez en Pulso arranca solo, cuando la pantalla ya cargó
   useEffect(() => {
-    if (pathname !== '/home' || step !== null) return
+    if (pathname !== '/home' || step !== null || gated) return
     let seen: string | null = 'unknown'
     try {
       seen = localStorage.getItem(storageKey(user.id))
@@ -72,7 +74,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     if (seen) return
     const id = window.setTimeout(() => setStep(0), 1100)
     return () => window.clearTimeout(id)
-  }, [pathname, user.id, step])
+  }, [pathname, user.id, step, gated])
 
   const close = useCallback(
     (how: 'done' | 'skipped') => {

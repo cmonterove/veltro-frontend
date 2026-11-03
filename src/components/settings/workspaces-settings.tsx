@@ -1,37 +1,61 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Archive, ArrowUpRight, ChevronRight, Plus, UserPlus, X } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowUpRight, ChevronRight, Plus, UserPlus, X } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { Avatar } from '@/components/ui/avatar'
 import { Select } from '@/components/ui/select'
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from '@/components/ui/menu'
-import { createWorkspace, updateWorkspace, archiveWorkspace, setMemberWorkspaces } from '@/app/actions/settings'
+import { createWorkspace, updateWorkspace, archiveWorkspace, unarchiveWorkspace, setWorkspaceAccess } from '@/app/actions/settings'
 import { WORKSPACE_COLORS } from '@/lib/constants'
 import { WorkspaceMark, monogramOf } from '@/components/app/marks'
 import { cn } from '@/lib/utils'
+import { shortDate, useDateLocale } from '@/lib/dates'
 import type { WorkspaceRole } from '@/lib/database.types'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { SaveBar, SettingsCard, SettingsHeader, SettingsRow, SettingsTabs } from './ui'
 import { StatusEditor } from './status-editor'
 import { FieldsEditor } from './fields-editor'
 import { useConfirm } from '@/components/ui/confirm'
-
-type Usage = { max_workspaces: number | null; workspaces_count: number } | null
-type Assignment = { workspace_id: string; user_id: string; role: WorkspaceRole }
+import type { Usage, WorkspacePerson } from '@/lib/api/ajustes'
 
 // ---------------- todos los espacios ----------------
 
-export function WorkspacesOverview({ memberCounts, usage }: { memberCounts: Record<string, number>; usage: Usage }) {
+export function WorkspacesOverview({
+  active: workspaces,
+  archived,
+  memberCounts,
+  usage,
+}: {
+  active: WorkspaceWithRole[]
+  archived: WorkspaceWithRole[]
+  memberCounts: Record<string, number>
+  usage: Usage | null
+}) {
   const t = useTranslations('settings.workspaces')
-  const { workspaces } = useApp()
+  const te = useTranslations('errors')
+  const router = useRouter()
+  const [pending, start] = useTransition()
+  const [restoring, setRestoring] = useState<string | null>(null)
+  const dateLocale = useDateLocale()
   const full = usage?.max_workspaces != null && usage.workspaces_count >= usage.max_workspaces
+
+  const unarchive = (w: WorkspaceWithRole) =>
+    start(async () => {
+      setRestoring(w.id)
+      const res = await unarchiveWorkspace(w.id)
+      setRestoring(null)
+      if (!res.ok) return void toast.error(te(res.error))
+      toast.success(t('unarchived', { name: w.name }))
+      router.refresh()
+    })
 
   return (
     <div>
@@ -64,23 +88,43 @@ export function WorkspacesOverview({ memberCounts, usage }: { memberCounts: Reco
           </Link>
         ))}
       </SettingsCard>
+
+      {archived.length ? (
+        <SettingsCard title={t('archivedTitle')} description={full ? t('archivedFull') : t('archivedHint')}>
+          {archived.map((w) => (
+            <div key={w.id} className="flex items-center gap-3 px-5 py-3.5">
+              <WorkspaceMark ws={w} size={32} className="opacity-60 grayscale" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-fg-muted">{w.name}</span>
+                <span className="block truncate text-xs text-fg-subtle">{t('archivedOn', { date: shortDate(new Date(w.archived_at!), dateLocale) })}</span>
+              </span>
+              <span className="hidden w-24 text-right text-xs text-fg-subtle sm:block">{t('members', { count: memberCounts[w.id] ?? 0 })}</span>
+              <Button variant="secondary" size="sm" onClick={() => unarchive(w)} loading={restoring === w.id} disabled={full || pending}>
+                <ArchiveRestore />
+                {t('unarchive')}
+              </Button>
+            </div>
+          ))}
+        </SettingsCard>
+      ) : null}
     </div>
   )
 }
 
 // ---------------- nuevo espacio ----------------
 
-export function NewWorkspace({ usage }: { usage: Usage }) {
+export function NewWorkspace({ usage }: { usage: Usage | null }) {
   const t = useTranslations('settings.workspaces')
   const te = useTranslations('errors')
   const router = useRouter()
+  const { account } = useApp()
   const [form, setForm] = useState({ name: '', icon: '', color: 'violet', description: '' })
   const [pending, start] = useTransition()
   const full = usage?.max_workspaces != null && usage.workspaces_count >= usage.max_workspaces
 
   const create = () =>
     start(async () => {
-      const res = await createWorkspace({ ...form, icon: form.icon.trim() || monogramOf({ name: form.name || 'V' }) })
+      const res = await createWorkspace(account.id, { ...form, icon: form.icon.trim() || monogramOf({ name: form.name || 'V' }) })
       if (!res.ok) {
         toast.error(te(res.error))
         return
@@ -112,14 +156,12 @@ export function NewWorkspace({ usage }: { usage: Usage }) {
 const TABS = ['general', 'statuses', 'fields', 'people'] as const
 type Tab = (typeof TABS)[number]
 
-export function WorkspaceSettings({ workspace, assignments, tab }: { workspace: WorkspaceWithRole; assignments: Assignment[]; tab: string }) {
+export function WorkspaceSettings({ workspace, people, tab }: { workspace: WorkspaceWithRole; people: WorkspacePerson[]; tab: string }) {
   const t = useTranslations('settings.workspaces')
   const active: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : 'general'
   const base = `/settings/workspaces/${workspace.slug}`
-  const { members } = useApp()
   // el contador es el de la lista "Personas con acceso": los admins de la cuenta van aparte
-  const admins = new Set(members.filter((m) => m.role === 'owner' || m.role === 'admin').map((m) => m.id))
-  const people = assignments.filter((a) => a.workspace_id === workspace.id && !admins.has(a.user_id)).length
+  const peopleCount = people.filter((p) => !p.via_account).length
 
   return (
     <div>
@@ -140,7 +182,7 @@ export function WorkspaceSettings({ workspace, assignments, tab }: { workspace: 
             { id: 'general', label: t('tabs.general'), href: base },
             { id: 'statuses', label: t('tabs.statuses'), href: `${base}?tab=statuses`, count: workspace.task_statuses?.length || undefined },
             { id: 'fields', label: t('tabs.fields'), href: `${base}?tab=fields`, count: workspace.task_fields?.length || undefined },
-            { id: 'people', label: t('tabs.people'), href: `${base}?tab=people`, count: people || undefined },
+            { id: 'people', label: t('tabs.people'), href: `${base}?tab=people`, count: peopleCount || undefined },
           ]}
         />
       </SettingsHeader>
@@ -148,7 +190,7 @@ export function WorkspaceSettings({ workspace, assignments, tab }: { workspace: 
       {active === 'general' ? <GeneralTab key={workspace.id + workspace.name + workspace.color} workspace={workspace} /> : null}
       {active === 'statuses' ? <StatusEditor key={workspace.id} workspace={workspace} /> : null}
       {active === 'fields' ? <FieldsEditor key={workspace.id} workspace={workspace} /> : null}
-      {active === 'people' ? <PeopleTab workspace={workspace} assignments={assignments} /> : null}
+      {active === 'people' ? <PeopleTab workspace={workspace} people={people} /> : null}
     </div>
   )
 }
@@ -222,9 +264,10 @@ function GeneralTab({ workspace }: { workspace: WorkspaceWithRole }) {
 
   const confirm = useConfirm()
   const tConfirm = useTranslations('confirm')
-  const archive = () =>
+  // la confirmación, antes de la transición: dentro, el diálogo no se pintaría hasta que terminara
+  const archive = async () => {
+    if (!(await confirm({ title: t('archiveConfirm', { name: workspace.name }), danger: true, confirmLabel: tConfirm('archive') }))) return
     start(async () => {
-      if (!(await confirm({ title: t('archiveConfirm', { name: workspace.name }), danger: true, confirmLabel: tConfirm('archive') }))) return
       const res = await archiveWorkspace(workspace.id)
       if (res.ok) {
         toast.success(t('archived'))
@@ -232,6 +275,7 @@ function GeneralTab({ workspace }: { workspace: WorkspaceWithRole }) {
         router.refresh()
       } else toast.error(te(res.error))
     })
+  }
 
   return (
     <div>
@@ -258,35 +302,36 @@ function GeneralTab({ workspace }: { workspace: WorkspaceWithRole }) {
 }
 
 /** Quién tiene acceso a este espacio y con qué rol. Los admins de la cuenta ven todos los espacios. */
-function PeopleTab({ workspace, assignments }: { workspace: WorkspaceWithRole; assignments: Assignment[] }) {
+function PeopleTab({ workspace, people }: { workspace: WorkspaceWithRole; people: WorkspacePerson[] }) {
   const t = useTranslations('settings.workspaces')
   const tRole = useTranslations('roles')
   const te = useTranslations('errors')
+  const tConfirm = useTranslations('confirm')
+  const confirm = useConfirm()
   const router = useRouter()
+  const qc = useQueryClient()
   const { members, user } = useApp()
   const [pending, start] = useTransition()
 
-  const byUser = useMemo(() => {
-    const m = new Map<string, Assignment[]>()
-    assignments.forEach((a) => m.set(a.user_id, [...(m.get(a.user_id) ?? []), a]))
-    return m
-  }, [assignments])
-  const accountAdmins = members.filter((m) => m.role === 'owner' || m.role === 'admin')
-  const regular = members.filter((m) => m.role !== 'owner' && m.role !== 'admin')
-  const inside = regular.filter((m) => (byUser.get(m.id) ?? []).some((a) => a.workspace_id === workspace.id))
-  const outside = regular.filter((m) => !inside.includes(m))
-  const roleOf = (id: string) => byUser.get(id)?.find((a) => a.workspace_id === workspace.id)?.role ?? 'editor'
+  const accountAdmins = people.filter((p) => p.via_account)
+  const inside = people.filter((p) => !p.via_account)
+  const insideIds = new Set(inside.map((p) => p.id))
+  const outside = members.filter((m) => m.role === 'member' && !insideIds.has(m.id))
+  const titleOf = (id: string) => members.find((m) => m.id === id)?.title
 
-  // la acción guarda la lista completa de espacios de la persona: se arma con este cambio
-  const setAccess = (userId: string, role: WorkspaceRole | null) =>
+  // dar o cambiar el rol; quitar pide confirmación (deja de ser responsable de sus tareas abiertas aquí)
+  const setAccess = async (person: { id: string; full_name: string }, role: WorkspaceRole | null) => {
+    if (!role && !(await confirm({ title: t('removeAccessConfirm', { name: person.full_name }), description: t('removeAccessHint'), danger: true, confirmLabel: tConfirm('remove') }))) return
     start(async () => {
-      const others = (byUser.get(userId) ?? []).filter((a) => a.workspace_id !== workspace.id).map((a) => ({ id: a.workspace_id, role: a.role }))
-      const res = await setMemberWorkspaces(userId, role ? [...others, { id: workspace.id, role }] : others)
+      const res = await setWorkspaceAccess(workspace.id, person.id, role)
       if (res.ok) {
         toast.success(t('accessUpdated'))
         router.refresh()
-      } else toast.error(te(res.error ?? 'generic'))
+        // cambia a quién se le pueden asignar tareas en el espacio
+        qc.invalidateQueries({ queryKey: ['workspace-members', workspace.id] })
+      } else toast.error(te(res.error))
     })
+  }
 
   const roles: WorkspaceRole[] = ['admin', 'editor', 'viewer']
 
@@ -306,7 +351,7 @@ function PeopleTab({ workspace, assignments }: { workspace: WorkspaceWithRole; a
                 <>
                   <MenuLabel>{t('addPersonHint')}</MenuLabel>
                   {outside.map((m) => (
-                    <MenuItem key={m.id} onClick={() => setAccess(m.id, 'editor')}>
+                    <MenuItem key={m.id} onClick={() => setAccess(m, 'editor')}>
                       <Avatar name={m.full_name} src={m.avatar_url} seed={m.id} size={18} />
                       <span className="truncate">{m.full_name}</span>
                     </MenuItem>
@@ -333,17 +378,17 @@ function PeopleTab({ workspace, assignments }: { workspace: WorkspaceWithRole; a
                   {m.full_name}
                   {m.id === user.id ? <span className="ml-1.5 text-xs font-normal text-fg-subtle">{t('you')}</span> : null}
                 </p>
-                <p className="truncate text-xs text-fg-muted">{m.title || m.email}</p>
+                <p className="truncate text-xs text-fg-muted">{titleOf(m.id) || m.email}</p>
               </div>
               <Select<WorkspaceRole>
-                value={roleOf(m.id)}
-                onChange={(r) => setAccess(m.id, r)}
+                value={m.role}
+                onChange={(r) => setAccess(m, r)}
                 disabled={pending}
                 aria-label={t('role')}
                 options={roles.map((r) => ({ value: r, label: tRole(`ws_${r}`), hint: t(`roleHints.${r}`) }))}
                 className="h-8 w-36"
               />
-              <Button variant="ghost" size="icon-sm" onClick={() => setAccess(m.id, null)} disabled={pending} aria-label={t('removeAccess')}>
+              <Button variant="ghost" size="icon-sm" onClick={() => setAccess(m, null)} disabled={pending} aria-label={t('removeAccess')}>
                 <X />
               </Button>
             </div>
@@ -359,9 +404,9 @@ function PeopleTab({ workspace, assignments }: { workspace: WorkspaceWithRole; a
             <Avatar name={m.full_name} src={m.avatar_url} seed={m.id} size={28} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-fg">{m.full_name}</p>
-              <p className="truncate text-xs text-fg-muted">{m.title || m.email}</p>
+              <p className="truncate text-xs text-fg-muted">{titleOf(m.id) || m.email}</p>
             </div>
-            <span className="text-xs text-fg-subtle">{tRole(m.role)}</span>
+            <span className="text-xs text-fg-subtle">{tRole(members.find((x) => x.id === m.id)?.role ?? 'admin')}</span>
           </div>
         ))}
       </SettingsCard>

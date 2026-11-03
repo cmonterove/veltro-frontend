@@ -14,8 +14,8 @@ import { inputClass } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select } from '@/components/ui/select'
 import { useConfirm } from '@/components/ui/confirm'
-import { createClient } from '@/lib/supabase/client'
-import { toErrorCode } from '@/lib/errors'
+import { api } from '@/lib/api/client'
+import { ajustesError, toOrgPatch } from '@/lib/api/ajustes'
 import { buildOrgTree, departmentMembers, effectiveDepartments, invalidBossesFor, type OrgNode } from '@/lib/org'
 import { useChatMutations } from '@/lib/queries/chats'
 import { useLocalStorage } from '@/lib/hooks'
@@ -37,6 +37,7 @@ const ROOT = '__root'
 
 type OrgCtx = {
   members: Member[]
+  departments: DepartmentRow[]
   byId: Map<string, Member>
   admin: boolean
   dept: (id: string | null | undefined) => DeptInfo | null
@@ -51,11 +52,11 @@ const useOrg = () => use(Ctx)!
 const firstName = (m: Pick<Member, 'full_name'>) => m.full_name.split(' ')[0]
 
 /** Organigrama de la cuenta: quién reporta a quién, en qué área está cada persona y los departamentos. */
-export function OrgSettings() {
+export function OrgSettings({ members, departments }: { members: Member[]; departments: DepartmentRow[] }) {
   const t = useTranslations('settings.org')
   const te = useTranslations('errors')
   const router = useRouter()
-  const { members, departments, account, accountRole } = useApp()
+  const { account, accountRole } = useApp()
   const admin = accountRole === 'owner' || accountRole === 'admin'
   const [, start] = useTransition()
   const [view, setView] = useLocalStorage<'chart' | 'areas'>('veltro:org-view', 'chart')
@@ -82,9 +83,10 @@ export function OrgSettings() {
   const update = (id: string, patch: Patch) => {
     setOverrides((o) => ({ base: members, patches: { ...(o.base === members ? o.patches : {}), [id]: { ...(o.base === members ? o.patches[id] : {}), ...patch } } }))
     start(async () => {
-      const { error } = await createClient().from('account_members').update(patch).eq('account_id', account.id).eq('user_id', id)
-      if (error) {
-        toast.error(te(toErrorCode(error)))
+      try {
+        await api(`/v1/accounts/${account.id}/members/${id}/org`, { method: 'PATCH', body: toOrgPatch(patch) })
+      } catch (e) {
+        toast.error(te(ajustesError(e)))
         setOverrides({ base: members, patches: {} })
         return
       }
@@ -92,7 +94,7 @@ export function OrgSettings() {
     })
   }
 
-  const ctx: OrgCtx = { members: live, byId, admin, dept: (id) => (id ? (deptInfo.get(id) ?? null) : null), headOf, update, q }
+  const ctx: OrgCtx = { members: live, departments, byId, admin, dept: (id) => (id ? (deptInfo.get(id) ?? null) : null), headOf, update, q }
 
   return (
     <Ctx value={ctx}>
@@ -352,8 +354,8 @@ function matches(m: Member, q: string, deptName?: string) {
 function PersonPopover({ m, trigger }: { m: Member; trigger: React.ReactElement<Record<string, unknown>> }) {
   const t = useTranslations('settings.org')
   const router = useRouter()
-  const { user, departments } = useApp()
-  const { admin, byId, members, update, dept } = useOrg()
+  const { user } = useApp()
+  const { admin, byId, members, departments, update, dept } = useOrg()
   const { openDirect } = useChatMutations()
   const { options } = useScopes()
   const boss = m.reports_to ? byId.get(m.reports_to) : undefined
@@ -545,16 +547,18 @@ function DepartmentsSection() {
   const tConfirm = useTranslations('confirm')
   const confirm = useConfirm()
   const router = useRouter()
-  const { departments, account } = useApp()
-  const { admin, members, byId, dept } = useOrg()
+  const { account } = useApp()
+  const { admin, members, departments, byId, dept } = useOrg()
   const [pending, start] = useTransition()
   const [newDept, setNewDept] = useState('')
+  const base = `/v1/accounts/${account.id}/departments`
 
-  const run = (fn: () => PromiseLike<{ error: unknown }>, success?: string) =>
+  const run = (fn: () => Promise<unknown>, success?: string) =>
     start(async () => {
-      const { error } = await fn()
-      if (error) {
-        toast.error(te(toErrorCode(error)))
+      try {
+        await fn()
+      } catch (e) {
+        toast.error(te(ajustesError(e)))
         return
       }
       if (success) toast.success(success)
@@ -581,7 +585,7 @@ function DepartmentsSection() {
                   aria-label={t('departmentName')}
                   onBlur={(e) => {
                     const v = e.target.value.trim()
-                    if (v && v !== d.name) run(() => createClient().from('departments').update({ name: v }).eq('id', d.id))
+                    if (v && v !== d.name) run(() => api(`${base}/${d.id}`, { method: 'PATCH', body: { name: v } }))
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                   className="-ml-2 h-8 min-w-36 flex-1 rounded-md border border-transparent bg-transparent px-2 text-sm font-medium text-fg outline-none hover:border-line focus:border-accent-mid disabled:hover:border-transparent"
@@ -590,7 +594,7 @@ function DepartmentsSection() {
                   value={d.head_id ?? ''}
                   disabled={!admin || pending}
                   aria-label={t('head')}
-                  onChange={(v) => run(() => createClient().from('departments').update({ head_id: v || null }).eq('id', d.id))}
+                  onChange={(v) => run(() => api(`${base}/${d.id}`, { method: 'PATCH', body: { headId: v || null } }))}
                   options={[
                     { value: '', label: t('noHead') },
                     ...members.map((m) => ({ value: m.id, label: m.full_name, icon: <Avatar name={m.full_name} seed={m.id} src={m.avatar_url} size={18} />, hint: m.title ?? undefined })),
@@ -606,7 +610,7 @@ function DepartmentsSection() {
                     type="button"
                     onClick={async () => {
                       if (await confirm({ title: t('deleteConfirm', { name: d.name }), danger: true, confirmLabel: tConfirm('delete') }))
-                        run(() => createClient().from('departments').delete().eq('id', d.id), t('deleted'))
+                        run(() => api(`${base}/${d.id}`, { method: 'DELETE' }), t('deleted'))
                     }}
                     className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-fg-subtle hover:bg-danger-soft hover:text-danger"
                     aria-label={t('delete')}
@@ -628,7 +632,7 @@ function DepartmentsSection() {
             e.preventDefault()
             const name = newDept.trim()
             if (!name) return
-            run(() => createClient().from('departments').insert({ account_id: account.id, name }), t('created'))
+            run(() => api(base, { method: 'POST', body: { name } }), t('created'))
             setNewDept('')
           }}
         >
