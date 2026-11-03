@@ -8,6 +8,7 @@ import { isLocale, LOCALE_COOKIE } from '@/i18n/config'
 import { apiAnon, saveSession } from '@/lib/api/server'
 import { ApiError } from '@/lib/api/shared'
 import type { ApiSessionResponse } from '@/lib/api/types'
+import { passwordProblem } from '@/lib/api/ajustes'
 
 export type AuthState = { error?: string; email?: string; checkEmail?: boolean; sent?: boolean } | undefined
 
@@ -45,6 +46,8 @@ function authError(e: unknown) {
   if (code === 'email_taken') return 'user_exists'
   if (code === 'too_many_attempts' || code === 'rate_limited') return 'too_many_attempts'
   if (['invalid_credentials', 'email_not_confirmed', 'weak_password', 'user_banned'].includes(code)) return code
+  // validación de la API sobre la contraseña (las demás quedan como genéricas)
+  if (code === 'validation_error' && e instanceof ApiError && Array.isArray(e.details) && e.details.some((d: { field?: string }) => d.field === 'password')) return 'weak_password'
   return 'generic'
 }
 
@@ -53,7 +56,8 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = String(formData.get('password') ?? '')
   if (!fullName || !email || !password) return { error: 'missing_fields', email }
-  if (password.length < 8) return { error: 'weak_password', email }
+  // la misma regla que la API: así el aviso sale antes de llamarla
+  if (passwordProblem(password)) return { error: 'weak_password', email }
 
   const locale = (await cookies()).get(LOCALE_COOKIE)?.value
   // el que eligió en la pantalla (cookie) o español, nunca el del navegador

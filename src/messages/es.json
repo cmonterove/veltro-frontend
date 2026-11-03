@@ -29,7 +29,7 @@
       "missing_fields": "Completa todos los campos.",
       "invalid_credentials": "Email o contraseña incorrectos.",
       "email_not_confirmed": "Confirma tu email antes de entrar. Revisa tu bandeja de entrada.",
-      "weak_password": "La contraseña es muy débil. Usa al menos 8 caracteres.",
+      "weak_password": "La contraseña es muy débil: usa al menos 8 caracteres con tres de estos: minúscula, mayúscula, número y símbolo.",
       "user_exists": "Ya existe una cuenta con ese email.",
       "link_expired": "El enlace expiró o ya se usó. Inicia sesión de nuevo.",
       "generic": "Algo salió mal. Intenta de nuevo.",

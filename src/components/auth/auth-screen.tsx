@@ -12,6 +12,7 @@ import { DEMO } from '@/lib/demo/config'
 import { cn } from '@/lib/utils'
 import { AuthStory } from './auth-story'
 import { OAuthButtons } from './oauth-buttons'
+import { passwordProblem } from '@/lib/api/ajustes'
 
 export type AuthMode = 'login' | 'register' | 'reset'
 
@@ -20,13 +21,13 @@ const PATHS: Record<AuthMode, string> = { login: '/login', register: '/register'
 
 function strength(pw: string) {
   if (!pw) return 0
-  let s = 0
-  if (pw.length >= 8) s++
+  // lo que la API no acepta nunca pasa de «débil»
+  if (passwordProblem(pw)) return 1
+  let s = 1
   if (pw.length >= 12) s++
   if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++
-  if (/\d/.test(pw)) s++
   if (/[^A-Za-z0-9]/.test(pw)) s++
-  return Math.min(4, Math.max(1, s - (pw.length < 8 ? 1 : 0)))
+  return Math.min(4, Math.max(2, s))
 }
 
 export function AuthScreen({ initialMode, next, linkError }: { initialMode: AuthMode; next?: string; linkError?: boolean }) {

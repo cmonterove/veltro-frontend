@@ -29,7 +29,7 @@
       "missing_fields": "Please fill in all fields.",
       "invalid_credentials": "Incorrect email or password.",
       "email_not_confirmed": "Confirm your email before signing in. Check your inbox.",
-      "weak_password": "That password is too weak. Use at least 8 characters.",
+      "weak_password": "That password is too weak: use at least 8 characters with three of these: lowercase, uppercase, number and symbol.",
       "user_exists": "An account with that email already exists.",
       "link_expired": "This link has expired or was already used. Sign in again.",
       "generic": "Something went wrong. Try again.",

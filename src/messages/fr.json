@@ -29,7 +29,7 @@
       "missing_fields": "Remplissez tous les champs.",
       "invalid_credentials": "E-mail ou mot de passe incorrect.",
       "email_not_confirmed": "Confirmez votre e-mail avant de vous connecter. Consultez votre boîte de réception.",
-      "weak_password": "Le mot de passe est trop faible. Utilisez au moins 8 caractères.",
+      "weak_password": "Le mot de passe est trop faible : utilisez au moins 8 caractères avec trois de ces éléments : minuscule, majuscule, chiffre et symbole.",
       "user_exists": "Un compte existe déjà avec cet e-mail.",
       "link_expired": "Le lien a expiré ou a déjà été utilisé. Reconnectez-vous.",
       "generic": "Une erreur s'est produite. Réessayez.",
