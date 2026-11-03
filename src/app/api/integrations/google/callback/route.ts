@@ -1,63 +1,40 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
-import { getUser } from '@/lib/session'
-import { exchangeCode, fetchGoogleEmail } from '@/lib/google/oauth'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { encrypt } from '@/lib/crypto'
+import { googleReason } from '@/lib/api/integraciones'
+import { apiWithSession, BINDING_COOKIE, BINDING_PATH, safeReturn, withSession } from '../_shared'
 
-const STATE_COOKIE = 'veltro-google-state'
-
+/**
+ * Vuelta de Google. La web pone la sesión y el secreto del navegador; la API verifica el estado
+ * (firma, vencimiento, persona, navegador y un solo uso), canjea el código y guarda la conexión.
+ * La web nunca ve los tokens de Google.
+ */
 export async function GET(request: NextRequest) {
-  const store = await cookies()
-  const raw = store.get(STATE_COOKIE)?.value
-  store.delete({ name: STATE_COOKIE, path: '/api/integrations/google' })
-
-  const fail = (reason: string, returnTo = '/settings/integrations') =>
-    NextResponse.redirect(new URL(`${returnTo}${returnTo.includes('?') ? '&' : '?'}google=${reason}`, request.url))
-
-  const user = await getUser()
-  if (!user) return NextResponse.redirect(new URL('/login', request.url))
-
-  let saved: { state: string; returnTo: string; uid: string } | null = null
-  try {
-    saved = raw ? JSON.parse(raw) : null
-  } catch {
-    saved = null
-  }
-
   const params = request.nextUrl.searchParams
-  if (params.get('error')) return fail('denied', saved?.returnTo)
-  if (!saved || saved.state !== params.get('state') || saved.uid !== user.id) return fail('invalid_state')
+  const binding = request.cookies.get(BINDING_COOKIE)?.value
+  const state = params.get('state')
 
-  const code = params.get('code')
-  if (!code) return fail('denied', saved.returnTo)
-
-  try {
-    const tokens = await exchangeCode(code)
-    const grantedScopes = tokens.scope.split(' ')
-    if (!grantedScopes.some((s) => s.includes('calendar'))) return fail('missing_scope', saved.returnTo)
-
-    const admin = createAdminClient()
-    const { data: existing } = await admin.from('google_connections').select('refresh_token').eq('user_id', user.id).maybeSingle()
-    const refresh = tokens.refresh_token ? encrypt(tokens.refresh_token) : existing?.refresh_token
-    if (!refresh) return fail('no_refresh_token', saved.returnTo)
-
-    const email = (await fetchGoogleEmail(tokens.access_token)) ?? user.email ?? ''
-
-    const { error } = await admin.from('google_connections').upsert({
-      user_id: user.id,
-      google_email: email,
-      refresh_token: refresh,
-      access_token: encrypt(tokens.access_token),
-      access_token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-      scopes: grantedScopes,
-    })
-    if (error) return fail('save_failed', saved.returnTo)
-
-    const target = new URL(saved.returnTo, request.url)
-    target.searchParams.set('google', 'connected')
-    return NextResponse.redirect(target)
-  } catch {
-    return fail('exchange_failed', saved.returnTo)
+  const finish = (path: string, status: string, renewed: Parameters<typeof withSession>[1] = null) => {
+    const target = new URL(path, request.url)
+    target.searchParams.set('google', status)
+    const res = NextResponse.redirect(target)
+    res.cookies.set(BINDING_COOKIE, '', { path: BINDING_PATH, maxAge: 0 })
+    return withSession(res, renewed)
   }
+
+  // sin la cookie no es el navegador que empezó (o venció): ni se le pregunta a la API
+  if (!state || !binding) return finish('/settings/preferences', 'invalid_state')
+
+  const { renewed, data, error } = await apiWithSession<{ connected: true; email: string; returnTo: string }>(request, '/v1/integrations/google/callback', {
+    state,
+    binding,
+    code: params.get('code') ?? undefined,
+    error: params.get('error') ?? undefined,
+    scope: params.get('scope') ?? undefined,
+  })
+
+  if (error?.status === 401) return NextResponse.redirect(new URL('/login?next=%2Fsettings%2Fpreferences', request.url))
+  if (error) {
+    const returnTo = (error.details as { returnTo?: string } | undefined)?.returnTo
+    return finish(safeReturn(returnTo), googleReason(error.code), renewed)
+  }
+  return finish(safeReturn(data.returnTo), 'connected', renewed)
 }

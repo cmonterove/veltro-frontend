@@ -890,7 +890,7 @@
       "setup1": "En Google Cloud Console crea un proyecto y habilita Google Calendar API.",
       "setup2": "Configura la pantalla de consentimiento OAuth (External, modo Testing) y agrega los emails de prueba.",
       "setup3": "Crea un OAuth client ID de tipo Web application con este redirect URI:",
-      "setup4": "Agrega las credenciales a .env.local y reinicia el servidor:",
+      "setup4": "Agrega las credenciales al entorno de la API (veltro-backend) y reiníciala:",
       "errors": {
         "denied": "Cancelaste el permiso en Google.",
         "invalid_state": "La sesión de conexión expiró. Intenta de nuevo.",
@@ -899,7 +899,12 @@
         "save_failed": "No se pudo guardar la conexión.",
         "exchange_failed": "Google rechazó la conexión. Revisa el client ID y el secret.",
         "not_configured": "La integración con Google no está configurada.",
-        "generic": "No se pudo conectar Google Calendar."
+        "generic": "No se pudo conectar Google Calendar.",
+        "state_used": "Ese enlace de conexión ya se usó. Vuelve a conectar desde aquí.",
+        "no_email": "Google no entregó el correo de tu cuenta. Intenta de nuevo.",
+        "no_code": "Cancelaste el permiso en Google.",
+        "unreachable": "No pudimos hablar con Google. Intenta de nuevo.",
+        "unexpected": "No se pudo conectar Google Calendar."
       },
       "pageTitle": "Integraciones",
       "pageDescription": "Conecta Veltro con las herramientas que tu equipo ya usa."
@@ -971,6 +976,13 @@
     "forbidden": "No tienes permiso para hacer esto.",
     "doc_parent_cycle": "Un doc no puede quedar dentro de sí mismo.",
     "not_authenticated": "Tu sesión expiró. Vuelve a iniciar sesión.",
+    "google_not_connected": "Conecta tu Google Calendar primero.",
+    "google_auth_revoked": "Google retiró el permiso. Vuelve a conectar tu calendario.",
+    "google_not_configured": "La integración con Google no está configurada en el servidor.",
+    "google_unreachable": "No pudimos hablar con Google. Intenta de nuevo.",
+    "google_error": "Google Calendar respondió con un error. Intenta de nuevo.",
+    "unknown_calendar": "Ese calendario ya no está en tu cuenta de Google.",
+    "rate_limited": "Demasiados intentos seguidos. Espera un momento.",
     "email_taken": "Ese email ya está en uso.",
     "invalid_email": "Ese email no es válido.",
     "notFoundTitle": "No encontramos esta página",

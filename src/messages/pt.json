@@ -890,7 +890,7 @@
       "setup1": "No Google Cloud Console, crie um projeto e ative a Google Calendar API.",
       "setup2": "Configure a tela de consentimento OAuth (External, modo Testing) e adicione os e-mails de teste.",
       "setup3": "Crie um OAuth client ID do tipo Web application com este redirect URI:",
-      "setup4": "Adicione as credenciais ao .env.local e reinicie o servidor:",
+      "setup4": "Adicione as credenciais ao ambiente da API (veltro-backend) e reinicie-a:",
       "errors": {
         "denied": "Você cancelou a permissão no Google.",
         "invalid_state": "A sessão de conexão expirou. Tente novamente.",
@@ -899,7 +899,12 @@
         "save_failed": "Não foi possível salvar a conexão.",
         "exchange_failed": "O Google recusou a conexão. Verifique o client ID e o secret.",
         "not_configured": "A integração com o Google não está configurada.",
-        "generic": "Não foi possível conectar o Google Calendar."
+        "generic": "Não foi possível conectar o Google Calendar.",
+        "state_used": "Esse link de conexão já foi usado. Conecte de novo daqui.",
+        "no_email": "O Google não enviou o e-mail da sua conta. Tente de novo.",
+        "no_code": "Você cancelou a permissão no Google.",
+        "unreachable": "Não conseguimos falar com o Google. Tente de novo.",
+        "unexpected": "Não foi possível conectar o Google Agenda."
       },
       "pageTitle": "Integrações",
       "pageDescription": "Conecte o Veltro às ferramentas que sua equipe já usa."
@@ -971,6 +976,13 @@
     "forbidden": "Você não tem permissão para fazer isso.",
     "doc_parent_cycle": "Um doc não pode ficar dentro de si mesmo.",
     "not_authenticated": "Sua sessão expirou. Entre novamente.",
+    "google_not_connected": "Conecte seu Google Agenda primeiro.",
+    "google_auth_revoked": "O Google retirou a permissão. Conecte sua agenda de novo.",
+    "google_not_configured": "A integração com o Google não está configurada no servidor.",
+    "google_unreachable": "Não conseguimos falar com o Google. Tente de novo.",
+    "google_error": "O Google Agenda respondeu com um erro. Tente de novo.",
+    "unknown_calendar": "Essa agenda não está mais na sua conta Google.",
+    "rate_limited": "Muitas tentativas seguidas. Espere um momento.",
     "email_taken": "Esse e-mail já está em uso.",
     "invalid_email": "Esse e-mail não é válido.",
     "notFoundTitle": "Não encontramos esta página",

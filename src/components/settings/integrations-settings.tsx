@@ -8,7 +8,8 @@ import { Check } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCalendars, useInvalidateCalendar } from '@/lib/queries/calendar'
+import { CalendarError, disconnectGoogle, saveSelectedCalendars, useCalendars, useInvalidateCalendar } from '@/lib/queries/calendar'
+import { toErrorCode } from '@/lib/errors'
 import { GoogleG } from '@/components/calendar/connect-calendar'
 import { cn } from '@/lib/utils'
 import { SettingsSection } from './section'
@@ -16,6 +17,7 @@ import { SettingsSection } from './section'
 /** Integraciones, dentro de Preferencias: por ahora Google Calendar (agenda, notas por reunión y Meet). */
 export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
   const t = useTranslations('settings.integrations')
+  const tErrors = useTranslations('errors')
   const router = useRouter()
   const params = useSearchParams()
   const { google, googleConfigured } = useApp()
@@ -33,11 +35,16 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
 
   const disconnect = async () => {
     setDisconnecting(true)
-    await fetch('/api/integrations/google/disconnect', { method: 'POST' })
-    setDisconnecting(false)
-    invalidate()
-    toast.success(t('disconnected'))
-    router.refresh()
+    try {
+      await disconnectGoogle()
+      invalidate()
+      toast.success(t('disconnected'))
+      router.refresh()
+    } catch (e) {
+      toast.error(tErrors(toErrorCode(e as Error)))
+    } finally {
+      setDisconnecting(false)
+    }
   }
 
   return (
@@ -99,11 +106,13 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
 
 function CalendarPicker() {
   const t = useTranslations('settings.integrations')
+  const tErrors = useTranslations('errors')
   const invalidate = useInvalidateCalendar()
-  const { data, isLoading, refetch } = useCalendars()
+  const { data, error, isLoading, refetch } = useCalendars()
   const [saving, setSaving] = useState(false)
 
   if (isLoading) return <Skeleton className="h-24 max-w-md" />
+  if (error instanceof CalendarError) return <p className="text-sm text-fg-muted">{tErrors(toErrorCode({ message: error.code }))}</p>
   if (!data) return null
 
   const toggle = async (id: string) => {
@@ -111,14 +120,15 @@ function CalendarPicker() {
     const next = has ? data.selected.filter((x) => x !== id) : [...data.selected, id]
     if (next.length === 0) return
     setSaving(true)
-    await fetch('/api/calendar/calendars', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selected: next }),
-    })
-    await refetch()
-    invalidate()
-    setSaving(false)
+    try {
+      await saveSelectedCalendars(next)
+      await refetch()
+      invalidate()
+    } catch (e) {
+      toast.error(tErrors(toErrorCode(e as Error)))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

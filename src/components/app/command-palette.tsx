@@ -13,7 +13,8 @@ import { Kbd } from '@/components/ui/kbd'
 import { useDateLocale } from '@/lib/dates'
 import { useTour } from '@/components/tour/tour'
 import { useApp, canEdit } from './app-context'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/lib/api/client'
+import { refNumber, type ApiSearchResults } from '@/lib/api/integraciones'
 import { useCreateDoc } from '@/lib/queries/docs'
 import { cn, positionBetween, taskRef } from '@/lib/utils'
 import { taskPath } from '@/lib/use-open-task'
@@ -75,30 +76,21 @@ export function CommandPalette({
     if (!open) setQuery('')
   }, [open])
 
+  // búsqueda en la API (/v1/search): «PRO-3» trae la tarea 3 de PRO, no la 3 de cualquier espacio.
+  // Solo se muestran los espacios de esta cuenta donde soy miembro (los demás no se pueden abrir).
   const { data: results } = useQuery({
     queryKey: ['search', q, wsIds],
     enabled: open && q.length >= 2 && wsIds.length > 0,
     staleTime: 10_000,
     queryFn: async () => {
-      const supabase = createClient()
-      const like = `%${q.replace(/[%_]/g, '\\$&')}%`
-      const num = q.match(/^([a-z0-9]{2,5})-(\d+)$/i)
-      const [tasks, docs, meetings, decisions] = await Promise.all([
-        num
-          ? supabase.from('tasks').select('id, title, status, number, workspace_id').in('workspace_id', wsIds).eq('number', Number(num[2])).limit(8)
-          : supabase.from('tasks').select('id, title, status, number, workspace_id').in('workspace_id', wsIds).ilike('title', like).order('updated_at', { ascending: false }).limit(8),
-        supabase
-          .from('docs')
-          .select('id, title, source, workspace_id')
-          .in('workspace_id', wsIds)
-          .is('archived_at', null)
-          .or(`title.ilike.${like},content_text.ilike.${like}`)
-          .order('updated_at', { ascending: false })
-          .limit(8),
-        supabase.from('meetings').select('id, title, starts_at, phase, workspace_id').in('workspace_id', wsIds).ilike('title', like).order('starts_at', { ascending: false }).limit(6),
-        supabase.from('meeting_items').select('id, text, meeting_id, workspace_id').in('workspace_id', wsIds).eq('kind', 'decision').ilike('text', like).order('created_at', { ascending: false }).limit(5),
-      ])
-      return { tasks: tasks.data ?? [], docs: docs.data ?? [], meetings: meetings.data ?? [], decisions: decisions.data ?? [] }
+      const r = await api<ApiSearchResults>('/v1/search', { query: { q, types: 'tasks,docs,meetings,decisions', limit: 12 } })
+      const mine = <T extends { workspaceId: string }>(rows: T[], max: number) => rows.filter((x) => wsById.has(x.workspaceId)).slice(0, max)
+      return {
+        tasks: mine(r.tasks, 8).map((x) => ({ id: x.id, title: x.title, status: x.status, number: refNumber(x.ref), workspace_id: x.workspaceId })),
+        docs: mine(r.docs, 8).map((x) => ({ id: x.id, title: x.title, source: x.source, workspace_id: x.workspaceId })),
+        meetings: mine(r.meetings, 6).map((x) => ({ id: x.id, title: x.title, starts_at: x.startsAt, phase: x.phase, workspace_id: x.workspaceId })),
+        decisions: mine(r.decisions, 5).map((x) => ({ id: x.id, text: x.text, meeting_id: x.meetingId, workspace_id: x.workspaceId })),
+      }
     },
   })
 

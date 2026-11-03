@@ -4,7 +4,6 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { AccountRole } from '@/lib/database.types'
 import type { AppContextValue } from '@/lib/types'
-import { isGoogleConfigured } from '@/lib/google/config'
 import { DEMO } from '@/lib/demo/config'
 import { getDemoAppContext, getDemoUser } from '@/lib/demo/session-context'
 import { api } from '@/lib/api/server'
@@ -67,7 +66,8 @@ export const getAppContext = cache(async (): Promise<
       members: res.members.map(toMember).sort((a, b) => a.full_name.localeCompare(b.full_name)),
       departments: res.departments.map(toDepartment),
       google: res.google.connected ? { email: res.google.email ?? '', selectedCalendarIds: res.google.selectedCalendarIds } : null,
-      googleConfigured: isGoogleConfigured(),
+      // lo decide la API, que es la que tiene las credenciales de Google
+      googleConfigured: res.google.configured,
     },
   }
 })
