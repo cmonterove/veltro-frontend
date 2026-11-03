@@ -18,6 +18,22 @@ const KNOWN = [
   'department_other_account',
   'invalid_statuses',
   'invalid_status',
+  // soporte: archivos, estados y destino por rol (la API los manda en error.code)
+  'file_type',
+  'file_too_large',
+  'file_empty',
+  'invalid_upload_token',
+  'duplicate_file',
+  'file_not_uploaded',
+  'file_size_mismatch',
+  'file_content_mismatch',
+  'already_registered',
+  'upload_failed',
+  'ticket_resolved',
+  'status_not_allowed',
+  'owner_only',
+  'workspace_not_in_account',
+  'validation_error',
 ] as const
 
 export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email'
