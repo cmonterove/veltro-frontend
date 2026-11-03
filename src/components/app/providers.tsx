@@ -25,7 +25,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    // claro por defecto (pedido del usuario, 2026-11-03); «Sistema» y «Oscuro» siguen en Preferencias
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
         <Tooltip.Provider delay={500} closeDelay={0}>
           {children}
