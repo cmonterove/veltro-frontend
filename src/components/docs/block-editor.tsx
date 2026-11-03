@@ -1,20 +1,70 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { COLORS_DARK_MODE_DEFAULT, COLORS_DEFAULT, type PartialBlock, type BlockNoteEditor } from '@blocknote/core'
 import { en, es, fr, pt } from '@blocknote/core/locales'
-import { useCreateBlockNote } from '@blocknote/react'
+import { BlockNoteContext, useCreateBlockNote } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/mantine/style.css'
-import { createClient } from '@/lib/supabase/client'
+import { api, uploadSigned, type SignedUpload } from '@/lib/api/client'
 import type { Json } from '@/lib/database.types'
+import { toErrorCode } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 import { blocksToText } from '@/lib/blocks'
 
 const DICTIONARIES = { en, es, fr, pt }
+// En el contenido queda `veltro-file://{ruta}`: la ruta del archivo en la carpeta del espacio.
 const FILE_SCHEME = 'veltro-file://'
+// {espacio}/{uuid}.{ext} (subidas por la API) o {espacio}/{uuid}-{nombre} (las de antes)
+const FILE_PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9]{2,5}|-[A-Za-z0-9._-]{0,80})$/
+
+// URLs firmadas de los archivos del editor: las de un doc se piden juntas (llegan casi a la vez)
+// y se recuerdan mientras valen.
+type Signed = { url: string; until: number }
+const signedUrls = new Map<string, Signed>()
+let waiting: { path: string; resolve: (url: string | null) => void }[] = []
+let flushTimer: ReturnType<typeof setTimeout> | null = null
+
+function signedUrl(path: string): Promise<string | null> {
+  const hit = signedUrls.get(path)
+  if (hit && hit.until > Date.now()) return Promise.resolve(hit.url)
+  if (!FILE_PATH.test(path)) return Promise.resolve(null)
+  return new Promise((resolve) => {
+    waiting.push({ path, resolve })
+    flushTimer ??= setTimeout(flushSigned, 30)
+  })
+}
+
+async function flushSigned() {
+  const batch = waiting
+  waiting = []
+  flushTimer = null
+  // por espacio (el primer tramo de la ruta), de a 50
+  const byWorkspace = new Map<string, Set<string>>()
+  for (const { path } of batch) {
+    const ws = path.split('/')[0]
+    byWorkspace.set(ws, (byWorkspace.get(ws) ?? new Set()).add(path))
+  }
+  await Promise.all(
+    [...byWorkspace].flatMap(([ws, set]) => {
+      const paths = [...set]
+      const chunks = Array.from({ length: Math.ceil(paths.length / 50) }, (_, i) => paths.slice(i * 50, i * 50 + 50))
+      return chunks.map(async (chunk) => {
+        try {
+          const res = await api<{ items: { path: string; url: string; expiresIn: number }[] }>(`/v1/workspaces/${ws}/editor-files`, { query: { path: chunk } })
+          for (const x of res.items) signedUrls.set(x.path, { url: x.url, until: Date.now() + (x.expiresIn - 60) * 1000 })
+        } catch {
+          // sin firma (sin acceso o sin red): queda la URL original
+        }
+      })
+    }),
+  )
+  for (const w of batch) w.resolve(signedUrls.get(w.path)?.url ?? null)
+}
 
 const base = {
   colors: {
@@ -41,6 +91,7 @@ export type EditorChange = { content: Json; text: string }
 
 export function BlockEditor({
   workspaceId,
+  docId,
   initialContent,
   importMarkdown,
   editable = true,
@@ -52,6 +103,8 @@ export function BlockEditor({
   compact,
 }: {
   workspaceId: string
+  /** el doc que se edita: lo que se sube queda vinculado a él (en la Bóveda y en sus archivos) */
+  docId?: string
   initialContent: Json | null
   importMarkdown?: string | null
   editable?: boolean
@@ -64,6 +117,8 @@ export function BlockEditor({
   compact?: boolean
 }) {
   const locale = useLocale() as keyof typeof DICTIONARIES
+  const tErrors = useTranslations('errors')
+  const qc = useQueryClient()
   const { resolvedTheme } = useTheme()
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
@@ -85,23 +140,32 @@ export function BlockEditor({
       initialContent: initial,
       dictionary,
       trailingBlock: true,
+      // Como adjunto del espacio (y del doc): URL firmada, subida directa y registro en la API.
       uploadFile: async (file: File) => {
-        const supabase = createClient()
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-80)
-        const path = `${workspaceId}/${crypto.randomUUID()}-${safe}`
-        const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: file.type })
-        if (error) throw error
-        return `${FILE_SCHEME}${path}`
+        try {
+          const name = (file.name || 'archivo').slice(-200)
+          const signed = await api<SignedUpload & { uploadToken: string }>(`/v1/workspaces/${workspaceId}/attachments/upload-url`, {
+            method: 'POST',
+            body: { name, mimeType: file.type, sizeBytes: file.size },
+          })
+          await uploadSigned(signed, file)
+          await api(`/v1/workspaces/${workspaceId}/attachments`, {
+            method: 'POST',
+            body: { kind: 'file', uploadToken: signed.uploadToken, name, ...(docId ? { docId } : {}) },
+          })
+          qc.invalidateQueries({ queryKey: ['attachments'] })
+          return `${FILE_SCHEME}${signed.path}`
+        } catch (e) {
+          toast.error(tErrors(toErrorCode(e as { message?: string })))
+          throw e
+        }
       },
       resolveFileUrl: async (url: string) => {
         if (!url.startsWith(FILE_SCHEME)) return url
-        const { data } = await createClient()
-          .storage.from('attachments')
-          .createSignedUrl(url.slice(FILE_SCHEME.length), 60 * 60)
-        return data?.signedUrl ?? url
+        return (await signedUrl(url.slice(FILE_SCHEME.length))) ?? url
       },
     },
-    [workspaceId],
+    [workspaceId, docId],
   )
 
   // Markdown pendiente (docs creados vía API/Claude o el doc de bienvenida)
@@ -121,16 +185,21 @@ export function BlockEditor({
     onReady?.(editor)
   }, [editor, onReady])
 
+  const scheme = resolvedTheme === 'dark' ? 'dark' : 'light'
   return (
     <div className={cn('veltro-editor', compact && 'veltro-editor-compact', className)}>
-      <BlockNoteView
-        editor={editor}
-        editable={editable}
-        theme={resolvedTheme === 'dark' ? THEME.dark : THEME.light}
-        onChange={() => {
-          onChangeRef.current?.({ content: editor.document as unknown as Json, text: blocksToText(editor.document) })
-        }}
-      />
+      {/* el modo lo decide la web, no el sistema: si no, con el sistema oscuro BlockNote le pone la
+          clase `dark` a su raíz y el texto toma los colores del tema oscuro sobre fondo claro */}
+      <BlockNoteContext.Provider value={{ colorSchemePreference: scheme }}>
+        <BlockNoteView
+          editor={editor}
+          editable={editable}
+          theme={THEME[scheme]}
+          onChange={() => {
+            onChangeRef.current?.({ content: editor.document as unknown as Json, text: blocksToText(editor.document) })
+          }}
+        />
+      </BlockNoteContext.Provider>
     </div>
   )
 }

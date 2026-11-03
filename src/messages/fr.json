@@ -993,7 +993,11 @@
     "validation_error": "Vérifiez les données : l'une d'elles n'est pas valide.",
     "start_after_due": "La date de début ne peut pas être postérieure à l'échéance.",
     "parent_is_subtask": "Les sous-tâches n'ont qu'un niveau : une sous-tâche ne peut pas en avoir.",
-    "scope_not_allowed": "Vous n'avez pas accès à cette vue."
+    "scope_not_allowed": "Vous n'avez pas accès à cette vue.",
+    "meeting_closed": "La réunion est clôturée. Rouvrez-la pour modifier ce qui a été noté.",
+    "doc_archived": "Ce doc est archivé. Restaurez-le pour le modifier.",
+    "file_type": "Ce type de fichier n'est pas accepté.",
+    "file_too_large": "Le fichier dépasse 20 Mo."
   },
   "demo": {
     "badge": "Mode démo : données de test",

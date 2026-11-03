@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { createClient } from '@/lib/supabase/server'
+import { api } from '@/lib/api/server'
+import { allPages, toDocSummary, type ApiDocInList, type ApiPage } from '@/lib/api/docs-reuniones'
 import { requireWorkspace } from '@/lib/workspace'
-import { DOC_SUMMARY_COLUMNS } from '@/lib/queries/doc-columns'
 import { WorkspaceDocs } from '@/components/workspace/workspace-docs'
-import type { DocSummary } from '@/lib/types'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -16,13 +15,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function DocsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const { ws } = await requireWorkspace(slug)
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('docs')
-    .select(DOC_SUMMARY_COLUMNS)
-    .eq('workspace_id', ws.id)
-    .is('archived_at', null)
-    .order('position')
+  const docs = await allPages((cursor) =>
+    api<ApiPage<ApiDocInList>>(`/v1/workspaces/${ws.id}/docs`, { query: { sort: 'position', limit: 200, cursor } }),
+  )
 
-  return <WorkspaceDocs workspaceId={ws.id} initialDocs={(data ?? []) as DocSummary[]} />
+  return <WorkspaceDocs workspaceId={ws.id} initialDocs={docs.map(toDocSummary)} />
 }

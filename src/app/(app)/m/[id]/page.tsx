@@ -1,24 +1,30 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { api } from '@/lib/api/server'
+import { ApiError } from '@/lib/api/shared'
+import type { ApiWorkspace } from '@/lib/api/types'
+import { toMeetingItemRow, toMeetingRow, type ApiMeetingDetail } from '@/lib/api/docs-reuniones'
 import { requireAppContext } from '@/lib/session'
 import { MeetingRoom } from '@/components/meeting/meeting-room'
-import type { MeetingItemRow, MeetingRow } from '@/lib/database.types'
 
-async function load(id: string) {
+// una sola llamada por petición (la usan generateMetadata y la página)
+const load = cache(async (id: string) => {
   const ctx = await requireAppContext()
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound()
-  const supabase = await createClient()
-  const { data: meeting } = await supabase.from('meetings').select('*').eq('id', id).maybeSingle()
+  const meeting = await api<ApiMeetingDetail>(`/v1/meetings/${id}`).catch((e) => {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null
+    throw e
+  })
   if (!meeting) notFound()
-  if (!ctx.workspaces.some((w) => w.id === meeting.workspace_id)) {
-    const { data: ws } = await supabase.from('workspaces').select('account_id').eq('id', meeting.workspace_id).maybeSingle()
-    if (ws) redirect(`/auth/switch?account=${ws.account_id}&next=${encodeURIComponent(`/m/${id}`)}`)
+  if (!ctx.workspaces.some((w) => w.id === meeting.workspaceId)) {
+    // de otra de mis cuentas: se cambia de cuenta y se vuelve acá
+    const ws = await api<ApiWorkspace>(`/v1/workspaces/${meeting.workspaceId}`).catch(() => null)
+    if (ws && ws.accountId !== ctx.account.id) redirect(`/auth/switch?account=${ws.accountId}&next=${encodeURIComponent(`/m/${id}`)}`)
     notFound()
   }
-  const { data: items } = await supabase.from('meeting_items').select('*').eq('meeting_id', id).order('position')
-  return { meeting: meeting as MeetingRow, items: (items ?? []) as MeetingItemRow[] }
-}
+  return { meeting: toMeetingRow(meeting), items: meeting.items.map(toMeetingItemRow) }
+})
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params

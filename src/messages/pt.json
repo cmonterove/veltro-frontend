@@ -993,7 +993,11 @@
     "validation_error": "Revise os dados: algum não é válido.",
     "start_after_due": "A data de início não pode ser posterior à de entrega.",
     "parent_is_subtask": "Só há um nível de subtarefas: uma subtarefa não pode ter subtarefas.",
-    "scope_not_allowed": "Você não tem acesso a essa visão."
+    "scope_not_allowed": "Você não tem acesso a essa visão.",
+    "meeting_closed": "A reunião está encerrada. Reabra-a para alterar o que foi registrado.",
+    "doc_archived": "Este doc está arquivado. Restaure-o para editá-lo.",
+    "file_type": "Esse tipo de arquivo não é aceito.",
+    "file_too_large": "O arquivo tem mais de 20 MB."
   },
   "demo": {
     "badge": "Modo demo: dados de teste",

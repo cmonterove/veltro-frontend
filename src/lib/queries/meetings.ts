@@ -1,10 +1,20 @@
 'use client'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
-import type { Database, MeetingItemRow, MeetingRow } from '@/lib/database.types'
+import { api } from '@/lib/api/client'
+import {
+  itemBody,
+  meetingBody,
+  toMeetingItemRow,
+  toMeetingRow,
+  type ApiAgendaSuggestion,
+  type ApiMeetingDetail,
+  type ApiMeetingInList,
+  type ApiMeetingItem,
+} from '@/lib/api/docs-reuniones'
+import type { MeetingItemRow, MeetingRow } from '@/lib/database.types'
 import { toErrorCode } from '@/lib/errors'
 
 export type MeetingWithNotes = MeetingRow & { notesDocId: string | null; taskCount: number }
@@ -12,33 +22,48 @@ export type MeetingWithNotes = MeetingRow & { notesDocId: string | null; taskCou
 export const meetingKeys = {
   all: ['meetings'] as const,
   one: (id: string) => ['meeting', id] as const,
+  // la sala completa (GET /v1/meetings/{id}); cuelga de `one` para invalidarse con ella
+  detail: (id: string) => ['meeting', id, 'detail'] as const,
+  record: (id: string) => ['meeting', id, 'record'] as const,
   items: (meetingId: string) => ['meeting-items', meetingId] as const,
   workspaceItems: (workspaceIds: string[], kind?: string) => ['meeting-items', 'ws', workspaceIds, kind ?? 'all'] as const,
+  suggestions: (meetingId: string) => ['meeting-suggestions', meetingId] as const,
 }
 
+const DAY = 86_400_000
+// la API pide rangos de 186 días como máximo
+const MAX_RANGE = 180 * DAY
+
+/**
+ * La sala de la reunión en una sola llamada. La reunión, lo capturado, el acta y la serie salen de
+ * acá: si se piden a la vez, viaja una sola petición.
+ */
+function fetchDetail(qc: QueryClient, id: string) {
+  return qc.fetchQuery({ queryKey: meetingKeys.detail(id), queryFn: () => api<ApiMeetingDetail>(`/v1/meetings/${id}`), staleTime: 0 })
+}
+
+/** Reuniones de un espacio en un rango, partido en tramos que la API acepta. */
+async function meetingsIn(workspaceId: string, from: Date, to: Date, limit: number) {
+  const out: ApiMeetingInList[] = []
+  for (let end = to.getTime(); end > from.getTime(); end -= MAX_RANGE) {
+    const start = Math.max(from.getTime(), end - MAX_RANGE)
+    const r = await api<{ items: ApiMeetingInList[] }>(`/v1/workspaces/${workspaceId}/meetings`, {
+      query: { from: new Date(start).toISOString(), to: new Date(end).toISOString(), order: 'desc', limit },
+    })
+    out.push(...r.items)
+    if (out.length >= limit) break
+  }
+  return out.slice(0, limit)
+}
+
+/** Las últimas reuniones del espacio (las próximas primero), con su acta y cuántas tareas dejaron. */
 export function useWorkspaceMeetings(workspaceId: string, limit = 50) {
   return useQuery({
     queryKey: ['meetings', workspaceId, limit],
     queryFn: async (): Promise<MeetingWithNotes[]> => {
-      const supabase = createClient()
-      const { data: meetings, error } = await supabase
-        .from('meetings')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('starts_at', { ascending: false })
-        .limit(limit)
-      if (error) throw error
-      if (!meetings.length) return []
-      const ids = meetings.map((m) => m.id)
-      const [{ data: docs }, { data: tasks }] = await Promise.all([
-        supabase.from('docs').select('id, meeting_id').in('meeting_id', ids).eq('source', 'meeting').is('archived_at', null),
-        supabase.from('tasks').select('id, meeting_id').in('meeting_id', ids),
-      ])
-      return (meetings as MeetingRow[]).map((m) => ({
-        ...m,
-        notesDocId: docs?.find((d) => d.meeting_id === m.id)?.id ?? null,
-        taskCount: tasks?.filter((x) => x.meeting_id === m.id).length ?? 0,
-      }))
+      const now = Date.now()
+      const rows = await meetingsIn(workspaceId, new Date(now - 150 * DAY), new Date(now + 35 * DAY), limit)
+      return rows.map((m) => ({ ...toMeetingRow(m), notesDocId: m.recordDocId, taskCount: m.stats.tasks }))
     },
   })
 }
@@ -49,47 +74,41 @@ export function useMeetingsInRange(workspaceIds: string[], from: Date, to: Date)
     queryKey: ['meetings', 'range', workspaceIds, from.toISOString(), to.toISOString()],
     enabled: workspaceIds.length > 0,
     queryFn: async () => {
-      // el rango va en la consulta: traer las últimas N y filtrar acá dejaba vacíos los rangos pasados
-      const { data, error } = await createClient()
-        .from('meetings')
-        .select('*')
-        .in('workspace_id', workspaceIds)
-        .gte('starts_at', from.toISOString())
-        .lt('starts_at', to.toISOString())
-        .order('starts_at', { ascending: false })
-        .limit(500)
-      if (error) throw error
-      return data as MeetingRow[]
+      const lists = await Promise.all(workspaceIds.map((id) => meetingsIn(id, from, to, 500)))
+      return lists
+        .flat()
+        .map(toMeetingRow)
+        .sort((a, b) => b.starts_at.localeCompare(a.starts_at))
+        .slice(0, 500)
     },
   })
 }
 
 export function useMeeting(id: string, initialData?: MeetingRow) {
+  const qc = useQueryClient()
   return useQuery({
     queryKey: meetingKeys.one(id),
     initialData,
-    queryFn: async () => {
-      const { data, error } = await createClient().from('meetings').select('*').eq('id', id).single()
-      if (error) throw error
-      return data as MeetingRow
-    },
+    queryFn: async () => toMeetingRow(await fetchDetail(qc, id)),
   })
 }
 
 export function useMeetingItems(meetingId: string | null, initialData?: MeetingItemRow[]) {
+  const qc = useQueryClient()
   return useQuery({
     queryKey: meetingId ? meetingKeys.items(meetingId) : ['meeting-items', 'none'],
     enabled: Boolean(meetingId),
     initialData,
-    queryFn: async () => {
-      const { data, error } = await createClient()
-        .from('meeting_items')
-        .select('*')
-        .eq('meeting_id', meetingId!)
-        .order('position')
-      if (error) throw error
-      return data as MeetingItemRow[]
-    },
+    queryFn: async () => (await fetchDetail(qc, meetingId!)).items.map(toMeetingItemRow),
+  })
+}
+
+/** El acta (doc de la reunión en la memoria del espacio), si ya existe. */
+export function useMeetingRecord(meetingId: string) {
+  const qc = useQueryClient()
+  return useQuery({
+    queryKey: meetingKeys.record(meetingId),
+    queryFn: async () => (await fetchDetail(qc, meetingId)).recordDocId,
   })
 }
 
@@ -99,39 +118,45 @@ export function useWorkspaceItems(workspaceIds: string[], kind?: MeetingItemRow[
     queryKey: meetingKeys.workspaceItems(workspaceIds, kind),
     enabled: workspaceIds.length > 0,
     queryFn: async () => {
-      let q = createClient().from('meeting_items').select('*').in('workspace_id', workspaceIds)
-      if (kind) q = q.eq('kind', kind)
-      const { data, error } = await q.order('created_at', { ascending: false }).limit(300)
-      if (error) throw error
-      return data as MeetingItemRow[]
+      const lists = await Promise.all(
+        workspaceIds.map((id) => api<{ items: ApiMeetingItem[] }>(`/v1/workspaces/${id}/meeting-items`, { query: { kind, limit: 300 } })),
+      )
+      return lists
+        .flatMap((l) => l.items)
+        .map(toMeetingItemRow)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+        .slice(0, 300)
     },
   })
 }
 
 /** Reunión anterior de la misma serie (para arrastrar pendientes). */
 export function usePreviousInSeries(meeting: Pick<MeetingRow, 'id' | 'workspace_id' | 'series_key' | 'starts_at'> | undefined) {
+  const qc = useQueryClient()
   return useQuery({
     queryKey: ['meeting-prev', meeting?.id],
     enabled: Boolean(meeting?.series_key),
     queryFn: async () => {
-      const { data, error } = await createClient()
-        .from('meetings')
-        .select('*')
-        .eq('workspace_id', meeting!.workspace_id)
-        .eq('series_key', meeting!.series_key!)
-        .order('starts_at', { ascending: false })
-        .limit(20)
-      if (error) throw error
-      const prev = (data as MeetingRow[]).find((m) => m.starts_at < meeting!.starts_at && m.id !== meeting!.id) ?? null
-      if (!prev) return null
-      const { data: items } = await createClient().from('meeting_items').select('*').eq('meeting_id', prev.id).order('position')
-      return { meeting: prev, items: (items ?? []) as MeetingItemRow[] }
+      const current = await fetchDetail(qc, meeting!.id)
+      if (!current.previous) return null
+      const prev = await fetchDetail(qc, current.previous.id)
+      return { meeting: toMeetingRow(prev), items: prev.items.map(toMeetingItemRow) }
     },
   })
 }
 
-type ItemInsert = Database['public']['Tables']['meeting_items']['Insert']
-type ItemUpdate = Database['public']['Tables']['meeting_items']['Update']
+/** Agenda sugerida por la API: pendientes de la reunión anterior y tareas que necesitan a los convocados. */
+export function useAgendaSuggestions(meetingId: string, enabled = true) {
+  return useQuery({
+    queryKey: meetingKeys.suggestions(meetingId),
+    enabled,
+    queryFn: async () => (await api<{ items: ApiAgendaSuggestion[] }>(`/v1/meetings/${meetingId}/agenda/suggestions`)).items,
+  })
+}
+
+/** Lo que se captura (como fila): la API pone la reunión, el espacio y el autor. */
+type ItemInput = Pick<MeetingItemRow, 'kind'> & Partial<Pick<MeetingItemRow, 'text' | 'assignee_id' | 'due_date' | 'done' | 'position'>> & { id?: string }
+type ItemPatch = Partial<Pick<MeetingItemRow, 'kind' | 'text' | 'assignee_id' | 'due_date' | 'done' | 'position'>>
 
 function useErrorToast() {
   const t = useTranslations('errors')
@@ -142,17 +167,15 @@ export function useMeetingItemMutations(meetingId: string) {
   const qc = useQueryClient()
   const onError = useErrorToast()
   const key = meetingKeys.items(meetingId)
+  // los acuerdos de Pulso, el resumen del espacio y la agenda sugerida también se enteran
+  const settle = () => {
+    qc.invalidateQueries({ queryKey: ['meeting-items', 'ws'] })
+    qc.invalidateQueries({ queryKey: meetingKeys.suggestions(meetingId) })
+  }
 
   const add = useMutation({
-    mutationFn: async (input: Omit<ItemInsert, 'meeting_id'> & { id?: string }) => {
-      const { data, error } = await createClient()
-        .from('meeting_items')
-        .insert({ ...input, meeting_id: meetingId })
-        .select('*')
-        .single()
-      if (error) throw error
-      return data as MeetingItemRow
-    },
+    mutationFn: async (input: ItemInput) =>
+      toMeetingItemRow(await api<ApiMeetingItem>(`/v1/meetings/${meetingId}/items`, { method: 'POST', body: itemBody(input) })),
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: key })
       const tempId = input.id ?? `temp-${crypto.randomUUID()}`
@@ -167,9 +190,9 @@ export function useMeetingItemMutations(meetingId: string) {
           text: input.text ?? '',
           assignee_id: input.assignee_id ?? null,
           due_date: input.due_date ?? null,
-          task_id: input.task_id ?? null,
+          task_id: null,
           done: input.done ?? false,
-          source: input.source ?? 'manual',
+          source: 'manual',
           position: input.position ?? Date.now(),
           created_by: null,
           created_at: now,
@@ -180,7 +203,7 @@ export function useMeetingItemMutations(meetingId: string) {
     },
     onSuccess: (row, _v, ctx) => {
       qc.setQueryData<MeetingItemRow[]>(key, (old) => old?.map((i) => (i.id === ctx?.tempId ? row : i)))
-      qc.invalidateQueries({ queryKey: ['meeting-items', 'ws'] })
+      settle()
     },
     onError: (error, _v, ctx) => {
       qc.setQueryData<MeetingItemRow[]>(key, (old) => old?.filter((i) => i.id !== ctx?.tempId))
@@ -188,29 +211,46 @@ export function useMeetingItemMutations(meetingId: string) {
     },
   })
 
-  const update = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: ItemUpdate }) => {
-      const { data, error } = await createClient().from('meeting_items').update(patch).eq('id', id).select('*').single()
-      if (error) throw error
-      return data as MeetingItemRow
+  /** Agrega a la agenda lo que sugirió la API (con su tarea, si la tiene). */
+  const addSuggestions = useMutation({
+    mutationFn: async (items: ApiAgendaSuggestion[]) =>
+      (await api<{ items: ApiMeetingItem[] }>(`/v1/meetings/${meetingId}/agenda/suggestions`, { method: 'POST', body: { items } })).items.map(toMeetingItemRow),
+    onMutate: (items) => {
+      // fuera de la lista al instante: no se agregan dos veces
+      qc.setQueryData<ApiAgendaSuggestion[]>(meetingKeys.suggestions(meetingId), (old) =>
+        old?.filter((s) => !items.some((i) => i.text === s.text && i.taskId === s.taskId)),
+      )
     },
+    onSuccess: (rows) => {
+      qc.setQueryData<MeetingItemRow[]>(key, (old) => [...(old ?? []), ...rows])
+      settle()
+    },
+    onError: (error) => {
+      qc.invalidateQueries({ queryKey: meetingKeys.suggestions(meetingId) })
+      onError(error)
+    },
+  })
+
+  const update = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: ItemPatch }) =>
+      toMeetingItemRow(await api<ApiMeetingItem>(`/v1/meeting-items/${id}`, { method: 'PATCH', body: itemBody(patch) })),
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: key })
       const snapshot = qc.getQueryData<MeetingItemRow[]>(key)
       qc.setQueryData<MeetingItemRow[]>(key, (old) => old?.map((i) => (i.id === id ? ({ ...i, ...patch } as MeetingItemRow) : i)))
       return { snapshot }
     },
+    onSuccess: (row) => qc.setQueryData<MeetingItemRow[]>(key, (old) => old?.map((i) => (i.id === row.id ? row : i))),
     onError: (error, _v, ctx) => {
       if (ctx?.snapshot) qc.setQueryData(key, ctx.snapshot)
       onError(error)
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['meeting-items', 'ws'] }),
+    onSettled: settle,
   })
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await createClient().from('meeting_items').delete().eq('id', id)
-      if (error) throw error
+      await api(`/v1/meeting-items/${id}`, { method: 'DELETE' })
       return id
     },
     onMutate: async (id) => {
@@ -223,29 +263,30 @@ export function useMeetingItemMutations(meetingId: string) {
       if (ctx?.snapshot) qc.setQueryData(key, ctx.snapshot)
       onError(error)
     },
-    // los acuerdos de Pulso y del resumen del espacio también se enteran
-    onSettled: () => qc.invalidateQueries({ queryKey: ['meeting-items', 'ws'] }),
+    onSettled: settle,
   })
 
-  return { add, update, remove }
+  return { add, addSuggestions, update, remove }
 }
 
 export function useUpdateMeeting() {
   const qc = useQueryClient()
   const onError = useErrorToast()
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Database['public']['Tables']['meetings']['Update'] }) => {
-      const { data, error } = await createClient().from('meetings').update(patch).eq('id', id).select('*').single()
-      if (error) throw error
-      return data as MeetingRow
-    },
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<MeetingRow> }) =>
+      toMeetingRow(await api<ApiMeetingDetail>(`/v1/meetings/${id}`, { method: 'PATCH', body: meetingBody(patch) })),
     onMutate: ({ id, patch }) => {
+      const snapshot = qc.getQueryData<MeetingRow>(meetingKeys.one(id))
       qc.setQueryData<MeetingRow>(meetingKeys.one(id), (old) => (old ? ({ ...old, ...patch } as MeetingRow) : old))
+      return { snapshot }
     },
     onSuccess: (m) => {
       qc.setQueryData(meetingKeys.one(m.id), m)
       qc.invalidateQueries({ queryKey: meetingKeys.all })
     },
-    onError,
+    onError: (error, { id }, ctx) => {
+      if (ctx?.snapshot) qc.setQueryData(meetingKeys.one(id), ctx.snapshot)
+      onError(error)
+    },
   })
 }

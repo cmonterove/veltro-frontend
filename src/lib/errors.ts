@@ -23,6 +23,10 @@ const KNOWN = [
   'start_after_due',
   'parent_is_subtask',
   'scope_not_allowed',
+  'meeting_closed',
+  'doc_archived',
+  'file_type',
+  'file_too_large',
 ] as const
 
 export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email'

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { differenceInMinutes, format, formatDistanceToNowStrict } from 'date-fns'
@@ -15,15 +15,15 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/input'
 import { Tooltip } from '@/components/ui/tooltip'
 import { ShareToChatDialog, type ShareItem } from '@/components/chat/share-to-chat'
-import { useMeeting, useMeetingItemMutations, useMeetingItems, usePreviousInSeries, useUpdateMeeting, meetingKeys } from '@/lib/queries/meetings'
-import { useTasks, taskKeys } from '@/lib/queries/tasks'
+import { useAgendaSuggestions, useMeeting, useMeetingItemMutations, useMeetingItems, useMeetingRecord, usePreviousInSeries, useUpdateMeeting, meetingKeys } from '@/lib/queries/meetings'
+import { taskKeys } from '@/lib/queries/tasks'
 import { docKeys } from '@/lib/queries/docs'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { useDateLocale } from '@/lib/dates'
-import { suggestAgenda, summarizeMeeting } from '@/lib/assistant'
+import { summarizeMeeting } from '@/lib/assistant'
 import { closeMeeting } from '@/app/actions/meetings'
 import { track } from '@/lib/telemetry'
-import { cn, positionBetween, taskRef } from '@/lib/utils'
+import { cn, positionBetween } from '@/lib/utils'
 import type { MeetingItemRow, MeetingPhase, MeetingRow } from '@/lib/database.types'
 import { ItemRow, TaskLink } from './item-row'
 import { CaptureBox } from './capture-box'
@@ -79,6 +79,8 @@ export function MeetingRoom({
     { id: 'closed', label: t('phase.closed'), hint: meeting.phase === 'closed' ? t('phaseHint.closedDone') : t('phaseHint.closed') },
   ]
   const phaseIndex = phases.findIndex((p) => p.id === meeting.phase)
+  // Cerrada, lo capturado es el acta: se ve pero no se cambia (hay que reabrirla).
+  const capturing = editable && meeting.phase !== 'closed'
   const [sharing, setSharing] = useState(false)
   const memberMap = useMemberMap()
 
@@ -234,9 +236,9 @@ export function MeetingRoom({
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-x-10 gap-y-8 px-4 pb-24 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
           {view === 'prep' ? (
-            <PrepView meeting={meeting} items={items} previous={previous ?? null} editable={editable} onStart={() => update.mutate({ id: meeting.id, patch: { phase: 'live' } })} />
+            <PrepView meeting={meeting} items={items} editable={capturing} onStart={() => update.mutate({ id: meeting.id, patch: { phase: 'live' } })} />
           ) : view === 'live' ? (
-            <LiveView meeting={meeting} items={items} editable={editable} onClose={() => setView('closed')} />
+            <LiveView meeting={meeting} items={items} editable={capturing} onClose={() => setView('closed')} />
           ) : (
             <CloseView meeting={meeting} items={items} editable={editable} />
           )}
@@ -261,46 +263,16 @@ export function MeetingRoom({
 
 // ---------------- Preparar ----------------
 
-function PrepView({
-  meeting,
-  items,
-  previous,
-  editable,
-  onStart,
-}: {
-  meeting: MeetingRow
-  items: MeetingItemRow[]
-  previous: { meeting: MeetingRow; items: MeetingItemRow[] } | null
-  editable: boolean
-  onStart: () => void
-}) {
+function PrepView({ meeting, items, editable, onStart }: { meeting: MeetingRow; items: MeetingItemRow[]; editable: boolean; onStart: () => void }) {
   const t = useTranslations('meeting')
-  const ws = useWorkspaceMap().get(meeting.workspace_id)!
   const members = useWorkspaceMembers(meeting.workspace_id)
-  const { add, update, remove } = useMeetingItemMutations(meeting.id)
-  const { data: tasks } = useTasks({ kind: 'workspace', workspaceId: meeting.workspace_id })
+  const { add, addSuggestions, update, remove } = useMeetingItemMutations(meeting.id)
+  // pendientes de la reunión anterior y tareas que necesitan a los convocados (las arma la API)
+  const { data: suggestions = [] } = useAgendaSuggestions(meeting.id, editable)
   const agenda = items.filter((i) => i.kind === 'agenda')
   const [draft, setDraft] = useState('')
 
-  const attendeeIds = useMemo(() => {
-    const emails = new Set(meeting.attendees.map((a) => a.email.toLowerCase()))
-    return members.filter((m) => emails.has(m.email.toLowerCase())).map((m) => m.id)
-  }, [meeting.attendees, members])
-
-  const suggestions = useMemo(
-    () =>
-      suggestAgenda({
-        tasks: tasks ?? [],
-        taskRef: (task) => taskRef(ws.key, task.number),
-        attendeeIds,
-        previousItems: previous?.items ?? [],
-        existing: agenda,
-      }),
-    [tasks, ws.key, attendeeIds, previous, agenda],
-  )
-
-  const addAgenda = (text: string, taskId: string | null = null, source: MeetingItemRow['source'] = 'manual') =>
-    add.mutate({ kind: 'agenda', text, task_id: taskId, source, position: positionBetween(agenda.at(-1)?.position, null) })
+  const addAgenda = (text: string) => add.mutate({ kind: 'agenda', text, position: positionBetween(agenda.at(-1)?.position, null) })
 
   return (
     <div className="flex max-w-3xl flex-col gap-8">
@@ -361,7 +333,7 @@ function PrepView({
               <li key={`${s.reason}-${s.taskId ?? s.text}`} className="flex items-center gap-3 rounded-lg bg-panel px-3 py-2 shadow-card">
                 <span className="w-20 shrink-0 text-2xs font-semibold uppercase tracking-wide text-fg-subtle">{t(`reason.${s.reason}`)}</span>
                 <span className="min-w-0 flex-1 truncate text-sm">{s.text}</span>
-                <Button variant="ghost" size="xs" onClick={() => addAgenda(s.text, s.taskId, s.reason === 'carry' ? 'carry' : 'assistant')}>
+                <Button variant="ghost" size="xs" onClick={() => addSuggestions.mutate([s])}>
                   <Plus />
                   {t('addToAgenda')}
                 </Button>
@@ -372,7 +344,8 @@ function PrepView({
             variant="secondary"
             size="sm"
             className="mt-3"
-            onClick={() => suggestions.forEach((s) => addAgenda(s.text, s.taskId, s.reason === 'carry' ? 'carry' : 'assistant'))}
+            onClick={() => addSuggestions.mutate(suggestions)}
+            loading={addSuggestions.isPending}
           >
             {t('addAll')}
           </Button>
@@ -382,11 +355,8 @@ function PrepView({
       {/* notas previas que se quieran dejar */}
       <section>
         <h2 className="mb-2 text-sm font-semibold">{t('prepNotes')}</h2>
-        <CaptureBox
-          members={members}
-          placeholder={t('prepPlaceholder')}
-          onCapture={(c) => add.mutate({ ...c, position: Date.now() })}
-        />
+        {/* sin permiso (o cerrada) la API no deja capturar */}
+        {editable ? <CaptureBox members={members} placeholder={t('prepPlaceholder')} onCapture={(c) => add.mutate({ ...c, position: Date.now() })} /> : null}
         <div className="mt-2 flex flex-col gap-1">
           {items
             .filter((i) => i.kind !== 'agenda')
@@ -641,17 +611,7 @@ function CloseView({ meeting, items, editable }: { meeting: MeetingRow; items: M
 
 function RecordLink({ meetingId, slug }: { meetingId: string; slug: string }) {
   const t = useTranslations('meeting')
-  const [docId, setDocId] = useState<string | null>(null)
-  useEffect(() => {
-    let alive = true
-    import('@/lib/supabase/client').then(async ({ createClient }) => {
-      const { data } = await createClient().from('docs').select('id').eq('meeting_id', meetingId).eq('source', 'meeting').is('archived_at', null).limit(1).maybeSingle()
-      if (alive) setDocId(data?.id ?? null)
-    })
-    return () => {
-      alive = false
-    }
-  }, [meetingId])
+  const { data: docId } = useMeetingRecord(meetingId)
   if (!docId) return null
   return (
     <Link href={`/w/${slug}/docs/${docId}`} className="inline-flex items-center gap-2 text-sm text-accent-ink hover:underline">

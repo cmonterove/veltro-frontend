@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNowStrict, format } from 'date-fns'
 import { toast } from 'sonner'
 import type { BlockNoteEditor } from '@blocknote/core'
@@ -30,11 +29,11 @@ import { Avatar } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AutoTextarea } from '@/components/ui/auto-textarea'
 import { useArchiveDoc, useDoc, useSaveDoc, useWorkspaceDocs } from '@/lib/queries/docs'
+import { useMeeting } from '@/lib/queries/meetings'
 import { useCreateTask, useTasks, useUpdateTask } from '@/lib/queries/tasks'
-import { createClient } from '@/lib/supabase/client'
 import { useDateLocale } from '@/lib/dates'
 import { cn } from '@/lib/utils'
-import type { DocRow, MeetingRow } from '@/lib/database.types'
+import type { DocRow } from '@/lib/database.types'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { DueDate } from '@/components/tasks/due-date'
@@ -260,6 +259,7 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
             <BlockEditor
               key={doc.id}
               workspaceId={workspace.id}
+              docId={doc.id}
               initialContent={doc.content}
               importMarkdown={doc.import_markdown}
               editable={editable}
@@ -373,13 +373,7 @@ function RailSection({ title, action, children }: { title: React.ReactNode; acti
 function MeetingContext({ meetingId }: { meetingId: string }) {
   const t = useTranslations('docs')
   const locale = useDateLocale()
-  const { data: meeting } = useQuery({
-    queryKey: ['meeting', meetingId],
-    queryFn: async () => {
-      const { data } = await createClient().from('meetings').select('*').eq('id', meetingId).single()
-      return data as MeetingRow | null
-    },
-  })
+  const { data: meeting } = useMeeting(meetingId)
   if (!meeting) return null
   const start = new Date(meeting.starts_at)
   const end = meeting.ends_at ? new Date(meeting.ends_at) : null
