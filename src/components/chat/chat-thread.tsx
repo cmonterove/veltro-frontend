@@ -63,7 +63,7 @@ export function ChatThread({ chatId }: { chatId: string }) {
   const { user } = useApp()
   const { data: chats, isLoading: loadingChats } = useChats({ fast: true })
   const chat = chats?.find((c) => c.id === chatId)
-  const { data: messages, isLoading } = useChatMessages(chatId)
+  const { data: messages, isLoading, hasOlder, loadOlder, loadingOlder } = useChatMessages(chatId)
   const { markRead } = useChatMutations()
   const scrollRef = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
@@ -134,7 +134,29 @@ export function ChatThread({ chatId }: { chatId: string }) {
               ))}
             </div>
           ) : messages?.length ? (
-            <MessageList messages={messages} firstNew={firstNew} onReply={setReplyTo} />
+            <>
+              {hasOlder ? (
+                <div className="flex justify-center pb-1 pt-3">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    loading={loadingOlder}
+                    onClick={async () => {
+                      // lo anterior entra arriba: se conserva lo que se estaba viendo
+                      const el = scrollRef.current
+                      const before = el?.scrollHeight ?? 0
+                      await loadOlder()
+                      requestAnimationFrame(() => {
+                        if (el) el.scrollTop += el.scrollHeight - before
+                      })
+                    }}
+                  >
+                    {t('loadOlder')}
+                  </Button>
+                </div>
+              ) : null}
+              <MessageList messages={messages} firstNew={firstNew} onReply={setReplyTo} />
+            </>
           ) : (
             <EmptyThread chat={chat} />
           )}
@@ -474,8 +496,16 @@ function Composer({ chat, onSent, replyTo, onClearReply }: { chat: ChatSummary; 
 
   const submit = () => {
     if (!can) return
+    // la cita la guarda el servidor (con replyToId); la de aquí solo se ve mientras se envía
     const reply = replyTo ? { replyTo: { id: replyTo.id, userId: replyTo.user_id, body: replyTo.body.slice(0, 140) } } : {}
-    send.mutate({ chatId: chat.id, kind: pending?.kind ?? 'text', body: text.trim(), refId: pending?.refId ?? null, meta: { ...pending?.meta, ...reply } })
+    send.mutate({
+      chatId: chat.id,
+      kind: pending?.kind ?? 'text',
+      body: text.trim(),
+      refId: pending?.refId ?? null,
+      meta: { ...pending?.meta, ...reply },
+      replyToId: replyTo?.id ?? null,
+    })
     track(`feature.chat_send_${pending?.kind ?? 'text'}`)
     setText('')
     setPending(null)

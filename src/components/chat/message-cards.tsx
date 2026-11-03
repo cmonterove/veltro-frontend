@@ -13,7 +13,7 @@ import { StatusIcon } from '@/components/tasks/status-icon'
 import { DueDate } from '@/components/tasks/due-date'
 import { formatBytes } from '@/components/attachments/attachments'
 import { FilePreview, fileTitle } from '@/components/vault/file-visual'
-import { openAttachment, useVaultFiles } from '@/lib/queries/attachments'
+import { openAttachment, useAttachment } from '@/lib/queries/attachments'
 import { useTask } from '@/lib/queries/tasks'
 import { useDocsIn } from '@/lib/queries/docs'
 import { useChatMutations } from '@/lib/queries/chats'
@@ -66,9 +66,8 @@ export function TaskCard({ id }: { id: string }) {
 /** Archivo de la bóveda: vista previa, título y tamaño; se abre o se ve en la bóveda. */
 export function FileCard({ id }: { id: string }) {
   const t = useTranslations('pasillo.cards')
-  const { data: files, isLoading } = useVaultFiles()
-  const file = files?.find((f) => f.id === id)
-  if (isLoading) return <div className={cn(card, 'h-20 animate-pulse')} />
+  const { data: file, isLoading } = useAttachment(id)
+  if (isLoading && !file) return <div className={cn(card, 'h-20 animate-pulse')} />
   if (!file) return <Missing />
   return (
     <div className={cn(card, 'items-stretch')}>

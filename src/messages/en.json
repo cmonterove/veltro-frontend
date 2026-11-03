@@ -997,7 +997,25 @@
     "meeting_closed": "This meeting is closed. Reopen it to change what was captured.",
     "doc_archived": "This doc is archived. Restore it to edit it.",
     "file_type": "That file type isn't supported.",
-    "file_too_large": "The file is larger than 20 MB."
+    "file_too_large": "The file is larger than 20 MB.",
+    "file_empty": "The file is empty.",
+    "file_content_mismatch": "The file's content doesn't match its type.",
+    "file_size_mismatch": "The file changed while uploading. Upload it again.",
+    "file_not_uploaded": "The file didn't finish uploading. Try again.",
+    "invalid_upload_token": "The upload permission expired. Upload the file again.",
+    "upload_failed": "Couldn't upload the file. Check your connection and try again.",
+    "already_registered": "That file was already saved.",
+    "attachment_other_workspace": "What you're linking belongs to another space.",
+    "chat_attachment_linked": "Files sent in a chat stay loose: they can't be linked to a space.",
+    "group_needs_people": "Add at least one other person to the group.",
+    "chat_direct_full": "A direct chat is between two people. Start a group to add someone else.",
+    "chat_is_direct": "That can't be done in a direct chat.",
+    "direct_self": "A direct message is with someone else.",
+    "ref_not_found": "What you're sharing no longer exists or you don't have access.",
+    "ref_other_account": "What you're sharing belongs to another account.",
+    "reply_not_found": "The message you're replying to is no longer in this conversation.",
+    "invite_past": "That meeting is already over.",
+    "not_an_invite": "That message isn't an invite."
   },
   "demo": {
     "badge": "Demo mode: sample data",
@@ -1374,7 +1392,9 @@
     "remove": "Remove",
     "tooBig": "{name} is over 20 MB.",
     "uploaded": "{count, plural, one {File uploaded} other {# files uploaded}}",
-    "deleteConfirm": "Delete “{name}”? This can’t be undone."
+    "deleteConfirm": "Delete “{name}”? This can’t be undone.",
+    "badType": "“{name}” is a file type that isn't supported.",
+    "empty": "“{name}” is empty."
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -1615,7 +1635,8 @@
       "linkedHint": "It will show up there too, besides your vault.",
       "cancel": "Cancel",
       "submitFiles": "{count, plural, =0 {Upload} one {Upload # file} other {Upload # files}}",
-      "submitLink": "Add link"
+      "submitLink": "Add link",
+      "badType": "This file type isn't supported"
     }
   },
   "pasillo": {
@@ -1773,7 +1794,8 @@
       "error": "Couldn't create the call. Try again.",
       "connect": "Connect your Google account to start Meet calls.",
       "connectAction": "Connect"
-    }
+    },
+    "loadOlder": "Show earlier messages"
   },
   "confirm": {
     "cancel": "Cancel",

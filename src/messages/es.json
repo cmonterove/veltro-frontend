@@ -997,7 +997,25 @@
     "meeting_closed": "La reunión está cerrada. Reábrela para cambiar lo capturado.",
     "doc_archived": "Este doc está archivado. Restáuralo para editarlo.",
     "file_type": "Ese tipo de archivo no se admite.",
-    "file_too_large": "El archivo pesa más de 20 MB."
+    "file_too_large": "El archivo pesa más de 20 MB.",
+    "file_empty": "El archivo está vacío.",
+    "file_content_mismatch": "El contenido del archivo no corresponde a su tipo.",
+    "file_size_mismatch": "El archivo cambió mientras se subía. Vuelve a subirlo.",
+    "file_not_uploaded": "El archivo no terminó de subir. Inténtalo de nuevo.",
+    "invalid_upload_token": "El permiso para subir venció. Vuelve a subir el archivo.",
+    "upload_failed": "No se pudo subir el archivo. Revisa la conexión e inténtalo de nuevo.",
+    "already_registered": "Ese archivo ya estaba guardado.",
+    "attachment_other_workspace": "Lo que intentas vincular es de otro espacio.",
+    "chat_attachment_linked": "Lo que se sube a un chat queda suelto: no se vincula a un espacio.",
+    "group_needs_people": "Suma al menos a otra persona al grupo.",
+    "chat_direct_full": "Un directo es entre dos personas. Arma un grupo para sumar a alguien más.",
+    "chat_is_direct": "Eso no se puede hacer en un directo.",
+    "direct_self": "Un mensaje directo es con otra persona.",
+    "ref_not_found": "Lo que intentas compartir ya no existe o no tienes acceso.",
+    "ref_other_account": "Lo que intentas compartir es de otra cuenta.",
+    "reply_not_found": "El mensaje al que respondes ya no está en esta conversación.",
+    "invite_past": "Esa reunión ya terminó.",
+    "not_an_invite": "Ese mensaje no es una invitación."
   },
   "demo": {
     "badge": "Modo demo: datos de prueba",
@@ -1374,7 +1392,9 @@
     "remove": "Quitar",
     "tooBig": "{name} supera 20 MB.",
     "uploaded": "{count, plural, one {Archivo subido} other {# archivos subidos}}",
-    "deleteConfirm": "¿Eliminar «{name}»? No se puede deshacer."
+    "deleteConfirm": "¿Eliminar «{name}»? No se puede deshacer.",
+    "badType": "No se admite el tipo de «{name}».",
+    "empty": "«{name}» está vacío."
   },
   "shortcuts": {
     "title": "Atajos de teclado",
@@ -1615,7 +1635,8 @@
       "linkedHint": "También aparecerá ahí, además de en tu bóveda.",
       "cancel": "Cancelar",
       "submitFiles": "{count, plural, =0 {Subir} one {Subir # archivo} other {Subir # archivos}}",
-      "submitLink": "Agregar link"
+      "submitLink": "Agregar link",
+      "badType": "Este tipo de archivo no se admite"
     }
   },
   "pasillo": {
@@ -1773,7 +1794,8 @@
       "error": "No se pudo crear la llamada. Intenta de nuevo.",
       "connect": "Conecta tu Google para crear llamadas de Meet.",
       "connectAction": "Conectar"
-    }
+    },
+    "loadOlder": "Ver mensajes anteriores"
   },
   "confirm": {
     "cancel": "Cancelar",

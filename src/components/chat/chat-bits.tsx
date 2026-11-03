@@ -16,7 +16,8 @@ export function useChatName() {
     (chat: Pick<ChatSummary, 'kind' | 'name' | 'members'>) => {
       if (chat.kind === 'group') return chat.name || t('untitledGroup')
       const other = chat.members.find((m) => m.user_id !== user.id)
-      return (other && memberMap.get(other.user_id)?.full_name) || t('onlyYou')
+      // si ya no está en la cuenta, el nombre que trae la API
+      return (other && (memberMap.get(other.user_id)?.full_name || other.full_name)) || t('onlyYou')
     },
     [memberMap, user.id, t],
   )

@@ -14,6 +14,7 @@ import { LabelChip, LabelsPopover } from '@/components/tasks/pickers'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { formatBytes } from '@/components/attachments/attachments'
 import { MAX_FILE_BYTES, useAttachmentMutations } from '@/lib/queries/attachments'
+import { uploadMimeOf } from '@/lib/api/pasillo-boveda'
 import { useTasks } from '@/lib/queries/tasks'
 import { useMeetingsInRange } from '@/lib/queries/meetings'
 import { useDateLocale } from '@/lib/dates'
@@ -27,6 +28,9 @@ export type UploadMode = 'files' | 'link'
 type Item = { id: string; file: File; title: string }
 
 const fileStub = (f: File) => ({ kind: 'file' as const, mime_type: f.type || null, name: f.name })
+
+/** Por qué no se puede subir (la API solo acepta hasta 20 MB y ciertos tipos). */
+const problemOf = (f: File) => (f.size > MAX_FILE_BYTES ? 'tooBig' : !uploadMimeOf(f) ? 'badType' : null)
 
 /**
  * Subir a la bóveda: archivos (o un link) con su título, etiquetas para todos y, si se quiere, el
@@ -115,7 +119,7 @@ export function UploadDialog({
   }
 
   const addFiles = (list: File[]) => setItems((prev) => [...prev, ...list.map((file) => ({ id: crypto.randomUUID(), file, title: '' }))])
-  const valid = items.filter((i) => i.file.size <= MAX_FILE_BYTES)
+  const valid = items.filter((i) => !problemOf(i.file))
   const linkOk = /^(https?:\/\/)?[\w-]+(\.[\w-]+)+/i.test(url.trim())
   const pending = upload.isPending || addLink.isPending
   const parent = { workspaceId, taskId, meetingId, labels }
@@ -205,7 +209,7 @@ export function UploadDialog({
                 {items.length ? (
                   <ul className="flex max-h-56 flex-col divide-y divide-line-soft overflow-y-auto rounded-xl border border-line scrollbar-thin">
                     {items.map((item) => {
-                      const tooBig = item.file.size > MAX_FILE_BYTES
+                      const problem = problemOf(item.file)
                       return (
                         <li key={item.id} className="flex items-center gap-3 px-3 py-2">
                           <FileKindIcon a={fileStub(item.file)} className="size-5" />
@@ -216,11 +220,11 @@ export function UploadDialog({
                               placeholder={item.file.name}
                               aria-label={tu('fileTitle', { name: item.file.name })}
                               maxLength={200}
-                              disabled={tooBig}
+                              disabled={Boolean(problem)}
                               className="-mx-1 rounded-sm bg-transparent px-1 text-sm font-medium text-fg outline-none placeholder:font-normal placeholder:text-fg-muted hover:bg-hover/60 focus:bg-hover/60 disabled:opacity-60"
                             />
-                            <span className={cn('truncate text-xs', tooBig ? 'text-danger' : 'text-fg-subtle')}>
-                              {tooBig ? tu('tooBig') : `${item.title ? `${item.file.name} · ` : ''}${formatBytes(item.file.size)}`}
+                            <span className={cn('truncate text-xs', problem ? 'text-danger' : 'text-fg-subtle')}>
+                              {problem ? tu(problem) : `${item.title ? `${item.file.name} · ` : ''}${formatBytes(item.file.size)}`}
                             </span>
                           </div>
                           <button

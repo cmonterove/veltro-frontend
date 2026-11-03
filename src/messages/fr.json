@@ -997,7 +997,25 @@
     "meeting_closed": "La réunion est clôturée. Rouvrez-la pour modifier ce qui a été noté.",
     "doc_archived": "Ce doc est archivé. Restaurez-le pour le modifier.",
     "file_type": "Ce type de fichier n'est pas accepté.",
-    "file_too_large": "Le fichier dépasse 20 Mo."
+    "file_too_large": "Le fichier dépasse 20 Mo.",
+    "file_empty": "Le fichier est vide.",
+    "file_content_mismatch": "Le contenu du fichier ne correspond pas à son type.",
+    "file_size_mismatch": "Le fichier a changé pendant l'envoi. Envoyez-le à nouveau.",
+    "file_not_uploaded": "Le fichier n'a pas fini de s'envoyer. Réessayez.",
+    "invalid_upload_token": "L'autorisation d'envoi a expiré. Envoyez le fichier à nouveau.",
+    "upload_failed": "Impossible d'envoyer le fichier. Vérifiez la connexion et réessayez.",
+    "already_registered": "Ce fichier était déjà enregistré.",
+    "attachment_other_workspace": "Ce que vous voulez lier appartient à un autre espace.",
+    "chat_attachment_linked": "Ce qui est envoyé dans un chat reste libre : il ne se lie pas à un espace.",
+    "group_needs_people": "Ajoutez au moins une autre personne au groupe.",
+    "chat_direct_full": "Une conversation directe est à deux. Créez un groupe pour ajouter quelqu’un.",
+    "chat_is_direct": "Ce n'est pas possible dans une conversation directe.",
+    "direct_self": "Un message direct se fait avec quelqu'un d'autre.",
+    "ref_not_found": "Ce que vous partagez n'existe plus ou vous n'y avez pas accès.",
+    "ref_other_account": "Ce que vous partagez appartient à un autre compte.",
+    "reply_not_found": "Le message auquel vous répondez n'est plus dans cette conversation.",
+    "invite_past": "Cette réunion est déjà terminée.",
+    "not_an_invite": "Ce message n'est pas une invitation."
   },
   "demo": {
     "badge": "Mode démo : données de test",
@@ -1374,7 +1392,9 @@
     "remove": "Retirer",
     "tooBig": "{name} dépasse 20 Mo.",
     "uploaded": "{count, plural, one {Fichier importé} other {# fichiers importés}}",
-    "deleteConfirm": "Supprimer « {name} » ? Action irréversible."
+    "deleteConfirm": "Supprimer « {name} » ? Action irréversible.",
+    "badType": "Le type de « {name} » n'est pas accepté.",
+    "empty": "« {name} » est vide."
   },
   "shortcuts": {
     "title": "Raccourcis clavier",
@@ -1615,7 +1635,8 @@
       "linkedHint": "Il apparaîtra aussi là-bas, en plus de votre coffre.",
       "cancel": "Annuler",
       "submitFiles": "{count, plural, =0 {Téléverser} one {Téléverser # fichier} other {Téléverser # fichiers}}",
-      "submitLink": "Ajouter le lien"
+      "submitLink": "Ajouter le lien",
+      "badType": "Ce type de fichier n'est pas accepté"
     }
   },
   "pasillo": {
@@ -1773,7 +1794,8 @@
       "error": "Impossible de créer l'appel. Réessayez.",
       "connect": "Connectez votre compte Google pour lancer des appels Meet.",
       "connectAction": "Connecter"
-    }
+    },
+    "loadOlder": "Voir les messages précédents"
   },
   "confirm": {
     "cancel": "Annuler",

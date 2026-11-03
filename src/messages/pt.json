@@ -997,7 +997,25 @@
     "meeting_closed": "A reunião está encerrada. Reabra-a para alterar o que foi registrado.",
     "doc_archived": "Este doc está arquivado. Restaure-o para editá-lo.",
     "file_type": "Esse tipo de arquivo não é aceito.",
-    "file_too_large": "O arquivo tem mais de 20 MB."
+    "file_too_large": "O arquivo tem mais de 20 MB.",
+    "file_empty": "O arquivo está vazio.",
+    "file_content_mismatch": "O conteúdo do arquivo não corresponde ao tipo.",
+    "file_size_mismatch": "O arquivo mudou durante o envio. Envie de novo.",
+    "file_not_uploaded": "O arquivo não terminou de subir. Tente de novo.",
+    "invalid_upload_token": "A permissão de envio expirou. Envie o arquivo de novo.",
+    "upload_failed": "Não foi possível enviar o arquivo. Verifique a conexão e tente de novo.",
+    "already_registered": "Esse arquivo já estava salvo.",
+    "attachment_other_workspace": "O que você quer vincular é de outro espaço.",
+    "chat_attachment_linked": "O que se envia num chat fica solto: não se vincula a um espaço.",
+    "group_needs_people": "Adicione pelo menos mais uma pessoa ao grupo.",
+    "chat_direct_full": "Uma conversa direta é entre duas pessoas. Crie um grupo para adicionar alguém.",
+    "chat_is_direct": "Isso não pode ser feito numa conversa direta.",
+    "direct_self": "Uma mensagem direta é com outra pessoa.",
+    "ref_not_found": "O que você quer compartilhar não existe mais ou você não tem acesso.",
+    "ref_other_account": "O que você quer compartilhar é de outra conta.",
+    "reply_not_found": "A mensagem que você está respondendo não está mais nesta conversa.",
+    "invite_past": "Essa reunião já terminou.",
+    "not_an_invite": "Essa mensagem não é um convite."
   },
   "demo": {
     "badge": "Modo demo: dados de teste",
@@ -1374,7 +1392,9 @@
     "remove": "Remover",
     "tooBig": "{name} passa de 20 MB.",
     "uploaded": "{count, plural, one {Arquivo enviado} other {# arquivos enviados}}",
-    "deleteConfirm": "Excluir «{name}»? Não dá para desfazer."
+    "deleteConfirm": "Excluir «{name}»? Não dá para desfazer.",
+    "badType": "O tipo de “{name}” não é aceito.",
+    "empty": "“{name}” está vazio."
   },
   "shortcuts": {
     "title": "Atalhos de teclado",
@@ -1615,7 +1635,8 @@
       "linkedHint": "Também vai aparecer lá, além do seu cofre.",
       "cancel": "Cancelar",
       "submitFiles": "{count, plural, =0 {Enviar} one {Enviar # arquivo} other {Enviar # arquivos}}",
-      "submitLink": "Adicionar link"
+      "submitLink": "Adicionar link",
+      "badType": "Esse tipo de arquivo não é aceito"
     }
   },
   "pasillo": {
@@ -1773,7 +1794,8 @@
       "error": "Não foi possível criar a chamada. Tente de novo.",
       "connect": "Conecte seu Google para criar chamadas do Meet.",
       "connectAction": "Conectar"
-    }
+    },
+    "loadOlder": "Ver mensagens anteriores"
   },
   "confirm": {
     "cancel": "Cancelar",
