@@ -1067,7 +1067,8 @@
     "ref_other_account": "O que você quer compartilhar é de outra conta.",
     "reply_not_found": "A mensagem que você está respondendo não está mais nesta conversa.",
     "invite_past": "Essa reunião já terminou.",
-    "not_an_invite": "Essa mensagem não é um convite."
+    "not_an_invite": "Essa mensagem não é um convite.",
+    "demo_readonly": "Não disponível com os dados de exemplo abertos: volte aos seus dados para fazer isso."
   },
   "suspension": {
     "signOut": "Sair",
@@ -1087,7 +1088,12 @@
   "demo": {
     "badge": "Modo demo: dados de teste",
     "reset": "Reiniciar dados de teste",
-    "resetConfirm": "Reiniciar todos os dados de teste? Suas alterações serão perdidas."
+    "resetConfirm": "Reiniciar todos os dados de teste? Suas alterações serão perdidas.",
+    "switch": "Dados de exemplo",
+    "banner": "Você está vendo dados de exemplo: o que mudar aqui não afeta seus dados reais.",
+    "exit": "Voltar aos meus dados",
+    "error": "Não foi possível abrir os dados de exemplo.",
+    "start": "Ver o Veltro com dados de exemplo"
   },
   "support": {
     "title": "Suporte",

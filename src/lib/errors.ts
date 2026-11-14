@@ -71,6 +71,8 @@ const KNOWN = [
   'ticket_resolved',
   'status_not_allowed',
   'workspace_not_in_account',
+  // datos de prueba: lo que dañaría el demo compartido o crearía personas de verdad
+  'demo_readonly',
 ] as const
 
 export type ErrorCode = (typeof KNOWN)[number] | 'generic' | 'email_taken' | 'invalid_email' | 'weak_password' | 'name_too_short' | 'rate_limited'

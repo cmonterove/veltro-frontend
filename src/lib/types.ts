@@ -31,6 +31,8 @@ export type AppContextValue = {
   departments: DepartmentRow[]
   google: { email: string; selectedCalendarIds: string[] } | null
   googleConfigured: boolean
+  /** el interruptor de datos de prueba: si el servidor tiene la cuenta demo y si está abierta */
+  demoData: { available: boolean; active: boolean }
 }
 
 export type Task = TaskRow

@@ -1067,7 +1067,8 @@
     "ref_other_account": "Lo que intentas compartir es de otra cuenta.",
     "reply_not_found": "El mensaje al que respondes ya no está en esta conversación.",
     "invite_past": "Esa reunión ya terminó.",
-    "not_an_invite": "Ese mensaje no es una invitación."
+    "not_an_invite": "Ese mensaje no es una invitación.",
+    "demo_readonly": "Con los datos de prueba abiertos no se puede: vuelve a tus datos para hacerlo."
   },
   "suspension": {
     "signOut": "Cerrar sesión",
@@ -1087,7 +1088,12 @@
   "demo": {
     "badge": "Modo demo: datos de prueba",
     "reset": "Reiniciar datos de prueba",
-    "resetConfirm": "¿Reiniciar todos los datos de prueba? Se perderán los cambios que hiciste."
+    "resetConfirm": "¿Reiniciar todos los datos de prueba? Se perderán los cambios que hiciste.",
+    "switch": "Datos de prueba",
+    "banner": "Estás viendo datos de prueba: lo que cambies aquí no toca tus datos reales.",
+    "exit": "Volver a mis datos",
+    "error": "No se pudieron abrir los datos de prueba.",
+    "start": "Ver Veltro con datos de prueba"
   },
   "support": {
     "title": "Soporte",

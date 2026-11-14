@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { api } from '@/lib/api/server'
+import { api, isDemoSession } from '@/lib/api/server'
 import { ajustesError, type ApiAddMember, type ApiWorkspaceWithCounts } from '@/lib/api/ajustes'
 import type { ErrorCode } from '@/lib/errors'
 import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
@@ -12,6 +12,14 @@ import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
  */
 
 type Fail = { ok: false; error: ErrorCode }
+
+/**
+ * Con los datos de prueba abiertos, la cuenta demo es de todos: no se cambia la contraseña de su
+ * persona (dejaría a los demás afuera) ni se agregan o quitan personas (crearía cuentas de verdad).
+ */
+async function demoBlocked(): Promise<Fail | null> {
+  return (await isDemoSession()) ? { ok: false, error: 'demo_readonly' } : null
+}
 
 async function attempt<T>(fn: () => Promise<T>): Promise<{ ok: true; data: T } | Fail> {
   try {
@@ -40,6 +48,8 @@ export type AddMemberInput = {
  * espacios. La contraseña temporal llega una sola vez para que el admin la comparta.
  */
 export async function addMember(accountId: string, input: AddMemberInput): Promise<{ ok: true; tempPassword: string | null; existing: boolean } | Fail> {
+  const blocked = await demoBlocked()
+  if (blocked) return blocked
   const res = await attempt(() =>
     api<ApiAddMember>(`/v1/accounts/${accountId}/members`, {
       method: 'POST',
@@ -56,6 +66,8 @@ export async function updateMemberRole(accountId: string, userId: string, role: 
 
 /** Quita a la persona de la cuenta: sale de sus espacios y de sus tareas abiertas (devuelve cuántas). */
 export async function removeMember(accountId: string, userId: string) {
+  const blocked = await demoBlocked()
+  if (blocked) return blocked
   const res = await attempt(() =>
     api<{ ok: true; unassignedTasks: number }>(`/v1/accounts/${accountId}/members/${userId}`, { method: 'DELETE', body: { confirm: true } }),
   )
@@ -135,6 +147,8 @@ export async function updateProfile(patch: { full_name?: string; timezone?: stri
  * temporal ni recién llegado del enlace de recuperación: eso lo decide la API.
  */
 export async function changePassword(input: { currentPassword?: string; newPassword: string }) {
+  const blocked = await demoBlocked()
+  if (blocked) return blocked
   const res = await attempt(() =>
     api('/v1/me/password', { method: 'PUT', body: { newPassword: input.newPassword, ...(input.currentPassword ? { currentPassword: input.currentPassword } : {}) } }),
   )

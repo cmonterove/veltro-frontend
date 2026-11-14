@@ -7,11 +7,15 @@ import type { AppContextValue } from '@/lib/types'
 import { DEMO } from '@/lib/demo/config'
 import { getDemoAppContext, getDemoUser } from '@/lib/demo/session-context'
 import { api } from '@/lib/api/server'
+import { activeSession } from '@/lib/api/session-cookies'
 import { ApiError } from '@/lib/api/shared'
 import { toAccount, toDepartment, toMember, toProfile, toWorkspace } from '@/lib/api/adapters'
 import type { ApiContext, ApiProfile } from '@/lib/api/types'
 
 export const ACCOUNT_COOKIE = 'veltro-account'
+
+/** Datos de prueba: una cuenta demo en la misma base, a la que se entra con la persona del demo (solo el servidor la conoce). */
+export const DEMO_DATA_AVAILABLE = Boolean(process.env.DEMO_LOGIN_EMAIL && process.env.DEMO_LOGIN_PASSWORD)
 
 /** null si no hay sesión válida (la API verifica el token). */
 async function orAnonymous<T>(p: Promise<T>): Promise<T | null> {
@@ -45,7 +49,10 @@ export const getAppContext = cache(async (): Promise<
 > => {
   if (DEMO) return getDemoAppContext()
 
-  const preferred = (await cookies()).get(ACCOUNT_COOKIE)?.value
+  const jar = await cookies()
+  const demo = activeSession(jar).demo
+  // con los datos de prueba abiertos se entra a la cuenta del demo: la preferida es de la persona real
+  const preferred = demo ? undefined : jar.get(ACCOUNT_COOKIE)?.value
   const res = await orAnonymous(api<ApiContext>('/v1/me/context', { query: { accountId: preferred } }))
   if (!res) return { status: 'anonymous' }
 
@@ -68,6 +75,7 @@ export const getAppContext = cache(async (): Promise<
       google: res.google.connected ? { email: res.google.email ?? '', selectedCalendarIds: res.google.selectedCalendarIds } : null,
       // lo decide la API, que es la que tiene las credenciales de Google
       googleConfigured: res.google.configured,
+      demoData: { available: DEMO_DATA_AVAILABLE, active: demo },
     },
   }
 })

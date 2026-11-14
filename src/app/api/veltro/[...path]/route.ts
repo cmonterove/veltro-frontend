@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { ACCESS_COOKIE, API_URL, REFRESH_COOKIE, refreshSession, sessionCookies, tokenTtl, type ApiSession } from '@/lib/api/session-cookies'
+import { activeSession, API_URL, refreshSession, sessionCookies, tokenTtl, type ApiSession } from '@/lib/api/session-cookies'
 
 /**
  * Puente del navegador a la API de Veltro: /api/veltro/v1/... → API_URL/v1/...
- * Agrega la sesión de las cookies httpOnly y, si el token venció, lo renueva una vez y
- * reintenta. El navegador nunca ve los tokens.
+ * Agrega la sesión de las cookies httpOnly (la de los datos de prueba mientras estén abiertos)
+ * y, si el token venció, lo renueva una vez y reintenta. El navegador nunca ve los tokens.
  */
 
 export const dynamic = 'force-dynamic'
@@ -19,8 +19,9 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ path
 
   const target = `${API_URL}/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`
   const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer()
-  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value
-  let token = request.cookies.get(ACCESS_COOKIE)?.value
+  const session = activeSession(request.cookies)
+  const refreshToken = session.refreshToken
+  let token = session.accessToken
   let renewed: ApiSession | null = null
 
   if (tokenTtl(token) < 30 && refreshToken) {
@@ -51,7 +52,7 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ path
     if (v) headers.set(h, v)
   }
   const out = new NextResponse(res.status === 204 ? null : res.body, { status: res.status, headers })
-  if (renewed) for (const c of sessionCookies(renewed)) out.cookies.set(c)
+  if (renewed) for (const c of sessionCookies(renewed, session.demo)) out.cookies.set(c)
   return out
 }
 

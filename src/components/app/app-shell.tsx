@@ -17,6 +17,7 @@ import { TourProvider } from '@/components/tour/tour'
 import { useChatUnread } from '@/lib/queries/chats'
 import { Ban } from 'lucide-react'
 import { AccountSuspendedNotice, SUSPENDED_ALLOWED, TempPasswordGate, useSuspensionWatcher } from './suspended-notice'
+import { DemoDataBanner } from './demo-data'
 import { cn } from '@/lib/utils'
 import { SIDEBAR_COOKIE } from '@/lib/constants'
 import { flushEvents, ping, setTelemetryAccount, track, viewEvent } from '@/lib/telemetry'
@@ -197,6 +198,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
               {t('suspendedBanner')}
             </div>
           ) : null}
+          <DemoDataBanner />
           <main className="relative flex min-h-0 flex-1">
             <div className="min-w-0 flex-1 overflow-y-auto scrollbar-thin">
               {gate === 'password' ? <TempPasswordGate /> : gate === 'suspended' ? <AccountSuspendedNotice /> : children}

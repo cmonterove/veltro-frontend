@@ -36,6 +36,7 @@ import {
   Compass,
 } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from './app-context'
+import { DemoDataMenuItem } from './demo-data'
 import { useChatUnread } from '@/lib/queries/chats'
 import {
   Menu,
@@ -459,6 +460,7 @@ function UserMenu({ onShortcuts, compact = false }: { onShortcuts: () => void; c
           <Compass />
           {t('tour')}
         </MenuItem>
+        <DemoDataMenuItem />
         <MenuSeparator />
         <LanguageSubmenu />
         <MenuSeparator />

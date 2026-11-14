@@ -1067,7 +1067,8 @@
     "ref_other_account": "Ce que vous partagez appartient à un autre compte.",
     "reply_not_found": "Le message auquel vous répondez n'est plus dans cette conversation.",
     "invite_past": "Cette réunion est déjà terminée.",
-    "not_an_invite": "Ce message n'est pas une invitation."
+    "not_an_invite": "Ce message n'est pas une invitation.",
+    "demo_readonly": "Impossible avec les données d'exemple ouvertes : revenez à vos données pour le faire."
   },
   "suspension": {
     "signOut": "Se déconnecter",
@@ -1087,7 +1088,12 @@
   "demo": {
     "badge": "Mode démo : données de test",
     "reset": "Réinitialiser les données de test",
-    "resetConfirm": "Réinitialiser toutes les données de test ? Vos modifications seront perdues."
+    "resetConfirm": "Réinitialiser toutes les données de test ? Vos modifications seront perdues.",
+    "switch": "Données d'exemple",
+    "banner": "Vous consultez des données d'exemple : ce que vous modifiez ici ne touche pas vos vraies données.",
+    "exit": "Revenir à mes données",
+    "error": "Impossible d'ouvrir les données d'exemple.",
+    "start": "Voir Veltro avec des données d'exemple"
   },
   "support": {
     "title": "Support",

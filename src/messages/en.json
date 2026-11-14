@@ -1067,7 +1067,8 @@
     "ref_other_account": "What you're sharing belongs to another account.",
     "reply_not_found": "The message you're replying to is no longer in this conversation.",
     "invite_past": "That meeting is already over.",
-    "not_an_invite": "That message isn't an invite."
+    "not_an_invite": "That message isn't an invite.",
+    "demo_readonly": "Not available while viewing sample data: go back to your data to do this."
   },
   "suspension": {
     "signOut": "Sign out",
@@ -1087,7 +1088,12 @@
   "demo": {
     "badge": "Demo mode: sample data",
     "reset": "Reset sample data",
-    "resetConfirm": "Reset all sample data? Your changes will be lost."
+    "resetConfirm": "Reset all sample data? Your changes will be lost.",
+    "switch": "Sample data",
+    "banner": "You're viewing sample data: changes here don't touch your real data.",
+    "exit": "Back to my data",
+    "error": "Couldn't open the sample data.",
+    "start": "Try Veltro with sample data"
   },
   "support": {
     "title": "Support",

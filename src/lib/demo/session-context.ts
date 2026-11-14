@@ -102,6 +102,8 @@ export async function getDemoAppContext(): Promise<
       departments: departments ?? [],
       google: g ? { email: g.google_email, selectedCalendarIds: g.selected_calendar_ids } : null,
       googleConfigured: isGoogleConfigured(),
+      // sin Supabase todo ya es de prueba: no hay nada que cambiar
+      demoData: { available: false, active: false },
     },
   }
 }
