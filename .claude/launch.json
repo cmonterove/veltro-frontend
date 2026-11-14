@@ -11,6 +11,59 @@
       "port": 3000
     },
     {
+      "name": "veltro-web-api",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_DEMO=0",
+        "VELTRO_API_URL=http://localhost:4000",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "veltro-web-prod",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_DEMO=0",
+        "VELTRO_API_URL=https://velion-console.desarrollodeproinf.com",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "veltro-backend",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NODE_ENV=development",
+        "PORT=4000",
+        "DATABASE_URL=postgres://localhost:5432/veltro_dev",
+        "AUTH_MODE=local",
+        "STORAGE_MODE=local",
+        "PUBLIC_API_URL=http://localhost:4000",
+        "PUBLIC_WEB_URL=http://localhost:3000",
+        "CORS_ORIGINS=http://localhost:3000",
+        "npm",
+        "--prefix",
+        "../veltro-backend",
+        "run",
+        "dev"
+      ],
+      "port": 4000
+    },
+    {
+      "name": "veltro-backend-prod",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd ../veltro-backend && npx tsx watch --env-file=.env src/server.ts"
+      ],
+      "port": 4000
+    },
+    {
       "name": "veltro-console",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
@@ -43,6 +96,18 @@
         "../veltro-mobile/design"
       ],
       "port": 4600
+    },
+    {
+      "name": "veltro-logos",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4610",
+        "--directory",
+        "logos"
+      ],
+      "port": 4610
     }
   ]
 }
