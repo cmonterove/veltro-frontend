@@ -1,7 +1,8 @@
 'use client'
 
-// Alcance de lo que se mira en Hoy y en Mis tareas, según el lugar de cada persona en el organigrama:
-// mías, mi equipo (todo lo que tengo debajo), un departamento, una persona o toda la empresa (admins).
+// Alcance de lo que se mira en Pulso, Tareas y Mesa: mías, las que delegué (pedí o asigné a otras
+// personas), las que sigo, mi equipo (todo lo que tengo debajo en el organigrama), toda la empresa
+// (admins), un equipo de trabajo, un departamento o una persona. Espejo de lib/org.ts de la API.
 
 import { useMemo } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -18,14 +19,17 @@ export type ScopeOption = {
   display: string
   /** quiénes entran, en una línea ("Ana, Pepito y Lucía") */
   hint: string
-  kind: 'me' | 'team' | 'all' | 'dept' | 'person'
+  kind: 'me' | 'delegated' | 'following' | 'team' | 'all' | 'group' | 'dept' | 'person'
+  /** por responsables; en Delegadas y Siguiendo va vacío (la API arma la población) */
   userIds: Set<string>
+  /** color del equipo de trabajo */
+  color?: string
 }
 
 export function useScopes() {
   const t = useTranslations('scope')
   const locale = useLocale()
-  const { user, accountRole, members, departments } = useApp()
+  const { user, accountRole, members, departments, teams } = useApp()
   return useMemo(() => {
     const admin = accountRole === 'owner' || accountRole === 'admin'
     const visible = visibleUserIds(user.id, accountRole, members, departments)
@@ -40,9 +44,19 @@ export function useScopes() {
       ])
     const deptName = new Map(departments.map((d) => [d.id, d.name]))
 
-    const options: ScopeOption[] = [{ id: 'me', label: t('me'), display: t('me'), hint: t('hintMe'), kind: 'me', userIds: new Set([user.id]) }]
+    const options: ScopeOption[] = [
+      { id: 'me', label: t('me'), display: t('me'), hint: t('hintMe'), kind: 'me', userIds: new Set([user.id]) },
+      { id: 'delegated', label: t('delegated'), display: t('delegated'), hint: t('hintDelegated'), kind: 'delegated', userIds: new Set() },
+      { id: 'following', label: t('following'), display: t('following'), hint: t('hintFollowing'), kind: 'following', userIds: new Set() },
+    ]
     if (team.size > 1) options.push({ id: 'team', label: t('team', { count: team.size - 1 }), display: t('teamShort'), hint: t('hintTeam', { names: names(team) }), kind: 'team', userIds: team })
     if (admin) options.push({ id: 'all', label: t('all'), display: t('all'), hint: t('hintAll', { count: members.length }), kind: 'all', userIds: new Set(members.map((m) => m.id)) })
+    // equipos de trabajo: los ven los admins, quienes están en él y quien ve a toda su gente (igual que la API)
+    for (const g of teams) {
+      const ids = new Set(g.memberIds)
+      if (ids.size && (admin || ids.has(user.id) || [...ids].every((id) => visible.has(id))))
+        options.push({ id: `group:${g.id}`, label: g.name, display: g.name, hint: names(ids, true), kind: 'group', userIds: ids, color: g.color })
+    }
     for (const d of departments) {
       const ids = departmentMembers(d, members)
       if (ids.size && [...ids].every((id) => visible.has(id)))
@@ -56,7 +70,7 @@ export function useScopes() {
     }
     const optionById = new Map(options.map((o) => [o.id, o]))
     return { options, resolve: (id: string | null | undefined) => optionById.get(id ?? 'me') ?? options[0] }
-  }, [t, locale, user.id, accountRole, members, departments])
+  }, [t, locale, user.id, accountRole, members, departments, teams])
 }
 
 /** Contadores de Hoy; cada uno es también un filtro de Mis tareas. */

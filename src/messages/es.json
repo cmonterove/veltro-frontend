@@ -50,12 +50,12 @@
       "sentBody": "Si {email} tiene una cuenta en Veltro, te llegará un enlace en unos minutos."
     },
     "strength": {
-      "label": "Seguridad: {level}",
       "0": "sin contraseña",
       "1": "débil",
       "2": "aceptable",
       "3": "buena",
-      "4": "fuerte"
+      "4": "fuerte",
+      "label": "Seguridad: {level}"
     },
     "demoHint": "Modo demo: entra con cualquier email y contraseña.",
     "footer": "© {year} Veltro",
@@ -118,6 +118,7 @@
     "newTask": "Nueva tarea",
     "workspaces": "Espacios",
     "newWorkspace": "Nuevo espacio",
+    "workspacesCount": "{count, plural, one {# espacio} other {# espacios}}",
     "noWorkspaces": "Aún no tienes espacios asignados.",
     "tasks": "Tareas",
     "docs": "Docs",
@@ -177,10 +178,15 @@
         "calendar": "Tu semana: reuniones y tareas con fecha.",
         "tasks": "Lo que tienes asignado en todos tus espacios.",
         "vault": "Tus archivos y links, con o sin espacio.",
-        "chat": "Lo que se habla en el equipo."
+        "chat": "Lo que se habla en el equipo.",
+        "requests": "Lo que pides a otros departamentos y lo que te piden a ti.",
+        "decisions": "Todo lo que se decidió en las reuniones."
       }
     },
-    "tour": "Ver el recorrido"
+    "tour": "Ver el recorrido",
+    "decisions": "Decisiones",
+    "requests": "Solicitudes",
+    "veltroHelp": "Ayuda de Veltro"
   },
   "command": {
     "title": "Buscar y ejecutar",
@@ -396,7 +402,8 @@
       "detail": "Detalle",
       "subtasks": "Subtareas",
       "comments": "Comentarios",
-      "attachments": "Adjuntos"
+      "attachments": "Adjuntos",
+      "activity": "Actividad"
     },
     "assignees": "Responsables",
     "assigneesCount": "{count, plural, one {# responsable} other {# responsables}}",
@@ -417,7 +424,85 @@
     "deleteCommentConfirm": "¿Eliminar este comentario?",
     "openTask": "Abrir «{title}»",
     "noMatches": "Ninguna tarea coincide",
-    "noMatchesHint": "Prueba con otras palabras o quita \"Solo mías\"."
+    "noMatchesHint": "Prueba con otras palabras o quita \"Solo mías\".",
+    "recurrence": {
+      "label": "Repetir",
+      "never": "No se repite",
+      "hint": "Al terminarla, Veltro crea la siguiente con la fecha que sigue.",
+      "next": "próxima {date}",
+      "spawned": "Se repite: la siguiente vence el {date}",
+      "repeats": "Se repite",
+      "rules": {
+        "daily": "Cada día",
+        "weekdays": "Días hábiles (lun a vie)",
+        "weekly": "Cada semana",
+        "biweekly": "Cada 2 semanas",
+        "monthly": "Cada mes",
+        "quarterly": "Cada 3 meses",
+        "yearly": "Cada año",
+        "everyNDays": "Cada {count} días",
+        "everyNWeeks": "Cada {count} semanas",
+        "everyNMonths": "Cada {count} meses",
+        "everyNYears": "Cada {count} años"
+      }
+    },
+    "activity": {
+      "empty": "Todavía no hay cambios.",
+      "someone": "alguien",
+      "created": "<who></who> creó la tarea",
+      "recurred": "<who></who> terminó la anterior de la serie y nació esta",
+      "title": "<who></who> cambió el título a <b>«{to}»</b>",
+      "status": "<who></who> la pasó a",
+      "priority": "<who></who> cambió la prioridad a <b>{to}</b>",
+      "assigned": "<who></who> asignó a <b>{names}</b>",
+      "unassigned": "<who></who> quitó a <b>{names}</b>",
+      "unassignedShort": "quitó a <b>{names}</b>",
+      "dueSet": "<who></who> puso la entrega el <b>{to}</b>",
+      "dueChanged": "<who></who> movió la entrega del {from} al <b>{to}</b>",
+      "dueRemoved": "<who></who> quitó la fecha de entrega",
+      "startSet": "<who></who> puso el inicio el <b>{to}</b>",
+      "startChanged": "<who></who> movió el inicio del {from} al <b>{to}</b>",
+      "startRemoved": "<who></who> quitó la fecha de inicio",
+      "description": "<who></who> editó la descripción",
+      "labelsAdded": "<who></who> agregó",
+      "labelsRemoved": "<who></who> quitó",
+      "parentSet": "<who></who> la convirtió en subtarea",
+      "parentRemoved": "<who></who> la sacó de su tarea principal",
+      "recurrenceSet": "<who></who> hizo que se repita: <b>{rule}</b>",
+      "recurrenceRemoved": "<who></who> hizo que deje de repetirse",
+      "unblocked": "Quedó libre al terminarse <b>{ref}</b> y pasó a",
+      "blockedByAdded": "<who></who> la marcó como bloqueada por <b>{ref}</b> {title}",
+      "blockedByRemoved": "<who></who> quitó el bloqueo de <b>{ref}</b> {title}",
+      "otherTask": "otra tarea"
+    },
+    "follow": {
+      "follow": "Seguir",
+      "following": "Siguiendo",
+      "who": "La siguen: {names}",
+      "hint": "Sigue la tarea para enterarte de sus comentarios, cambios de estado y de fecha.",
+      "followed": "Ahora la sigues",
+      "unfollowed": "Ya no la sigues",
+      "you": "tú"
+    },
+    "idle": "{count} d quieta",
+    "idleHint": "Sin cambios hace {count, plural, one {# día} other {# días}}",
+    "deps": {
+      "title": "Dependencias",
+      "blockedBy": "Bloqueada por",
+      "blocking": "Bloquea a",
+      "openBlockers": "{count, plural, one {Espera # tarea} other {Espera # tareas}}",
+      "free": "Libre",
+      "add": "Agregar",
+      "addFirst": "Marcar como bloqueada por otra tarea",
+      "added": "Listo: queda esperando a esa tarea",
+      "remove": "Quitar",
+      "search": "Busca por referencia (PRO-5) o título",
+      "loading": "Cargando tareas…",
+      "noMatches": "Ninguna tarea abierta coincide.",
+      "hint": "Cuando se termine la última que la bloquea, esta pasa a Por hacer y avisamos a sus responsables.",
+      "waiting": "{count, plural, one {Espera #} other {Espera #}}",
+      "waitingHint": "{count, plural, one {Bloqueada por # tarea sin terminar} other {Bloqueada por # tareas sin terminar}}"
+    }
   },
   "docs": {
     "untitled": "Sin título",
@@ -578,7 +663,9 @@
       "revokedTitle": "Vuelve a conectar Google Calendar",
       "revokedBody": "El acceso a tu calendario expiró o fue revocado.",
       "reconnect": "Reconectar",
-      "notConfigured": "La integración con Google aún no está configurada en este servidor. Ve a Ajustes, Integraciones, para ver cómo activarla."
+      "notConfigured": "La integración con Google aún no está configurada en este servidor. Ve a Ajustes, Integraciones, para ver cómo activarla.",
+      "hint": "Suma tus eventos de Google Calendar.",
+      "hintCta": "Conectar"
     },
     "meetingDialog": {
       "title": "Nueva reunión",
@@ -597,7 +684,14 @@
       "create": "Crear reunión",
       "created": "Reunión creada en Google Calendar",
       "error": "No se pudo crear la reunión.",
-      "attendeesPlaceholder": "ana@empresa.com, pedro@empresa.com"
+      "attendeesPlaceholder": "ana@empresa.com, pedro@empresa.com",
+      "link": "Enlace de la videollamada",
+      "linkHint": "Opcional. Pega el enlace de Meet, Teams o Zoom.",
+      "pickWorkspace": "Elige un espacio para la reunión.",
+      "createdNative": "Reunión creada en Veltro",
+      "nativeHint": "Se guarda en Veltro con su sala y sus notas. No hace falta conectar Google.",
+      "workspaceHintNative": "La reunión y sus notas viven en este espacio.",
+      "attendeesHintNative": "Emails separados por coma. Quienes tienen acceso al espacio la ven en su calendario de Veltro."
     },
     "legend": {
       "mine": "Reuniones de {workspace}",
@@ -667,7 +761,8 @@
       "unclosed": "Sin cerrar",
       "files": "Archivos recientes",
       "allFiles": "Ver archivos",
-      "noFiles": "Aún no hay archivos. Súbelos desde una tarea, una reunión o la biblioteca."
+      "noFiles": "Aún no hay archivos. Súbelos desde una tarea, una reunión o la biblioteca.",
+      "allDecisions": "Todas las decisiones"
     },
     "sections": "Secciones del espacio"
   },
@@ -690,7 +785,8 @@
       "org": "Organigrama",
       "groupYou": "Tú",
       "preferences": "Preferencias",
-      "newWorkspace": "Nuevo espacio"
+      "newWorkspace": "Nuevo espacio",
+      "teams": "Equipos"
     },
     "profile": {
       "title": "Perfil",
@@ -755,9 +851,9 @@
     },
     "members": {
       "title": "Personas",
-      "description": "Crea usuarios en tu cuenta y asígnalos a los espacios donde van a trabajar.",
-      "descriptionLimit": "Crea usuarios en tu cuenta y asígnalos a los espacios donde van a trabajar. Usas {used} de {max} lugares.",
-      "add": "Agregar persona",
+      "description": "Invita a tu equipo y elige los espacios donde va a trabajar cada persona.",
+      "descriptionLimit": "Invita a tu equipo y elige los espacios donde va a trabajar cada persona. Usas {used} de {max} lugares.",
+      "add": "Invitar persona",
       "limitReached": "Llegaste al límite de personas de tu plan.",
       "you": "(tú)",
       "allWorkspaces": "Todos los espacios",
@@ -777,8 +873,8 @@
       "roleUpdated": "Rol actualizado",
       "workspacesUpdated": "Espacios actualizados",
       "addDialog": {
-        "title": "Agregar persona",
-        "description": "Crearemos su usuario con una contraseña temporal que podrás compartirle.",
+        "title": "Invitar persona",
+        "description": "Le llega un enlace para unirse. Si no le llega el correo, puedes copiarlo o mandarlo por WhatsApp.",
         "name": "Nombre",
         "email": "Email",
         "role": "Rol",
@@ -786,7 +882,7 @@
         "memberHint": "Solo ve los espacios que le asignes.",
         "workspaces": "Espacios",
         "cancel": "Cancelar",
-        "submit": "Crear usuario",
+        "submit": "Enviar invitación",
         "doneTitle": "Listo",
         "doneNew": "Comparte estos datos. Al entrar se le pedirá cambiar la contraseña.",
         "doneExisting": "Esta persona ya tenía usuario en Veltro. Ya puede ver tu cuenta con su contraseña de siempre.",
@@ -796,7 +892,34 @@
         "onceWarning": "Esta contraseña no se volverá a mostrar.",
         "copy": "Copiar",
         "copied": "Copiado",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "nameOptional": "Nombre (opcional)",
+        "sentTitle": "Invitación enviada",
+        "sentBody": "Le mandamos un correo a {email} con el enlace para unirse.",
+        "sentHint": "Si no lo ve, que revise la carpeta de spam, o mándale el enlace directo.",
+        "linkTitle": "Comparte el enlace",
+        "linkBody": "Mándale este enlace a {email} para que se una. Todavía no enviamos correos desde Veltro.",
+        "copyLink": "Copiar",
+        "expiresHint": "El enlace sirve una vez y vence en 7 días.",
+        "whatsapp": "Enviar por WhatsApp",
+        "shareMessage": "Te invité a {account} en Veltro. Entra aquí para unirte: {link}"
+      },
+      "invites": {
+        "title": "Invitaciones pendientes",
+        "pending": "Vence en {when}",
+        "expired": "Venció",
+        "spaces": "{count, plural, =0 {sin espacios} one {# espacio} other {# espacios}}",
+        "by": "invitó {name}",
+        "actions": "Opciones de la invitación",
+        "copyLink": "Copiar enlace nuevo",
+        "linkCopied": "Enlace copiado (el anterior ya no sirve)",
+        "resend": "Reenviar invitación",
+        "resent": "Invitación reenviada a {email}",
+        "noEmailCopied": "Sin correo configurado: copiamos el enlace nuevo",
+        "revoke": "Anular invitación",
+        "revokeConfirm": "¿Anular la invitación a {email}?",
+        "revokeHint": "El enlace deja de servir. Puedes invitarla de nuevo cuando quieras.",
+        "revoked": "Invitación anulada"
       }
     },
     "workspaces": {
@@ -985,7 +1108,50 @@
       "discard": "Descartar",
       "save": "Guardar cambios"
     },
-    "tabs": "Secciones"
+    "tabs": "Secciones",
+    "teams": {
+      "title": "Equipos de trabajo",
+      "description": "Agrupa a quienes trabajan juntos, aparte del organigrama («Equipo Polar», «Trade»), y mira sus tareas juntas en Tareas, Pulso y Mesa.",
+      "new": "Nuevo equipo",
+      "newTitle": "Nuevo equipo",
+      "editTitle": "Editar equipo",
+      "dialogHint": "Toda la cuenta lo ve y lo puede elegir en Tareas, Pulso y Mesa.",
+      "name": "Nombre",
+      "namePlaceholder": "Equipo Polar",
+      "color": "Color",
+      "members": "Personas",
+      "picked": "{count, plural, =0 {nadie elegido} one {# elegida} other {# elegidas}}",
+      "searchPeople": "Buscar personas…",
+      "noMatches": "Nadie con ese nombre.",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "create": "Crear equipo",
+      "created": "Equipo creado",
+      "saved": "Equipo guardado",
+      "deleted": "Equipo borrado",
+      "edit": "Editar",
+      "delete": "Borrar",
+      "actions": "Opciones de {name}",
+      "deleteConfirm": "¿Borrar el equipo {name}?",
+      "deleteHint": "Las personas y sus tareas no cambian; solo deja de existir el grupo.",
+      "viewTasks": "Ver tareas",
+      "noMembers": "Sin personas todavía",
+      "emptyTitle": "Todavía no hay equipos",
+      "emptyHint": "Crea uno para cada grupo que trabaja junto y mira sus tareas de un vistazo.",
+      "emptyHintMember": "Cuando un admin cree equipos, aparecerán aquí y en el selector de Tareas.",
+      "colors": {
+        "violet": "Ciruela",
+        "mandarina": "Mandarina",
+        "ink": "Tinta",
+        "lavender": "Lavanda",
+        "blue": "Azul",
+        "teal": "Verde azulado",
+        "green": "Verde",
+        "pink": "Rosa",
+        "red": "Rojo",
+        "amber": "Ámbar"
+      }
+    }
   },
   "errors": {
     "generic": "Algo salió mal. Intenta de nuevo.",
@@ -1068,7 +1234,17 @@
     "reply_not_found": "El mensaje al que respondes ya no está en esta conversación.",
     "invite_past": "Esa reunión ya terminó.",
     "not_an_invite": "Ese mensaje no es una invitación.",
-    "demo_readonly": "Con los datos de prueba abiertos no se puede: vuelve a tus datos para hacerlo."
+    "demo_readonly": "Con los datos de prueba abiertos no se puede: vuelve a tus datos para hacerlo.",
+    "message_deleted": "Ese mensaje ya se eliminó.",
+    "message_not_editable": "Los avisos de la conversación no se editan.",
+    "empty_message": "El mensaje no puede quedar vacío. Para quitarlo, elimínalo.",
+    "mention_not_in_workspace": "Esa persona no tiene acceso a este espacio.",
+    "team_name_taken": "Ya hay un equipo con ese nombre.",
+    "dependency_cycle": "Esa tarea ya espera, directa o indirectamente, a esta.",
+    "dependency_other_account": "Las dos tareas tienen que ser de la misma cuenta.",
+    "request_locked": "La solicitud ya se está atendiendo: escribe en la conversación para cambiar algo.",
+    "assignee_not_in_department": "Esa persona no es de ese departamento.",
+    "request_other_account": "La tarea tiene que ser de un espacio de la misma cuenta."
   },
   "suspension": {
     "signOut": "Cerrar sesión",
@@ -1549,6 +1725,7 @@
         "doc": "¿Qué dice «{title}»?"
       },
       "heroPlaceholder": "Pregúntale a Veltro: qué se decidió, qué quedó pendiente, quién tiene qué…",
+      "barPlaceholder": "qué se decidió, qué quedó pendiente, quién tiene qué…",
       "focusHint": "Presiona",
       "expand": "Abrir en Veltro IA",
       "expandShort": "Expandir",
@@ -1667,7 +1844,7 @@
   "mesa": {
     "title": "Mesa de control",
     "subtitle": "Cómo van los espacios: su estado, si avanzan y quién está sobrecargado.",
-    "sentence": "{period}: {closed, plural, =0 {ninguna tarea cerrada} one {# tarea cerrada} other {# tareas cerradas}} y {created, plural, =0 {ninguna nueva} one {# nueva} other {# nuevas}}. {problems, select, none {No hay nada vencido ni bloqueado.} other {Hay {overdue, plural, one {# vencida} other {# vencidas}} y {blocked, plural, one {# bloqueada} other {# bloqueadas}}{atRisk, plural, =0 {.} one {; # espacio está en riesgo.} other {; # espacios están en riesgo.}}}}",
+    "sentence": "{period}: <done>{closed, plural, =0 {ninguna tarea cerrada} one {# tarea cerrada} other {# tareas cerradas}}</done> y <new>{created, plural, =0 {ninguna nueva} one {# nueva} other {# nuevas}}</new>. {problems, select, none {No hay nada vencido ni bloqueado.} other {Hay <late>{overdue, plural, one {# vencida} other {# vencidas}}</late> y <stuck>{blocked, plural, one {# bloqueada} other {# bloqueadas}}</stuck>{atRisk, plural, =0 {.} one {; <risk># espacio está en riesgo</risk>.} other {; <risk># espacios están en riesgo</risk>.}}}}",
     "spaces": {
       "title": "Espacios",
       "empty": "Las personas de este alcance no tienen tareas en ningún espacio.",
@@ -1749,7 +1926,9 @@
     "toggleSidebar": "Colapsar o expandir la barra lateral",
     "goDocs": "Documentos",
     "goVault": "Bóveda",
-    "goPasillo": "Pasillo"
+    "goPasillo": "Pasillo",
+    "goDecisions": "Ir a Decisiones",
+    "goRequests": "Ir a Solicitudes"
   },
   "scope": {
     "me": "Mías",
@@ -1766,7 +1945,13 @@
     "hintMe": "Solo las asignadas a ti",
     "hintTeam": "Tú y quienes te reportan: {names}",
     "hintAll": "Las {count} personas de la cuenta",
-    "you": "Tú"
+    "you": "Tú",
+    "delegated": "Delegadas",
+    "following": "Siguiendo",
+    "hintDelegated": "Las que pediste o asignaste a otras personas",
+    "hintFollowing": "Las que sigues, aunque no sean tuyas",
+    "groups": "Equipos",
+    "more": "Más"
   },
   "dateRange": {
     "presets": {
@@ -1788,9 +1973,9 @@
     "cancel": "Cancelar"
   },
   "tasksDashboard": {
-    "subject": "{subject, select, me {Tienes} other {{who} tiene}}",
+    "subject": "{subject, select, me {Tienes} delegated {En lo que delegaste hay} following {En lo que sigues hay} other {{who} tiene}}",
     "and": "y",
-    "allClear": "{subject, select, me {Vas al día} other {{who} va al día}}: nada atrasado, bloqueado ni para hoy.",
+    "allClear": "{subject, select, me {Vas al día} delegated {Lo que delegaste va al día} following {Lo que sigues va al día} other {{who} va al día}}: nada atrasado, bloqueado ni para hoy.",
     "parts": {
       "late": "{count, plural, one {# tarea atrasada} other {# tareas atrasadas}}",
       "stuck": "{count, plural, one {# bloqueada} other {# bloqueadas}}",
@@ -1994,7 +2179,8 @@
       "meeting": "Invitación: {title}",
       "task": "Compartió una tarea",
       "file": "Compartió un archivo",
-      "doc": "Compartió un documento"
+      "doc": "Compartió un documento",
+      "deleted": "Mensaje eliminado"
     },
     "untitledGroup": "Grupo sin nombre",
     "onlyYou": "Solo tú",
@@ -2054,7 +2240,8 @@
         "meeting": "Buscar una reunión de las próximas 3 semanas…"
       },
       "closePicker": "Cerrar",
-      "nothing": "Nada por aquí."
+      "nothing": "Nada por aquí.",
+      "mention": "Mencionar a alguien"
     },
     "cards": {
       "missing": "Esto ya no existe o no tienes acceso.",
@@ -2123,9 +2310,35 @@
       "join": "Unirse",
       "error": "No se pudo crear la llamada. Intenta de nuevo.",
       "connect": "Conecta tu Google para crear llamadas de Meet.",
-      "connectAction": "Conectar"
+      "connectAction": "Conectar",
+      "labelNative": "Reunión",
+      "hintNative": "Arma una reunión de Veltro con la gente del chat y la avisa aquí"
     },
-    "loadOlder": "Ver mensajes anteriores"
+    "loadOlder": "Ver mensajes anteriores",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Eliminar este mensaje?",
+    "deleteConfirmHint": "Queda «Mensaje eliminado» en su lugar. No se puede deshacer.",
+    "deleted": "Mensaje eliminado",
+    "deletedMine": "Eliminaste este mensaje",
+    "edited": "(editado)",
+    "editHint": "Enter guarda · Esc cancela",
+    "typingOne": "{name} está escribiendo…",
+    "typingMany": "{names} están escribiendo…",
+    "unreadCount": "{count} sin leer",
+    "newCount": "{count, plural, one {# nuevo} other {# nuevos}}",
+    "context": {
+      "nextMeeting": "Próxima reunión",
+      "inDays": "{count, plural, =0 {Hoy} one {Mañana} other {En # días}}",
+      "tasks": "Tareas en este chat",
+      "tasksDone": "{done} de {total}",
+      "files": "Archivos",
+      "people": "Personas",
+      "hidePanel": "Ocultar el panel de la derecha",
+      "showPanel": "Mostrar el panel de la derecha",
+      "collapse": "Plegar",
+      "expand": "Desplegar"
+    }
   },
   "confirm": {
     "cancel": "Cancelar",
@@ -2217,5 +2430,300 @@
     "max": "El máximo es {max}.",
     "number": "Escribe un número válido.",
     "step": "Ese valor no es válido aquí."
+  },
+  "notifications": {
+    "title": "Avisos",
+    "open": "Avisos",
+    "openCount": "Avisos, {count} sin leer",
+    "tabs": {
+      "all": "Todos",
+      "unread": "Sin leer"
+    },
+    "markAllRead": "Marcar todo como leído",
+    "markRead": "Marcar como leído",
+    "markUnread": "Marcar como no leído",
+    "emptyUnread": "Estás al día",
+    "emptyAll": "Todavía no hay avisos",
+    "emptyHint": "Aquí llegan las tareas que te asignan, los comentarios en tus tareas y las menciones.",
+    "loadMore": "Ver anteriores",
+    "someone": "Alguien",
+    "directChat": "un mensaje directo",
+    "toastView": "Ver",
+    "kinds": {
+      "task_assigned": "<b>{actor}</b> te asignó una tarea",
+      "task_comment": "{count, plural, one {<b>{actor}</b> comentó en una tarea tuya} other {# comentarios nuevos en una tarea tuya, el último de <b>{actor}</b>}}",
+      "task_mention": "<b>{actor}</b> te mencionó en un comentario",
+      "task_done": "<b>{actor}</b> terminó una tarea que creaste",
+      "chat_mention": "<b>{actor}</b> te mencionó en <b>{chat}</b>",
+      "task_due_today": "Vence hoy",
+      "task_overdue": "Se venció ayer",
+      "member_joined": "<b>{actor}</b> aceptó tu invitación y ya está en el equipo",
+      "task_status": "<b>{actor}</b> cambió el estado de una tarea que sigues",
+      "task_due_changed": "<b>{actor}</b> movió la entrega al <b>{date}</b>",
+      "task_unblocked": "<b>{actor}</b> terminó <b>{ref}</b>: tu tarea ya puede avanzar",
+      "request_new": "{assigned, select, yes {<b>{actor}</b> te asignó una solicitud} other {{forwarded, select, yes {<b>{actor}</b> derivó una solicitud a <b>{department}</b>} other {<b>{actor}</b> le pidió algo a <b>{department}</b>}}}}",
+      "request_message": "{count, plural, one {<b>{actor}</b> escribió en una solicitud} other {# mensajes nuevos en una solicitud, el último de <b>{actor}</b>}}",
+      "request_status": "{status, select, in_progress {<b>{actor}</b> empezó a trabajar en tu solicitud} delivered {Tu solicitud quedó entregada: confirma si está resuelta} resolved {<b>{actor}</b> dio la solicitud por resuelta} declined {<b>{actor}</b> rechazó tu solicitud} forwarded {<b>{actor}</b> derivó tu solicitud a <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> reabrió su solicitud} other {<b>{actor}</b> está revisando tu solicitud}}} other {<b>{actor}</b> cambió el estado de una solicitud}}"
+    },
+    "desktop": {
+      "offer": "Recibe los avisos y los mensajes directos aunque Veltro esté en otra pestaña.",
+      "enable": "Activar",
+      "on": "Avisos en el escritorio (mensajes directos, asignaciones y menciones)",
+      "denied": "El navegador bloqueó los avisos de Veltro. Puedes permitirlos desde el candado de la barra de direcciones."
+    },
+    "manyNew": "{count, plural, one {Tienes # aviso nuevo} other {Tienes # avisos nuevos}}",
+    "noDate": "sin fecha"
+  },
+  "invite": {
+    "metaTitle": "Invitación",
+    "someone": "Alguien",
+    "invitedBy": "{inviter} te invitó a trabajar en",
+    "asAdmin": "Entrarás como admin: verás y gestionarás todos los espacios.",
+    "asMember": "Entrarás al equipo; los espacios te los asignan después.",
+    "withSpaces": "Tendrás acceso a: {spaces}.",
+    "orPassword": "o crea tu usuario",
+    "orLogin": "o entra con tu correo",
+    "hasUser": "Ya tienes usuario en Veltro con {email}. Entra con él y vuelve a este enlace para aceptar.",
+    "login": "Entrar para aceptar",
+    "signedInAs": "Entraste como {email}.",
+    "join": "Unirme a {account}",
+    "otherSession": "Entraste como {me}, pero esta invitación es para {invited}.",
+    "switch": "Entrar como {email}",
+    "choosePassword": "Elige una contraseña",
+    "create": "Crear mi usuario y unirme",
+    "expires": "El enlace vence el {date}.",
+    "footer": "© {year} Veltro",
+    "notFound": {
+      "title": "Este enlace no sirve",
+      "body": "Puede que esté incompleto. Pídele a quien te invitó que te lo mande de nuevo."
+    },
+    "expired": {
+      "title": "La invitación venció",
+      "body": "Pídele a {inviter} que te mande una nueva."
+    },
+    "accepted": {
+      "title": "Ya estás en el equipo",
+      "body": "Esta invitación a {account} ya se aceptó.",
+      "open": "Ir a Veltro",
+      "login": "Entrar"
+    },
+    "errors": {
+      "invitation_expired": "La invitación venció o la anularon. Pide una nueva.",
+      "invitation_accepted": "Esta invitación ya se aceptó.",
+      "invitation_not_found": "Este enlace no sirve.",
+      "invitation_email_mismatch": "Esta invitación es para otro correo.",
+      "invitation_login_required": "Ya tienes usuario: entra con él para aceptar.",
+      "plan_limit_members": "La cuenta llegó al límite de personas de su plan. Avísale a quien te invitó.",
+      "rate_limited": "Demasiados intentos. Espera un momento.",
+      "weak_password": "La contraseña no cumple las reglas.",
+      "missing_fields": "Completa tu nombre y la contraseña.",
+      "oauth_unavailable": "Entrar con Google todavía no está activo. Crea tu usuario con una contraseña.",
+      "generic": "Algo salió mal. Inténtalo de nuevo."
+    }
+  },
+  "decisions": {
+    "title": "Decisiones",
+    "subtitle": "Todo lo que se decidió en las reuniones de tus espacios.",
+    "search": "¿Qué decidimos de…? Busca un tema o una reunión",
+    "clearSearch": "Borrar búsqueda",
+    "space": "Espacio",
+    "meeting": "Reunión: {title}",
+    "clearMeeting": "Ver todas las reuniones",
+    "ask": "Pregúntale a Veltro",
+    "askQuestion": "¿Qué decidimos de {topic}?",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "onlyMeeting": "Ver solo lo de esta reunión",
+    "openMeeting": "Abrir",
+    "unconfirmed": "Sin cerrar",
+    "copy": "Copiar",
+    "copied": "Decisión copiada",
+    "by": "La anotó {name}",
+    "period": {
+      "7": "Últimos 7 días",
+      "30": "Últimos 30 días",
+      "90": "Últimos 3 meses",
+      "365": "Último año",
+      "label": "Cuándo",
+      "all": "Desde siempre"
+    },
+    "empty": {
+      "title": "Todavía no hay decisiones",
+      "body": "En una reunión, marca un punto como Decisión (o escribe <> antes del texto) y queda aquí con su fecha y su reunión.",
+      "cta": "Ir al calendario",
+      "searchTitle": "Nada decidido sobre «{q}»",
+      "filteredTitle": "Nada con estos filtros",
+      "searchBody": "Prueba con otras palabras, quita filtros o pregúntale a Veltro.",
+      "ask": "Pregúntale a Veltro"
+    }
+  },
+  "requests": {
+    "title": "Solicitudes",
+    "subtitle": "Pídele algo a otro departamento y sigue en qué va.",
+    "new": "Nueva",
+    "tabs": {
+      "inbox": "Me llegan",
+      "mine": "Las mías"
+    },
+    "search": "Buscar por título o código",
+    "clearSearch": "Borrar búsqueda",
+    "allDepartments": "Todos",
+    "department": "Departamento",
+    "stateLabel": "Mostrar",
+    "state": {
+      "open": "Abiertas",
+      "closed": "Cerradas",
+      "all": "Todas"
+    },
+    "empty": {
+      "search": "Nada con esa búsqueda",
+      "searchHint": "Prueba con otras palabras o con el código (SOL-0004).",
+      "mine": "No has pedido nada",
+      "mineHint": "Cuando necesites algo de otro departamento (un acceso, un reporte, una cotización), pídelo aquí y sigue su avance.",
+      "inbox": "Tu departamento está al día",
+      "inboxHint": "Lo que otros departamentos les pidan aparece aquí."
+    },
+    "loadMore": "Ver más",
+    "toDept": "Para {name}",
+    "tasksDone": "{done}/{total} tareas",
+    "urgent": "Urgente",
+    "unassigned": "Sin tomar",
+    "welcomeTitle": "Pedidos entre departamentos, con seguimiento",
+    "welcomeBody": "Ventas le pide algo a Tecnología: Tecnología la toma, la convierte en tareas y quien la pidió ve en qué va, sin perseguir a nadie por chat.",
+    "stepsLabel": "Estado: {status}",
+    "status": {
+      "new": "Nueva",
+      "in_review": "En revisión",
+      "in_progress": "En curso",
+      "delivered": "Entregada",
+      "resolved": "Resuelta",
+      "declined": "Rechazada"
+    },
+    "kind": {
+      "request": "Pedido",
+      "problem": "Algo falla",
+      "question": "Pregunta",
+      "access": "Acceso",
+      "data": "Datos o reporte"
+    },
+    "create": {
+      "title": "Nueva solicitud",
+      "description": "Le llega al departamento que elijas y ves en qué va hasta que quede resuelta.",
+      "created": "{code} enviada a {department}",
+      "noDepartments": "Tu cuenta todavía no tiene departamentos",
+      "noDepartmentsAdmin": "Crea los departamentos (Ventas, Tecnología…) y di quién está en cada uno: así cada pedido llega a quien corresponde.",
+      "noDepartmentsHint": "Pídele a un admin que los cree en Ajustes › Organigrama.",
+      "createDepartments": "Crear departamentos",
+      "to": "¿A qué departamento?",
+      "pickDepartment": "Elige el departamento",
+      "mine": "el tuyo",
+      "people": "{count, plural, =0 {sin personas} one {# persona} other {# personas}}",
+      "reaches": "Le llega a {name}, jefe del departamento.",
+      "reachesAdmins": "No tiene jefe: le llega a los admins de la cuenta.",
+      "kind": "Tipo",
+      "what": "¿Qué necesitas?",
+      "placeholder": {
+        "request": "Ej.: Cotización de exhibidores para Farmatodo",
+        "problem": "Ej.: El reporte de ventas no carga desde ayer",
+        "question": "Ej.: ¿Cuál es el proceso para pedir viáticos?",
+        "access": "Ej.: Acceso al CRM para 3 personas nuevas",
+        "data": "Ej.: Ventas por tienda de octubre"
+      },
+      "details": "Detalles",
+      "detailsHint": "Lo que ayude a resolverla sin tener que preguntar: para qué es, ejemplos, enlaces.",
+      "due": "¿Para cuándo?",
+      "noDue": "Sin fecha",
+      "clearDue": "Quitar fecha",
+      "urgent": "Urgente",
+      "cancel": "Cancelar",
+      "send": "Enviar solicitud"
+    },
+    "detail": {
+      "notFound": "No encontramos esta solicitud",
+      "notFoundHint": "Puede que la hayan derivado a otro departamento o que no tengas acceso.",
+      "back": "Volver a Solicitudes",
+      "toTask": "Convertir en tarea",
+      "more": "Más acciones",
+      "assign": "Asignar a…",
+      "me": "Mí",
+      "unassign": "Quitar responsable",
+      "forward": "Derivar a otro departamento…",
+      "changeStatus": "Cambiar estado",
+      "reopen": "Reabrir",
+      "markDelivered": "Marcar entregada",
+      "markResolved": "Marcar resuelta",
+      "decline": "Rechazar",
+      "closeMine": "Ya no la necesito (resuelta)",
+      "you": "Tú",
+      "someone": "Alguien",
+      "noDepartment": "Sin departamento (la ven los admins)",
+      "assignee": "Responsable: {name}",
+      "noAssignee": "Sin responsable",
+      "due": "Para el {date}",
+      "createdAgo": "Pedida {when}",
+      "declinedNote": "El departamento la rechazó. Si todavía la necesitas, escribe abajo y reábrela.",
+      "takeHint": "{name} está esperando. Tómala para que sepa que alguien la mira.",
+      "take": "Tomarla",
+      "resolvedQ": "¿Quedó resuelta?",
+      "resolvedQHint": "{department} terminó lo que pediste. Confírmalo o dile qué falta.",
+      "notYet": "Falta algo",
+      "yesResolved": "Sí, resuelta",
+      "conversation": "Conversación",
+      "toastTaken": "La tomaste",
+      "toastAssigned": "Responsable asignado",
+      "toastReopened": "Solicitud reabierta",
+      "toastDelivered": "Marcada como entregada",
+      "toastResolved": "Solicitud resuelta",
+      "toastDeclined": "Solicitud rechazada",
+      "noTasksHint": "Conviértela en tareas para organizar el trabajo en tu espacio. Quien la pidió verá su avance.",
+      "tasks": "Tareas",
+      "tasksDone": "{done} de {total} hechas",
+      "addTask": "Otra tarea",
+      "tasksHintRequester": "Las organiza {department}; aquí ves su avance.",
+      "replyMine": "Escríbele a {department}",
+      "replyTo": "Responde a {name}",
+      "enterHint": "Enter envía · Mayús+Enter, nueva línea",
+      "send": "Enviar"
+    },
+    "events": {
+      "youLower": "ti",
+      "someone": "alguien",
+      "otherDept": "otro departamento",
+      "status": "{self, select, yes {La pasaste a {status}} other {{who} la pasó a {status}}}",
+      "took": "{self, select, yes {La tomaste} other {{who} la tomó}}",
+      "assigned": "{self, select, yes {Se la asignaste a {name}} other {{who} se la asignó a {name}}}",
+      "forwarded": "{self, select, yes {La derivaste de {from} a {to}} other {{who} la derivó de {from} a {to}}}",
+      "taskCreated": "{self, select, yes {Creaste la tarea {ref} · {title}} other {{who} creó la tarea {ref} · {title}}}",
+      "tasksDone": "Se terminaron todas sus tareas: quedó entregada"
+    },
+    "toTask": {
+      "title": "Convertir {code} en tarea",
+      "description": "La tarea vive en tu espacio; {name} ve su avance desde la solicitud.",
+      "created": "{ref} creada",
+      "noWorkspaces": "No puedes crear tareas en ningún espacio. Pide acceso de editor en uno.",
+      "workspace": "Espacio",
+      "taskTitle": "Tarea",
+      "notes": "Notas",
+      "notesHint": "Va como descripción de la tarea.",
+      "assignees": "Responsables",
+      "nobody": "Nadie todavía",
+      "due": "Entrega",
+      "noDue": "Sin fecha",
+      "clearDue": "Quitar fecha",
+      "hint": "La solicitud pasa a En curso. Cuando se terminen todas sus tareas, queda Entregada y avisamos a quien la pidió.",
+      "cancel": "Cancelar",
+      "create": "Crear tarea"
+    },
+    "forward": {
+      "title": "Derivar {code}",
+      "description": "Vuelve a empezar en el otro departamento: queda nueva y sin responsable.",
+      "to": "¿A qué departamento?",
+      "pick": "Elige el departamento",
+      "note": "Nota",
+      "noteHint": "Opcional: por qué la derivas, para quien la recibe.",
+      "cancel": "Cancelar",
+      "submit": "Derivar",
+      "done": "Derivada a {department}"
+    }
   }
 }

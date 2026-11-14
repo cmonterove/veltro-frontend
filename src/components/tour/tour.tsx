@@ -31,7 +31,7 @@ const STEPS: Step[] = [
   { id: 'welcome' },
   { id: 'ask', target: 'ask', placement: 'bottom' },
   { id: 'counters', target: 'counters', placement: 'bottom' },
-  { id: 'search', target: 'search', placement: 'right' },
+  { id: 'search', target: 'search', placement: 'bottom' },
   { id: 'mesa', target: 'nav-mesa', placement: 'right' },
   { id: 'meetings', target: 'nav-calendar', placement: 'right' },
   { id: 'notation', interactive: 'notation' },

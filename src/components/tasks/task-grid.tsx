@@ -134,7 +134,7 @@ function GridRow({ task }: { task: TaskRow }) {
       </td>
       <td className={cell}>
         <DuePopover value={task.due_date} onChange={(due_date) => patch({ due_date })} disabled={!editable} className="h-7 px-2">
-          {task.due_date ? <DueDate due={task.due_date} done={done} /> : <span className="text-sm text-fg-subtle">—</span>}
+          {task.due_date ? <DueDate due={task.due_date} done={done} repeats={Boolean(task.recurrence)} /> : <span className="text-sm text-fg-subtle">—</span>}
         </DuePopover>
       </td>
       <td className={cell}>

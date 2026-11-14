@@ -17,12 +17,14 @@ import { taskRef } from '@/lib/utils'
 import type { MeetingItemRow, MeetingRow, TaskRow } from '@/lib/database.types'
 import type { DocSummary } from '@/lib/types'
 import { useOpenTask } from '@/lib/use-open-task'
+import { ASK_EVENT, ASK_INPUT_ID } from '@/components/app/top-bar'
 
 const veltroHref = (q?: string) => (q ? `/veltro?q=${encodeURIComponent(q)}` : '/veltro')
 
 /**
  * "Pregúntale a Veltro": el centro de Pulso. Responde con el mismo motor que Veltro IA; la respuesta
  * flota sobre la pantalla para no mover el tablero, y cualquier pregunta se puede expandir a la vista completa.
+ * En escritorio se pregunta desde la barra de arriba (llega con ASK_EVENT) y aquí quedan las sugerencias.
  */
 export function AskBar({ tasks, items, meetings, docs }: { tasks: TaskRow[]; items: MeetingItemRow[]; meetings: MeetingRow[]; docs: DocSummary[] }) {
   const t = useTranslations('pulse.ask')
@@ -40,7 +42,8 @@ export function AskBar({ tasks, items, meetings, docs }: { tasks: TaskRow[]; ite
     const onKey = (e: KeyboardEvent) => {
       if (e.key === '/' && !isTypingTarget(e.target) && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
-        inputRef.current?.focus()
+        // en escritorio el campo de aquí está oculto: la pregunta va en la barra de arriba
+        ;(inputRef.current?.offsetParent ? inputRef.current : document.getElementById(ASK_INPUT_ID))?.focus()
       }
       if (e.key === 'Escape') setAsked(null)
     }
@@ -56,6 +59,16 @@ export function AskBar({ tasks, items, meetings, docs }: { tasks: TaskRow[]; ite
     track('feature.assistant_ask', { props: { from: 'pulse' } })
     setAsked({ q: question, a: askVeltro({ question, ...input, t: (k, v) => ta(k, v) }) })
   }
+
+  // lo que se pregunta en la barra de arriba estando en Pulso se responde aquí
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const question = (e as CustomEvent<string>).detail
+      if (question) setAsked({ q: question, a: askVeltro({ question, ...input, t: (k, v) => ta(k, v) }) })
+    }
+    window.addEventListener(ASK_EVENT, onAsk)
+    return () => window.removeEventListener(ASK_EVENT, onAsk)
+  }, [input, ta])
 
   const expand = () => {
     track('feature.veltro_expand')
@@ -89,7 +102,7 @@ export function AskBar({ tasks, items, meetings, docs }: { tasks: TaskRow[]; ite
               setQ('')
             }
           }}
-          className="flex h-14 items-center gap-3 pl-3 pr-2"
+          className="flex h-14 items-center gap-3 pl-3 pr-2 md:hidden"
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-fg">
             <Sparkles className="size-4" />
@@ -126,7 +139,7 @@ export function AskBar({ tasks, items, meetings, docs }: { tasks: TaskRow[]; ite
             </button>
           </Tooltip>
         </form>
-        <div className="flex items-center gap-1.5 overflow-x-auto border-t border-line-soft bg-sidebar/40 px-3 py-2 scrollbar-thin">
+        <div className="flex items-center gap-1.5 overflow-x-auto border-t border-line-soft bg-sidebar/40 px-3 py-2 scrollbar-thin md:border-t-0">
           <span className="shrink-0 pr-1 text-2xs font-medium uppercase tracking-wide text-fg-subtle">{t('try')}</span>
           {examples.map((ex) => (
             <button

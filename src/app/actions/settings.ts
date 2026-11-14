@@ -59,6 +59,63 @@ export async function addMember(accountId: string, input: AddMemberInput): Promi
   return res.ok ? { ok: true, tempPassword: res.data.tempPassword, existing: res.data.existing } : res
 }
 
+/**
+ * Invita a una persona: le llega un correo con el enlace (si el correo está configurado en la API).
+ * Siempre vuelve el enlace, para copiarlo o mandarlo por WhatsApp.
+ */
+export async function inviteMember(accountId: string, input: AddMemberInput): Promise<{ ok: true; link: string; emailed: boolean } | Fail> {
+  const blocked = await demoBlocked()
+  if (blocked) return blocked
+  const res = await attempt(() =>
+    api<{ link: string; emailed: boolean }>(`/v1/accounts/${accountId}/invitations`, {
+      method: 'POST',
+      body: {
+        email: input.email.trim().toLowerCase(),
+        ...(input.fullName.trim().length >= 2 ? { fullName: input.fullName.trim() } : {}),
+        role: input.role,
+        workspaces: input.role === 'admin' ? [] : input.workspaces,
+      },
+    }),
+  )
+  return res.ok ? { ok: true, link: res.data.link, emailed: res.data.emailed } : res
+}
+
+/** Enlace nuevo (el anterior deja de servir) y, si hay correo, se vuelve a mandar. */
+export async function resendInvite(id: string, email = true): Promise<{ ok: true; link: string; emailed: boolean } | Fail> {
+  const blocked = await demoBlocked()
+  if (blocked) return blocked
+  const res = await attempt(() => api<{ link: string; emailed: boolean }>(`/v1/invitations/${id}/resend`, { method: 'POST', body: { email } }))
+  return res.ok ? { ok: true, link: res.data.link, emailed: res.data.emailed } : res
+}
+
+export async function revokeInvite(id: string) {
+  const res = await attempt(() => api(`/v1/invitations/${id}`, { method: 'DELETE' }))
+  return res.ok ? { ok: true as const } : res
+}
+
+// ---------- equipos de trabajo ----------
+
+export type TeamInput = { name: string; color: string; memberIds: string[] }
+
+export async function createTeam(accountId: string, input: TeamInput) {
+  const res = await attempt(() =>
+    api<{ id: string }>(`/v1/accounts/${accountId}/teams`, { method: 'POST', body: { name: input.name.trim(), color: input.color, memberIds: input.memberIds } }),
+  )
+  return res.ok ? { ok: true as const, id: res.data.id } : res
+}
+
+export async function updateTeam(id: string, input: Partial<TeamInput>) {
+  const res = await attempt(() =>
+    api(`/v1/teams/${id}`, { method: 'PATCH', body: { ...input, ...(input.name !== undefined ? { name: input.name.trim() } : {}) } }),
+  )
+  return res.ok ? { ok: true as const } : res
+}
+
+export async function deleteTeam(id: string) {
+  const res = await attempt(() => api(`/v1/teams/${id}`, { method: 'DELETE' }))
+  return res.ok ? { ok: true as const } : res
+}
+
 export async function updateMemberRole(accountId: string, userId: string, role: Exclude<AccountRole, 'owner'>) {
   const res = await attempt(() => api(`/v1/accounts/${accountId}/members/${userId}`, { method: 'PATCH', body: { role } }))
   return res.ok ? { ok: true as const } : res

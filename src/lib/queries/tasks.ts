@@ -20,6 +20,9 @@ import {
 import type { TaskRow } from '@/lib/database.types'
 import { toErrorCode } from '@/lib/errors'
 import { isAssignedTo } from '@/lib/assignees'
+import { nextAfterDone } from '@/lib/recurrence'
+import { useDateLocale } from '@/lib/dates'
+import { format, parseISO } from 'date-fns'
 
 export type TaskScope =
   | { kind: 'workspace'; workspaceId: string }
@@ -96,6 +99,8 @@ export function useTasks(scope: TaskScope | null, initialData?: TaskRow[]) {
 function seedDetail(qc: QueryClient, d: ApiTaskDetail) {
   qc.setQueryData(taskKeys.subtasks(d.id), d.subtasks.map(toTaskRow))
   qc.setQueryData(taskKeys.origin(d.id), { doc: d.doc, meeting: d.meeting })
+  if (d.followers) qc.setQueryData(['task-followers', d.id], d.followers)
+  if (d.blockedBy && d.blocking) qc.setQueryData(['task-deps', d.id], { blockedBy: d.blockedBy, blocking: d.blocking })
 }
 
 async function fetchTask(qc: QueryClient, id: string) {
@@ -180,6 +185,8 @@ function useErrorToast() {
 export function useUpdateTask() {
   const qc = useQueryClient()
   const onError = useErrorToast()
+  const tr = useTranslations('tasks.recurrence')
+  const locale = useDateLocale()
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: TaskPatch }) => {
       const d = await api<ApiTaskDetail>(`/v1/tasks/${id}`, { method: 'PATCH', body: toTaskBody(patch) })
@@ -190,25 +197,34 @@ export function useUpdateTask() {
       await qc.cancelQueries({ queryKey: taskKeys.all })
       const snapshot = qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })
       const single = qc.getQueryData<TaskRow>(taskKeys.one(id))
+      // terminar una que se repite: la base crea la siguiente (se avisa cuándo vence)
+      const before = single ?? findCachedTask(qc, id)
+      const next = patch.status === 'done' && before && before.status !== 'done' && before.recurrence ? nextAfterDone(before.due_date, before.recurrence) : null
       const optimistic: Partial<TaskRow> = { ...(patch as Partial<TaskRow>) }
       if (patch.assignee_ids) optimistic.assignee_id = patch.assignee_ids[0] ?? null
       else if (patch.assignee_id !== undefined) optimistic.assignee_ids = patch.assignee_id ? [patch.assignee_id] : []
       if (patch.status === 'done') optimistic.completed_at = new Date().toISOString()
       else if (patch.status) optimistic.completed_at = null
       patchCaches(qc, id, optimistic)
-      return { snapshot, single }
+      return { snapshot, single, next }
     },
     onError: (error, { id }, ctx) => {
       ctx?.snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
       if (ctx?.single) qc.setQueryData(taskKeys.one(id), ctx.single)
       onError(error)
     },
-    onSuccess: (task) => {
+    onSuccess: (task, _v, ctx) => {
       patchCaches(qc, task.id, task)
+      if (ctx?.next) {
+        toast.success(tr('spawned', { date: format(parseISO(ctx.next), 'EEEE d MMM', { locale }) }))
+        qc.invalidateQueries({ queryKey: taskKeys.all })
+      }
     },
-    onSettled: (_d, _e, { patch }) => {
+    onSettled: (_d, _e, { id, patch }) => {
       // las cifras (Pulso, Mesa, Resumen) cambian con casi cualquier cambio
       qc.invalidateQueries({ queryKey: taskKeys.stats })
+      // y el historial de la tarea suma el cambio
+      qc.invalidateQueries({ queryKey: ['task-activity', id] })
       // Cambios que mueven la tarea entre listas: refrescar todas
       if ('assignee_id' in patch || 'assignee_ids' in patch || 'workspace_id' in patch || 'doc_id' in patch || 'meeting_id' in patch) {
         qc.invalidateQueries({ queryKey: taskKeys.all })

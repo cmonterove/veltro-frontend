@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { format, parseISO } from 'date-fns'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, Repeat } from 'lucide-react'
 import { dueInfo, shortDate, useDateLocale } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 
@@ -19,8 +19,10 @@ export function useDueLabel() {
   }
 }
 
-export function DueDate({ due, done, className, withIcon = true }: { due: string; done?: boolean; className?: string; withIcon?: boolean }) {
+/** La fecha de entrega en palabras («hoy», «mañana», «lunes»); con `repeats`, el ícono de que se repite. */
+export function DueDate({ due, done, className, withIcon = true, repeats = false }: { due: string; done?: boolean; className?: string; withIcon?: boolean; repeats?: boolean }) {
   const label = useDueLabel()
+  const t = useTranslations('tasks.recurrence')
   const { tone } = dueInfo(due)
   return (
     <span
@@ -32,6 +34,7 @@ export function DueDate({ due, done, className, withIcon = true }: { due: string
     >
       {withIcon ? <CalendarDays className="size-3.5" /> : null}
       <span className="first-letter:uppercase">{label(due)}</span>
+      {repeats ? <Repeat className="size-3 shrink-0 opacity-80" aria-label={t('repeats')} /> : null}
     </span>
   )
 }

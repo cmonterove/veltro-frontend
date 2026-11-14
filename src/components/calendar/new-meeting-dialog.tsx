@@ -12,6 +12,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from '@
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
 import { calendarKeys, createCalendarEvent } from '@/lib/queries/calendar'
+import { createNativeMeeting, meetingToEvent } from '@/lib/queries/meetings'
 import { openMeeting } from '@/app/actions/meetings'
 import { toErrorCode } from '@/lib/errors'
 import type { CalendarEvent } from '@/lib/types'
@@ -38,7 +39,9 @@ export function NewMeetingDialog({
   const tErrors = useTranslations('errors')
   const router = useRouter()
   const qc = useQueryClient()
-  const { workspaces, members, profile } = useApp()
+  const { workspaces, members, profile, google } = useApp()
+  // sin Google Calendar la reunión se crea en Veltro (con su sala), en un espacio
+  const native = !google
   const editable = workspaces.filter((w) => canEdit(w))
   const [title, setTitle] = useState('')
   const [date, setDate] = useState('')
@@ -46,6 +49,7 @@ export function NewMeetingDialog({
   const [duration, setDuration] = useState(30)
   const [attendees, setAttendees] = useState('')
   const [withMeet, setWithMeet] = useState(true)
+  const [link, setLink] = useState('')
   const [workspaceId, setWorkspaceId] = useState<string>('')
   const [pending, setPending] = useState(false)
   const [dateOpen, setDateOpen] = useState(false)
@@ -66,7 +70,8 @@ export function NewMeetingDialog({
     setDuration(30)
     setAttendees((defaults?.attendees ?? []).join(', '))
     setWithMeet(true)
-    setWorkspaceId(defaults?.workspaceId ?? '')
+    setLink('')
+    setWorkspaceId(defaults?.workspaceId ?? (native ? (editable[0]?.id ?? '') : ''))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -82,6 +87,23 @@ export function NewMeetingDialog({
     const endAt = addMinutes(startAt, duration)
     setPending(true)
     try {
+      if (native) {
+        if (!workspaceId) return void toast.error(t('pickWorkspace'))
+        const meeting = await createNativeMeeting({
+          workspaceId,
+          title,
+          startsAt: startAt.toISOString(),
+          endsAt: endAt.toISOString(),
+          attendees: emails.map((e) => ({ email: e, name: members.find((x) => x.email === e)?.full_name ?? null })),
+          conferenceUrl: /^https?:\/\//.test(link.trim()) ? link.trim() : null,
+        })
+        qc.invalidateQueries({ queryKey: ['meetings'] })
+        toast.success(t('createdNative'))
+        onOpenChange(false)
+        if (onCreated) onCreated(meetingToEvent(meeting))
+        else router.push(`/m/${meeting.id}`)
+        return
+      }
       const event = await createCalendarEvent({
         title: title.trim(),
         start: startAt.toISOString(),
@@ -111,7 +133,7 @@ export function NewMeetingDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader title={t('title')} />
+        <DialogHeader title={t('title')} description={native ? t('nativeHint') : undefined} />
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -155,7 +177,7 @@ export function NewMeetingDialog({
                 />
               </Field>
             </div>
-            <Field label={t('attendees')} hint={t('attendeesHint')} htmlFor="m-att">
+            <Field label={t('attendees')} hint={native ? t('attendeesHintNative') : t('attendeesHint')} htmlFor="m-att">
               <Input id="m-att" value={attendees} onChange={(e) => setAttendees(e.target.value)} placeholder={t('attendeesPlaceholder')} />
             </Field>
             {suggestions.length ? (
@@ -172,17 +194,26 @@ export function NewMeetingDialog({
                 ))}
               </div>
             ) : null}
-            <label className="flex items-center gap-2.5 text-sm">
-              <Switch checked={withMeet} onCheckedChange={setWithMeet} />
-              {t('withMeet')}
-            </label>
+            {native ? (
+              <Field label={t('link')} hint={t('linkHint')} htmlFor="m-link">
+                <Input id="m-link" type="url" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://meet.google.com/… · zoom.us/… · teams.microsoft.com/…" />
+              </Field>
+            ) : (
+              <label className="flex items-center gap-2.5 text-sm">
+                <Switch checked={withMeet} onCheckedChange={setWithMeet} />
+                {t('withMeet')}
+              </label>
+            )}
             {editable.length ? (
-              <Field label={t('workspace')} hint={t('workspaceHint')} htmlFor="m-ws">
+              <Field label={t('workspace')} hint={native ? t('workspaceHintNative') : t('workspaceHint')} htmlFor="m-ws">
                 <Select
                   id="m-ws"
                   value={workspaceId}
                   onChange={setWorkspaceId}
-                  options={[{ value: '', label: t('noWorkspace') }, ...editable.map((w) => ({ value: w.id, label: w.name, icon: <WorkspaceMark ws={w} size={16} /> }))]}
+                  options={[
+                    ...(native ? [] : [{ value: '', label: t('noWorkspace') }]),
+                    ...editable.map((w) => ({ value: w.id, label: w.name, icon: <WorkspaceMark ws={w} size={16} /> })),
+                  ]}
                 />
               </Field>
             ) : null}

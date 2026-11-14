@@ -36,6 +36,21 @@ export type ApiOrg = { members: ApiOrgPerson[]; departments: ApiDepartment[]; vi
 
 export type ApiAddMember = { member: ApiAccountMember; existing: boolean; tempPassword: string | null }
 
+/** Invitación abierta de la cuenta (la ve un admin en Ajustes › Personas). */
+export type Invitation = {
+  id: string
+  email: string
+  fullName: string | null
+  role: 'admin' | 'member'
+  workspaces: { id: string; role: WorkspaceRole }[]
+  invitedBy: { id: string; fullName: string } | null
+  createdAt: string
+  expiresAt: string
+  sentAt: string | null
+  sendCount: number
+  expired: boolean
+}
+
 export type ApiToken = {
   id: string
   name: string

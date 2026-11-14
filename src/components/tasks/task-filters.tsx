@@ -34,7 +34,8 @@ import type { GroupBy } from './my-task-groups'
 import { PriorityIcon, StatusIcon } from './status-icon'
 import { LIST_STATUS_ORDER } from './task-list'
 
-export type FilterOption = { value: string; label: string; icon?: React.ReactNode; count: number }
+/** `count`: cuántos quedan con esa opción (sin él, el menú no muestra cifras). */
+export type FilterOption = { value: string; label: string; icon?: React.ReactNode; count?: number }
 
 /** Un ícono por dimensión: el mismo en el filtro y en "Agrupar por". */
 const DIMENSION_ICON = {
@@ -324,8 +325,8 @@ export function FilterFacet({
                     {on ? <Check className="size-3" strokeWidth={3} /> : null}
                   </span>
                   {o.icon}
-                  <span className={cn('min-w-0 flex-1 truncate', !o.count && !on && 'text-fg-muted')}>{o.label}</span>
-                  <span className={cn('text-xs tabular-nums', o.count ? 'text-fg-muted' : 'text-fg-subtle/70')}>{o.count}</span>
+                  <span className={cn('min-w-0 flex-1 truncate', o.count === 0 && !on && 'text-fg-muted')}>{o.label}</span>
+                  {o.count === undefined ? null : <span className={cn('text-xs tabular-nums', o.count ? 'text-fg-muted' : 'text-fg-subtle/70')}>{o.count}</span>}
                 </M.CheckboxItem>
               )
             })}

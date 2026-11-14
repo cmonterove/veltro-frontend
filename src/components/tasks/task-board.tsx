@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Paperclip, Plus, ArrowUpRight } from 'lucide-react'
+import { Ban, Paperclip, Plus, ArrowUpRight } from 'lucide-react'
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
 import { AvatarStack } from '@/components/ui/avatar'
 import { useUpdateTask } from '@/lib/queries/tasks'
@@ -262,6 +262,7 @@ function Card({ task, dragging, showWorkspace }: { task: Task; dragging?: boolea
   const memberMap = useMemberMap()
   const ws = wsMap.get(task.workspace_id)
   const people = assigneesOf(task).flatMap((id) => memberMap.get(id) ?? [])
+  const tDeps = useTranslations('tasks.deps')
   const attachments = useAttachmentCounts(task.workspace_id).get(task.id) ?? 0
   const done = task.status === 'done'
 
@@ -282,16 +283,22 @@ function Card({ task, dragging, showWorkspace }: { task: Task; dragging?: boolea
       <p className={cn('line-clamp-3 leading-snug', done ? 'text-fg-muted line-through decoration-fg-subtle/50' : 'text-fg')}>
         {task.title}
       </p>
-      {task.priority !== 'none' || task.due_date || task.labels.length || attachments ? (
+      {task.priority !== 'none' || task.due_date || task.labels.length || attachments || (!done && task.blocked_by_open) ? (
         <div className="flex flex-wrap items-center gap-2">
           {task.priority !== 'none' ? <PriorityIcon priority={task.priority} /> : null}
+          {!done && task.blocked_by_open ? (
+            <span className="inline-flex h-5 items-center gap-1 rounded-full bg-danger-soft px-1.5 text-2xs font-medium text-danger">
+              <Ban className="size-3" />
+              {tDeps('waiting', { count: task.blocked_by_open })}
+            </span>
+          ) : null}
           {attachments ? (
             <span className="inline-flex items-center gap-0.5 text-xs text-fg-subtle">
               <Paperclip className="size-3.5" />
               {attachments}
             </span>
           ) : null}
-          {task.due_date ? <DueDate due={task.due_date} done={done} /> : null}
+          {task.due_date ? <DueDate due={task.due_date} done={done} repeats={Boolean(task.recurrence)} /> : null}
           {task.labels.slice(0, 2).map((l) => (
             <LabelChip key={l} label={l} />
           ))}

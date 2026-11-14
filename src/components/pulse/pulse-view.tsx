@@ -12,7 +12,7 @@ import { StatusIcon } from '@/components/tasks/status-icon'
 import { ConnectCalendar } from '@/components/calendar/connect-calendar'
 import { CalendarError, useCalendarEvents } from '@/lib/queries/calendar'
 import { useTaskStats, useTasks } from '@/lib/queries/tasks'
-import { useMeetingsInRange, useWorkspaceItems } from '@/lib/queries/meetings'
+import { useMeetingsInRange, useWorkspaceItems, withVeltroMeetings } from '@/lib/queries/meetings'
 import { useRecentDocs } from '@/lib/queries/docs'
 import { useLocalStorage, useNow } from '@/lib/hooks'
 import { useScopes } from '@/lib/scope'
@@ -57,6 +57,11 @@ export function PulseView() {
   const { data: tasks } = useTasks({ kind: 'workspaces', workspaceIds: taskWsIds })
   const { data: docs } = useRecentDocs(wsIds, 30)
   const errorCode = error instanceof CalendarError ? error.code : null
+  // la agenda de Hoy suma las reuniones creadas en Veltro (con o sin Google)
+  const briefEvents = useMemo(
+    () => withVeltroMeetings(events, meetings, { googlePending: Boolean(google) && isLoading }),
+    [events, meetings, google, isLoading],
+  )
 
   const itemsByMeeting = useMemo(() => {
     const m = new Map<string, MeetingItemRow[]>()
@@ -115,7 +120,7 @@ export function PulseView() {
     now,
     scopeIds,
     filter,
-    events,
+    events: briefEvents,
     eventsLoading: Boolean(google) && isLoading,
     calendarIssue: errorCode,
     meetings: meetings ?? [],

@@ -10,11 +10,13 @@ import {
   toMeetingItemRow,
   toMeetingRow,
   type ApiAgendaSuggestion,
+  type ApiMeeting,
   type ApiMeetingDetail,
   type ApiMeetingInList,
   type ApiMeetingItem,
 } from '@/lib/api/docs-reuniones'
 import type { MeetingItemRow, MeetingRow } from '@/lib/database.types'
+import type { CalendarEvent } from '@/lib/types'
 import { toErrorCode } from '@/lib/errors'
 
 export type MeetingWithNotes = MeetingRow & { notesDocId: string | null; taskCount: number }
@@ -289,4 +291,72 @@ export function useUpdateMeeting() {
       onError(error)
     },
   })
+}
+
+// ---------- reuniones de Veltro (sin Google) ----------
+
+/** Una reunión de Veltro como evento del calendario (para mostrarla junto a los de Google). */
+export function meetingToEvent(m: MeetingRow): CalendarEvent {
+  const start = new Date(m.starts_at)
+  const end = m.ends_at ? new Date(m.ends_at) : new Date(start.getTime() + 60 * 60_000)
+  return {
+    id: `veltro-${m.id}`,
+    calendarId: 'veltro',
+    title: m.title,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    allDay: false,
+    location: m.location,
+    description: null,
+    conferenceUrl: m.conference_url,
+    htmlLink: null,
+    attendees: m.attendees.map((a) => ({ email: a.email, name: a.name ?? null, responseStatus: null, self: false, organizer: false })),
+    color: null,
+    status: null,
+    seriesKey: m.series_key,
+    links: [{ meetingId: m.id, workspaceId: m.workspace_id, docId: null, phase: m.phase }],
+  }
+}
+
+export type NativeMeetingInput = {
+  workspaceId: string
+  title: string
+  startsAt: string
+  endsAt: string
+  attendees: { email: string; name: string | null }[]
+  conferenceUrl: string | null
+}
+
+/** Crea la reunión directo en Veltro (sin calendario externo): queda con su sala, agenda y cierre. */
+export async function createNativeMeeting(input: NativeMeetingInput) {
+  const m = await api<ApiMeeting>(`/v1/workspaces/${input.workspaceId}/meetings`, {
+    method: 'POST',
+    body: {
+      title: input.title.trim().slice(0, 300),
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      attendees: input.attendees,
+      ...(input.conferenceUrl ? { conferenceUrl: input.conferenceUrl } : {}),
+    },
+  })
+  return toMeetingRow(m)
+}
+
+/**
+ * Los eventos de Google más las reuniones de Veltro que no están entre ellos: las creadas sin Google
+ * o las de un evento que no está en mis calendarios. Mientras Google carga, solo las nativas (así no
+ * aparecen dos veces por un momento).
+ */
+export function withVeltroMeetings(
+  events: CalendarEvent[] | undefined,
+  meetings: MeetingRow[] | undefined,
+  { googlePending, from, to }: { googlePending: boolean; from?: Date; to?: Date },
+): CalendarEvent[] {
+  const own = events ?? []
+  const shown = new Set(own.map((e) => e.id))
+  const native = (meetings ?? [])
+    .filter((m) => (m.google_event_id ? !googlePending && !shown.has(m.google_event_id) : true))
+    .filter((m) => (!to || new Date(m.starts_at) < to) && (!from || new Date(m.ends_at ?? m.starts_at) >= from))
+    .map(meetingToEvent)
+  return [...own, ...native]
 }

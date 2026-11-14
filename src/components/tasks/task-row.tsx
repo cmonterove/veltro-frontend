@@ -1,7 +1,10 @@
 'use client'
 
+import { createContext, useContext } from 'react'
 import { useTranslations } from 'next-intl'
-import { CircleUser, Paperclip } from 'lucide-react'
+import { Ban, CircleUser, Hourglass, Paperclip } from 'lucide-react'
+import { differenceInCalendarDays, parseISO } from 'date-fns'
+import { Tooltip } from '@/components/ui/tooltip'
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
 import { AvatarStack } from '@/components/ui/avatar'
 import { useUpdateTask } from '@/lib/queries/tasks'
@@ -15,6 +18,11 @@ import { DueDate } from './due-date'
 import { WorkspaceMark } from '@/components/app/marks'
 import { statusPatch, taskStatusOf, workspaceStatuses } from '@/lib/statuses'
 import { assigneesOf, assigneesPatch } from '@/lib/assignees'
+
+/** Días sin cambios desde los que una tarea abierta se marca como quieta. */
+const IDLE_DAYS = 5
+/** ¿Se marca lo quieto? En «Mías» no (cada quien sabe lo suyo); en las vistas de seguimiento, sí. */
+export const ShowIdleContext = createContext(true)
 
 export function TaskRow({
   task,
@@ -37,6 +45,9 @@ export function TaskRow({
   const people = assigneesOf(task).flatMap((id) => memberMap.get(id) ?? [])
   const attachments = useAttachmentCounts(task.workspace_id).get(task.id) ?? 0
   const done = task.status === 'done'
+  const showIdle = useContext(ShowIdleContext)
+  // quieta: abierta y sin cambios hace días (lo que hay que perseguir en el seguimiento)
+  const idle = done || !task.updated_at ? 0 : differenceInCalendarDays(new Date(), parseISO(task.updated_at))
 
   const patch = (p: Parameters<typeof update.mutate>[0]['patch']) => update.mutate({ id: task.id, patch: p })
 
@@ -65,6 +76,25 @@ export function TaskRow({
 
       <span className={cn('min-w-0 flex-1 truncate', done ? 'text-fg-muted' : 'text-fg')}>{task.title}</span>
 
+      {/* esperando a otras tareas (dependencias abiertas) */}
+      {!done && task.blocked_by_open ? (
+        <Tooltip content={t('deps.waitingHint', { count: task.blocked_by_open })}>
+          <span className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full bg-danger-soft px-1.5 text-2xs font-medium text-danger">
+            <Ban className="size-3" />
+            <span className="hidden @xl:inline">{t('deps.waiting', { count: task.blocked_by_open })}</span>
+          </span>
+        </Tooltip>
+      ) : null}
+
+      {showIdle && idle >= IDLE_DAYS ? (
+        <Tooltip content={t('idleHint', { count: idle })}>
+          <span className="hidden h-5 shrink-0 items-center gap-1 rounded-full bg-warning-soft px-1.5 text-2xs font-medium text-mandarina-ink @xl:inline-flex">
+            <Hourglass className="size-3" />
+            {t('idle', { count: idle })}
+          </span>
+        </Tooltip>
+      ) : null}
+
       {task.labels.length ? (
         <span className="hidden items-center gap-1 @3xl:flex">
           {task.labels.slice(0, 2).map((l) => (
@@ -90,7 +120,7 @@ export function TaskRow({
 
       <DuePopover value={task.due_date} onChange={(due_date) => patch({ due_date })} disabled={!editable} className="h-6 px-1.5">
         {task.due_date ? (
-          <DueDate due={task.due_date} done={done} />
+          <DueDate due={task.due_date} done={done} repeats={Boolean(task.recurrence)} />
         ) : (
           <span className="text-xs text-fg-subtle opacity-0 transition-opacity group-hover/row:opacity-100">{t('addDate')}</span>
         )}

@@ -20,6 +20,10 @@
   /* superficies: crema de fondo, blanco para lo que se eleva */
   --canvas: oklch(0.976 0.008 61.5); /* crema #FBF6F2 */
   --sidebar: oklch(0.95 0.007 39.5); /* #F3EDEB */
+  /* marco Ciruela empolvado: el menú y la barra de arriba viven sobre él, el contenido es una hoja encima */
+  --frame: oklch(0.385 0.07 318); /* #53375C · perla encima 9,2:1 */
+  --frame-hi: oklch(0.415 0.076 318);
+  --frame-lo: oklch(0.33 0.06 315); /* #412B4A */
   --panel: oklch(1 0 0); /* blanco */
   --hover: oklch(0.932 0.007 28.8); /* #EDE7E6 */
   --active: oklch(0.911 0.014 336.2); /* #E8DEE5 */
@@ -119,6 +123,8 @@
   --elev-panel: -1px 0 0 oklch(0.243 0.088 312.7 / 0.06), -16px 0 40px -14px oklch(0.3 0.09 312 / 0.15);
   --elev-card: 0 1px 2px oklch(0.243 0.088 312.7 / 0.05), 0 0 0 1px oklch(0.243 0.088 312.7 / 0.06);
   --elev-lift: 0 14px 36px -10px oklch(0.3 0.12 312 / 0.26), 0 0 0 1px oklch(0.243 0.088 312.7 / 0.07);
+  /* la hoja del contenido sobre el marco: borde fino y una sombra larga y suave */
+  --elev-sheet: 0 0 0 1px oklch(0.243 0.088 312.7 / 0.06), 0 1px 2px oklch(0.243 0.088 312.7 / 0.04), 0 12px 32px -18px oklch(0.3 0.09 312 / 0.16);
 }
 
 .dark {
@@ -127,6 +133,10 @@
   /* superficies: noche de fondo, más clara hacia arriba */
   --canvas: oklch(0.2 0.042 310.7); /* noche #1C1024 */
   --sidebar: oklch(0.172 0.036 311); /* #150B1B */
+  /* el marco sigue siendo ciruela empolvado, más hondo; la hoja noche queda por debajo de él */
+  --frame: oklch(0.27 0.045 316); /* #2F1F35 · perla encima 14:1 */
+  --frame-hi: oklch(0.3 0.05 318);
+  --frame-lo: oklch(0.235 0.04 314);
   --panel: oklch(0.232 0.044 311); /* #24172D */
   --hover: oklch(0.262 0.046 311); /* #2C1E35 */
   --active: oklch(0.3 0.058 311); /* #372543 */
@@ -208,6 +218,104 @@
   --elev-panel: -1px 0 0 oklch(1 0 0 / 0.06), -16px 0 40px -12px oklch(0.08 0.03 311 / 0.6);
   --elev-card: 0 0 0 1px oklch(1 0 0 / 0.07);
   --elev-lift: 0 16px 40px -10px oklch(0.08 0.03 311 / 0.7), 0 0 0 1px oklch(1 0 0 / 0.08);
+  --elev-sheet: 0 0 0 1px oklch(1 0 0 / 0.06), 0 16px 40px -20px oklch(0.06 0.03 311 / 0.8);
+}
+
+/*
+ * Lo que vive sobre el marco (menú, barra de arriba): texto perla y superficies translucidas,
+ * igual en claro y en oscuro porque el marco es oscuro en los dos. Los menús, avisos y vistazos
+ * que se abren desde ahí van en portales, fuera de este bloque, y usan el tema normal.
+ * Contraste sobre el marco claro (el peor caso): perla 9,2:1 · muted 7:1 · subtle 5,5:1.
+ */
+@utility on-frame {
+  --sidebar: var(--frame);
+  --canvas: oklch(0.969 0.011 54.5 / 0.06);
+  --panel: oklch(0.969 0.011 54.5 / 0.13);
+  --hover: oklch(0.969 0.011 54.5 / 0.08);
+  --active: oklch(0.969 0.011 54.5 / 0.13);
+  --line: oklch(0.969 0.011 54.5 / 0.13);
+  --line-soft: oklch(0.969 0.011 54.5 / 0.08);
+  --line-strong: oklch(0.969 0.011 54.5 / 0.22);
+  --fg: oklch(0.969 0.011 54.5);
+  --fg-muted: oklch(0.969 0.011 54.5 / 0.86);
+  --fg-subtle: oklch(0.969 0.011 54.5 / 0.78);
+  --accent: oklch(0.773 0.115 303); /* lila: ícono activo y contadores (tinta encima 7,9:1) */
+  --accent-hover: oklch(0.82 0.084 311.6);
+  --accent-fg: oklch(0.243 0.088 312.7);
+  --accent-mid: oklch(0.773 0.115 303);
+  --accent-soft: oklch(0.773 0.115 303 / 0.18);
+  --accent-ink: oklch(0.773 0.115 303);
+  --highlight: oklch(0.773 0.115 303 / 0.16);
+  --highlight-ink: oklch(0.895 0.052 311.9);
+  /* los contadores de no leído van en rosa sobre el marco (tinta encima 6,4:1) */
+  --count: oklch(0.728 0.18 3.1);
+  --count-fg: oklch(0.243 0.088 312.7);
+  --logo-a: oklch(0.773 0.115 303); /* logo en su versión oscuro */
+  --logo-b: oklch(0.728 0.18 3.1);
+  --logo-ink: oklch(0.969 0.011 54.5);
+  --elev-card: inset 0 0 0 1px oklch(0.969 0.011 54.5 / 0.1);
+  color: var(--fg);
+}
+
+/*
+ * Lo que vuelve a ser hoja dentro del marco (la pestaña del chat abierto, las tarjetas crema del
+ * panel de contexto): recupera los colores del tema. Los --sheet-* se toman en :root, antes de que
+ * on-frame cambie nada, así que valen en claro y en oscuro.
+ */
+:root {
+  --count: var(--accent);
+  --count-fg: var(--accent-fg);
+  --sheet-canvas: var(--canvas);
+  --sheet-panel: var(--panel);
+  --sheet-hover: var(--hover);
+  --sheet-active: var(--active);
+  --sheet-line: var(--line);
+  --sheet-line-soft: var(--line-soft);
+  --sheet-line-strong: var(--line-strong);
+  --sheet-fg: var(--fg);
+  --sheet-fg-muted: var(--fg-muted);
+  --sheet-fg-subtle: var(--fg-subtle);
+  --sheet-accent: var(--accent);
+  --sheet-accent-hover: var(--accent-hover);
+  --sheet-accent-fg: var(--accent-fg);
+  --sheet-accent-mid: var(--accent-mid);
+  --sheet-accent-soft: var(--accent-soft);
+  --sheet-accent-ink: var(--accent-ink);
+  --sheet-highlight: var(--highlight);
+  --sheet-highlight-ink: var(--highlight-ink);
+  --sheet-elev-card: var(--elev-card);
+}
+@utility on-sheet {
+  --canvas: var(--sheet-canvas);
+  --panel: var(--sheet-panel);
+  --hover: var(--sheet-hover);
+  --active: var(--sheet-active);
+  --line: var(--sheet-line);
+  --line-soft: var(--sheet-line-soft);
+  --line-strong: var(--sheet-line-strong);
+  --fg: var(--sheet-fg);
+  --fg-muted: var(--sheet-fg-muted);
+  --fg-subtle: var(--sheet-fg-subtle);
+  --accent: var(--sheet-accent);
+  --accent-hover: var(--sheet-accent-hover);
+  --accent-fg: var(--sheet-accent-fg);
+  --accent-mid: var(--sheet-accent-mid);
+  --accent-soft: var(--sheet-accent-soft);
+  --accent-ink: var(--sheet-accent-ink);
+  --highlight: var(--sheet-highlight);
+  --highlight-ink: var(--sheet-highlight-ink);
+  --count: var(--sheet-accent);
+  --count-fg: var(--sheet-accent-fg);
+  --elev-card: var(--sheet-elev-card);
+  color: var(--fg);
+}
+
+/* el marco: ciruela empolvado con una luz arriba a la izquierda y una sombra abajo a la derecha */
+@utility frame-bg {
+  background:
+    radial-gradient(1100px 760px at -6% -12%, var(--frame-hi), transparent 62%),
+    radial-gradient(900px 640px at 106% 112%, var(--frame-lo), transparent 70%),
+    var(--frame);
 }
 
 /* Paleta del kit de identidad (06-Color/veltro-tailwind-theme.css): clases bg-ciruela-100, text-frambuesa, etc. */
@@ -255,6 +363,9 @@
 @theme inline {
   --color-canvas: var(--canvas);
   --color-sidebar: var(--sidebar);
+  --color-frame: var(--frame);
+  --color-count: var(--count);
+  --color-count-fg: var(--count-fg);
   --color-panel: var(--panel);
   --color-hover: var(--hover);
   --color-active: var(--active);
@@ -333,6 +444,7 @@
   --shadow-panel: var(--elev-panel);
   --shadow-card: var(--elev-card);
   --shadow-lift: var(--elev-lift);
+  --shadow-sheet: var(--elev-sheet);
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -549,6 +661,38 @@
 }
 @utility toast-icon {
   animation: toast-icon-in 380ms var(--ease-out-quart) both;
+}
+
+/* Campana: llega un aviso nuevo y se mece una vez (solo transform, sin rebote) */
+@keyframes bell-ring {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(14deg); }
+  35% { transform: rotate(-11deg); }
+  55% { transform: rotate(7deg); }
+  75% { transform: rotate(-3deg); }
+  100% { transform: rotate(0); }
+}
+@utility bell-ring {
+  transform-origin: 50% 12%;
+  animation: bell-ring 900ms var(--ease-out-quart) both;
+}
+
+/* «Está escribiendo…»: tres puntos que respiran por turnos */
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+@utility typing-dot {
+  animation: typing-dot 1.2s var(--ease-out-quart) infinite;
+}
+
+/* Un mensaje al que se llega desde un aviso: se ilumina y se apaga */
+@keyframes msg-flash {
+  0%, 35% { background-color: color-mix(in oklch, var(--highlight) 70%, transparent); }
+  100% { background-color: transparent; }
+}
+@utility msg-flash {
+  animation: msg-flash 2.4s var(--ease-out-quart) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

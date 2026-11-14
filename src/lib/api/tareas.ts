@@ -29,6 +29,7 @@ type ApiTaskBase = {
   docId: string | null
   docBlockId: string | null
   meetingId: string | null
+  recurrence?: TaskRow['recurrence']
   createdBy: string | null
   completedAt: string | null
   createdAt: string
@@ -36,7 +37,26 @@ type ApiTaskBase = {
 }
 
 /** En listas: sin el contenido de la descripción. */
-export type ApiTaskBrief = ApiTaskBase & { subtasks?: { total: number; done: number }; attachments?: number; comments?: number }
+export type ApiTaskBrief = ApiTaskBase & {
+  subtasks?: { total: number; done: number }
+  attachments?: number
+  comments?: number
+  /** cuántas tareas sin terminar la bloquean */
+  blockedByOpen?: number
+}
+
+/** Una tarea en una dependencia («bloqueada por» / «bloquea a»). */
+export type ApiDependency = {
+  id: string
+  ref: string
+  title: string
+  status: TaskStatus
+  statusId: string | null
+  workspaceId: string
+  assigneeIds: string[]
+  dueDate: string | null
+}
+export type ApiDependencies = { blockedBy: ApiDependency[]; blocking: ApiDependency[] }
 
 /** Una tarea con lo que cuelga de ella (GET /v1/tasks/{id}, al crear y al editar). */
 export type ApiTaskDetail = ApiTaskBase & {
@@ -47,6 +67,11 @@ export type ApiTaskDetail = ApiTaskBase & {
   meeting: { id: string; title: string; startsAt: string } | null
   doc: { id: string; title: string; source: DocSource } | null
   commentsCount: number
+  /** quienes la siguen (los que la siguen a propósito y quien la creó) */
+  followers?: { id: string; fullName: string; avatarUrl: string | null }[]
+  /** las que la bloquean y las que la esperan */
+  blockedBy?: ApiDependency[]
+  blocking?: ApiDependency[]
 }
 
 export type ApiPage<T> = { items: T[]; nextCursor: string | null }
@@ -96,6 +121,7 @@ export type ApiTaskComment = {
   workspaceId: string
   userId: string
   body: string
+  mentions?: string[]
   createdAt: string
   updatedAt: string
   author: { id: string; fullName: string; avatarUrl: string | null }
@@ -110,7 +136,7 @@ export type ApiTaskFieldChange = { field: TaskFieldDef | null; fields: TaskField
 // ---------------- a filas ----------------
 
 /** Tarea de la API → fila de la web. Las de listas no traen la descripción (queda en null). */
-export function toTaskRow(t: ApiTaskBase & { description?: Json | null }): TaskRow {
+export function toTaskRow(t: ApiTaskBase & { description?: Json | null; blockedByOpen?: number; blockedBy?: ApiDependency[] }): TaskRow {
   return {
     id: t.id,
     workspace_id: t.workspaceId,
@@ -133,7 +159,10 @@ export function toTaskRow(t: ApiTaskBase & { description?: Json | null }): TaskR
     doc_id: t.docId,
     doc_block_id: t.docBlockId,
     meeting_id: t.meetingId,
+    recurrence: t.recurrence ?? null,
     created_by: t.createdBy,
+    // en listas viene contado; en el detalle, se cuentan las abiertas de la lista
+    blocked_by_open: t.blockedByOpen ?? t.blockedBy?.filter((d) => d.status !== 'done').length,
     completed_at: t.completedAt,
     created_at: t.createdAt,
     updated_at: t.updatedAt,
@@ -141,7 +170,7 @@ export function toTaskRow(t: ApiTaskBase & { description?: Json | null }): TaskR
 }
 
 export function toTaskComment(c: ApiTaskComment): TaskCommentRow {
-  return { id: c.id, task_id: c.taskId, workspace_id: c.workspaceId, user_id: c.userId, body: c.body, created_at: c.createdAt, updated_at: c.updatedAt }
+  return { id: c.id, task_id: c.taskId, workspace_id: c.workspaceId, user_id: c.userId, body: c.body, mentions: c.mentions ?? [], created_at: c.createdAt, updated_at: c.updatedAt }
 }
 
 // ---------------- a cuerpos ----------------
@@ -162,6 +191,7 @@ const FIELDS: [keyof TaskPatch, string][] = [
   ['doc_id', 'docId'],
   ['doc_block_id', 'docBlockId'],
   ['meeting_id', 'meetingId'],
+  ['recurrence', 'recurrence'],
   ['position', 'position'],
 ]
 

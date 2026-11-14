@@ -56,6 +56,8 @@ export function TasksDashboard({
   const today = useMemo(() => startOfDay(new Date()), [])
   const todayKey = toDateKey(today)
   const multi = scope.kind !== 'me'
+  // Delegadas y Siguiendo no son alguien: la frase cambia («En lo que delegaste hay…»)
+  const subject = scope.kind === 'me' ? 'me' : scope.kind === 'delegated' || scope.kind === 'following' ? scope.kind : 'other'
 
   // listas (lo que se puede abrir): de las tareas cargadas
   const open = useMemo(() => tasks.filter((x) => x.status !== 'done'), [tasks])
@@ -135,10 +137,10 @@ export function TasksDashboard({
         <p className="max-w-[60ch] text-[22px] font-medium leading-snug tracking-[-0.01em] text-fg">
           {parts.length ? (
             <>
-              {t('subject', { subject: multi ? 'other' : 'me', who: scope.display })} {joined}.
+              {t('subject', { subject, who: scope.display })} {joined}.
             </>
           ) : (
-            t('allClear', { subject: multi ? 'other' : 'me', who: scope.display })
+            t('allClear', { subject, who: scope.display })
           )}
         </p>
         <p className="mt-2 text-sm text-fg-muted">{t('subline', { open: openCount, spaces, done: doneWeek })}</p>

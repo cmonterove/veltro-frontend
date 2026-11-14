@@ -47,7 +47,7 @@ export function ProfileSettings({ recovery = null }: { recovery?: RecoveryState 
     <div>
       <SettingsHeader title={t('title')} description={t('description')} />
 
-      {urgent ? <PasswordCard recovery={recovery} /> : null}
+      {urgent ? <PasswordCard recovery={recovery} email={profile.email} mustChange={profile.must_change_password} /> : null}
 
       <SettingsCard>
         <SettingsRow label={t('photo')} description={t('photoHint')}>
@@ -61,31 +61,39 @@ export function ProfileSettings({ recovery = null }: { recovery?: RecoveryState 
         </SettingsRow>
       </SettingsCard>
 
-      {urgent ? null : <PasswordCard recovery={null} />}
+      {urgent ? null : <PasswordCard recovery={null} email={profile.email} mustChange={false} />}
 
       <SaveBar dirty={dirty} pending={saving} onSave={save} onDiscard={() => setName(profile.full_name)} disabled={name.trim().length < 2} />
     </div>
   )
 }
 
+type PasswordCardProps = {
+  recovery: RecoveryState
+  email: string
+  /** contraseña temporal: no hace falta la actual */
+  mustChange: boolean
+  /** fuera de la app (/auth/reset): adónde ir al terminar, con recarga completa */
+  doneHref?: string
+}
+
 /**
  * Cambiar la contraseña. Pide la actual salvo con contraseña temporal o recién llegado del
  * enlace de recuperación (la API lo vuelve a comprobar: si la ventana venció, la pide).
  */
-function PasswordCard({ recovery }: { recovery: RecoveryState }) {
+export function PasswordCard({ recovery, email, mustChange, doneHref }: PasswordCardProps) {
   const t = useTranslations('settings.profile')
   const te = useTranslations('errors')
   const router = useRouter()
-  const { profile } = useApp()
   const [current, setCurrent] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [pending, start] = useTransition()
   // la API puede pedir la actual aunque llegue por el enlace (si pasaron más de 15 minutos)
-  const [needCurrent, setNeedCurrent] = useState(recovery !== 'active' && !profile.must_change_password)
+  const [needCurrent, setNeedCurrent] = useState(recovery !== 'active' && !mustChange)
   const [error, setError] = useState<string | null>(null)
 
-  const mode = recovery === 'active' && !needCurrent ? 'recovery' : recovery === 'expired' || (recovery === 'active' && needCurrent) ? 'expired' : profile.must_change_password ? 'temp' : 'normal'
+  const mode = recovery === 'active' && !needCurrent ? 'recovery' : recovery === 'expired' || (recovery === 'active' && needCurrent) ? 'expired' : mustChange ? 'temp' : 'normal'
   const title = mode === 'recovery' || mode === 'expired' ? t('recoveryTitle') : mode === 'temp' ? t('tempTitle') : t('password')
   const description = mode === 'recovery' ? t('recoveryDescription') : mode === 'temp' ? t('passwordTemp') : mode === 'normal' ? t('passwordDescription') : null
 
@@ -106,6 +114,10 @@ function PasswordCard({ recovery }: { recovery: RecoveryState }) {
       setPassword('')
       setConfirm('')
       toast.success(t('passwordChanged'), { description: t('passwordChangedHint') })
+      if (doneHref) {
+        window.location.href = doneHref
+        return
+      }
       // sin ?reset=1: el enlace ya se usó
       if (recovery) router.replace('/settings/profile')
       router.refresh()
@@ -131,7 +143,7 @@ function PasswordCard({ recovery }: { recovery: RecoveryState }) {
         className="divide-y divide-line-soft"
       >
         {/* el correo, para que el gestor de contraseñas guarde la nueva en la entrada correcta */}
-        <input type="email" name="email" autoComplete="username" value={profile.email} readOnly hidden />
+        <input type="email" name="email" autoComplete="username" value={email} readOnly hidden />
         {mode === 'expired' ? (
           <p role="status" className="rounded-t-xl bg-warning-soft px-5 py-3 text-sm text-fg">
             {t('recoveryExpired')}

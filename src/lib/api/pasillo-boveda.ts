@@ -21,8 +21,10 @@ export type ApiChatMessage = {
   body: string
   refId: string | null
   meta: ChatMessageRow['meta']
+  mentions?: string[]
   createdAt: string
   editedAt: string | null
+  deletedAt?: string | null
   author: { id: string; fullName: string; avatarUrl: string | null } | null
 }
 
@@ -106,8 +108,10 @@ export function toChatMessage(m: ApiChatMessage): ChatMessageRow {
     body: m.body,
     ref_id: m.refId,
     meta: m.meta ?? {},
+    mentions: m.mentions ?? [],
     created_at: m.createdAt,
     edited_at: m.editedAt,
+    deleted_at: m.deletedAt ?? null,
   }
 }
 
@@ -167,11 +171,14 @@ export type OutgoingMessage = {
   refId?: string | null
   meta?: ChatMessageRow['meta']
   replyToId?: string | null
+  /** personas del chat mencionadas (@) */
+  mentions?: string[]
 }
 
 export function toMessageBody(m: OutgoingMessage, withReply = true) {
   const body = (m.body ?? '').slice(0, 4000)
-  const reply = withReply && m.replyToId ? { replyToId: m.replyToId } : {}
+  // la cita y las menciones son de un chat: al compartir en varios no van
+  const reply = withReply ? { ...(m.replyToId ? { replyToId: m.replyToId } : {}), ...(m.mentions?.length ? { mentions: m.mentions } : {}) } : {}
   const kind = m.kind ?? 'text'
   if (kind === 'text') return { kind, body, ...reply }
   if (kind === 'meeting') {

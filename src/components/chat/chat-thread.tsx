@@ -1,11 +1,13 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { addDays, differenceInMinutes, format, isSameDay, isToday, isYesterday } from 'date-fns'
 import {
   ArrowLeft,
+  AtSign,
+  Ban,
   CalendarDays,
   CalendarPlus,
   CircleCheck,
@@ -18,6 +20,7 @@ import {
   Reply,
   Search,
   SendHorizontal,
+  Trash2,
   Upload,
   UserPlus,
   Vault,
@@ -27,7 +30,8 @@ import {
 import { useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { DocMark } from '@/components/app/marks'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
-import { AutoTextarea } from '@/components/ui/auto-textarea'
+import { MentionTextarea, mentionIds, type MentionCandidate } from '@/components/mentions/mention-textarea'
+import { RichText } from '@/components/mentions/rich-text'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -37,7 +41,8 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { NewMeetingDialog } from '@/components/calendar/new-meeting-dialog'
 import { FileKindIcon, fileTitle } from '@/components/vault/file-visual'
-import { useChatMessages, useChatMutations, useChats, type ChatSummary, type NewMessage } from '@/lib/queries/chats'
+import { sendTyping, useChatMessages, useChatMutations, useChats, type ChatSummary, type NewMessage } from '@/lib/queries/chats'
+import { useRealtimeLive, useTypingIn } from '@/lib/realtime'
 import { useAttachmentMutations, useVaultFiles } from '@/lib/queries/attachments'
 import { useTasks } from '@/lib/queries/tasks'
 import { useDocsIn } from '@/lib/queries/docs'
@@ -48,6 +53,7 @@ import type { ChatMessageRow, MeetingInvite } from '@/lib/database.types'
 import type { CalendarEvent } from '@/lib/types'
 import { cn, taskRef } from '@/lib/utils'
 import { ChatAvatar, useChatName } from './chat-bits'
+import { ChatContextToggle } from './chat-context'
 import { DocCard, FileCard, InviteCard, TaskCard } from './message-cards'
 import { PeopleDialog } from './new-chat-dialog'
 import { inviteFrom, useMeetNow } from './meet-now'
@@ -68,6 +74,21 @@ export function ChatThread({ chatId }: { chatId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  // llegar a un mensaje desde un aviso (?m=…): se centra y se ilumina un momento
+  const target = useSearchParams().get('m')
+  const [flash, setFlash] = useState<string | null>(null)
+  const loaded = Boolean(messages?.length)
+  useEffect(() => {
+    if (!target || !loaded) return
+    const el = document.getElementById(`msg-${target}`)
+    if (!el) return
+    stick.current = false
+    el.scrollIntoView({ block: 'center' })
+    setFlash(target)
+    router.replace(`/chat/${chatId}`, { scroll: false })
+  }, [target, loaded, chatId, router])
 
   // "Nuevos": dónde estaba la última lectura al abrir el chat (no se mueve mientras se lee)
   const [readMark, setReadMark] = useState<string | null | undefined>(undefined)
@@ -155,7 +176,14 @@ export function ChatThread({ chatId }: { chatId: string }) {
                   </Button>
                 </div>
               ) : null}
-              <MessageList messages={messages} firstNew={firstNew} onReply={setReplyTo} />
+              <MessageList
+                messages={messages}
+                firstNew={firstNew}
+                flash={flash}
+                editingId={editingId}
+                onEdit={setEditingId}
+                onReply={setReplyTo}
+              />
             </>
           ) : (
             <EmptyThread chat={chat} />
@@ -169,6 +197,13 @@ export function ChatThread({ chatId }: { chatId: string }) {
         onSent={() => {
           stick.current = true
         }}
+        onEditLast={() => {
+          // ↑ con el cuadro vacío: editar mi último mensaje (como en Slack)
+          const mine = [...(messages ?? [])].reverse().find((m) => m.user_id === user.id && m.kind !== 'system' && !m.deleted_at && !m.id.startsWith('temp-'))
+          if (!mine) return false
+          setEditingId(mine.id)
+          return true
+        }}
       />
     </div>
   )
@@ -176,7 +211,10 @@ export function ChatThread({ chatId }: { chatId: string }) {
 
 function ThreadHeader({ chat, onBack }: { chat: ChatSummary; onBack: () => void }) {
   const t = useTranslations('pasillo')
-  const { user, members } = useApp()
+  const { user, members, google } = useApp()
+  const { send } = useChatMutations()
+  // sin Google no hay Meet al instante: el botón arma una reunión de Veltro para ahora y la avisa en el chat
+  const [nativeOpen, setNativeOpen] = useState(false)
   const memberMap = useMemberMap()
   const chatName = useChatName()
   const { rename, addMembers, leave } = useChatMutations()
@@ -192,13 +230,13 @@ function ThreadHeader({ chat, onBack }: { chat: ChatSummary; onBack: () => void 
   const meet = useMeetNow(chat)
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-3 sm:px-5">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-3 sm:px-5 md:h-[68px] md:px-6">
       <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={onBack} aria-label={t('back')}>
         <ArrowLeft />
       </Button>
-      <ChatAvatar chat={chat} size={32} />
+      <ChatAvatar chat={chat} size={40} />
       <div className="min-w-0">
-        <h1 className="truncate text-sm font-semibold text-fg">{chatName(chat)}</h1>
+        <h1 className="truncate text-sm font-semibold text-fg md:text-[17px] md:tracking-[-0.01em]">{chatName(chat)}</h1>
         <p className="truncate text-xs text-fg-muted">
           {chat.kind === 'group'
             ? t('membersList', { count: people.length, names: people.map((p) => (p.id === user.id ? t('you') : p.full_name.split(' ')[0])).join(', ') })
@@ -206,13 +244,33 @@ function ThreadHeader({ chat, onBack }: { chat: ChatSummary; onBack: () => void 
         </p>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        {chat.kind === 'group' ? <AvatarStack people={people} size={24} max={4} className="hidden sm:flex" /> : null}
-        <Tooltip content={t('meetNow.hint')}>
-          <Button size="sm" onClick={meet.start} loading={meet.pending} aria-label={t('meetNow.label')}>
-            {meet.pending ? null : <Video />}
-            <span className="hidden xl:inline">{t('meetNow.label')}</span>
+        {chat.kind === 'group' ? <AvatarStack people={people} size={26} max={4} className="hidden sm:flex" /> : null}
+        <Tooltip content={google ? t('meetNow.hint') : t('meetNow.hintNative')}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={google ? meet.start : () => setNativeOpen(true)}
+            loading={meet.pending}
+            aria-label={google ? t('meetNow.label') : t('meetNow.labelNative')}
+          >
+            {meet.pending ? null : google ? <Video /> : <CalendarPlus />}
+            <span className="hidden lg:inline">{google ? t('meetNow.label') : t('meetNow.labelNative')}</span>
           </Button>
         </Tooltip>
+        {google ? null : (
+          <NewMeetingDialog
+            open={nativeOpen}
+            onOpenChange={setNativeOpen}
+            defaults={{
+              title: chat.kind === 'group' ? t('meetNow.titleGroup', { name: chatName(chat) }) : '',
+              // ahora, redondeado a los 5 minutos
+              start: new Date(Math.floor(Date.now() / 300_000) * 300_000),
+              attendees: people.filter((p) => p.id !== user.id).flatMap((p) => p.email ?? []),
+            }}
+            onCreated={(event) => send.mutate({ chatId: chat.id, kind: 'meeting', body: '', meta: { invite: inviteFrom(event, user.id) } })}
+          />
+        )}
+        <ChatContextToggle />
         <Menu>
           <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('more')} />}>
             <MoreHorizontal />
@@ -302,9 +360,22 @@ function dayLabel(d: Date, t: (k: string) => string, locale: Parameters<typeof f
   return format(d, 'EEEE d MMMM', locale)
 }
 
-function MessageList({ messages, firstNew, onReply }: { messages: ChatMessageRow[]; firstNew?: string; onReply: (m: ChatMessageRow) => void }) {
+type ListProps = {
+  messages: ChatMessageRow[]
+  firstNew?: string
+  flash: string | null
+  editingId: string | null
+  onEdit: (id: string | null) => void
+  onReply: (m: ChatMessageRow) => void
+}
+
+function MessageList({ messages, firstNew, flash, editingId, onEdit, onReply }: ListProps) {
   const t = useTranslations('pasillo')
   const locale = useDateLocale()
+  const { user } = useApp()
+  // cuántos mensajes de otros llegaron desde la última lectura
+  const from = firstNew ? messages.findIndex((m) => m.id === firstNew) : -1
+  const newCount = from < 0 ? 0 : messages.slice(from).filter((m) => m.kind !== 'system' && m.user_id !== user.id).length
   // un bloque por día: así la etiqueta del día queda fija arriba solo mientras se lee ese día
   const days: ChatMessageRow[][] = []
   for (const m of messages) {
@@ -328,17 +399,30 @@ function MessageList({ messages, firstNew, onReply }: { messages: ChatMessageRow
               prev.kind !== 'system' &&
               m.kind !== 'system' &&
               prev.user_id === m.user_id &&
+              !prev.deleted_at &&
               differenceInMinutes(new Date(m.created_at), new Date(prev.created_at)) < GROUP_MINUTES &&
               m.id !== firstNew
             return (
               <Fragment key={m.id}>
                 {m.id === firstNew ? (
-                  <div className="my-2 flex items-center gap-2 px-5" role="separator">
-                    <span className="h-px flex-1 bg-danger/40" />
-                    <span className="text-2xs font-semibold uppercase tracking-wide text-danger">{t('newMessages')}</span>
+                  <div className="my-3 flex items-center gap-3 px-5" role="separator" aria-label={t('newMessages')}>
+                    <span className="h-px flex-1 bg-line" />
+                    <span className="rounded-full bg-accent px-2.5 py-0.5 text-2xs font-semibold text-accent-fg">{t('newCount', { count: newCount })}</span>
+                    <span className="h-px flex-1 bg-line" />
                   </div>
                 ) : null}
-                {m.kind === 'system' ? <SystemLine m={m} /> : <MessageRow m={m} joined={Boolean(joined)} onReply={() => onReply(m)} />}
+                {m.kind === 'system' ? (
+                  <SystemLine m={m} />
+                ) : (
+                  <MessageRow
+                    m={m}
+                    joined={Boolean(joined)}
+                    flash={flash === m.id}
+                    editing={editingId === m.id}
+                    onEdit={(on) => onEdit(on ? m.id : null)}
+                    onReply={() => onReply(m)}
+                  />
+                )}
               </Fragment>
             )
           })}
@@ -358,70 +442,78 @@ function SystemLine({ m }: { m: ChatMessageRow }) {
   return <p className="px-5 py-1.5 text-center text-xs text-fg-subtle">{t(kind, { who: who(m.user_id), others, name: m.meta.name ?? '' })}</p>
 }
 
-const URL_RE = /(https?:\/\/[^\s]+)/g
+const actionClass = 'inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg'
 
-/** Texto con los links clicables. */
-function RichText({ text }: { text: string }) {
-  const parts = text.split(URL_RE)
-  return (
-    <>
-      {parts.map((p, i) =>
-        i % 2 === 1 ? (
-          <a
-            key={i}
-            href={p}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent-ink underline decoration-accent-mid/40 underline-offset-2 hover:decoration-accent-mid"
-          >
-            {p}
-          </a>
-        ) : (
-          <Fragment key={i}>{p}</Fragment>
-        ),
-      )}
-    </>
-  )
-}
+type RowProps = { m: ChatMessageRow; joined: boolean; flash: boolean; editing: boolean; onEdit: (on: boolean) => void; onReply: () => void }
 
-function MessageRow({ m, joined, onReply }: { m: ChatMessageRow; joined: boolean; onReply: () => void }) {
+function MessageRow({ m, joined, flash, editing, onEdit, onReply }: RowProps) {
   const copy = useCopy()
   const t = useTranslations('pasillo')
+  const tConfirm = useTranslations('confirm')
+  const confirm = useConfirm()
+  const locale = useDateLocale()
   const { user } = useApp()
   const memberMap = useMemberMap()
+  const { remove } = useChatMutations()
   const author = memberMap.get(m.user_id ?? '')
   const at = new Date(m.created_at)
   const sending = m.id.startsWith('temp-')
+  const deleted = Boolean(m.deleted_at)
+  const mine = m.user_id === user.id
   const quoted = m.meta.replyTo
   const quotedAuthor = quoted ? (quoted.userId === user.id ? t('you') : (memberMap.get(quoted.userId ?? '')?.full_name.split(' ')[0] ?? '?')) : ''
+  const mentions = m.mentions.flatMap((id) => {
+    const p = memberMap.get(id)
+    return p ? [{ id, name: p.full_name }] : []
+  })
+  const actions = !sending && !deleted && !editing
+
+  const del = async () => {
+    if (!(await confirm({ title: t('deleteConfirm'), description: t('deleteConfirmHint'), danger: true, confirmLabel: tConfirm('delete') }))) return
+    remove.mutate(m)
+  }
+
   return (
-    <div id={`msg-${m.id}`} className={cn('group/msg relative flex gap-3 px-5 py-0.5 hover:bg-hover/40', !joined && 'mt-2.5 pt-1', sending && 'opacity-60')}>
-      {sending ? null : (
+    <div
+      id={`msg-${m.id}`}
+      className={cn(
+        'group/msg relative flex gap-3 px-5 py-0.5 hover:bg-hover/40',
+        !joined && 'mt-2.5 pt-1',
+        sending && 'opacity-60',
+        editing && 'bg-highlight/50 hover:bg-highlight/50',
+        flash && 'msg-flash',
+      )}
+    >
+      {actions ? (
         <div className="absolute -top-3 right-5 z-[2] hidden items-center rounded-lg border border-line bg-panel p-0.5 shadow-card group-hover/msg:flex group-focus-within/msg:flex">
           <Tooltip content={t('reply')}>
-            <button
-              type="button"
-              onClick={onReply}
-              aria-label={t('reply')}
-              className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg"
-            >
+            <button type="button" onClick={onReply} aria-label={t('reply')} className={actionClass}>
               <Reply className="size-4" />
             </button>
           </Tooltip>
           {m.body ? (
             <Tooltip content={t('copyText')}>
-              <button
-                type="button"
-                onClick={() => copy(m.body, t('copied'))}
-                aria-label={t('copyText')}
-                className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg"
-              >
+              <button type="button" onClick={() => copy(m.body, t('copied'))} aria-label={t('copyText')} className={actionClass}>
                 <Copy className="size-4" />
               </button>
             </Tooltip>
           ) : null}
+          {mine ? (
+            <>
+              <Tooltip content={t('edit')} shortcut={['↑']}>
+                <button type="button" onClick={() => onEdit(true)} aria-label={t('edit')} className={actionClass}>
+                  <Pencil className="size-3.5" />
+                </button>
+              </Tooltip>
+              <Tooltip content={t('delete')}>
+                <button type="button" onClick={del} aria-label={t('delete')} className={cn(actionClass, 'hover:text-danger')}>
+                  <Trash2 className="size-3.5" />
+                </button>
+              </Tooltip>
+            </>
+          ) : null}
         </div>
-      )}
+      ) : null}
       <div className="w-9 shrink-0">
         {joined ? (
           <span className="block pt-0.5 text-right text-2xs tabular-nums text-fg-subtle opacity-0 group-hover/msg:opacity-100">{format(at, 'HH:mm')}</span>
@@ -432,31 +524,155 @@ function MessageRow({ m, joined, onReply }: { m: ChatMessageRow; joined: boolean
       <div className="min-w-0 flex-1">
         {joined ? null : (
           <p className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-fg">{m.user_id === user.id ? t('you') : (author?.full_name ?? '?')}</span>
+            <span className="text-sm font-semibold text-fg">{mine ? t('you') : (author?.full_name ?? '?')}</span>
             <span className="text-2xs tabular-nums text-fg-subtle">{format(at, 'HH:mm')}</span>
           </p>
         )}
-        {quoted ? (
-          <button
-            type="button"
-            onClick={() => document.getElementById(`msg-${quoted.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-            className="mb-1 mt-0.5 flex max-w-md items-baseline gap-1.5 rounded-md bg-hover/70 px-2 py-1 text-left text-xs text-fg-muted hover:bg-hover"
-          >
-            <Reply className="size-3 shrink-0 self-center text-fg-subtle" />
-            <span className="shrink-0 font-medium text-fg">{quotedAuthor}</span>
-            <span className="truncate">{quoted.body || t('quotedCard')}</span>
-          </button>
-        ) : null}
-        {m.body ? (
-          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-fg">
-            <RichText text={m.body} />
+        {deleted ? (
+          <p className="flex items-center gap-1.5 py-0.5 text-sm italic text-fg-subtle">
+            <Ban className="size-3.5 shrink-0" />
+            {mine ? t('deletedMine') : t('deleted')}
           </p>
-        ) : null}
-        {m.kind === 'task' && m.ref_id ? <TaskCard id={m.ref_id} /> : null}
-        {m.kind === 'file' && m.ref_id ? <FileCard id={m.ref_id} /> : null}
-        {m.kind === 'doc' && m.ref_id ? <DocCard id={m.ref_id} /> : null}
-        {m.kind === 'meeting' ? <InviteCard message={m} /> : null}
+        ) : (
+          <>
+            {quoted ? (
+              <button
+                type="button"
+                onClick={() => document.getElementById(`msg-${quoted.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="mb-1 mt-0.5 flex max-w-md items-baseline gap-1.5 rounded-md bg-hover/70 px-2 py-1 text-left text-xs text-fg-muted hover:bg-hover"
+              >
+                <Reply className="size-3 shrink-0 self-center text-fg-subtle" />
+                <span className="shrink-0 font-medium text-fg">{quotedAuthor}</span>
+                <span className={cn('truncate', m.meta.replyDeleted && 'italic text-fg-subtle')}>
+                  {m.meta.replyDeleted ? t('deleted') : quoted.body || t('quotedCard')}
+                </span>
+              </button>
+            ) : null}
+            {editing ? (
+              <MessageEditor m={m} onDone={() => onEdit(false)} />
+            ) : m.body ? (
+              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-fg">
+                <RichText text={m.body} mentions={mentions} me={user.id} />
+                {m.edited_at ? (
+                  <Tooltip content={format(new Date(m.edited_at), "d MMM, HH:mm", { locale })}>
+                    <span className="ml-1.5 select-none text-2xs text-fg-subtle">{t('edited')}</span>
+                  </Tooltip>
+                ) : null}
+              </p>
+            ) : null}
+            {m.kind === 'task' && m.ref_id ? <TaskCard id={m.ref_id} /> : null}
+            {m.kind === 'file' && m.ref_id ? <FileCard id={m.ref_id} /> : null}
+            {m.kind === 'doc' && m.ref_id ? <DocCard id={m.ref_id} /> : null}
+            {m.kind === 'meeting' ? <InviteCard message={m} /> : null}
+          </>
+        )}
       </div>
+    </div>
+  )
+}
+
+/** Gente del chat que se puede mencionar (todas menos yo), con su cargo. */
+function useMentionables(chat: ChatSummary | undefined): MentionCandidate[] {
+  const { user, members } = useApp()
+  const memberMap = useMemberMap()
+  return useMemo(
+    () =>
+      (chat?.members ?? []).flatMap((cm) => {
+        if (cm.user_id === user.id) return []
+        const p = memberMap.get(cm.user_id)
+        if (!p) return []
+        return [{ id: p.id, name: p.full_name, avatarUrl: p.avatar_url, sub: members.find((x) => x.id === p.id)?.title ?? undefined }]
+      }),
+    [chat?.members, user.id, memberMap, members],
+  )
+}
+
+/** Editar un mensaje en su lugar: Enter guarda, Esc cancela. Un texto vacío no se guarda (para eso, borrar). */
+function MessageEditor({ m, onDone }: { m: ChatMessageRow; onDone: () => void }) {
+  const t = useTranslations('pasillo')
+  const { data: chats } = useChats()
+  const chat = chats?.find((c) => c.id === m.chat_id)
+  const candidates = useMentionables(chat)
+  const memberMap = useMemberMap()
+  const { edit } = useChatMutations()
+  const [text, setText] = useState(m.body)
+  const [picked, setPicked] = useState<MentionCandidate[]>(() =>
+    m.mentions.flatMap((id) => {
+      const p = memberMap.get(id)
+      return p ? [{ id, name: p.full_name, avatarUrl: p.avatar_url }] : []
+    }),
+  )
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  }, [])
+  const empty = m.kind === 'text' && !text.trim()
+  const save = () => {
+    if (empty) return
+    const body = text.trim()
+    if (body !== m.body) edit.mutate({ message: m, body, mentions: mentionIds(body, picked) })
+    onDone()
+  }
+  return (
+    <div className="mt-0.5 rounded-lg border border-accent-mid bg-panel shadow-card">
+      <MentionTextarea
+        ref={ref}
+        value={text}
+        onValueChange={setText}
+        candidates={chat?.kind === 'group' ? candidates : []}
+        picked={picked}
+        onPickedChange={setPicked}
+        placement="bottom"
+        maxLength={4000}
+        aria-label={t('edit')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            e.preventDefault()
+            save()
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            onDone()
+          }
+        }}
+        className="max-h-60 bg-transparent px-3 pb-1 pt-2 text-sm leading-relaxed outline-none"
+      />
+      <div className="flex items-center gap-2 px-2 pb-2">
+        <span className="ml-1 text-2xs text-fg-subtle">{t('editHint')}</span>
+        <div className="ml-auto flex gap-1">
+          <Button variant="ghost" size="xs" onClick={onDone}>
+            {t('cancel')}
+          </Button>
+          <Button variant="primary" size="xs" onClick={save} disabled={empty}>
+            {t('save')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** «Ana está escribiendo…» sobre el compositor; el alto queda reservado para que nada salte. */
+function TypingLine({ chatId }: { chatId: string }) {
+  const t = useTranslations('pasillo')
+  const memberMap = useMemberMap()
+  const ids = useTypingIn(chatId)
+  const names = ids.map((id) => memberMap.get(id)?.full_name.split(' ')[0] ?? '').filter(Boolean)
+  return (
+    <div className="flex h-5 items-center gap-1.5 px-1 text-2xs text-fg-muted" aria-live="polite">
+      {names.length ? (
+        <>
+          <span className="flex items-center gap-[3px]" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="typing-dot size-1 rounded-full bg-accent-mid" style={{ animationDelay: `${i * 160}ms` }} />
+            ))}
+          </span>
+          <span className="truncate">{names.length === 1 ? t('typingOne', { name: names[0] }) : t('typingMany', { names: names.join(', ') })}</span>
+        </>
+      ) : null}
     </div>
   )
 }
@@ -478,7 +694,16 @@ function EmptyThread({ chat }: { chat: ChatSummary }) {
 type Pending = { kind: NonNullable<NewMessage['kind']>; refId?: string; title: string; meta?: ChatMessageRow['meta']; icon: React.ReactNode }
 type PickerKind = 'task' | 'file' | 'doc' | 'meeting'
 
-function Composer({ chat, onSent, replyTo, onClearReply }: { chat: ChatSummary; onSent: () => void; replyTo: ChatMessageRow | null; onClearReply: () => void }) {
+type ComposerProps = {
+  chat: ChatSummary
+  onSent: () => void
+  replyTo: ChatMessageRow | null
+  onClearReply: () => void
+  /** ↑ con el cuadro vacío; devuelve si había algo para editar */
+  onEditLast: () => boolean
+}
+
+function Composer({ chat, onSent, replyTo, onClearReply, onEditLast }: ComposerProps) {
   const t = useTranslations('pasillo.composer')
   const tp = useTranslations('pasillo')
   const { google, user } = useApp()
@@ -492,6 +717,9 @@ function Composer({ chat, onSent, replyTo, onClearReply }: { chat: ChatSummary; 
   const [meetingOpen, setMeetingOpen] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const live = useRealtimeLive()
+  const candidates = useMentionables(chat)
+  const [picked, setPicked] = useState<MentionCandidate[]>([])
   const can = text.trim().length > 0 || pending !== null
 
   const submit = () => {
@@ -505,9 +733,11 @@ function Composer({ chat, onSent, replyTo, onClearReply }: { chat: ChatSummary; 
       refId: pending?.refId ?? null,
       meta: { ...pending?.meta, ...reply },
       replyToId: replyTo?.id ?? null,
+      mentions: mentionIds(text, picked),
     })
     track(`feature.chat_send_${pending?.kind ?? 'text'}`)
     setText('')
+    setPicked([])
     setPending(null)
     onClearReply()
     onSent()
@@ -532,8 +762,9 @@ function Composer({ chat, onSent, replyTo, onClearReply }: { chat: ChatSummary; 
 
   return (
     <div className="shrink-0 px-3 pb-3 sm:px-5 sm:pb-4">
+      <TypingLine chatId={chat.id} />
       {picker ? <PickerPanel kind={picker} onPick={pick} onClose={() => setPicker(null)} toInvite={toInvite} /> : null}
-      <div className="rounded-xl border border-line bg-panel shadow-card transition-colors focus-within:border-accent-mid">
+      <div className="rounded-xl border border-line bg-panel shadow-card transition-[border-color,box-shadow] focus-within:border-accent-mid md:rounded-[16px] md:shadow-[0_12px_28px_-20px_oklch(0.3_0.09_312/0.45)] md:focus-within:shadow-[0_0_0_4px_color-mix(in_oklch,var(--accent)_12%,transparent),0_12px_28px_-20px_oklch(0.3_0.09_312/0.45)]">
         {replyTo ? (
           <div className="flex items-center gap-2 border-b border-line px-3 py-2 text-sm">
             <Reply className="size-4 shrink-0 text-fg-subtle" />
@@ -564,15 +795,23 @@ function Composer({ chat, onSent, replyTo, onClearReply }: { chat: ChatSummary; 
             </button>
           </div>
         ) : null}
-        <AutoTextarea
+        <MentionTextarea
           ref={textRef}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onValueChange={(v) => {
+            setText(v)
+            if (live && v.trim()) sendTyping(chat.id)
+          }}
+          candidates={chat.kind === 'group' ? candidates : []}
+          picked={picked}
+          onPickedChange={setPicked}
+          aria-label={t('placeholder', { name: chatName(chat) })}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
               submit()
             }
+            if (e.key === 'ArrowUp' && !text && !pending && !e.shiftKey && onEditLast()) e.preventDefault()
             if (e.key === 'Escape' && picker) setPicker(null)
             else if (e.key === 'Escape' && replyTo) onClearReply()
           }}
@@ -604,29 +843,53 @@ function Composer({ chat, onSent, replyTo, onClearReply }: { chat: ChatSummary; 
           <ToolButton label={t('shareDoc')} active={picker === 'doc'} onClick={() => setPicker(picker === 'doc' ? null : 'doc')}>
             <FileText />
           </ToolButton>
-          {google ? (
-            <Menu>
-              <Tooltip content={t('invite')}>
-                <MenuTrigger className={toolClass(picker === 'meeting')} aria-label={t('invite')}>
-                  <CalendarPlus />
-                </MenuTrigger>
-              </Tooltip>
-              <MenuContent side="top" className="w-60">
+          {chat.kind === 'group' ? (
+            <ToolButton
+              label={t('mention')}
+              active={false}
+              onClick={() => {
+                // escribe «@» donde está el cursor y abre la lista de gente
+                const el = textRef.current
+                if (!el) return
+                const at = el.selectionStart ?? text.length
+                const lead = at > 0 && !/\s/.test(text[at - 1] ?? '') ? ' @' : '@'
+                setText(text.slice(0, at) + lead + text.slice(at))
+                requestAnimationFrame(() => {
+                  el.focus()
+                  el.setSelectionRange(at + lead.length, at + lead.length)
+                  el.dispatchEvent(new Event('select', { bubbles: true }))
+                })
+              }}
+            >
+              <AtSign />
+            </ToolButton>
+          ) : null}
+          {/* sin Google se puede invitar igual: la reunión se crea en Veltro (Meet al instante y el calendario piden Google) */}
+          <Menu>
+            <Tooltip content={t('invite')}>
+              <MenuTrigger className={toolClass(picker === 'meeting')} aria-label={t('invite')}>
+                <CalendarPlus />
+              </MenuTrigger>
+            </Tooltip>
+            <MenuContent side="top" className="w-60">
+              {google ? (
                 <MenuItem onClick={meet.start} disabled={meet.pending}>
                   <Video />
                   {tp('meetNow.label')}
                 </MenuItem>
-                <MenuItem onClick={() => setMeetingOpen(true)}>
-                  <CalendarPlus />
-                  {t('newMeeting')}
-                </MenuItem>
+              ) : null}
+              <MenuItem onClick={() => setMeetingOpen(true)}>
+                <CalendarPlus />
+                {t('newMeeting')}
+              </MenuItem>
+              {google ? (
                 <MenuItem onClick={() => setPicker('meeting')}>
                   <CalendarDays />
                   {t('fromCalendar')}
                 </MenuItem>
-              </MenuContent>
-            </Menu>
-          ) : null}
+              ) : null}
+            </MenuContent>
+          </Menu>
           <span className="ml-auto mr-2 hidden text-2xs text-fg-subtle sm:inline">{t('hint')}</span>
           <Tooltip content={t('send')} shortcut={['↵']}>
             <Button variant="primary" size="icon-sm" onClick={submit} disabled={!can} aria-label={t('send')}>

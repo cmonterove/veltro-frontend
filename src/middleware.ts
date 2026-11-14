@@ -12,7 +12,8 @@ import {
   type ApiSession,
 } from '@/lib/api/session-cookies'
 
-const PUBLIC_PATHS = ['/login', '/register', '/auth']
+// /invite: el enlace de una invitación se abre con o sin sesión
+const PUBLIC_PATHS = ['/login', '/register', '/auth', '/invite']
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))

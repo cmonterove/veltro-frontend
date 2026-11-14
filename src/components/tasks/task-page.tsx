@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { formatDistanceToNowStrict } from 'date-fns'
+import { format, formatDistanceToNowStrict, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Repeat,
   RotateCcw,
   Send,
   Tag,
@@ -35,7 +36,12 @@ import { useStatusName } from '@/lib/use-status-name'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
 import { AutoTextarea } from '@/components/ui/auto-textarea'
-import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu'
+import { MentionTextarea, mentionIds, type MentionCandidate } from '@/components/mentions/mention-textarea'
+import { RichText } from '@/components/mentions/rich-text'
+import { TaskActivity } from './task-activity'
+import { FollowButton } from './follow-button'
+import { TaskDependencies } from './task-dependencies'
+import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/components/ui/menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip } from '@/components/ui/tooltip'
 import { fetchTaskByRef, useCreateTask, useDeleteTaskWithUndo, useSubtasks, useTask, useTaskOrigin, useUpdateTask, useWorkspaceLabels } from '@/lib/queries/tasks'
@@ -45,10 +51,11 @@ import { ApiError } from '@/lib/api/client'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { isTypingTarget } from '@/lib/hooks'
 import { TASK_BACK_KEY, taskPath, taskRefKey, useOpenTask } from '@/lib/use-open-task'
-import { useDateLocale } from '@/lib/dates'
+import { toDateKey, useDateLocale } from '@/lib/dates'
+import { nextAfterDone, RECURRENCE_PRESETS, recurrenceKey, sameRule } from '@/lib/recurrence'
 import { cn, taskRef } from '@/lib/utils'
 import { assigneesOf, assigneesPatch } from '@/lib/assignees'
-import type { TaskRow } from '@/lib/database.types'
+import type { TaskRecurrence, TaskRow } from '@/lib/database.types'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { AssigneesMenu, DuePopover, LabelChip, LabelsPopover, PriorityMenu, StatusMenu } from './pickers'
 import { PriorityIcon, StatusIcon } from './status-icon'
@@ -141,9 +148,9 @@ export function TaskPage({ param }: { param: string }) {
 
 type Draft = Pick<
   TaskRow,
-  'title' | 'status' | 'status_id' | 'priority' | 'assignee_ids' | 'due_date' | 'start_date' | 'estimate_hours' | 'labels' | 'custom' | 'description' | 'description_text'
+  'title' | 'status' | 'status_id' | 'priority' | 'assignee_ids' | 'due_date' | 'start_date' | 'estimate_hours' | 'labels' | 'custom' | 'recurrence' | 'description' | 'description_text'
 >
-const DRAFT_KEYS = ['title', 'status', 'status_id', 'priority', 'assignee_ids', 'due_date', 'start_date', 'estimate_hours', 'labels', 'custom'] as const
+const DRAFT_KEYS = ['title', 'status', 'status_id', 'priority', 'assignee_ids', 'due_date', 'start_date', 'estimate_hours', 'labels', 'custom', 'recurrence'] as const
 const toDraft = (t: TaskRow): Draft => ({
   title: t.title,
   status: t.status,
@@ -155,11 +162,12 @@ const toDraft = (t: TaskRow): Draft => ({
   estimate_hours: t.estimate_hours,
   labels: t.labels,
   custom: t.custom,
+  recurrence: t.recurrence,
   description: t.description,
   description_text: t.description_text,
 })
 
-const TABS = ['subtasks', 'comments', 'attachments'] as const
+const TABS = ['subtasks', 'comments', 'attachments', 'activity'] as const
 type Tab = (typeof TABS)[number]
 
 /**
@@ -292,6 +300,8 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
     subtasks: subtasks?.length ?? 0,
     comments: comments?.length ?? 0,
     attachments: attachments?.length ?? 0,
+    // el historial no lleva cuenta
+    activity: null,
   }
 
   return (
@@ -358,6 +368,7 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
               ) : (
                 <span className="rounded-full bg-hover px-2.5 py-1 text-xs text-fg-muted">{t('readOnly')}</span>
               )}
+              <FollowButton taskId={task.id} />
               <Tooltip content={t('shareInPasillo')}>
                 <Button variant="ghost" size="icon-sm" onClick={() => setSharing(true)} aria-label={t('shareInPasillo')}>
                   <MessageCircle />
@@ -446,6 +457,17 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
               <dd className="min-w-0">
                 <DateValue value={view.start_date} editing={editing} onChange={(start_date) => set({ start_date })} start />
               </dd>
+              <dt className="text-fg-muted">{t('recurrence.label')}</dt>
+              <dd className="min-w-0">
+                <RecurrenceValue
+                  task={view}
+                  editing={editing}
+                  onChange={(recurrence) =>
+                    // repetir sin fecha: vence hoy (la API hace lo mismo)
+                    set(recurrence && !view.due_date ? { recurrence, due_date: toDateKey(new Date()) } : { recurrence })
+                  }
+                />
+              </dd>
               <dt className="text-fg-muted">{t('estimateLabel')}</dt>
               <dd className="min-w-0">
                 {editing ? (
@@ -526,6 +548,9 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
             )}
           </section>
 
+          {/* bloqueada por / bloquea a: se agrega sin entrar al modo edición */}
+          <TaskDependencies task={task} editable={editable} />
+
           {/* lo que cuelga de la tarea: se agrega sin entrar al modo edición */}
           <div role="tablist" aria-label={t('sections')} className="mt-10 flex gap-1 overflow-x-auto border-b border-line scrollbar-none">
             {TABS.map((id) => (
@@ -551,6 +576,8 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
               <Subtasks task={task} ws={ws} editable={editable} />
             ) : tab === 'comments' ? (
               <Comments task={task} />
+            ) : tab === 'activity' ? (
+              <TaskActivity task={task} ws={ws} />
             ) : (
               <AttachmentsSection
                 scope={{ kind: 'task', taskId: task.id }}
@@ -669,6 +696,65 @@ function DateValue({ value, done, editing, onChange, start }: { value: string | 
       {content}
       <ChevronDown className="ml-auto size-3.5 text-fg-subtle" />
     </DuePopover>
+  )
+}
+
+/** Repetir: al terminarla nace la siguiente. En lectura dice cada cuánto y cuándo toca la próxima. */
+function RecurrenceValue({ task, editing, onChange }: { task: TaskRow; editing: boolean; onChange: (r: TaskRecurrence | null) => void }) {
+  const t = useTranslations('tasks.recurrence')
+  const locale = useDateLocale()
+  const rule = task.recurrence
+  const label = rule ? (() => {
+    const k = recurrenceKey(rule)
+    return t(`rules.${k.key}`, { count: k.count ?? 1 })
+  })() : null
+  const next = rule ? nextAfterDone(task.due_date, rule) : null
+  const content = rule ? (
+    <>
+      <Repeat className="size-3.5 text-accent-mid" />
+      <span className="truncate">{label}</span>
+    </>
+  ) : editing ? (
+    <>
+      <Repeat className="size-3.5 text-fg-subtle" />
+      <span className="text-fg-subtle">{t('never')}</span>
+    </>
+  ) : (
+    <Empty />
+  )
+  if (!editing) {
+    if (!rule || !next) return <ReadValue>{content}</ReadValue>
+    // la próxima fecha va abajo: en la columna angosta no entra al lado
+    return (
+      <span className="flex min-h-9 flex-col justify-center py-1 text-sm text-fg">
+        <span className="flex min-w-0 items-center gap-1.5 [&>svg]:shrink-0">{content}</span>
+        <span className="truncate pl-5 text-xs text-fg-subtle">{t('next', { date: format(parseISO(next), 'EEE d MMM', { locale }) })}</span>
+      </span>
+    )
+  }
+  return (
+    <Menu>
+      <MenuTrigger className={cn(pickerField, 'inline-flex items-center gap-1.5 outline-none')}>
+        {content}
+        <ChevronDown className="ml-auto size-3.5 text-fg-subtle" />
+      </MenuTrigger>
+      <MenuContent align="start" className="w-60">
+        <MenuRadioGroup
+          value={rule ? (RECURRENCE_PRESETS.find((p) => sameRule(p.rule, rule))?.key ?? 'custom') : 'never'}
+          onValueChange={(v) => onChange(v === 'never' ? null : (RECURRENCE_PRESETS.find((p) => p.key === v)?.rule ?? rule))}
+        >
+          <MenuRadioItem value="never" closeOnClick>
+            {t('never')}
+          </MenuRadioItem>
+          {RECURRENCE_PRESETS.map((p) => (
+            <MenuRadioItem key={p.key} value={p.key} closeOnClick>
+              {t(`rules.${p.key}`, { count: p.rule.interval ?? 1 })}
+            </MenuRadioItem>
+          ))}
+        </MenuRadioGroup>
+        <p className="px-2 pb-1.5 pt-2 text-2xs leading-snug text-fg-subtle">{t('hint')}</p>
+      </MenuContent>
+    </Menu>
   )
 }
 
@@ -811,11 +897,26 @@ function Comments({ task }: { task: TaskRow }) {
   const confirm = useConfirm()
   const tConfirm = useTranslations('confirm')
   const [body, setBody] = useState('')
+  const [picked, setPicked] = useState<MentionCandidate[]>([])
+  // se menciona a quien tiene acceso al espacio de la tarea (cada mención le llega como aviso)
+  const people = useWorkspaceMembers(task.workspace_id)
+  const candidates = useMemo<MentionCandidate[]>(
+    () => people.filter((p) => p.id !== user.id).map((p) => ({ id: p.id, name: p.full_name, avatarUrl: p.avatar_url, sub: p.title ?? undefined })),
+    [people, user.id],
+  )
 
   const submit = () => {
     const v = body.trim()
     if (!v) return
-    add.mutate(v, { onSuccess: () => setBody('') })
+    add.mutate(
+      { body: v, mentions: mentionIds(v, picked) },
+      {
+        onSuccess: () => {
+          setBody('')
+          setPicked([])
+        },
+      },
+    )
   }
 
   return (
@@ -823,18 +924,25 @@ function Comments({ task }: { task: TaskRow }) {
       <div className="flex items-end gap-3">
         <Avatar name={profile.full_name} src={profile.avatar_url} seed={profile.id} size={28} className="mb-2" />
         <div className="flex min-w-0 flex-1 items-end gap-1 rounded-xl border border-line bg-panel px-3 py-2 focus-within:border-accent">
-          <AutoTextarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                submit()
-              }
-            }}
-            placeholder={t('commentPlaceholder')}
-            className="max-h-48 bg-transparent py-1 text-sm outline-none placeholder:text-fg-subtle"
-          />
+          <div className="min-w-0 flex-1">
+            <MentionTextarea
+              value={body}
+              onValueChange={setBody}
+              candidates={candidates}
+              picked={picked}
+              onPickedChange={setPicked}
+              placement="bottom"
+              aria-label={t('commentPlaceholder')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault()
+                  submit()
+                }
+              }}
+              placeholder={t('commentPlaceholder')}
+              className="max-h-48 bg-transparent py-1 text-sm outline-none placeholder:text-fg-subtle"
+            />
+          </div>
           <Button variant="ghost" size="icon-xs" onClick={submit} disabled={!body.trim()} loading={add.isPending} aria-label={t('send')}>
             {add.isPending ? null : <Send />}
           </Button>
@@ -863,7 +971,16 @@ function Comments({ task }: { task: TaskRow }) {
                       </button>
                     ) : null}
                   </div>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-fg">{c.body}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-fg">
+                    <RichText
+                      text={c.body}
+                      me={user.id}
+                      mentions={c.mentions.flatMap((id) => {
+                        const p = memberMap.get(id)
+                        return p ? [{ id, name: p.full_name }] : []
+                      })}
+                    />
+                  </p>
                 </div>
               </div>
             )

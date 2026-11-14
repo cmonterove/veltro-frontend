@@ -18,12 +18,14 @@ export function LoadBar({ load, max, className }: { load: Load; max: number; cla
     load.overdue != null || load.blocked != null
       ? [load.overdue ? t('overdue', { count: load.overdue }) : '', load.blocked ? t('blocked', { count: load.blocked }) : ''].filter(Boolean).join(' · ')
       : t('risk', { count: load.risk })
+  // el riel es la carga de quien más tiene: así se compara a la gente de un vistazo
   return (
-    <span className={cn('flex h-2.5 items-center gap-[2px]', className)} style={{ width: `${Math.max(4, (total / Math.max(1, max)) * 100)}%` }}>
-      {total === 0 ? <span className="h-full w-full rounded-full" style={{ background: 'var(--chart-track)' }} /> : null}
-      <Segment n={load.risk} total={total} color="var(--chart-risk)" label={riskLabel} last={!load.progress && !load.rest} />
-      <Segment n={load.progress} total={total} color="var(--chart-progress)" label={t('progress', { count: load.progress })} last={!load.rest} />
-      <Segment n={load.rest} total={total} color="var(--chart-rest)" label={t('rest', { count: load.rest })} last />
+    <span className={cn('flex h-2 w-full overflow-hidden rounded-full', className)} style={{ background: 'var(--chart-track)' }}>
+      <span className="flex h-full gap-[2px]" style={{ width: total ? `${Math.max(3, (total / Math.max(1, max)) * 100)}%` : 0 }}>
+        <Segment n={load.risk} total={total} color="var(--chart-risk)" label={riskLabel} />
+        <Segment n={load.progress} total={total} color="var(--chart-progress)" label={t('progress', { count: load.progress })} />
+        <Segment n={load.rest} total={total} color="var(--chart-rest)" label={t('rest', { count: load.rest })} />
+      </span>
     </span>
   )
 }
@@ -43,12 +45,12 @@ export function LoadLegend({ className }: { className?: string }) {
   )
 }
 
-/** Tramo con su tooltip; el redondeo va solo en la punta (la base queda recta). */
-function Segment({ n, total, color, label, last }: { n: number; total: number; color: string; label: string; last: boolean }) {
+/** Tramo con su tooltip; las puntas redondas las pone el riel (overflow-hidden). */
+function Segment({ n, total, color, label }: { n: number; total: number; color: string; label: string }) {
   if (!n) return null
   return (
     <Tooltip content={label}>
-      <span className={cn('h-full min-w-[4px]', last && 'rounded-r-[4px]')} style={{ width: `${(n / total) * 100}%`, background: color }} />
+      <span className="h-full min-w-[4px] last:rounded-r-full" style={{ width: `${(n / total) * 100}%`, background: color }} />
     </Tooltip>
   )
 }

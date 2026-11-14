@@ -29,7 +29,8 @@ export function useAddComment(taskId: string) {
   const qc = useQueryClient()
   const onError = useErrorToast()
   return useMutation({
-    mutationFn: async (body: string) => toTaskComment(await api<ApiTaskComment>(`/v1/tasks/${taskId}/comments`, { method: 'POST', body: { body } })),
+    mutationFn: async ({ body, mentions = [] }: { body: string; mentions?: string[] }) =>
+      toTaskComment(await api<ApiTaskComment>(`/v1/tasks/${taskId}/comments`, { method: 'POST', body: { body, mentions } })),
     onSuccess: (c) => qc.setQueryData<TaskCommentRow[]>(['comments', taskId], (old) => [...(old ?? []), c]),
     onError,
   })

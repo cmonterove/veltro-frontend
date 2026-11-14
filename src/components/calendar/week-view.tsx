@@ -16,13 +16,14 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarError, useCalendarEvents } from '@/lib/queries/calendar'
+import { useMeetingsInRange, withVeltroMeetings } from '@/lib/queries/meetings'
 import { useTasks } from '@/lib/queries/tasks'
 import { toDateKey, useDateLocale } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import type { CalendarEvent } from '@/lib/types'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { EventDetails } from './event-details'
-import { ConnectCalendar } from './connect-calendar'
+import { ConnectCalendar, ConnectCalendarHint } from './connect-calendar'
 import { NewMeetingDialog } from './new-meeting-dialog'
 import { useOpenTask } from '@/lib/use-open-task'
 import { TaskPeek } from './task-peek'
@@ -108,14 +109,20 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
   const [slot, setSlot] = useState<Date | null>(null)
   const params = useSearchParams()
   useEffect(() => {
-    if (params.get('new') === '1' && google) setDialogOpen(true)
+    if (params.get('new') === '1') setDialogOpen(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const days = eachDayOfInterval({ start: anchor, end: addDays(anchor, 6) })
   const from = anchor
   const to = addDays(anchor, 7)
-  const { data: events, error, isLoading, refetch: refetchEvents } = useCalendarEvents(from, to, Boolean(google))
+  const { data: googleEvents, error, isLoading, refetch: refetchEvents } = useCalendarEvents(from, to, Boolean(google))
   const wsIds = useMemo(() => [...workspaces, ...observedWorkspaces].map((w) => w.id), [workspaces, observedWorkspaces])
+  // las reuniones de Veltro (creadas aquí, sin Google, o de un evento que no está en mis calendarios) van junto a las de Google
+  const { data: veltroMeetings } = useMeetingsInRange(workspaceId ? [workspaceId] : wsIds, from, to)
+  const events = useMemo(
+    () => withVeltroMeetings(googleEvents, veltroMeetings, { googlePending: Boolean(google) && !googleEvents && !error, from, to }),
+    [googleEvents, veltroMeetings, google, error, from, to],
+  )
   const { data: allTasks } = useTasks(workspaceId ? { kind: 'workspace', workspaceId } : { kind: 'workspaces', workspaceIds: wsIds })
   const scopeWs = workspaceId ? wsMap.get(workspaceId) : undefined
   const eventTone = (e: CalendarEvent) => {
@@ -195,6 +202,7 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
     setFilters((f) => ({ ...f, [key]: on ? [...f[key].filter((x) => x !== v), v] : f[key].filter((x) => x !== v) }))
 
   const errorCode = error instanceof CalendarError ? error.code : error ? 'google_error' : null
+  const connectReturn = workspaceId && scopeWs ? `/w/${scopeWs.slug}/meetings` : '/calendar'
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -224,20 +232,19 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
             </span>
           </span>
         ) : null}
-        {google ? (
-          <Button
-            variant="primary"
-            size="sm"
-            className={workspaceId ? 'ml-auto lg:ml-0' : 'ml-auto'}
-            onClick={() => {
-              setSlot(null)
-              setDialogOpen(true)
-            }}
-          >
-            <CalendarPlus />
-            {t('newMeeting')}
-          </Button>
-        ) : null}
+        {/* con o sin Google: sin Google la reunión se crea en Veltro */}
+        <Button
+          variant="primary"
+          size="sm"
+          className={workspaceId ? 'ml-auto lg:ml-0' : 'ml-auto'}
+          onClick={() => {
+            setSlot(null)
+            setDialogOpen(true)
+          }}
+        >
+          <CalendarPlus />
+          {t('newMeeting')}
+        </Button>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-4 py-2 sm:px-6">
@@ -294,10 +301,13 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
         ) : null}
       </div>
 
-      {!google || errorCode === 'google_not_connected' || errorCode === 'google_auth_revoked' ? (
-        <div className="p-6">
-          <ConnectCalendar reason={errorCode ?? undefined} returnTo={workspaceId && scopeWs ? `/w/${scopeWs.slug}/meetings` : '/calendar'} />
+      {errorCode === 'google_auth_revoked' ? (
+        <div className="p-6 pb-3">
+          <ConnectCalendar reason={errorCode} returnTo={connectReturn} />
         </div>
+      ) : !google || errorCode === 'google_not_connected' ? (
+        // sin Google el calendario funciona con las reuniones de Veltro; Google solo suma sus eventos
+        <ConnectCalendarHint returnTo={connectReturn} className="mx-4 mt-3 self-start sm:mx-6" />
       ) : errorCode ? (
         // cualquier otro error de Google: se avisa (antes el calendario quedaba vacío sin explicación)
         <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger sm:mx-6">
@@ -411,7 +421,7 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
               <div key={d.toISOString()} className={cn('group/day relative min-w-0 flex-1 border-l border-line', isToday(d) && 'bg-highlight/50')}>
                 {Array.from({ length: 24 }, (_, h) => (
                   <div key={h} className="border-b border-line/60" style={{ height: HOUR }}>
-                    {google ? (
+                    {
                       // Cada media hora es un hueco: un click abre "Nueva reunión" a esa hora.
                       [0, 30].map((m) => (
                         <button
@@ -431,7 +441,7 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
                           <span className="font-mono text-2xs text-accent-ink">+ {String(h).padStart(2, '0')}:{m ? '30' : '00'}</span>
                         </button>
                       ))
-                    ) : null}
+                    }
                   </div>
                 ))}
                 {isLoading && google ? <Skeleton className="absolute inset-x-1 top-[440px] h-16" /> : null}
@@ -495,9 +505,7 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
         </div>
       </div>
 
-      {google ? (
-        <NewMeetingDialog open={dialogOpen} onOpenChange={setDialogOpen} defaults={{ ...(workspaceId ? { workspaceId } : {}), ...(slot ? { start: slot } : {}) }} />
-      ) : null}
+      <NewMeetingDialog open={dialogOpen} onOpenChange={setDialogOpen} defaults={{ ...(workspaceId ? { workspaceId } : {}), ...(slot ? { start: slot } : {}) }} />
     </div>
   )
 }

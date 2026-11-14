@@ -267,7 +267,7 @@ function Agreements({ ws, items, meetings, tasks }: { ws: WorkspaceWithRole; ite
 
   return (
     <section>
-      <SectionTitle title={t('agreements')} hint={t('agreementsHint')} />
+      <SectionTitle title={t('agreements')} hint={t('agreementsHint')} href={`/decisions?ws=${ws.id}`} linkLabel={t('allDecisions')} />
       {groups.length ? (
         <ul className="flex flex-col gap-3">
           {groups.map((g) => (

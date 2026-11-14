@@ -35,6 +35,22 @@
       "port": 3000
     },
     {
+      "name": "veltro-web-design",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_DEMO=0",
+        "VELTRO_API_URL=http://localhost:4000",
+        "NEXT_DIST_DIR=.next-design",
+        "npm",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3002"
+      ],
+      "port": 3002
+    },
+    {
       "name": "veltro-backend",
       "runtimeExecutable": "env",
       "runtimeArgs": [
@@ -45,7 +61,7 @@
         "STORAGE_MODE=local",
         "PUBLIC_API_URL=http://localhost:4000",
         "PUBLIC_WEB_URL=http://localhost:3000",
-        "CORS_ORIGINS=http://localhost:3000",
+        "CORS_ORIGINS=http://localhost:3000,http://localhost:3002",
         "npm",
         "--prefix",
         "../veltro-backend",
@@ -108,6 +124,43 @@
         "logos"
       ],
       "port": 4610
+    },
+    {
+      "name": "veltro-propuestas",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4620",
+        "--directory",
+        "propuestas"
+      ],
+      "port": 4620
+    },
+    {
+      "name": "veltro-web-rediseno",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_DEMO=0",
+        "VELTRO_API_URL=http://localhost:4000",
+        "NEXT_DIST_DIR=.next-rediseno",
+        "npm",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3004"
+      ],
+      "port": 3004
+    },
+    {
+      "name": "veltro-console-demo",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd ../veltro-console && NEXT_PUBLIC_DEMO=1 NEXT_DIST_DIR=.next-demo npx next dev --turbopack --port 3011"
+      ],
+      "port": 3011
     }
   ]
 }

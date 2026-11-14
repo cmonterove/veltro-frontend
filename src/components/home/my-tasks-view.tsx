@@ -19,7 +19,8 @@ import { TaskBoard } from '@/components/tasks/task-board'
 import { TaskCalendar } from '@/components/tasks/task-calendar'
 import { TaskGrid } from '@/components/tasks/task-grid'
 import { TasksDashboard } from '@/components/tasks/tasks-dashboard'
-import { ScopePicker } from '@/components/pulse/brief'
+import { ScopeChips } from '@/components/app/scope-menu'
+import { ShowIdleContext } from '@/components/tasks/task-row'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { toDateKey } from '@/lib/dates'
 import { useLocalStorage } from '@/lib/hooks'
@@ -139,11 +140,15 @@ export function MyTasksView() {
               {!scoped ? '\u00a0' : scope.kind === 'me' ? t('subtitle', { count: open }) : t('subtitleScoped', { count: open, who: `${scope.display} · ${scope.hint}` })}
             </p>
           </div>
-          <ScopePicker options={options} value={scope} onChange={(id) => setParam('scope', id === 'me' ? null : id)} />
           <Button variant="primary" onClick={() => setCreating(true)}>
             <Plus />
             {t('newTask')}
           </Button>
+        </div>
+
+        {/* de quién son las tareas: a la vista, no en un menú */}
+        <div className="mt-4">
+          <ScopeChips options={options} value={scope} onChange={(id) => setParam('scope', id === 'me' ? null : id)} />
         </div>
 
         {/* las vistas son la navegación de la página */}
@@ -240,7 +245,9 @@ export function MyTasksView() {
             />
           </div>
         ) : tab === 'list' ? (
-          <TaskGroupList groups={grouped} showWorkspace={groupBy !== 'space'} hideEmpty collapsed={collapsed} onCollapsedChange={setCollapsed} />
+          <ShowIdleContext.Provider value={scope.kind !== 'me'}>
+            <TaskGroupList groups={grouped} showWorkspace={groupBy !== 'space'} hideEmpty collapsed={collapsed} onCollapsedChange={setCollapsed} />
+          </ShowIdleContext.Provider>
         ) : tab === 'table' ? (
           <TaskGrid tasks={shown} />
         ) : tab === 'board' ? (

@@ -72,6 +72,7 @@ export const getAppContext = cache(async (): Promise<
       observedWorkspaces: res.observedWorkspaces.map((w) => toWorkspace(w, 'viewer')),
       members: res.members.map(toMember).sort((a, b) => a.full_name.localeCompare(b.full_name)),
       departments: res.departments.map(toDepartment),
+      teams: res.teams ?? [],
       google: res.google.connected ? { email: res.google.email ?? '', selectedCalendarIds: res.google.selectedCalendarIds } : null,
       // lo decide la API, que es la que tiene las credenciales de Google
       googleConfigured: res.google.configured,

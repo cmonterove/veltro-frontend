@@ -50,12 +50,12 @@
       "sentBody": "If {email} has a Veltro account, a link will arrive in a few minutes."
     },
     "strength": {
-      "label": "Strength: {level}",
       "0": "no password",
       "1": "weak",
       "2": "fair",
       "3": "good",
-      "4": "strong"
+      "4": "strong",
+      "label": "Strength: {level}"
     },
     "demoHint": "Demo mode: sign in with any email and password.",
     "footer": "© {year} Veltro",
@@ -118,6 +118,7 @@
     "newTask": "New task",
     "workspaces": "Workspaces",
     "newWorkspace": "New workspace",
+    "workspacesCount": "{count, plural, one {# workspace} other {# workspaces}}",
     "noWorkspaces": "You don't have any workspaces assigned yet.",
     "tasks": "Tasks",
     "docs": "Docs",
@@ -177,10 +178,15 @@
         "calendar": "Your week: meetings and dated tasks.",
         "tasks": "Everything assigned to you across your spaces.",
         "vault": "Your files and links, with or without a space.",
-        "chat": "What the team is talking about."
+        "chat": "What the team is talking about.",
+        "requests": "What you ask other departments for, and what they ask of you.",
+        "decisions": "Everything decided in meetings."
       }
     },
-    "tour": "Take the tour"
+    "tour": "Take the tour",
+    "decisions": "Decisions",
+    "requests": "Requests",
+    "veltroHelp": "Veltro help"
   },
   "command": {
     "title": "Search and run",
@@ -396,7 +402,8 @@
       "detail": "Details",
       "subtasks": "Subtasks",
       "comments": "Comments",
-      "attachments": "Attachments"
+      "attachments": "Attachments",
+      "activity": "Activity"
     },
     "assignees": "Assignees",
     "assigneesCount": "{count, plural, one {# assignee} other {# assignees}}",
@@ -417,7 +424,85 @@
     "deleteCommentConfirm": "Delete this comment?",
     "openTask": "Open “{title}”",
     "noMatches": "No tasks match",
-    "noMatchesHint": "Try other words or turn off \"Only mine\"."
+    "noMatchesHint": "Try other words or turn off \"Only mine\".",
+    "recurrence": {
+      "label": "Repeat",
+      "never": "Doesn’t repeat",
+      "hint": "When it’s done, Veltro creates the next one with the following date.",
+      "next": "next {date}",
+      "spawned": "Repeats: the next one is due {date}",
+      "repeats": "Repeats",
+      "rules": {
+        "daily": "Every day",
+        "weekdays": "Weekdays (Mon to Fri)",
+        "weekly": "Every week",
+        "biweekly": "Every 2 weeks",
+        "monthly": "Every month",
+        "quarterly": "Every 3 months",
+        "yearly": "Every year",
+        "everyNDays": "Every {count} days",
+        "everyNWeeks": "Every {count} weeks",
+        "everyNMonths": "Every {count} months",
+        "everyNYears": "Every {count} years"
+      }
+    },
+    "activity": {
+      "empty": "No changes yet.",
+      "someone": "someone",
+      "created": "<who></who> created the task",
+      "recurred": "<who></who> finished the previous one in the series and this one was created",
+      "title": "<who></who> renamed it to <b>“{to}”</b>",
+      "status": "<who></who> moved it to",
+      "priority": "<who></who> set the priority to <b>{to}</b>",
+      "assigned": "<who></who> assigned <b>{names}</b>",
+      "unassigned": "<who></who> removed <b>{names}</b>",
+      "unassignedShort": "removed <b>{names}</b>",
+      "dueSet": "<who></who> set the due date to <b>{to}</b>",
+      "dueChanged": "<who></who> moved the due date from {from} to <b>{to}</b>",
+      "dueRemoved": "<who></who> removed the due date",
+      "startSet": "<who></who> set the start date to <b>{to}</b>",
+      "startChanged": "<who></who> moved the start date from {from} to <b>{to}</b>",
+      "startRemoved": "<who></who> removed the start date",
+      "description": "<who></who> edited the description",
+      "labelsAdded": "<who></who> added",
+      "labelsRemoved": "<who></who> removed",
+      "parentSet": "<who></who> made it a subtask",
+      "parentRemoved": "<who></who> took it out of its parent task",
+      "recurrenceSet": "<who></who> made it repeat: <b>{rule}</b>",
+      "recurrenceRemoved": "<who></who> made it stop repeating",
+      "unblocked": "Freed up when <b>{ref}</b> was finished and moved to",
+      "blockedByAdded": "<who></who> marked it as blocked by <b>{ref}</b> {title}",
+      "blockedByRemoved": "<who></who> removed the block from <b>{ref}</b> {title}",
+      "otherTask": "another task"
+    },
+    "follow": {
+      "follow": "Follow",
+      "following": "Following",
+      "who": "Followed by: {names}",
+      "hint": "Follow the task to hear about its comments, status and date changes.",
+      "followed": "You’re following it",
+      "unfollowed": "You stopped following it",
+      "you": "you"
+    },
+    "idle": "{count}d idle",
+    "idleHint": "No changes in {count, plural, one {# day} other {# days}}",
+    "deps": {
+      "title": "Dependencies",
+      "blockedBy": "Blocked by",
+      "blocking": "Blocking",
+      "openBlockers": "{count, plural, one {Waiting on # task} other {Waiting on # tasks}}",
+      "free": "Free",
+      "add": "Add",
+      "addFirst": "Mark as blocked by another task",
+      "added": "Done: it now waits on that task",
+      "remove": "Remove",
+      "search": "Search by reference (PRO-5) or title",
+      "loading": "Loading tasks…",
+      "noMatches": "No open task matches.",
+      "hint": "When the last blocker is done, this one moves to To do and its assignees are notified.",
+      "waiting": "{count, plural, one {Waits on #} other {Waits on #}}",
+      "waitingHint": "{count, plural, one {Blocked by # unfinished task} other {Blocked by # unfinished tasks}}"
+    }
   },
   "docs": {
     "untitled": "Untitled",
@@ -578,7 +663,9 @@
       "revokedTitle": "Reconnect Google Calendar",
       "revokedBody": "Access to your calendar expired or was revoked.",
       "reconnect": "Reconnect",
-      "notConfigured": "The Google integration isn't set up on this server yet. Go to Settings, Integrations, to see how to enable it."
+      "notConfigured": "The Google integration isn't set up on this server yet. Go to Settings, Integrations, to see how to enable it.",
+      "hint": "Add your Google Calendar events.",
+      "hintCta": "Connect"
     },
     "meetingDialog": {
       "title": "New meeting",
@@ -597,7 +684,14 @@
       "create": "Create meeting",
       "created": "Meeting created in Google Calendar",
       "error": "Couldn't create the meeting.",
-      "attendeesPlaceholder": "ana@company.com, peter@company.com"
+      "attendeesPlaceholder": "ana@company.com, peter@company.com",
+      "link": "Video call link",
+      "linkHint": "Optional. Paste a Meet, Teams or Zoom link.",
+      "pickWorkspace": "Pick a workspace for the meeting.",
+      "createdNative": "Meeting created in Veltro",
+      "nativeHint": "Saved in Veltro with its room and notes. No Google connection needed.",
+      "workspaceHintNative": "The meeting and its notes live in this workspace.",
+      "attendeesHintNative": "Comma-separated emails. Anyone with access to the workspace sees it in their Veltro calendar."
     },
     "legend": {
       "mine": "{workspace} meetings",
@@ -667,7 +761,8 @@
       "unclosed": "Not closed",
       "files": "Recent files",
       "allFiles": "All files",
-      "noFiles": "No files yet. Upload them from a task, a meeting or the library."
+      "noFiles": "No files yet. Upload them from a task, a meeting or the library.",
+      "allDecisions": "All decisions"
     },
     "sections": "Space sections"
   },
@@ -690,7 +785,8 @@
       "org": "Org chart",
       "groupYou": "You",
       "preferences": "Preferences",
-      "newWorkspace": "New space"
+      "newWorkspace": "New space",
+      "teams": "Teams"
     },
     "profile": {
       "title": "Profile",
@@ -755,9 +851,9 @@
     },
     "members": {
       "title": "People",
-      "description": "Create users in your account and assign them to the workspaces they'll work in.",
-      "descriptionLimit": "Create users in your account and assign them to the workspaces they'll work in. You're using {used} of {max} seats.",
-      "add": "Add person",
+      "description": "Invite your team and choose the spaces each person will work in.",
+      "descriptionLimit": "Invite your team and choose the spaces each person will work in. You’re using {used} of {max} seats.",
+      "add": "Invite person",
       "limitReached": "You've reached your plan's people limit.",
       "you": "(you)",
       "allWorkspaces": "All workspaces",
@@ -777,8 +873,8 @@
       "roleUpdated": "Role updated",
       "workspacesUpdated": "Workspaces updated",
       "addDialog": {
-        "title": "Add person",
-        "description": "We'll create their user with a temporary password you can share with them.",
+        "title": "Invite person",
+        "description": "They get a link to join. If the email doesn’t arrive, you can copy it or send it on WhatsApp.",
         "name": "Name",
         "email": "Email",
         "role": "Role",
@@ -786,7 +882,7 @@
         "memberHint": "Only sees the workspaces you assign.",
         "workspaces": "Workspaces",
         "cancel": "Cancel",
-        "submit": "Create user",
+        "submit": "Send invitation",
         "doneTitle": "Done",
         "doneNew": "Share these details. They'll be asked to change their password when they sign in.",
         "doneExisting": "This person already had a Veltro user. They can now see your account with their usual password.",
@@ -796,7 +892,34 @@
         "onceWarning": "This password won't be shown again.",
         "copy": "Copy",
         "copied": "Copied",
-        "close": "Close"
+        "close": "Close",
+        "nameOptional": "Name (optional)",
+        "sentTitle": "Invitation sent",
+        "sentBody": "We emailed {email} the link to join.",
+        "sentHint": "If they don’t see it, ask them to check spam, or send them the link directly.",
+        "linkTitle": "Share the link",
+        "linkBody": "Send this link to {email} so they can join. Veltro doesn’t send emails yet.",
+        "copyLink": "Copy",
+        "expiresHint": "The link works once and expires in 7 days.",
+        "whatsapp": "Send on WhatsApp",
+        "shareMessage": "I invited you to {account} on Veltro. Join here: {link}"
+      },
+      "invites": {
+        "title": "Pending invitations",
+        "pending": "Expires in {when}",
+        "expired": "Expired",
+        "spaces": "{count, plural, =0 {no spaces} one {# space} other {# spaces}}",
+        "by": "invited by {name}",
+        "actions": "Invitation options",
+        "copyLink": "Copy new link",
+        "linkCopied": "Link copied (the previous one no longer works)",
+        "resend": "Resend invitation",
+        "resent": "Invitation resent to {email}",
+        "noEmailCopied": "No email set up: we copied the new link",
+        "revoke": "Revoke invitation",
+        "revokeConfirm": "Revoke the invitation to {email}?",
+        "revokeHint": "The link stops working. You can invite them again anytime.",
+        "revoked": "Invitation revoked"
       }
     },
     "workspaces": {
@@ -985,7 +1108,50 @@
       "discard": "Discard",
       "save": "Save changes"
     },
-    "tabs": "Sections"
+    "tabs": "Sections",
+    "teams": {
+      "title": "Work teams",
+      "description": "Group people who work together, apart from the org chart (“Polar team”, “Trade”), and see their tasks together in Tasks, Pulse and Control room.",
+      "new": "New team",
+      "newTitle": "New team",
+      "editTitle": "Edit team",
+      "dialogHint": "The whole account sees it and can pick it in Tasks, Pulse and Control room.",
+      "name": "Name",
+      "namePlaceholder": "Polar team",
+      "color": "Color",
+      "members": "People",
+      "picked": "{count, plural, =0 {no one picked} one {# picked} other {# picked}}",
+      "searchPeople": "Search people…",
+      "noMatches": "No one with that name.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "create": "Create team",
+      "created": "Team created",
+      "saved": "Team saved",
+      "deleted": "Team deleted",
+      "edit": "Edit",
+      "delete": "Delete",
+      "actions": "{name} options",
+      "deleteConfirm": "Delete the {name} team?",
+      "deleteHint": "People and their tasks don’t change; only the group goes away.",
+      "viewTasks": "View tasks",
+      "noMembers": "No people yet",
+      "emptyTitle": "No teams yet",
+      "emptyHint": "Create one for each group that works together and see their tasks at a glance.",
+      "emptyHintMember": "When an admin creates teams, they’ll show up here and in the Tasks selector.",
+      "colors": {
+        "violet": "Plum",
+        "mandarina": "Tangerine",
+        "ink": "Ink",
+        "lavender": "Lavender",
+        "blue": "Blue",
+        "teal": "Teal",
+        "green": "Green",
+        "pink": "Pink",
+        "red": "Red",
+        "amber": "Amber"
+      }
+    }
   },
   "errors": {
     "generic": "Something went wrong. Try again.",
@@ -1068,7 +1234,17 @@
     "reply_not_found": "The message you're replying to is no longer in this conversation.",
     "invite_past": "That meeting is already over.",
     "not_an_invite": "That message isn't an invite.",
-    "demo_readonly": "Not available while viewing sample data: go back to your data to do this."
+    "demo_readonly": "Not available while viewing sample data: go back to your data to do this.",
+    "message_deleted": "That message was already deleted.",
+    "message_not_editable": "Conversation notices can’t be edited.",
+    "empty_message": "A message can’t be empty. Delete it instead.",
+    "mention_not_in_workspace": "That person doesn’t have access to this space.",
+    "team_name_taken": "There’s already a team with that name.",
+    "dependency_cycle": "That task already waits, directly or indirectly, on this one.",
+    "dependency_other_account": "Both tasks must belong to the same account.",
+    "request_locked": "This request is already being handled: write in the conversation to change something.",
+    "assignee_not_in_department": "That person isn't in that department.",
+    "request_other_account": "The task must belong to a workspace in the same account."
   },
   "suspension": {
     "signOut": "Sign out",
@@ -1549,6 +1725,7 @@
         "doc": "What does “{title}” say?"
       },
       "heroPlaceholder": "Ask Veltro: what was decided, what is pending, who has what…",
+      "barPlaceholder": "what was decided, what is pending, who has what…",
       "focusHint": "Press",
       "expand": "Open in Veltro AI",
       "expandShort": "Expand",
@@ -1667,7 +1844,7 @@
   "mesa": {
     "title": "Control desk",
     "subtitle": "How the spaces are doing: their status, whether they move forward and who is overloaded.",
-    "sentence": "{period}: {closed, plural, =0 {no tasks closed} one {# task closed} other {# tasks closed}} and {created, plural, =0 {none new} one {# new} other {# new}}. {problems, select, none {Nothing is overdue or blocked.} other {There are {overdue} overdue and {blocked} blocked{atRisk, plural, =0 {.} one {; # space is at risk.} other {; # spaces are at risk.}}}}",
+    "sentence": "{period}: <done>{closed, plural, =0 {no tasks closed} one {# task closed} other {# tasks closed}}</done> and <new>{created, plural, =0 {none new} one {# new} other {# new}}</new>. {problems, select, none {Nothing is overdue or blocked.} other {There are <late>{overdue} overdue</late> and <stuck>{blocked} blocked</stuck>{atRisk, plural, =0 {.} one {; <risk># space is at risk</risk>.} other {; <risk># spaces are at risk</risk>.}}}}",
     "spaces": {
       "title": "Spaces",
       "empty": "People in this scope have no tasks in any space.",
@@ -1749,7 +1926,9 @@
     "toggleSidebar": "Collapse or expand the sidebar",
     "goDocs": "Documents",
     "goVault": "Vault",
-    "goPasillo": "Hallway"
+    "goPasillo": "Hallway",
+    "goDecisions": "Go to Decisions",
+    "goRequests": "Go to Requests"
   },
   "scope": {
     "me": "Mine",
@@ -1766,7 +1945,13 @@
     "hintMe": "Only the ones assigned to you",
     "hintTeam": "You and your reports: {names}",
     "hintAll": "All {count} people in the account",
-    "you": "You"
+    "you": "You",
+    "delegated": "Delegated",
+    "following": "Following",
+    "hintDelegated": "The ones you requested or assigned to other people",
+    "hintFollowing": "The ones you follow, even if they aren’t yours",
+    "groups": "Teams",
+    "more": "More"
   },
   "dateRange": {
     "presets": {
@@ -1788,9 +1973,9 @@
     "cancel": "Cancel"
   },
   "tasksDashboard": {
-    "subject": "{subject, select, me {You have} other {{who} has}}",
+    "subject": "{subject, select, me {You have} delegated {What you delegated has} following {What you follow has} other {{who} has}}",
     "and": "and",
-    "allClear": "{subject, select, me {You're on track} other {{who} is on track}}: nothing overdue, blocked or due today.",
+    "allClear": "{subject, select, me {You're on track} delegated {What you delegated is on track} following {What you follow is on track} other {{who} is on track}}: nothing overdue, blocked or due today.",
     "parts": {
       "late": "{count, plural, one {# overdue task} other {# overdue tasks}}",
       "stuck": "{count} blocked",
@@ -1994,7 +2179,8 @@
       "meeting": "Invite: {title}",
       "task": "Shared a task",
       "file": "Shared a file",
-      "doc": "Shared a document"
+      "doc": "Shared a document",
+      "deleted": "Message deleted"
     },
     "untitledGroup": "Unnamed group",
     "onlyYou": "Just you",
@@ -2054,7 +2240,8 @@
         "meeting": "Search meetings in the next 3 weeks…"
       },
       "closePicker": "Close",
-      "nothing": "Nothing here."
+      "nothing": "Nothing here.",
+      "mention": "Mention someone"
     },
     "cards": {
       "missing": "This no longer exists or you don’t have access.",
@@ -2123,9 +2310,35 @@
       "join": "Join",
       "error": "Couldn't create the call. Try again.",
       "connect": "Connect your Google account to start Meet calls.",
-      "connectAction": "Connect"
+      "connectAction": "Connect",
+      "labelNative": "Meeting",
+      "hintNative": "Sets up a Veltro meeting with the people in this chat and posts it here"
     },
-    "loadOlder": "Show earlier messages"
+    "loadOlder": "Show earlier messages",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this message?",
+    "deleteConfirmHint": "“Message deleted” stays in its place. This can’t be undone.",
+    "deleted": "Message deleted",
+    "deletedMine": "You deleted this message",
+    "edited": "(edited)",
+    "editHint": "Enter saves · Esc cancels",
+    "typingOne": "{name} is typing…",
+    "typingMany": "{names} are typing…",
+    "unreadCount": "{count} unread",
+    "newCount": "{count} new",
+    "context": {
+      "nextMeeting": "Next meeting",
+      "inDays": "{count, plural, =0 {Today} one {Tomorrow} other {In # days}}",
+      "tasks": "Tasks in this chat",
+      "tasksDone": "{done} of {total}",
+      "files": "Files",
+      "people": "People",
+      "hidePanel": "Hide the side panel",
+      "showPanel": "Show the side panel",
+      "collapse": "Collapse",
+      "expand": "Expand"
+    }
   },
   "confirm": {
     "cancel": "Cancel",
@@ -2217,5 +2430,300 @@
     "max": "The maximum is {max}.",
     "number": "Enter a valid number.",
     "step": "That value isn’t valid here."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "open": "Notifications",
+    "openCount": "Notifications, {count} unread",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "emptyUnread": "You’re all caught up",
+    "emptyAll": "No notifications yet",
+    "emptyHint": "Tasks assigned to you, comments on your tasks and mentions show up here.",
+    "loadMore": "Show older",
+    "someone": "Someone",
+    "directChat": "a direct message",
+    "toastView": "View",
+    "kinds": {
+      "task_assigned": "<b>{actor}</b> assigned you a task",
+      "task_comment": "{count, plural, one {<b>{actor}</b> commented on your task} other {# new comments on your task, the latest from <b>{actor}</b>}}",
+      "task_mention": "<b>{actor}</b> mentioned you in a comment",
+      "task_done": "<b>{actor}</b> finished a task you created",
+      "chat_mention": "<b>{actor}</b> mentioned you in <b>{chat}</b>",
+      "task_due_today": "Due today",
+      "task_overdue": "Was due yesterday",
+      "member_joined": "<b>{actor}</b> accepted your invitation and joined the team",
+      "task_status": "<b>{actor}</b> changed the status of a task you follow",
+      "task_due_changed": "<b>{actor}</b> moved the due date to <b>{date}</b>",
+      "task_unblocked": "<b>{actor}</b> finished <b>{ref}</b>: your task can move ahead",
+      "request_new": "{assigned, select, yes {<b>{actor}</b> assigned you a request} other {{forwarded, select, yes {<b>{actor}</b> forwarded a request to <b>{department}</b>} other {<b>{actor}</b> asked <b>{department}</b> for something}}}}",
+      "request_message": "{count, plural, one {<b>{actor}</b> wrote on a request} other {# new messages on a request, the latest from <b>{actor}</b>}}",
+      "request_status": "{status, select, in_progress {<b>{actor}</b> started working on your request} delivered {Your request was delivered: confirm it's resolved} resolved {<b>{actor}</b> marked the request resolved} declined {<b>{actor}</b> declined your request} forwarded {<b>{actor}</b> forwarded your request to <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> reopened their request} other {<b>{actor}</b> is reviewing your request}}} other {<b>{actor}</b> changed a request's status}}"
+    },
+    "desktop": {
+      "offer": "Get notifications and direct messages even when Veltro is in another tab.",
+      "enable": "Turn on",
+      "on": "Desktop notifications (direct messages, assignments and mentions)",
+      "denied": "Your browser blocked Veltro notifications. You can allow them from the lock icon in the address bar."
+    },
+    "manyNew": "{count, plural, one {You have # new notification} other {You have # new notifications}}",
+    "noDate": "no date"
+  },
+  "invite": {
+    "metaTitle": "Invitation",
+    "someone": "Someone",
+    "invitedBy": "{inviter} invited you to work in",
+    "asAdmin": "You’ll join as an admin: you’ll see and manage every space.",
+    "asMember": "You’ll join the team; spaces get assigned to you later.",
+    "withSpaces": "You’ll have access to: {spaces}.",
+    "orPassword": "or create your user",
+    "orLogin": "or sign in with your email",
+    "hasUser": "You already have a Veltro user with {email}. Sign in with it and come back to this link to accept.",
+    "login": "Sign in to accept",
+    "signedInAs": "You’re signed in as {email}.",
+    "join": "Join {account}",
+    "otherSession": "You’re signed in as {me}, but this invitation is for {invited}.",
+    "switch": "Sign in as {email}",
+    "choosePassword": "Choose a password",
+    "create": "Create my user and join",
+    "expires": "The link expires on {date}.",
+    "footer": "© {year} Veltro",
+    "notFound": {
+      "title": "This link doesn’t work",
+      "body": "It may be incomplete. Ask whoever invited you to send it again."
+    },
+    "expired": {
+      "title": "The invitation expired",
+      "body": "Ask {inviter} to send you a new one."
+    },
+    "accepted": {
+      "title": "You’re already on the team",
+      "body": "This invitation to {account} was already accepted.",
+      "open": "Go to Veltro",
+      "login": "Sign in"
+    },
+    "errors": {
+      "invitation_expired": "The invitation expired or was revoked. Ask for a new one.",
+      "invitation_accepted": "This invitation was already accepted.",
+      "invitation_not_found": "This link doesn’t work.",
+      "invitation_email_mismatch": "This invitation is for a different email.",
+      "invitation_login_required": "You already have a user: sign in with it to accept.",
+      "plan_limit_members": "The account reached its plan’s people limit. Let whoever invited you know.",
+      "rate_limited": "Too many attempts. Wait a moment.",
+      "weak_password": "The password doesn’t meet the rules.",
+      "missing_fields": "Fill in your name and password.",
+      "oauth_unavailable": "Sign-in with Google isn’t active yet. Create your user with a password.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "decisions": {
+    "title": "Decisions",
+    "subtitle": "Everything decided in your workspaces' meetings.",
+    "search": "What did we decide about…? Search a topic or a meeting",
+    "clearSearch": "Clear search",
+    "space": "Workspace",
+    "meeting": "Meeting: {title}",
+    "clearMeeting": "Show all meetings",
+    "ask": "Ask Veltro",
+    "askQuestion": "What did we decide about {topic}?",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "onlyMeeting": "Only this meeting",
+    "openMeeting": "Open",
+    "unconfirmed": "Not closed",
+    "copy": "Copy",
+    "copied": "Decision copied",
+    "by": "Noted by {name}",
+    "period": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 3 months",
+      "365": "Last year",
+      "label": "When",
+      "all": "All time"
+    },
+    "empty": {
+      "title": "No decisions yet",
+      "body": "In a meeting, mark a point as a Decision (or type <> before the text) and it lands here with its date and meeting.",
+      "cta": "Go to calendar",
+      "searchTitle": "Nothing decided about “{q}”",
+      "filteredTitle": "Nothing with these filters",
+      "searchBody": "Try other words, remove filters or ask Veltro.",
+      "ask": "Ask Veltro"
+    }
+  },
+  "requests": {
+    "title": "Requests",
+    "subtitle": "Ask another department for something and track it.",
+    "new": "New",
+    "tabs": {
+      "inbox": "Incoming",
+      "mine": "Mine"
+    },
+    "search": "Search by title or code",
+    "clearSearch": "Clear search",
+    "allDepartments": "All",
+    "department": "Department",
+    "stateLabel": "Show",
+    "state": {
+      "open": "Open",
+      "closed": "Closed",
+      "all": "All"
+    },
+    "empty": {
+      "search": "Nothing matches",
+      "searchHint": "Try other words or the code (SOL-0004).",
+      "mine": "You haven't asked for anything",
+      "mineHint": "When you need something from another department (access, a report, a quote), ask here and follow its progress.",
+      "inbox": "Your department is all caught up",
+      "inboxHint": "What other departments ask you for shows up here."
+    },
+    "loadMore": "Load more",
+    "toDept": "To {name}",
+    "tasksDone": "{done}/{total} tasks",
+    "urgent": "Urgent",
+    "unassigned": "Not taken",
+    "welcomeTitle": "Requests between departments, tracked",
+    "welcomeBody": "Sales asks Tech for something: Tech takes it, turns it into tasks, and the requester sees how it's going without chasing anyone on chat.",
+    "stepsLabel": "Status: {status}",
+    "status": {
+      "new": "New",
+      "in_review": "In review",
+      "in_progress": "In progress",
+      "delivered": "Delivered",
+      "resolved": "Resolved",
+      "declined": "Declined"
+    },
+    "kind": {
+      "request": "Request",
+      "problem": "Something's broken",
+      "question": "Question",
+      "access": "Access",
+      "data": "Data or report"
+    },
+    "create": {
+      "title": "New request",
+      "description": "It goes to the department you pick, and you can follow it until it's resolved.",
+      "created": "{code} sent to {department}",
+      "noDepartments": "Your account has no departments yet",
+      "noDepartmentsAdmin": "Create departments (Sales, Tech…) and say who's in each one, so every request reaches the right people.",
+      "noDepartmentsHint": "Ask an admin to create them in Settings › Org chart.",
+      "createDepartments": "Create departments",
+      "to": "Which department?",
+      "pickDepartment": "Pick the department",
+      "mine": "yours",
+      "people": "{count, plural, =0 {no people} one {# person} other {# people}}",
+      "reaches": "Goes to {name}, head of the department.",
+      "reachesAdmins": "No head: it goes to the account admins.",
+      "kind": "Type",
+      "what": "What do you need?",
+      "placeholder": {
+        "request": "E.g. Quote for display stands for Farmatodo",
+        "problem": "E.g. The sales report hasn't loaded since yesterday",
+        "question": "E.g. What's the process for travel expenses?",
+        "access": "E.g. CRM access for 3 new people",
+        "data": "E.g. October sales by store"
+      },
+      "details": "Details",
+      "detailsHint": "Whatever helps solve it without back-and-forth: what it's for, examples, links.",
+      "due": "Needed by",
+      "noDue": "No date",
+      "clearDue": "Remove date",
+      "urgent": "Urgent",
+      "cancel": "Cancel",
+      "send": "Send request"
+    },
+    "detail": {
+      "notFound": "We couldn't find this request",
+      "notFoundHint": "It may have been forwarded to another department, or you don't have access.",
+      "back": "Back to Requests",
+      "toTask": "Turn into task",
+      "more": "More actions",
+      "assign": "Assign to…",
+      "me": "Me",
+      "unassign": "Remove assignee",
+      "forward": "Forward to another department…",
+      "changeStatus": "Change status",
+      "reopen": "Reopen",
+      "markDelivered": "Mark delivered",
+      "markResolved": "Mark resolved",
+      "decline": "Decline",
+      "closeMine": "No longer needed (resolved)",
+      "you": "You",
+      "someone": "Someone",
+      "noDepartment": "No department (admins see it)",
+      "assignee": "Assignee: {name}",
+      "noAssignee": "No assignee",
+      "due": "Needed by {date}",
+      "createdAgo": "Requested {when}",
+      "declinedNote": "The department declined it. If you still need it, write below and reopen it.",
+      "takeHint": "{name} is waiting. Take it so they know someone's on it.",
+      "take": "Take it",
+      "resolvedQ": "Is it resolved?",
+      "resolvedQHint": "{department} finished what you asked for. Confirm it or tell them what's missing.",
+      "notYet": "Something's missing",
+      "yesResolved": "Yes, resolved",
+      "conversation": "Conversation",
+      "toastTaken": "You took it",
+      "toastAssigned": "Assignee set",
+      "toastReopened": "Request reopened",
+      "toastDelivered": "Marked as delivered",
+      "toastResolved": "Request resolved",
+      "toastDeclined": "Request declined",
+      "noTasksHint": "Turn it into tasks to organize the work in your workspace. The requester will see their progress.",
+      "tasks": "Tasks",
+      "tasksDone": "{done} of {total} done",
+      "addTask": "Another task",
+      "tasksHintRequester": "{department} organizes them; you see their progress here.",
+      "replyMine": "Write to {department}",
+      "replyTo": "Reply to {name}",
+      "enterHint": "Enter sends · Shift+Enter, new line",
+      "send": "Send"
+    },
+    "events": {
+      "youLower": "you",
+      "someone": "someone",
+      "otherDept": "another department",
+      "status": "{self, select, yes {You moved it to {status}} other {{who} moved it to {status}}}",
+      "took": "{self, select, yes {You took it} other {{who} took it}}",
+      "assigned": "{self, select, yes {You assigned it to {name}} other {{who} assigned it to {name}}}",
+      "forwarded": "{self, select, yes {You forwarded it from {from} to {to}} other {{who} forwarded it from {from} to {to}}}",
+      "taskCreated": "{self, select, yes {You created task {ref} · {title}} other {{who} created task {ref} · {title}}}",
+      "tasksDone": "All its tasks are done: it was delivered"
+    },
+    "toTask": {
+      "title": "Turn {code} into a task",
+      "description": "The task lives in your workspace; {name} sees its progress from the request.",
+      "created": "{ref} created",
+      "noWorkspaces": "You can't create tasks in any workspace. Ask for editor access to one.",
+      "workspace": "Workspace",
+      "taskTitle": "Task",
+      "notes": "Notes",
+      "notesHint": "Goes in as the task description.",
+      "assignees": "Assignees",
+      "nobody": "Nobody yet",
+      "due": "Due",
+      "noDue": "No date",
+      "clearDue": "Remove date",
+      "hint": "The request moves to In progress. When all its tasks are done, it becomes Delivered and the requester is notified.",
+      "cancel": "Cancel",
+      "create": "Create task"
+    },
+    "forward": {
+      "title": "Forward {code}",
+      "description": "It starts over in the other department: new and unassigned.",
+      "to": "Which department?",
+      "pick": "Pick the department",
+      "note": "Note",
+      "noteHint": "Optional: why you're forwarding it, for whoever gets it.",
+      "cancel": "Cancel",
+      "submit": "Forward",
+      "done": "Forwarded to {department}"
+    }
   }
 }

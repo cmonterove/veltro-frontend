@@ -97,8 +97,27 @@ export type OAuthProvider = 'google' | 'apple'
  * Inicio de sesión con Google o Apple (Supabase OAuth). Crea la cuenta si no existe. El
  * proveedor vuelve a /auth/confirm, que deja la sesión en las cookies de la API.
  */
+/**
+ * ¿Está activo ese proveedor en Supabase Auth? Si no, Supabase mostraría una página de error en
+ * crudo: mejor avisar aquí. Si no se puede saber, se intenta igual.
+ */
+async function providerEnabled(provider: OAuthProvider) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return false
+  try {
+    const r = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key }, next: { revalidate: 300 } })
+    if (!r.ok) return true
+    const d = (await r.json()) as { external?: Record<string, boolean> }
+    return Boolean(d.external?.[provider])
+  } catch {
+    return true
+  }
+}
+
 export async function signInWithProvider(provider: OAuthProvider, next?: string): Promise<AuthState> {
   if (provider !== 'google' && provider !== 'apple') return { error: 'oauth_unavailable' }
+  if (!(await providerEnabled(provider))) return { error: 'oauth_unavailable' }
   const supabase = await createClient()
   const target = safeNext(next ?? null)
   const { data, error } = await supabase.auth.signInWithOAuth({

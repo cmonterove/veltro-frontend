@@ -43,3 +43,26 @@ export function GoogleG() {
     </svg>
   )
 }
+
+/**
+ * Sin Google Calendar las reuniones de Veltro funcionan igual; esta línea solo ofrece sumar los eventos
+ * del calendario. Si el servidor no tiene Google configurado, no dice nada.
+ */
+export function ConnectCalendarHint({ returnTo, className }: { returnTo: string; className?: string }) {
+  const t = useTranslations('calendar.connect')
+  const { googleConfigured } = useApp()
+  if (!googleConfigured) return null
+  return (
+    <p className={cn('flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg bg-sidebar/50 px-3 py-2 text-xs text-fg-muted', className)}>
+      <GoogleG />
+      <span>{t('hint')}</span>
+      <a
+        href={`/api/integrations/google/connect?returnTo=${encodeURIComponent(returnTo)}`}
+        onClick={() => track('feature.calendar_connect')}
+        className="font-medium text-accent-ink hover:underline"
+      >
+        {t('hintCta')}
+      </a>
+    </p>
+  )
+}

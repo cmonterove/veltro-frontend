@@ -11,7 +11,7 @@ import { Avatar, AvatarStack } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Menu, MenuContent, MenuGroup, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
-import { ConnectCalendar } from '@/components/calendar/connect-calendar'
+import { ConnectCalendar, ConnectCalendarHint } from '@/components/calendar/connect-calendar'
 import { NotesButton } from '@/components/calendar/notes-button'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { useCreateTask, useUpdateTask } from '@/lib/queries/tasks'
@@ -70,7 +70,11 @@ export function useBriefModel(
   // "Toda la empresa" incluye lo que no tiene responsable (como las cifras de la API)
   const everyone = scope.kind === 'all'
   return useMemo(() => {
-    const meetingByEvent = new Map(meetings.map((m) => [m.google_event_id, m]))
+    // por el evento de Google o, si se creó en Veltro, por su id propio (`veltro-…`)
+    const meetingByEvent = new Map<string | null, MeetingRow>([
+      ...meetings.map((m) => [m.google_event_id, m] as const),
+      ...meetings.map((m) => [`veltro-${m.id}`, m] as const),
+    ])
     const inScope = (e: CalendarEvent) => filter === 'all' || e.links.some((l) => scopeIds.includes(l.workspaceId))
     const timed = (events ?? []).filter((e) => !e.allDay && inScope(e)).sort((a, b) => a.start.localeCompare(b.start))
     const live = timed.find((e) => new Date(e.start) <= now && new Date(e.end) > now) ?? null
@@ -427,6 +431,9 @@ export function AgendaColumn({ data, model, onTimeline }: { data: BriefData; mod
   const appLocale = useLocale()
   const locale = useDateLocale()
   const { google } = useApp()
+  // sin Google la agenda muestra igual las reuniones de Veltro; Google solo suma los eventos del calendario
+  const revoked = data.calendarIssue === 'google_auth_revoked'
+  const calendarOff = !google || data.calendarIssue === 'google_not_connected'
 
   const event = model.live ?? model.next
   const meeting = event ? (model.meetingByEvent.get(event.id) ?? null) : null
@@ -452,11 +459,12 @@ export function AgendaColumn({ data, model, onTimeline }: { data: BriefData; mod
 
   return (
     <Column title={t('title')} subtitle={t('subtitle')} action={<MoreLink href="/calendar">{t('open')}</MoreLink>}>
-      {!google || data.calendarIssue === 'google_not_connected' || data.calendarIssue === 'google_auth_revoked' ? (
-        <div className="p-3">
-          <ConnectCalendar reason={data.calendarIssue ?? undefined} returnTo="/home" compact />
+      {revoked ? (
+        <div className="p-3 pb-0">
+          <ConnectCalendar reason="google_auth_revoked" returnTo="/home" compact />
         </div>
-      ) : data.eventsLoading ? (
+      ) : null}
+      {data.eventsLoading ? (
         <div className="flex flex-col gap-2 p-4">
           <Skeleton className="h-20" />
           <Skeleton className="h-8" />
@@ -511,6 +519,7 @@ export function AgendaColumn({ data, model, onTimeline }: { data: BriefData; mod
             </>
           ) : null}
 
+          {calendarOff ? <ConnectCalendarHint returnTo="/home" className="mx-3 mt-2" /> : null}
           <Recent data={data} onTimeline={onTimeline} />
         </div>
       )}

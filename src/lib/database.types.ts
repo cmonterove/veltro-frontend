@@ -190,9 +190,17 @@ export type TaskRow = Timestamps & {
   doc_id: string | null
   doc_block_id: string | null
   meeting_id: string | null
+  /** se repite: al terminarla nace la siguiente (la regla pasa a ella) */
+  recurrence: TaskRecurrence | null
   created_by: string | null
   completed_at: string | null
+  /** cuántas tareas sin terminar la bloquean (lo cuenta la API; sin dato, no se muestra nada) */
+  blocked_by_open?: number
 }
+
+export type RecurrenceFreq = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly'
+/** Regla de repetición: cada `interval` días/semanas/meses/años; mensual y anual, el día `day` del mes. */
+export type TaskRecurrence = { freq: RecurrenceFreq; interval?: number; day?: number }
 
 /**
  * Un archivo o link de la bóveda. Puede colgar de un espacio, una tarea, una reunión o un doc, pero no
@@ -271,9 +279,15 @@ export type ChatMessageRow = {
     users?: string[]
     /** respuesta a otro mensaje: se guarda un extracto para mostrarlo citado */
     replyTo?: { id: string; userId: string | null; body: string }
+    /** el mensaje citado se borró: la cita queda sin texto */
+    replyDeleted?: boolean
   }
+  /** personas del chat mencionadas (@) en el texto */
+  mentions: string[]
   created_at: string
   edited_at: string | null
+  /** borrado: queda su lugar en la conversación, sin el contenido */
+  deleted_at: string | null
 }
 
 export type TaskCommentRow = Timestamps & {
@@ -282,6 +296,8 @@ export type TaskCommentRow = Timestamps & {
   workspace_id: string
   user_id: string
   body: string
+  /** personas mencionadas (@): reciben un aviso */
+  mentions: string[]
 }
 
 export type GoogleConnectionRow = Timestamps & {

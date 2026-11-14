@@ -100,6 +100,7 @@ export async function getDemoAppContext(): Promise<
       observedWorkspaces: observed,
       members,
       departments: departments ?? [],
+      teams: [],
       google: g ? { email: g.google_email, selectedCalendarIds: g.selected_calendar_ids } : null,
       googleConfigured: isGoogleConfigured(),
       // sin Supabase todo ya es de prueba: no hay nada que cambiar

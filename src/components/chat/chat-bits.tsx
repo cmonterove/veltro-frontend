@@ -30,7 +30,9 @@ export function useChatPreview() {
     (last: ChatSummary['last']) =>
       !last
         ? t('noMessages')
-        : last.kind === 'system'
+        : last.deleted_at
+          ? t('preview.deleted')
+          : last.kind === 'system'
           ? t('preview.system')
           : last.kind === 'meeting'
             ? t('preview.meeting', { title: last.meta.invite?.title ?? '' })

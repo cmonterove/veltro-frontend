@@ -7,7 +7,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('login') }
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
-  const { next, error } = await searchParams
-  return <AuthScreen initialMode="login" next={next} linkError={error === 'link_expired'} />
+/** ?forgot=1 abre directo «recuperar la contraseña» (lo enlaza la consola). */
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; forgot?: string }> }) {
+  const { next, error, forgot } = await searchParams
+  return <AuthScreen initialMode={forgot === '1' ? 'reset' : 'login'} next={next} linkError={error === 'link_expired'} />
 }

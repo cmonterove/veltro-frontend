@@ -10,6 +10,7 @@ import { ShortcutsDialog } from './shortcuts-dialog'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { LegacyTaskParam } from '@/components/tasks/legacy-task-param'
 import { LogoMark } from './logo'
+import { TopBar } from './top-bar'
 import { isTypingTarget } from '@/lib/hooks'
 import { useApp } from './app-context'
 import { ConfirmProvider } from '@/components/ui/confirm'
@@ -18,6 +19,9 @@ import { useChatUnread } from '@/lib/queries/chats'
 import { Ban } from 'lucide-react'
 import { AccountSuspendedNotice, SUSPENDED_ALLOWED, TempPasswordGate, useSuspensionWatcher } from './suspended-notice'
 import { DemoDataBanner } from './demo-data'
+import { RealtimeConnection } from './realtime-connection'
+import { NotificationBell } from '@/components/notifications/notification-bell'
+import { useNotificationsUnread } from '@/lib/queries/notifications'
 import { cn } from '@/lib/utils'
 import { SIDEBAR_COOKIE } from '@/lib/constants'
 import { flushEvents, ping, setTelemetryAccount, track, viewEvent } from '@/lib/telemetry'
@@ -42,6 +46,8 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   // `G` seguido de una tecla navega (estilo Linear); la espera dura poco para no secuestrar el teclado.
   const goPending = useRef<number | null>(null)
   // contraseña temporal o cuenta suspendida: la API no deja hacer casi nada, en lugar de la página va el aviso
+  // Pasillo arma sus propias hojas (la lista y el contexto viven sobre el marco); el resto va en una sola hoja
+  const bare = pathname === '/chat' || pathname.startsWith('/chat/')
   const gate = profile.must_change_password && pathname !== '/settings/profile' ? 'password' : account.status === 'suspended' && !SUSPENDED_ALLOWED.includes(pathname) ? 'suspended' : null
   useSuspensionWatcher()
 
@@ -78,8 +84,8 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
     if (paletteOpen) track('feature.command_palette')
   }, [paletteOpen])
 
-  // lo que falta leer en Pasillo también se ve en la pestaña del navegador: "(3) Pulso · Veltro"
-  const unread = useChatUnread().data?.total ?? 0
+  // lo que falta leer (Pasillo y avisos) también se ve en la pestaña del navegador: "(3) Pulso · Veltro"
+  const unread = (useChatUnread().data?.total ?? 0) + (useNotificationsUnread().data ?? 0)
   useEffect(() => {
     const prefix = unread ? `(${unread > 99 ? '99+' : unread}) ` : ''
     const apply = () => {
@@ -98,7 +104,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [quickTaskOpen])
 
   useEffect(() => {
-    const routes: Record<string, string> = { h: '/home', v: '/veltro', m: '/mesa', c: '/calendar', t: '/tasks', b: '/vault', p: '/chat' }
+    const routes: Record<string, string> = { h: '/home', v: '/veltro', m: '/mesa', c: '/calendar', t: '/tasks', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -149,9 +155,17 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   return (
     <ConfirmProvider>
       <TourProvider>
-      <div className="flex h-dvh overflow-hidden bg-canvas">
+      {/* el marco (ciruela empolvado) lleva el menú y la barra de arriba; el contenido es una hoja encima, con sus esquinas */}
+      <div className="relative isolate flex h-dvh overflow-hidden bg-canvas md:frame-bg">
+        {/* el isotipo como marca de agua, apenas visible sobre el marco (en su propia capa: lo que sobresale no da scroll) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 hidden overflow-clip md:block">
+          <svg viewBox="150 23.3 724.3 851" className="absolute -bottom-[330px] -left-[250px] w-[840px] opacity-[0.05] dark:opacity-[0.03]">
+            <path fill="oklch(0.773 0.115 303)" d="M670.8 188.9A360 360 0 1 0 770.4 261.3L483.6 758L305.6 530.1L371.6 415.8L468.4 539.6Z" />
+            <path fill="oklch(0.773 0.115 303)" d="M686.2 162.4L765.4 25.2L871.4 86.4L786.2 233.9A390.6 390.6 0 0 0 686.2 162.4Z" />
+          </svg>
+        </div>
         {/* sidebar desktop */}
-        <div className={cn('hidden shrink-0 md:block', collapsed ? 'w-14' : 'w-[248px]')}>
+        <div className={cn('on-frame hidden shrink-0 md:block', collapsed ? 'w-[56px]' : 'w-[236px]')}>
           <Sidebar
             onSearch={() => setPaletteOpen(true)}
             onNewTask={() => setQuickTaskOpen(true)}
@@ -173,7 +187,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
           aria-modal={mobileOpen ? true : undefined}
           aria-label={t('openMenu')}
           className={cn(
-            'fixed inset-y-0 left-0 z-50 w-[272px] shadow-lift transition-transform duration-200 ease-[var(--ease-out-quart)] md:hidden',
+            'frame-bg on-frame fixed inset-y-0 left-0 z-50 w-[272px] shadow-lift transition-transform duration-200 ease-[var(--ease-out-quart)] md:hidden',
             mobileOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
@@ -181,6 +195,8 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
+        <TopBar onSearch={() => setPaletteOpen(true)} />
+        <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col md:mb-2 md:mr-2', !bare && 'md:overflow-hidden md:rounded-[18px] md:bg-canvas md:shadow-sheet')}>
           <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-3 md:hidden">
             <button
               type="button"
@@ -191,6 +207,9 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
               <MenuIcon className="size-4" />
             </button>
             <LogoMark className="size-5" />
+            <div className="ml-auto">
+              <NotificationBell variant="topbar" />
+            </div>
           </div>
           {account.status === 'suspended' && gate !== 'suspended' ? (
             <div role="alert" className="flex shrink-0 items-center justify-center gap-2 border-b border-line bg-danger-soft px-4 py-2 text-sm text-fg">
@@ -208,6 +227,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
             </Suspense>
           </main>
         </div>
+        </div>
 
         <CommandPalette
           open={paletteOpen}
@@ -218,6 +238,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
           onToggleSidebar={toggleSidebar}
         />
         <QuickTaskDialog open={quickTaskOpen} onOpenChange={setQuickTaskOpen} />
+        <RealtimeConnection />
         <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       </div>
       </TourProvider>

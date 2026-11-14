@@ -8,6 +8,8 @@ import type {
   WorkspaceRole,
   WorkspaceRow,
 } from './database.types'
+import type { WorkTeam } from './api/types'
+export type { WorkTeam }
 
 export type Member = Pick<ProfileRow, 'id' | 'email' | 'full_name' | 'avatar_url'> & {
   role: AccountRole
@@ -29,6 +31,8 @@ export type AppContextValue = {
   observedWorkspaces: WorkspaceWithRole[]
   members: Member[]
   departments: DepartmentRow[]
+  /** equipos de trabajo: sirven de alcance en Tareas, Pulso y Mesa */
+  teams: WorkTeam[]
   google: { email: string; selectedCalendarIds: string[] } | null
   googleConfigured: boolean
   /** el interruptor de datos de prueba: si el servidor tiene la cuenta demo y si está abierta */

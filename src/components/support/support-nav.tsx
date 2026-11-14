@@ -11,7 +11,7 @@ import { CountBadge, SupportIcon } from './support-bits'
 
 // igual que los ítems del riel colapsado de la barra lateral
 const railItemClass =
-  'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-hover hover:text-fg [&>svg]:size-[18px] [&>svg]:shrink-0'
+  'relative inline-flex size-8 shrink-0 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-hover hover:text-fg [&>svg]:size-4 [&>svg]:shrink-0'
 
 /** «Soporte» en la barra lateral, con lo que espera por mí (respuestas, tickets que me llegan, novedades). */
 export function SupportNavLink({ compact = false }: { compact?: boolean }) {

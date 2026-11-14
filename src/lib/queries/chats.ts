@@ -8,12 +8,14 @@ import { useApp } from '@/components/app/app-context'
 import { api } from '@/lib/api/client'
 import { toChatMessage, toChatSummary, toMessageBody, type ApiChat, type ApiChatMessage, type ChatSummary, type OutgoingMessage, type Page } from '@/lib/api/pasillo-boveda'
 import { toErrorCode } from '@/lib/errors'
+import { useRealtimeLive } from '@/lib/realtime'
 import type { ChatMessageRow, RsvpAnswer } from '@/lib/database.types'
 
 /**
  * Pasillo: conversaciones directas y grupos de la cuenta, por la API (/v1/accounts/{id}/chats y
- * /v1/chats/{id}). Sin tiempo real todavía: se pregunta cada pocos segundos. El resumen (miembros,
- * último mensaje y no leídos) y los avisos de sistema los arma el servidor.
+ * /v1/chats/{id}). Los cambios llegan en vivo (eventos `msg`, `read`, `chat`…, ver lib/realtime) y
+ * cada evento vuelve a pedir lo suyo; sin conexión en vivo se pregunta cada pocos segundos. El
+ * resumen (miembros, último mensaje y no leídos) y los avisos de sistema los arma el servidor.
  */
 export const chatKeys = {
   all: ['chats'] as const,
@@ -42,9 +44,10 @@ function upsertChat(qc: QueryClient, accountId: string, chat: ChatSummary) {
 export function useChats({ fast = false }: { fast?: boolean } = {}) {
   const { account } = useApp()
   const qc = useQueryClient()
+  const live = useRealtimeLive()
   return useQuery({
     queryKey: chatKeys.list(account.id),
-    refetchInterval: fast ? 5000 : false,
+    refetchInterval: fast ? (live ? 120_000 : 5000) : false,
     staleTime: fast ? 0 : 15_000,
     queryFn: async () => {
       const { items } = await api<{ items: ApiChat[] }>(`/v1/accounts/${account.id}/chats`)
@@ -59,13 +62,14 @@ export function useChats({ fast = false }: { fast?: boolean } = {}) {
 // último total visto por cuenta: si cambia, la lista (si alguien la mira) se refresca
 const lastTotals = new Map<string, number>()
 
-/** No leídos de Pasillo para el menú y la pestaña del navegador (GET …/chats/unread, cada 20 s). */
+/** No leídos de Pasillo para el menú y la pestaña del navegador (GET …/chats/unread; en vivo, o cada 20 s). */
 export function useChatUnread() {
   const { account } = useApp()
   const qc = useQueryClient()
+  const live = useRealtimeLive()
   const query = useQuery({
     queryKey: chatKeys.unread(account.id),
-    refetchInterval: 20_000,
+    refetchInterval: live ? 5 * 60_000 : 20_000,
     staleTime: 10_000,
     queryFn: () => api<Unread>(`/v1/accounts/${account.id}/chats/unread`),
   })
@@ -109,11 +113,13 @@ const realLast = (list: ChatMessageRow[] | undefined) => [...(list ?? [])].rever
  */
 export function useChatMessages(chatId: string | null) {
   const qc = useQueryClient()
+  const live = useRealtimeLive()
   const key = chatKeys.messages(chatId ?? 'none')
   const query = useQuery({
     queryKey: key,
     enabled: Boolean(chatId),
-    refetchInterval: 3000,
+    // en vivo, cada evento trae lo nuevo; esto queda de red de seguridad
+    refetchInterval: live ? 60_000 : 3000,
     queryFn: async () => {
       const id = chatId!
       const path = `/v1/chats/${id}/messages`
@@ -188,8 +194,10 @@ export function useChatMutations() {
         body: m.body ?? '',
         ref_id: m.refId ?? null,
         meta: m.meta ?? {},
+        mentions: m.mentions ?? [],
         created_at: new Date().toISOString(),
         edited_at: null,
+        deleted_at: null,
       }
       pending.add(temp.id)
       qc.setQueryData<ChatMessageRow[]>(key, (old) => [...(old ?? []), temp])
@@ -308,5 +316,58 @@ export function useChatMutations() {
     onError,
   })
 
-  return { send, markRead, openDirect, createGroup, rename, addMembers, leave, rsvp, share }
+  /** Editar mi mensaje (texto y menciones). Se ve al instante; si falla, vuelve lo de antes. */
+  const edit = useMutation({
+    mutationFn: async ({ message, body, mentions }: { message: ChatMessageRow; body: string; mentions: string[] }) =>
+      toChatMessage(await api<ApiChatMessage>(`/v1/chats/${message.chat_id}/messages/${message.id}`, { method: 'PATCH', body: { body: body.slice(0, 4000), mentions } })),
+    onMutate: ({ message, body, mentions }) =>
+      qc.setQueryData<ChatMessageRow[]>(chatKeys.messages(message.chat_id), (old) =>
+        old?.map((m) => (m.id === message.id ? { ...m, body, mentions, edited_at: m.body === body ? m.edited_at : new Date().toISOString() } : m)),
+      ),
+    onSuccess: (row) => qc.setQueryData<ChatMessageRow[]>(chatKeys.messages(row.chat_id), (old) => merge(old, [row])),
+    onError: (e, { message }) => {
+      onError(e)
+      refreshChatMessages(qc, message.chat_id, true)
+    },
+    onSettled: refresh,
+  })
+
+  /** Borrar mi mensaje: queda su lugar («Mensaje eliminado»). */
+  const remove = useMutation({
+    mutationFn: async (message: ChatMessageRow) =>
+      toChatMessage(await api<ApiChatMessage>(`/v1/chats/${message.chat_id}/messages/${message.id}`, { method: 'DELETE' })),
+    onMutate: (message) =>
+      qc.setQueryData<ChatMessageRow[]>(chatKeys.messages(message.chat_id), (old) =>
+        old?.map((m) => (m.id === message.id ? { ...m, body: '', mentions: [], meta: {}, deleted_at: new Date().toISOString() } : m)),
+      ),
+    onSuccess: (row) => refreshChatMessages(qc, row.chat_id, true),
+    onError: (e, message) => {
+      onError(e)
+      refreshChatMessages(qc, message.chat_id, true)
+    },
+    onSettled: () => {
+      refresh()
+      refreshUnread()
+    },
+  })
+
+  return { send, markRead, openDirect, createGroup, rename, addMembers, leave, rsvp, share, edit, remove }
+}
+
+/**
+ * Volver a pedir los mensajes de un chat. `full`: la última página entera (trae ediciones,
+ * borrados y respuestas a invitaciones); sin `full`, solo lo nuevo.
+ */
+export function refreshChatMessages(qc: QueryClient, chatId: string, full = false) {
+  if (full) lastFull.set(chatId, 0)
+  return qc.invalidateQueries({ queryKey: chatKeys.messages(chatId) })
+}
+
+// «Estoy escribiendo»: como mucho un aviso cada 3 s por chat (no se guarda nada).
+const lastTyping = new Map<string, number>()
+export function sendTyping(chatId: string) {
+  const now = Date.now()
+  if (now - (lastTyping.get(chatId) ?? 0) < 3000) return
+  lastTyping.set(chatId, now)
+  fetch(`/api/veltro/v1/chats/${chatId}/typing`, { method: 'POST', credentials: 'same-origin' }).catch(() => undefined)
 }

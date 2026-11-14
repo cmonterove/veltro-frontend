@@ -7,20 +7,28 @@ import { MessageSquare, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChatList } from './chat-list'
+import { ChatContext, useChatContextHidden } from './chat-context'
 import { PeopleDialog } from './new-chat-dialog'
 
-/** Pasillo: la lista de conversaciones queda fija y a la derecha va el chat abierto. En el celular, una u otro. */
+/**
+ * Pasillo: la lista de conversaciones queda fija y a la derecha va el chat abierto. En el celular, una u otro.
+ * En escritorio la lista y el contexto viven sobre el marco y el chat es la hoja; el chat elegido de la
+ * lista se une a la hoja como la pestaña de una carpeta.
+ */
 export function PasilloShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const activeId = pathname.startsWith('/chat/') ? pathname.slice('/chat/'.length).split('/')[0] : undefined
+  const [contextHidden] = useChatContextHidden()
   return (
     <div className="flex h-full min-h-0">
-      <aside className={cn('min-h-0 w-full shrink-0 border-line lg:flex lg:w-[340px] lg:border-r', activeId ? 'hidden' : 'flex')}>
+      {/* encima de la sombra de la hoja: la pestaña del chat elegido se une a ella sin un borde oscuro */}
+      <aside className={cn('min-h-0 w-full shrink-0 md:on-frame md:relative md:z-[1] lg:flex lg:w-[324px]', activeId ? 'hidden' : 'flex')}>
         <div className="flex min-h-0 w-full flex-col">
           <ChatList activeId={activeId} />
         </div>
       </aside>
-      <main className={cn('min-h-0 min-w-0 flex-1', activeId ? 'flex' : 'hidden lg:flex')}>{children}</main>
+      <main className={cn('min-h-0 min-w-0 flex-1 md:overflow-hidden md:rounded-[20px] md:bg-canvas md:shadow-sheet', activeId ? 'flex' : 'hidden lg:flex')}>{children}</main>
+      {activeId && !contextHidden ? <ChatContext chatId={activeId} /> : null}
     </div>
   )
 }

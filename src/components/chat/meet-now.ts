@@ -21,7 +21,8 @@ export const inviteFrom = (e: Pick<CalendarEvent, 'title' | 'start' | 'end' | 'c
   start: e.start,
   end: e.end,
   conferenceUrl: e.conferenceUrl,
-  eventId: e.id,
+  // solo los ids de Google: una reunión de Veltro (veltro-…) no es un evento de calendario
+  eventId: /^[A-Za-z0-9_@.-]+$/.test(e.id) && !e.id.startsWith('veltro-') ? e.id : null,
   rsvp: { [userId]: 'yes' },
 })
 

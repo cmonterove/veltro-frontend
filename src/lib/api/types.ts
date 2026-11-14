@@ -68,6 +68,9 @@ export type ApiOrgPerson = {
   joinedAt: string
 }
 
+/** Equipo de trabajo de la cuenta (aparte del organigrama): «Equipo Polar», «Trade». */
+export type WorkTeam = { id: string; name: string; color: string; memberIds: string[] }
+
 export type ApiDepartment = { id: string; accountId: string; name: string; headId: string | null; createdAt: string; updatedAt: string }
 
 export type ApiContext = {
@@ -79,6 +82,8 @@ export type ApiContext = {
   observedWorkspaces: ApiWorkspace[]
   members: ApiOrgPerson[]
   departments: ApiDepartment[]
+  /** equipos de trabajo (aparte del organigrama); falta en APIs de antes */
+  teams?: WorkTeam[]
   visibleMemberIds: string[]
   google: { configured: boolean; connected: boolean; email: string | null; selectedCalendarIds: string[] }
 }

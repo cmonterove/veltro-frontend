@@ -150,7 +150,7 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
                   </td>
                   <td className={cell}>
                     <DuePopover value={task.due_date} onChange={(due_date) => patch({ due_date })} disabled={!editable} className="h-7 px-2">
-                      {task.due_date ? <DueDate due={task.due_date} done={task.status === 'done'} withIcon={false} className="text-sm" /> : null}
+                      {task.due_date ? <DueDate due={task.due_date} done={task.status === 'done'} withIcon={false} className="text-sm" repeats={Boolean(task.recurrence)} /> : null}
                     </DuePopover>
                   </td>
                   <td className={cell}>

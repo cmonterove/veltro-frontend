@@ -55,7 +55,7 @@ export function TaskPeek({ task, onOpen, onChange }: { task: TaskRow; onOpen: ()
             <StatusIcon status={task.status} />
             {statusName(taskStatusOf(task, ws))}
           </span>
-          {task.due_date ? <DueDate due={task.due_date} done={task.status === 'done'} /> : null}
+          {task.due_date ? <DueDate due={task.due_date} done={task.status === 'done'} repeats={Boolean(task.recurrence)} /> : null}
         </div>
       </div>
 

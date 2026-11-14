@@ -11,7 +11,9 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const hash = new URLSearchParams(location.hash.slice(1))
     const next = new URLSearchParams(location.search).get('next')
-    const target = next?.startsWith('/') && !next.startsWith('//') ? next : '/home'
+    // los correos de recuperación viejos apuntaban al perfil, que pide tener cuenta: ahora van a /auth/reset
+    const safe = next?.startsWith('/') && !next.startsWith('//') ? next : '/home'
+    const target = safe.startsWith('/settings/profile?reset=1') ? '/auth/reset' : safe
     const accessToken = hash.get('access_token')
     const refreshToken = hash.get('refresh_token')
     const expiresIn = Number(hash.get('expires_in') ?? 3600)

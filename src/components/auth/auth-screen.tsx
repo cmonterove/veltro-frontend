@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, MailCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, MailCheck, UserRound, type LucideIcon } from 'lucide-react'
 import { requestReset, signIn, signUp, type AuthState } from '@/app/(auth)/actions'
 import { Logo } from '@/components/app/logo'
 import { LocaleSelect } from '@/components/app/locale-select'
@@ -30,14 +30,32 @@ function strength(pw: string) {
   return Math.min(4, Math.max(2, s))
 }
 
+/** true cuando el valor lleva un rato sin cambiar: para avisar mientras se escribe, sin interrumpir cada tecla. */
+function useSettled(value: string, ms = 900) {
+  const [settled, setSettled] = useState(value)
+  useEffect(() => {
+    const id = window.setTimeout(() => setSettled(value), ms)
+    return () => window.clearTimeout(id)
+  }, [value, ms])
+  return value.trim() !== '' && settled === value
+}
+
+type FieldKey = 'name' | 'email' | 'password'
+const UNTOUCHED: Record<FieldKey, boolean> = { name: false, email: false, password: false }
+
 export function AuthScreen({ initialMode, next, linkError }: { initialMode: AuthMode; next?: string; linkError?: boolean }) {
   const t = useTranslations('auth')
+  const tv = useTranslations('validation')
+  const tp = useTranslations('settings.profile')
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [capsLock, setCapsLock] = useState(false)
+  // un campo avisa de lo que falta desde que se sale de él o se deja de escribir; después, en vivo
+  const [touched, setTouched] = useState(UNTOUCHED)
+  const touch = (f: FieldKey) => setTouched((s) => (s[f] ? s : { ...s, [f]: true }))
   const [submittedIn, setSubmittedIn] = useState<AuthMode | null>(linkError ? 'login' : null)
   const [oauthError, setOauthError] = useState<string | null>(null)
 
@@ -59,6 +77,7 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
     setSubmittedIn(null)
     setOauthError(null)
     setShowPassword(false)
+    setTouched(UNTOUCHED)
     const qs = next ? `?next=${encodeURIComponent(next)}` : ''
     window.history.replaceState(null, '', `${PATHS[m]}${qs}`)
   }
@@ -71,6 +90,41 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
   }, [])
 
   const score = strength(password)
+  // el check de cada campo: solo cuando ya está bien (la contraseña, si la API la aceptaría)
+  const emailOk = EMAIL_OK.test(email.trim())
+  const nameOk = name.trim().length >= 2
+  const passwordOk = mode === 'register' && !!password && !passwordProblem(password)
+
+  // qué le falta a cada campo (los mismos textos que la burbuja de validación y que el perfil)
+  const problemOf: Record<FieldKey, string | null> = {
+    name: mode !== 'register' || nameOk ? null : name.trim() ? tv('tooShort', { min: 2, count: name.trim().length }) : tv('required'),
+    email: emailOk ? null : !email.trim() ? tv('emailMissing') : email.includes('@') ? tv('emailFormat') : tv('emailAt', { value: email.trim() }),
+    password:
+      mode === 'reset' ? null : !password ? tv('passwordMissing') : mode === 'register' && passwordProblem(password) ? tp(passwordProblem(password)!) : null,
+  }
+  const shown = (f: FieldKey) => (touched[f] ? problemOf[f] : null)
+
+  const nameSettled = useSettled(name)
+  const emailSettled = useSettled(email)
+  const passwordSettled = useSettled(password, 1200)
+  useEffect(() => {
+    setTouched((s) =>
+      (nameSettled && !s.name) || (emailSettled && !s.email) || (passwordSettled && !s.password)
+        ? { name: s.name || nameSettled, email: s.email || emailSettled, password: s.password || passwordSettled }
+        : s,
+    )
+  }, [nameSettled, emailSettled, passwordSettled])
+
+  /** Antes de mandar: si algo falta se muestra junto a su campo y el foco va al primero (sin la burbuja del navegador). */
+  const checkBeforeSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const fields: FieldKey[] = mode === 'register' ? ['name', 'email', 'password'] : mode === 'login' ? ['email', 'password'] : ['email']
+    const first = fields.find((f) => problemOf[f])
+    if (!first) return true
+    e.preventDefault()
+    setTouched({ name: true, email: true, password: true })
+    document.getElementById(first === 'name' ? 'full_name' : first)?.focus()
+    return false
+  }
 
   return (
     <MotionConfig reducedMotion="user" transition={{ duration: 0.32, ease: EASE }}>
@@ -184,7 +238,9 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
 
                     <form
                       action={action}
-                      onSubmit={() => {
+                      noValidate
+                      onSubmit={(e) => {
+                        if (!checkBeforeSubmit(e)) return
                         setSubmittedIn(mode)
                         setOauthError(null)
                       }}
@@ -195,32 +251,38 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                       <AnimatePresence initial={false}>
                         {mode === 'register' ? (
                           <motion.div key="name" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                            <FieldShell label={t('fields.fullName')} htmlFor="full_name">
+                            <FieldShell label={t('fields.fullName')} htmlFor="full_name" icon={UserRound} valid={nameOk} error={shown('name')}>
                               <input
                                 id="full_name"
                                 name="full_name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
+                                onBlur={() => touch('name')}
                                 autoComplete="name"
                                 required
-                                className={inputCls}
+                                aria-invalid={Boolean(shown('name'))}
+                                aria-describedby={shown('name') ? 'full_name-error' : undefined}
+                                className={cn(inputCls, 'pr-11')}
                               />
                             </FieldShell>
                           </motion.div>
                         ) : null}
                       </AnimatePresence>
 
-                      <FieldShell label={t('fields.email')} htmlFor="email">
+                      <FieldShell label={t('fields.email')} htmlFor="email" icon={Mail} valid={emailOk} error={shown('email')}>
                         <input
                           id="email"
                           name="email"
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
+                          onBlur={() => touch('email')}
                           autoComplete="email"
                           required
                           autoFocus
-                          className={inputCls}
+                          aria-invalid={Boolean(shown('email'))}
+                          aria-describedby={shown('email') ? 'email-error' : undefined}
+                          className={cn(inputCls, 'pr-11')}
                         />
                       </FieldShell>
 
@@ -230,37 +292,44 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                             <FieldShell
                               label={t('fields.password')}
                               htmlFor="password"
+                              icon={LockKeyhole}
+                              valid={passwordOk}
+                              error={shown('password')}
                               aside={
                                 mode === 'login' ? (
-                                  <button type="button" onClick={() => switchTo('reset')} className="text-xs font-medium text-accent-ink hover:underline">
+                                  <button
+                                    type="button"
+                                    onClick={() => switchTo('reset')}
+                                    className="rounded-sm text-xs font-medium text-accent-ink underline-offset-2 outline-none hover:underline focus-visible:underline focus-visible:decoration-2"
+                                  >
                                     {t('login.forgot')}
                                   </button>
                                 ) : null
                               }
-                            >
-                              <div className="relative">
-                                <input
-                                  id="password"
-                                  name="password"
-                                  type={showPassword ? 'text' : 'password'}
-                                  value={password}
-                                  onChange={(e) => setPassword(e.target.value)}
-                                  onKeyUp={(e) => setCapsLock(e.getModifierState('CapsLock'))}
-                                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                                  minLength={mode === 'register' ? 8 : undefined}
-                                  required
-                                  className={cn(inputCls, 'pr-11')}
-                                />
+                              trailing={
                                 <button
                                   type="button"
                                   onClick={() => setShowPassword((v) => !v)}
-                                  className="absolute right-1.5 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-fg-subtle hover:bg-hover hover:text-fg"
+                                  className="absolute right-1.5 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-fg-subtle transition-colors hover:bg-hover hover:text-fg"
                                   aria-label={showPassword ? t('fields.hidePassword') : t('fields.showPassword')}
                                 >
-                                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                  {/* el ojo cambia girando */}
+                                  <AnimatePresence mode="popLayout" initial={false}>
+                                    <motion.span
+                                      key={showPassword ? 'hide' : 'show'}
+                                      initial={{ opacity: 0, rotate: -45, scale: 0.7 }}
+                                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                                      exit={{ opacity: 0, rotate: 45, scale: 0.7 }}
+                                      transition={{ duration: 0.18, ease: EASE }}
+                                      className="inline-flex"
+                                    >
+                                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                    </motion.span>
+                                  </AnimatePresence>
                                 </button>
-                              </div>
-                              <AnimatePresence initial={false}>
+                              }
+                              below={
+                                <AnimatePresence initial={false}>
                                 {capsLock ? (
                                   <motion.p key="caps" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="pt-1.5 text-xs text-mandarina-ink">
                                     {t('fields.capsLock')}
@@ -282,7 +351,24 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
                                     <p className="mt-1.5 text-xs text-fg-muted">{t('strength.label', { level: t(`strength.${score}`) })}</p>
                                   </motion.div>
                                 ) : null}
-                              </AnimatePresence>
+                                </AnimatePresence>
+                              }
+                            >
+                              <input
+                                id="password"
+                                name="password"
+                                type={showPassword ? 'text' : 'password'}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                onKeyUp={(e) => setCapsLock(e.getModifierState('CapsLock'))}
+                                onBlur={() => touch('password')}
+                                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                                minLength={mode === 'register' ? 8 : undefined}
+                                required
+                                aria-invalid={Boolean(shown('password'))}
+                                aria-describedby={shown('password') ? 'password-error' : undefined}
+                                className={cn(inputCls, passwordOk ? 'pr-20' : 'pr-11')}
+                              />
                             </FieldShell>
                           </motion.div>
                         ) : null}
@@ -338,19 +424,96 @@ export function AuthScreen({ initialMode, next, linkError }: { initialMode: Auth
   )
 }
 
-const inputCls =
-  'h-12 short:h-11 w-full rounded-xl border border-line-control bg-panel px-4 text-[15px] text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle hover:border-fg-subtle focus:border-accent focus:ring-4 focus:ring-accent/15'
+export const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-function FieldShell({ label, htmlFor, aside, children }: { label: string; htmlFor: string; aside?: React.ReactNode; children: React.ReactNode }) {
+// pl-11: el ícono va adentro, a la izquierda
+export const inputCls =
+  'h-12 short:h-11 w-full rounded-xl border border-line-control bg-panel pl-11 pr-4 text-[15px] text-fg outline-none transition-[border-color,box-shadow] duration-200 ease-out placeholder:text-fg-subtle hover:border-fg-subtle focus:border-accent focus:ring-4 focus:ring-accent/15 aria-[invalid=true]:border-danger aria-[invalid=true]:focus:border-danger aria-[invalid=true]:focus:ring-danger/15'
+
+type FieldShellProps = {
+  label: string
+  htmlFor: string
+  aside?: React.ReactNode
+  /** a la izquierda, adentro del campo: se tiñe y crece un poco al enfocar */
+  icon: LucideIcon
+  /** el check aparece cuando el valor ya está bien */
+  valid?: boolean
+  /** botón adentro del campo, a la derecha (mostrar la contraseña) */
+  trailing?: React.ReactNode
+  /** debajo del campo (bloq mayús, fuerza de la contraseña) */
+  below?: React.ReactNode
+  /** lo que falta, debajo del campo; el campo debe llevar aria-describedby={`${htmlFor}-error`} */
+  error?: string | null
+  children: React.ReactNode
+}
+
+/**
+ * Un campo de la pantalla de entrar. Al enfocarlo se tiñen la etiqueta y el ícono y una línea
+ * se dibuja desde el centro bajo el borde; cuando el valor ya está bien aparece el check, y si
+ * le falta algo, el aviso entra debajo y el campo pasa a rojo.
+ * Solo color, transform y opacidad (nada de layout), y con movimiento reducido no se mueve.
+ */
+export function FieldShell({ label, htmlFor, aside, icon: Icon, valid = false, trailing, below, error, children }: FieldShellProps) {
   return (
-    <div className="pb-4 short:pb-3">
+    <div className="group/field pb-4 short:pb-3">
       <div className="mb-1.5 flex items-center justify-between short:mb-1">
-        <label htmlFor={htmlFor} className="text-sm font-medium text-fg">
+        <label htmlFor={htmlFor} className="text-sm font-medium text-fg transition-colors duration-200 group-has-[input:focus]/field:text-accent-ink">
           {label}
         </label>
         {aside}
       </div>
-      {children}
+      <div className="relative">
+        <Icon
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 transition-[color,scale] duration-200 ease-out group-has-[input:focus]/field:scale-110 motion-reduce:transition-none',
+            error ? 'text-danger' : 'text-fg-subtle group-hover/field:text-fg-muted group-has-[input:focus]/field:text-accent',
+          )}
+        />
+        {children}
+        <span
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute inset-x-4 bottom-0 h-0.5 origin-center scale-x-0 rounded-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-has-[input:focus]/field:scale-x-100 motion-reduce:transition-none',
+            error ? 'bg-danger' : 'bg-accent',
+          )}
+        />
+        <AnimatePresence initial={false}>
+          {valid && !error ? (
+            <motion.span
+              key="ok"
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ duration: 0.2, ease: EASE }}
+              className={cn('pointer-events-none absolute top-1/2 -mt-2.5 inline-flex size-5 items-center justify-center rounded-full bg-done-soft text-done', trailing ? 'right-11' : 'right-3.5')}
+            >
+              <Check className="size-3" strokeWidth={3} />
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+        {trailing}
+      </div>
+      <AnimatePresence initial={false}>
+        {error ? (
+          <motion.p
+            key="error"
+            id={`${htmlFor}-error`}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: EASE }}
+            className="overflow-hidden"
+          >
+            {/* el texto cambia mientras se escribe (le falta la @ → el formato): entra sin saltar */}
+            <motion.span key={error} initial={{ opacity: 0.4, y: -2 }} animate={{ opacity: 1, y: 0 }} className="block pt-1.5 text-xs text-danger">
+              {error}
+            </motion.span>
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
+      {below}
     </div>
   )
 }
