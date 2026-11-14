@@ -128,7 +128,15 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
     { href: '/vault', label: t('vault'), icon: Vault, keys: ['G', 'B'] },
     { href: '/chat', label: t('pasillo'), icon: MessagesSquare, keys: ['G', 'P'], badge: unread },
   ]
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
+  // al hacer clic, la opción se marca en el acto (sin esperar a que llegue la página); al cambiar la
+  // ruta manda la URL de nuevo
+  const [pendingNav, setPendingNav] = useState<{ href: string; from: string } | null>(null)
+  const pendingHref = pendingNav && pendingNav.from === pathname ? pendingNav.href : null
+  const isActive = (href: string) => (pendingHref ? pendingHref === href : pathname === href || pathname.startsWith(`${href}/`))
+  const navClick = (href: string) => (e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+    setPendingNav({ href, from: pathname })
+  }
   const settingsActive = pathname.startsWith('/settings') && pathname !== '/settings/members'
 
   if (collapsed) {
@@ -160,6 +168,8 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
               trigger={
                 <Link
                   href={href}
+                  prefetch
+                  onClick={navClick(href)}
                   data-tour={`nav-${href.slice(1)}`}
                   aria-label={badge ? `${label} · ${badge}` : label}
                   aria-current={isActive(href) ? 'page' : undefined}
@@ -251,7 +261,15 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
         {top.map(({ href, label, icon: Icon, badge }) => {
           const current = isActive(href)
           return (
-            <Link key={href} href={href} data-tour={`nav-${href.slice(1)}`} aria-current={current ? 'page' : undefined} className={cn(navItemClass, current && navCurrentClass)}>
+            <Link
+              key={href}
+              href={href}
+              prefetch
+              onClick={navClick(href)}
+              data-tour={`nav-${href.slice(1)}`}
+              aria-current={current ? 'page' : undefined}
+              className={cn(navItemClass, current && navCurrentClass)}
+            >
               {current ? <NavPill id={`nav-${pillId}`} /> : null}
               <Icon />
               <span className="relative truncate">{label}</span>
