@@ -16,7 +16,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { useWorkspaceDocs } from '@/lib/queries/docs'
 import { useTasks } from '@/lib/queries/tasks'
 import { useWorkspaceMeetings } from '@/lib/queries/meetings'
-import { openAttachment, useAttachmentMutations, useAttachments } from '@/lib/queries/attachments'
+import { useAttachmentMutations, useAttachments } from '@/lib/queries/attachments'
 import { useDateLocale } from '@/lib/dates'
 import { cn, taskRef, excerptOf } from '@/lib/utils'
 import type { AttachmentRow, DocSource } from '@/lib/database.types'
@@ -27,6 +27,7 @@ import { ImportMarkdownDialog } from '@/components/docs/import-markdown-dialog'
 import { AttachmentIcon, formatBytes } from '@/components/attachments/attachments'
 import { useOpenTask } from '@/lib/use-open-task'
 import { useConfirm } from '@/components/ui/confirm'
+import { previewOrOpen } from '@/components/vault/file-viewer'
 
 type Tab = 'docs' | 'files'
 type FileFilter = 'all' | 'docs' | 'images' | 'sheets' | 'links'
@@ -405,7 +406,7 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
                 return (
                   <tr key={f.id} className="group/f border-b border-line-soft last:border-0 hover:bg-hover/50">
                     <td className="px-4 py-2.5">
-                      <button type="button" onClick={() => openAttachment(f)} className="flex min-w-0 items-center gap-3 text-left">
+                      <button type="button" onClick={() => previewOrOpen(f)} className="flex min-w-0 items-center gap-3 text-left">
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar">
                           <AttachmentIcon a={f} />
                         </span>

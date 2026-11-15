@@ -14,7 +14,7 @@ import { useTasks } from '@/lib/queries/tasks'
 import { useWorkspaceDocs } from '@/lib/queries/docs'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { useWorkspaceItems, useWorkspaceMeetings, type MeetingWithNotes } from '@/lib/queries/meetings'
-import { openAttachment, useAttachments } from '@/lib/queries/attachments'
+import { useAttachments } from '@/lib/queries/attachments'
 import { useDateLocale, dueInfo } from '@/lib/dates'
 import { useNow } from '@/lib/hooks'
 import { TASK_STATUSES } from '@/lib/constants'
@@ -28,6 +28,7 @@ import { SourceBadge } from '@/components/docs/source-badge'
 import { DocMark } from '@/components/app/marks'
 import { AttachmentIcon, formatBytes } from '@/components/attachments/attachments'
 import { useOpenTask } from '@/lib/use-open-task'
+import { previewOrOpen } from '@/components/vault/file-viewer'
 
 /** Inicio del espacio: lo que viene, cómo va, qué se acordó y qué quedó guardado. */
 export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
@@ -417,7 +418,7 @@ function RecentFiles({ ws, tasks, meetings }: { ws: WorkspaceWithRole; tasks: Ta
             const origin = task ? taskRef(ws.key, task.number) : meeting ? meeting.title : null
             return (
               <li key={a.id}>
-                <button type="button" onClick={() => openAttachment(a)} className="-mx-3 flex h-11 w-[calc(100%+1.5rem)] items-center gap-3 rounded-lg px-3 text-left hover:bg-hover">
+                <button type="button" onClick={() => previewOrOpen(a)} className="-mx-3 flex h-11 w-[calc(100%+1.5rem)] items-center gap-3 rounded-lg px-3 text-left hover:bg-hover">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-sidebar">
                     <AttachmentIcon a={a} />
                   </span>

@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { formatDistanceToNowStrict, subDays, addDays } from 'date-fns'
-import { ChevronDown, CircleCheck, Download, ExternalLink, FileText, LayoutGrid, MessageCircle, Search, Tag, Trash2, Video, X } from 'lucide-react'
+import { ChevronDown, CircleCheck, Download, ExternalLink, Eye, FileText, FileUp, History, LayoutGrid, MessageCircle, RotateCcw, Search, Tag, Trash2, Video, X } from 'lucide-react'
 import { canEdit, useApp, useIsAccountAdmin, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Avatar } from '@/components/ui/avatar'
@@ -15,7 +15,8 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { LabelChip, LabelsPopover } from '@/components/tasks/pickers'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { formatBytes } from '@/components/attachments/attachments'
-import { openAttachment, useAttachmentMutations } from '@/lib/queries/attachments'
+import { openAttachment, useAttachmentMutations, useAttachmentVersions, useVersionMutations, versionUrl } from '@/lib/queries/attachments'
+import { Spinner } from '@/components/ui/spinner'
 import { useTasks } from '@/lib/queries/tasks'
 import { useMeetingsInRange } from '@/lib/queries/meetings'
 import { useDateLocale } from '@/lib/dates'
@@ -23,6 +24,7 @@ import { taskPath } from '@/lib/use-open-task'
 import type { AttachmentRow } from '@/lib/database.types'
 import { cn, taskRef } from '@/lib/utils'
 import { FileKindIcon, FilePreview, fileKindOf, fileTitle } from './file-visual'
+import { canPreview, FileViewer } from './file-viewer'
 import { useConfirm } from '@/components/ui/confirm'
 
 type Patch = Parameters<ReturnType<typeof useAttachmentMutations>['update']['mutate']>[0]['patch']
@@ -46,6 +48,8 @@ export function FileInspector({ file, labelSuggestions, onClose, onShare }: { fi
   const confirm = useConfirm()
   const tConfirm = useTranslations('confirm')
   const [title, setTitle] = useState(file.title ?? '')
+  // el visor abierto y en qué versión («current»: la vigente)
+  const [viewing, setViewing] = useState<string | null>(null)
   const uploader = memberMap.get(file.uploaded_by ?? '')
   const editableWs = workspaces.filter((w) => canEdit(w))
 
@@ -84,8 +88,21 @@ export function FileInspector({ file, labelSuggestions, onClose, onShare }: { fi
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-5 scrollbar-thin">
-        <button type="button" onClick={() => openAttachment(file)} className="block w-full overflow-hidden rounded-xl border border-line" aria-label={t('open')}>
+        <button
+          type="button"
+          onClick={() => (canPreview(file) ? setViewing('current') : openAttachment(file))}
+          className="group/prev relative block w-full overflow-hidden rounded-xl border border-line"
+          aria-label={canPreview(file) ? t('viewer.view') : t('open')}
+        >
           <FilePreview a={file} large className="h-36 w-full" />
+          {canPreview(file) ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-[oklch(0.2_0.04_311/0.35)] opacity-0 transition-opacity group-hover/prev:opacity-100">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-panel px-3 py-1 text-xs font-medium text-fg shadow-card">
+                <Eye className="size-3.5" />
+                {t('viewer.view')}
+              </span>
+            </span>
+          ) : null}
         </button>
 
         {editable ? (
@@ -255,7 +272,11 @@ export function FileInspector({ file, labelSuggestions, onClose, onShare }: { fi
             ) : null}
           </dl>
         </section>
+
+        {file.kind === 'file' ? <Versions file={file} editable={editable} onView={setViewing} /> : null}
       </div>
+
+      {viewing ? <FileViewer file={file} open onOpenChange={(o) => !o && setViewing(null)} initialVersion={viewing} /> : null}
 
       <div className="flex shrink-0 items-center gap-1.5 border-t border-line p-3">
         <Button size="sm" onClick={() => openAttachment(file)}>
@@ -397,5 +418,101 @@ function MenuLikeButton({ onClick, children }: { onClick: () => void; children: 
     <button type="button" onClick={onClick} className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-fg-muted hover:bg-hover hover:text-fg">
       {children}
     </button>
+  )
+}
+
+/** Las versiones de un archivo: la vigente y las anteriores; subir una nueva o volver a una anterior. */
+function Versions({ file, editable, onView }: { file: AttachmentRow; editable: boolean; onView: (versionId: string) => void }) {
+  const t = useTranslations('vault.versions')
+  const locale = useDateLocale()
+  const confirm = useConfirm()
+  const input = useRef<HTMLInputElement>(null)
+  const hasHistory = (file.version ?? 1) > 1
+  const { data: versions, isLoading } = useAttachmentVersions(file.id, hasHistory)
+  const { upload, restore } = useVersionMutations(file.id)
+  const download = async (versionId: string) => {
+    const res = await versionUrl(file.id, versionId, false)
+    const link = document.createElement('a')
+    link.href = res.url
+    link.download = res.name
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+  return (
+    <section className="mt-6">
+      <div className="mb-2 flex items-center gap-2">
+        <h3 className="text-2xs font-medium uppercase tracking-wide text-fg-subtle">{t('title')}</h3>
+        <span className="rounded-full bg-hover px-1.5 text-2xs font-semibold tabular-nums text-fg-muted">v{file.version ?? 1}</span>
+        {editable ? (
+          <>
+            <Button variant="ghost" size="xs" className="ml-auto" onClick={() => input.current?.click()} loading={upload.isPending}>
+              {upload.isPending ? null : <FileUp />}
+              {t('upload')}
+            </Button>
+            <input
+              ref={input}
+              type="file"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (f) upload.mutate(f)
+              }}
+            />
+          </>
+        ) : null}
+      </div>
+      {!hasHistory ? (
+        <p className="text-xs leading-relaxed text-fg-subtle">{editable ? t('onlyOriginalEditable') : t('onlyOriginal')}</p>
+      ) : isLoading ? (
+        <Spinner className="size-4" />
+      ) : (
+        <ol className="flex flex-col divide-y divide-line-soft rounded-lg border border-line">
+          {(versions ?? []).map((v) => (
+            <li key={v.id} className="group/ver flex items-center gap-2.5 px-3 py-2">
+              <span className={cn('w-7 shrink-0 font-mono text-xs', v.current ? 'font-semibold text-accent-ink' : 'text-fg-subtle')}>v{v.version}</span>
+              {v.uploader ? <Avatar name={v.uploader.fullName} src={v.uploader.avatarUrl} seed={v.uploader.id} size={18} /> : <History className="size-4 text-fg-subtle" />}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs text-fg">{v.current ? t('current') : v.name}</span>
+                <span className="block truncate text-2xs text-fg-subtle">
+                  {v.uploader?.fullName.split(' ')[0] ?? ''} · {formatDistanceToNowStrict(new Date(v.uploadedAt), { addSuffix: true, locale })}
+                  {v.sizeBytes ? ` · ${formatBytes(v.sizeBytes)}` : ''}
+                </span>
+              </span>
+              <span className="flex items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover/ver:opacity-100">
+                {canPreview({ kind: 'file', mime_type: v.mimeType }) ? (
+                  <Tooltip content={t('view')}>
+                    <Button variant="ghost" size="icon-xs" onClick={() => onView(v.id)} aria-label={t('view')}>
+                      <Eye />
+                    </Button>
+                  </Tooltip>
+                ) : null}
+                <Tooltip content={t('download')}>
+                  <Button variant="ghost" size="icon-xs" onClick={() => download(v.id)} aria-label={t('download')}>
+                    <Download />
+                  </Button>
+                </Tooltip>
+                {editable && !v.current ? (
+                  <Tooltip content={t('restore')}>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={t('restore')}
+                      onClick={async () => {
+                        if (await confirm({ title: t('restoreConfirm', { version: v.version }), description: t('restoreHint'), confirmLabel: t('restore') })) restore.mutate(v.id)
+                      }}
+                    >
+                      <RotateCcw />
+                    </Button>
+                  </Tooltip>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }

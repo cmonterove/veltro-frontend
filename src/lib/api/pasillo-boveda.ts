@@ -73,6 +73,9 @@ export type ApiAttachment = {
   sizeBytes: number | null
   uploadedBy: string | null
   createdAt: string
+  version?: number
+  versionBy?: string | null
+  versionAt?: string | null
 }
 
 type Facet = { value: string; count: number }[]
@@ -167,6 +170,9 @@ export function toAttachment(a: ApiAttachment): AttachmentRow {
     size_bytes: a.sizeBytes,
     uploaded_by: a.uploadedBy,
     created_at: a.createdAt,
+    version: a.version ?? 1,
+    version_by: a.versionBy ?? null,
+    version_at: a.versionAt ?? null,
   }
 }
 

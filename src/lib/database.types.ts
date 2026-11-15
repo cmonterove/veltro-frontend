@@ -226,6 +226,11 @@ export type AttachmentRow = {
   size_bytes: number | null
   uploaded_by: string | null
   created_at: string
+  /** versión vigente del archivo (1 al subirlo) */
+  version?: number
+  /** quién y cuándo subió la vigente (null en la primera) */
+  version_by?: string | null
+  version_at?: string | null
 }
 
 // ---------- Pasillo (chats). Pendiente en la base: chats, chat_members y chat_messages. ----------

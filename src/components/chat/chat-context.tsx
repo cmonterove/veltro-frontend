@@ -11,7 +11,7 @@ import { useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-cont
 import { Avatar } from '@/components/ui/avatar'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { FilePreview, fileTitle } from '@/components/vault/file-visual'
-import { openAttachment, useAttachment } from '@/lib/queries/attachments'
+import { useAttachment } from '@/lib/queries/attachments'
 import { useChatMessages, useChats } from '@/lib/queries/chats'
 import { useTask } from '@/lib/queries/tasks'
 import { useDateLocale } from '@/lib/dates'
@@ -19,6 +19,7 @@ import { assigneesOf } from '@/lib/assignees'
 import { taskPath } from '@/lib/use-open-task'
 import type { ChatMessageRow, MeetingInvite } from '@/lib/database.types'
 import { cn } from '@/lib/utils'
+import { previewOrOpen } from '@/components/vault/file-viewer'
 
 /** El panel de contexto oculto o a la vista (se recuerda en este navegador). */
 export function useChatContextHidden() {
@@ -213,7 +214,7 @@ function FileLine({ id }: { id: string }) {
   const { data: file } = useAttachment(id)
   if (!file) return null
   return (
-    <button type="button" onClick={() => openAttachment(file)} className="-mx-2 flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left transition-colors hover:bg-hover">
+    <button type="button" onClick={() => previewOrOpen(file)} className="-mx-2 flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left transition-colors hover:bg-hover">
       <span className="size-9 shrink-0 overflow-hidden rounded-[9px] bg-hover">
         <FilePreview a={file} className="size-full" />
       </span>

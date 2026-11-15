@@ -13,7 +13,7 @@ import { StatusIcon } from '@/components/tasks/status-icon'
 import { DueDate } from '@/components/tasks/due-date'
 import { formatBytes } from '@/components/attachments/attachments'
 import { FilePreview, fileTitle } from '@/components/vault/file-visual'
-import { openAttachment, useAttachment } from '@/lib/queries/attachments'
+import { useAttachment } from '@/lib/queries/attachments'
 import { useTask } from '@/lib/queries/tasks'
 import { useDocsIn } from '@/lib/queries/docs'
 import { useChatMutations } from '@/lib/queries/chats'
@@ -24,6 +24,7 @@ import { useStatusName } from '@/lib/use-status-name'
 import { taskPath } from '@/lib/use-open-task'
 import type { ChatMessageRow, RsvpAnswer } from '@/lib/database.types'
 import { cn, excerptOf, taskRef } from '@/lib/utils'
+import { previewOrOpen } from '@/components/vault/file-viewer'
 
 const card = 'mt-1.5 flex w-full max-w-md overflow-hidden rounded-xl border border-line bg-panel text-left'
 
@@ -71,7 +72,7 @@ export function FileCard({ id }: { id: string }) {
   if (!file) return <Missing />
   return (
     <div className={cn(card, 'items-stretch')}>
-      <button type="button" onClick={() => openAttachment(file)} className="w-24 shrink-0 border-r border-line" aria-label={t('open')}>
+      <button type="button" onClick={() => previewOrOpen(file)} className="w-24 shrink-0 border-r border-line" aria-label={t('open')}>
         <FilePreview a={file} className="size-full min-h-20" />
       </button>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3 py-2">
@@ -81,7 +82,7 @@ export function FileCard({ id }: { id: string }) {
           {file.size_bytes ? `${file.title ? ' · ' : ''}${formatBytes(file.size_bytes)}` : null}
         </span>
         <span className="flex items-center gap-3 pt-0.5 text-xs">
-          <button type="button" onClick={() => openAttachment(file)} className="inline-flex items-center gap-1 font-medium text-accent-ink hover:underline">
+          <button type="button" onClick={() => previewOrOpen(file)} className="inline-flex items-center gap-1 font-medium text-accent-ink hover:underline">
             <Download className="size-3.5" />
             {file.kind === 'link' ? t('openLink') : t('open')}
           </button>

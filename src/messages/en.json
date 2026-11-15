@@ -2152,6 +2152,32 @@
       "submitFiles": "{count, plural, =0 {Upload} one {Upload # file} other {Upload # files}}",
       "submitLink": "Add link",
       "badType": "This file type isn't supported"
+    },
+    "viewer": {
+      "view": "View",
+      "version": "Version {version}",
+      "old": "older",
+      "versions": "Versions",
+      "current": "Current",
+      "download": "Download",
+      "newTab": "Open in new tab",
+      "close": "Close",
+      "noPreview": "This file type can't be viewed here. Download it to open it.",
+      "error": "We couldn't load the file. Try downloading it."
+    },
+    "versions": {
+      "title": "Versions",
+      "upload": "Upload new version",
+      "onlyOriginal": "Only the original version.",
+      "onlyOriginalEditable": "Only the original version. If the file changes, upload it as a new version: the previous one is kept.",
+      "current": "Current",
+      "view": "View",
+      "download": "Download",
+      "restore": "Restore this version",
+      "restoreConfirm": "Restore version {version}?",
+      "restoreHint": "It becomes the current one with a new number. No version is deleted.",
+      "uploaded": "Now it's version {version}",
+      "restored": "Restored as version {version}"
     }
   },
   "pasillo": {

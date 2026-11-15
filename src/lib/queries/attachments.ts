@@ -371,3 +371,69 @@ export function attachmentPreviewUrl(id: string): Promise<string | null> {
     timer ??= setTimeout(flushPreviews, 30)
   })
 }
+
+// ---------- versiones ----------
+
+/** Una versión de un archivo: la vigente («current») o una anterior. */
+export type FileVersion = {
+  id: string
+  version: number
+  current: boolean
+  name: string
+  mimeType: string | null
+  sizeBytes: number | null
+  uploader: { id: string; fullName: string; avatarUrl: string | null } | null
+  uploadedAt: string
+}
+
+export const versionKeys = (id: string) => ['attachments', 'versions', id] as const
+
+export function useAttachmentVersions(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: versionKeys(id ?? 'none'),
+    enabled: Boolean(id) && enabled,
+    staleTime: 30_000,
+    queryFn: async () => (await api<{ items: FileVersion[] }>(`/v1/attachments/${id}/versions`)).items,
+  })
+}
+
+/** URL temporal (5 min) de una versión: en línea para verla, o para bajarla. */
+export async function versionUrl(id: string, versionId: string, inline: boolean) {
+  return api<{ url: string; name: string; mimeType: string | null }>(`/v1/attachments/${id}/versions/${versionId}/download`, { query: { inline: inline ? 'true' : 'false' } })
+}
+
+/** Subir una versión nueva o volver a una anterior; la vigente pasa a la historia. */
+export function useVersionMutations(id: string) {
+  const qc = useQueryClient()
+  const t = useTranslations('vault.versions')
+  const tErr = useTranslations('errors')
+  const onError = (e: unknown) => toast.error(tErr(toErrorCode(e as { message?: string })))
+  const done = (row: ApiAttachment) => {
+    qc.setQueryData(attachmentKeys.one(id), toAttachment(row))
+    qc.invalidateQueries({ queryKey: attachmentKeys.all })
+  }
+  return {
+    upload: useMutation({
+      mutationFn: async (file: File) => {
+        const mimeType = uploadMimeOf(file)
+        if (!mimeType) throw new Error('file_type')
+        const signed = await api<ApiSignedUpload>(`/v1/attachments/${id}/versions/upload-url`, { method: 'POST', body: { name: file.name.slice(0, 300), mimeType, sizeBytes: file.size } })
+        await uploadSigned(signed, file)
+        return api<ApiAttachment>(`/v1/attachments/${id}/versions`, { method: 'POST', body: { uploadToken: signed.uploadToken } })
+      },
+      onSuccess: (row) => {
+        done(row)
+        toast.success(t('uploaded', { version: row.version ?? 2 }))
+      },
+      onError,
+    }),
+    restore: useMutation({
+      mutationFn: (versionId: string) => api<ApiAttachment>(`/v1/attachments/${id}/versions/${versionId}/restore`, { method: 'POST' }),
+      onSuccess: (row) => {
+        done(row)
+        toast.success(t('restored', { version: row.version ?? 2 }))
+      },
+      onError,
+    }),
+  }
+}

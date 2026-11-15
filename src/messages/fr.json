@@ -2152,6 +2152,32 @@
       "submitFiles": "{count, plural, =0 {Téléverser} one {Téléverser # fichier} other {Téléverser # fichiers}}",
       "submitLink": "Ajouter le lien",
       "badType": "Ce type de fichier n'est pas accepté"
+    },
+    "viewer": {
+      "view": "Voir",
+      "version": "Version {version}",
+      "old": "ancienne",
+      "versions": "Versions",
+      "current": "Actuelle",
+      "download": "Télécharger",
+      "newTab": "Ouvrir dans un nouvel onglet",
+      "close": "Fermer",
+      "noPreview": "Ce type de fichier ne peut pas être affiché ici. Téléchargez-le pour l’ouvrir.",
+      "error": "Impossible de charger le fichier. Essayez de le télécharger."
+    },
+    "versions": {
+      "title": "Versions",
+      "upload": "Envoyer une nouvelle version",
+      "onlyOriginal": "Seulement la version d’origine.",
+      "onlyOriginalEditable": "Seulement la version d’origine. Si le fichier change, envoyez-le comme nouvelle version : l’ancienne est conservée.",
+      "current": "Actuelle",
+      "view": "Voir",
+      "download": "Télécharger",
+      "restore": "Revenir à cette version",
+      "restoreConfirm": "Revenir à la version {version} ?",
+      "restoreHint": "Elle devient l’actuelle avec un nouveau numéro. Aucune version n’est supprimée.",
+      "uploaded": "C’est maintenant la version {version}",
+      "restored": "Restaurée comme version {version}"
     }
   },
   "pasillo": {

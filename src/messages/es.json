@@ -2152,6 +2152,32 @@
       "submitFiles": "{count, plural, =0 {Subir} one {Subir # archivo} other {Subir # archivos}}",
       "submitLink": "Agregar link",
       "badType": "Este tipo de archivo no se admite"
+    },
+    "viewer": {
+      "view": "Ver",
+      "version": "Versión {version}",
+      "old": "anterior",
+      "versions": "Versiones",
+      "current": "Vigente",
+      "download": "Bajar",
+      "newTab": "Abrir en otra pestaña",
+      "close": "Cerrar",
+      "noPreview": "Este tipo de archivo no se puede ver aquí. Bájalo para abrirlo.",
+      "error": "No pudimos cargar el archivo. Prueba bajarlo."
+    },
+    "versions": {
+      "title": "Versiones",
+      "upload": "Subir versión nueva",
+      "onlyOriginal": "Solo la versión original.",
+      "onlyOriginalEditable": "Solo la versión original. Si cambias el archivo, súbelo como versión nueva: la anterior queda guardada.",
+      "current": "Vigente",
+      "view": "Ver",
+      "download": "Bajar",
+      "restore": "Volver a esta versión",
+      "restoreConfirm": "¿Volver a la versión {version}?",
+      "restoreHint": "Pasa a ser la vigente con un número nuevo. Ninguna versión se borra.",
+      "uploaded": "Ahora es la versión {version}",
+      "restored": "Restaurada como versión {version}"
     }
   },
   "pasillo": {

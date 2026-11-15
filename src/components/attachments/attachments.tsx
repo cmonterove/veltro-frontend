@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { FileKindIcon, fileTitle, safeHost, useImageUrl } from '@/components/vault/file-visual'
 import type { AttachmentRow } from '@/lib/database.types'
 import { useConfirm } from '@/components/ui/confirm'
+import { previewOrOpen } from '@/components/vault/file-viewer'
 
 export function formatBytes(n: number | null) {
   if (n == null) return ''
@@ -136,7 +137,7 @@ export function AttachmentsSection({
                       <AttachmentIcon a={a} />
                     </span>
                   )}
-                  <button type="button" onClick={() => openAttachment(a)} className="min-w-0 flex-1 text-left">
+                  <button type="button" onClick={() => previewOrOpen(a)} className="min-w-0 flex-1 text-left">
                     <span className="block truncate text-sm font-medium text-fg hover:underline">{fileTitle(a)}</span>
                     <span className="block truncate text-xs text-fg-subtle">
                       {a.kind === 'link' ? safeHost(a.url) : formatBytes(a.size_bytes)}

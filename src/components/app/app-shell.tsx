@@ -20,6 +20,7 @@ import { Ban } from 'lucide-react'
 import { AccountSuspendedNotice, SUSPENDED_ALLOWED, TempPasswordGate, useSuspensionWatcher } from './suspended-notice'
 import { DemoDataBanner } from './demo-data'
 import { RealtimeConnection } from './realtime-connection'
+import { FileViewerHost } from '@/components/vault/file-viewer'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useNotificationsUnread } from '@/lib/queries/notifications'
 import { cn } from '@/lib/utils'
@@ -239,6 +240,8 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
         />
         <QuickTaskDialog open={quickTaskOpen} onOpenChange={setQuickTaskOpen} />
         <RealtimeConnection />
+        {/* el visor de archivos compartido (imágenes, PDF, audio, video) */}
+        <FileViewerHost />
         <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       </div>
       </TourProvider>
