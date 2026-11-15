@@ -2725,5 +2725,33 @@
       "submit": "Forward",
       "done": "Forwarded to {department}"
     }
+  },
+  "views": {
+    "views": "Views",
+    "mine": "My views",
+    "shared": "Shared",
+    "sharedHint": "Shared with the account",
+    "empty": "Save what you're looking at (scope, filters, tab and grouping) to come back in one click.",
+    "save": "Save this view…",
+    "manage": "Manage views…",
+    "saveTitle": "Save view",
+    "saveHint": "Saves your current scope, filters, tab and grouping.",
+    "name": "Name",
+    "namePlaceholder": "E.g. Trade urgent",
+    "replaceHint": "You already have “{name}”: it'll be updated with what you see now.",
+    "share": "Share with the account",
+    "shareHint": "Everyone in the account sees it in their views menu.",
+    "unshare": "Stop sharing",
+    "cancel": "Cancel",
+    "saveButton": "Save",
+    "replace": "Update",
+    "saved": "View “{name}” saved",
+    "updated": "View “{name}” updated",
+    "manageTitle": "My views",
+    "manageHint": "Rename them, share them with the account or delete them.",
+    "rename": "Rename",
+    "delete": "Delete",
+    "deleteConfirm": "Delete the view “{name}”?",
+    "done": "Done"
   }
 }

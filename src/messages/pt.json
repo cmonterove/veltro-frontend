@@ -2725,5 +2725,33 @@
       "submit": "Encaminhar",
       "done": "Encaminhada para {department}"
     }
+  },
+  "views": {
+    "views": "Visões",
+    "mine": "Minhas visões",
+    "shared": "Compartilhadas",
+    "sharedHint": "Compartilhada com a conta",
+    "empty": "Salve o que você está vendo (escopo, filtros, aba e agrupamento) para voltar com um clique.",
+    "save": "Salvar esta visão…",
+    "manage": "Gerenciar visões…",
+    "saveTitle": "Salvar visão",
+    "saveHint": "Salva o escopo, os filtros, a aba e o agrupamento atuais.",
+    "name": "Nome",
+    "namePlaceholder": "Ex.: Urgentes de Trade",
+    "replaceHint": "Você já tem “{name}”: será atualizada com o que vê agora.",
+    "share": "Compartilhar com a conta",
+    "shareHint": "Todos na conta a veem no menu de visões.",
+    "unshare": "Parar de compartilhar",
+    "cancel": "Cancelar",
+    "saveButton": "Salvar",
+    "replace": "Atualizar",
+    "saved": "Visão “{name}” salva",
+    "updated": "Visão “{name}” atualizada",
+    "manageTitle": "Minhas visões",
+    "manageHint": "Renomeie, compartilhe com a conta ou apague.",
+    "rename": "Renomear",
+    "delete": "Apagar",
+    "deleteConfirm": "Apagar a visão “{name}”?",
+    "done": "Pronto"
   }
 }

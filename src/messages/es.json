@@ -2725,5 +2725,33 @@
       "submit": "Derivar",
       "done": "Derivada a {department}"
     }
+  },
+  "views": {
+    "views": "Vistas",
+    "mine": "Mis vistas",
+    "shared": "Compartidas",
+    "sharedHint": "Compartida con la cuenta",
+    "empty": "Guarda lo que estás mirando (alcance, filtros, pestaña y agrupación) para volver de un clic.",
+    "save": "Guardar esta vista…",
+    "manage": "Gestionar vistas…",
+    "saveTitle": "Guardar vista",
+    "saveHint": "Guarda el alcance, los filtros, la pestaña y la agrupación que tienes ahora.",
+    "name": "Nombre",
+    "namePlaceholder": "Ej.: Urgentes de Trade",
+    "replaceHint": "Ya tienes «{name}»: se actualiza con lo que ves ahora.",
+    "share": "Compartir con la cuenta",
+    "shareHint": "Todos en la cuenta la ven en su menú de vistas.",
+    "unshare": "Dejar de compartir",
+    "cancel": "Cancelar",
+    "saveButton": "Guardar",
+    "replace": "Actualizar",
+    "saved": "Vista «{name}» guardada",
+    "updated": "Vista «{name}» actualizada",
+    "manageTitle": "Mis vistas",
+    "manageHint": "Renómbralas, compártelas con la cuenta o bórralas.",
+    "rename": "Renombrar",
+    "delete": "Borrar",
+    "deleteConfirm": "¿Borrar la vista «{name}»?",
+    "done": "Listo"
   }
 }

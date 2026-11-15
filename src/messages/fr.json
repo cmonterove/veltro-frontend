@@ -2725,5 +2725,33 @@
       "submit": "Transférer",
       "done": "Transférée à {department}"
     }
+  },
+  "views": {
+    "views": "Vues",
+    "mine": "Mes vues",
+    "shared": "Partagées",
+    "sharedHint": "Partagée avec le compte",
+    "empty": "Enregistrez ce que vous regardez (périmètre, filtres, onglet et regroupement) pour y revenir en un clic.",
+    "save": "Enregistrer cette vue…",
+    "manage": "Gérer les vues…",
+    "saveTitle": "Enregistrer la vue",
+    "saveHint": "Enregistre le périmètre, les filtres, l’onglet et le regroupement actuels.",
+    "name": "Nom",
+    "namePlaceholder": "Ex. : Urgences Trade",
+    "replaceHint": "Vous avez déjà « {name} » : elle sera mise à jour avec ce que vous voyez.",
+    "share": "Partager avec le compte",
+    "shareHint": "Tout le compte la voit dans son menu de vues.",
+    "unshare": "Ne plus partager",
+    "cancel": "Annuler",
+    "saveButton": "Enregistrer",
+    "replace": "Mettre à jour",
+    "saved": "Vue « {name} » enregistrée",
+    "updated": "Vue « {name} » mise à jour",
+    "manageTitle": "Mes vues",
+    "manageHint": "Renommez-les, partagez-les avec le compte ou supprimez-les.",
+    "rename": "Renommer",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer la vue « {name} » ?",
+    "done": "Terminé"
   }
 }

@@ -20,6 +20,7 @@ import { TaskCalendar } from '@/components/tasks/task-calendar'
 import { TaskGrid } from '@/components/tasks/task-grid'
 import { TasksDashboard } from '@/components/tasks/tasks-dashboard'
 import { ScopeChips } from '@/components/app/scope-menu'
+import { SavedViewsMenu } from '@/components/tasks/saved-views'
 import { ShowIdleContext } from '@/components/tasks/task-row'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { toDateKey } from '@/lib/dates'
@@ -147,8 +148,18 @@ export function MyTasksView() {
         </div>
 
         {/* de quién son las tareas: a la vista, no en un menú */}
-        <div className="mt-4">
-          <ScopeChips options={options} value={scope} onChange={(id) => setParam('scope', id === 'me' ? null : id)} />
+        <div className="mt-4 flex flex-wrap items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <ScopeChips options={options} value={scope} onChange={(id) => setParam('scope', id === 'me' ? null : id)} />
+          </div>
+          {/* vistas guardadas: alcance, filtros, pestaña y agrupación con nombre */}
+          <SavedViewsMenu
+            groupBy={groupBy}
+            onApply={(query, group) => {
+              window.history.replaceState(null, '', `${pathname}${query ? `?${query}` : ''}`)
+              if (group && (GROUP_BYS as readonly string[]).includes(group)) setGroupPref(group as GroupBy)
+            }}
+          />
         </div>
 
         {/* las vistas son la navegación de la página */}
