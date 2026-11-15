@@ -21,6 +21,7 @@ import { TaskGrid } from '@/components/tasks/task-grid'
 import { TasksDashboard } from '@/components/tasks/tasks-dashboard'
 import { ScopeChips } from '@/components/app/scope-menu'
 import { SavedViewsMenu } from '@/components/tasks/saved-views'
+import { TasksMoreMenu } from '@/components/tasks/task-transfer'
 import { ShowIdleContext } from '@/components/tasks/task-row'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { toDateKey } from '@/lib/dates'
@@ -94,6 +95,13 @@ export function MyTasksView() {
   const onlyDone = filters.status.length > 0 && filters.status.every((s) => s === 'done')
   const grouped = useTaskGroupsBy(shown, groupBy, { ownOnly: scope.kind === 'me', expandDone: onlyDone })
 
+  // lo que se exporta: lo que se ve (en Resumen, todo el alcance)
+  const exportable = useMemo(() => {
+    if (tab === 'summary') return scoped
+    const weekAgo = subDays(new Date(), 7).toISOString()
+    return shown?.filter((x) => tab !== 'list' || x.status !== 'done' || (x.completed_at ?? '') >= weekAgo)
+  }, [tab, scoped, shown])
+
   // la lista muestra las hechas de la semana; las demás vistas, todas
   const counted = useMemo(() => {
     const weekAgo = subDays(new Date(), 7).toISOString()
@@ -141,10 +149,14 @@ export function MyTasksView() {
               {!scoped ? '\u00a0' : scope.kind === 'me' ? t('subtitle', { count: open }) : t('subtitleScoped', { count: open, who: `${scope.display} · ${scope.hint}` })}
             </p>
           </div>
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus />
-            {t('newTask')}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* exportar lo que se ve (con búsqueda y filtros) e importar de Excel, CSV o Trello */}
+            <TasksMoreMenu tasks={exportable} />
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus />
+              {t('newTask')}
+            </Button>
+          </div>
         </div>
 
         {/* de quién son las tareas: a la vista, no en un menú */}
