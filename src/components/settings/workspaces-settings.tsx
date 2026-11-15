@@ -13,7 +13,9 @@ import { Input, Textarea } from '@/components/ui/input'
 import { Avatar } from '@/components/ui/avatar'
 import { Select } from '@/components/ui/select'
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from '@/components/ui/menu'
-import { createWorkspace, updateWorkspace, archiveWorkspace, unarchiveWorkspace, setWorkspaceAccess } from '@/app/actions/settings'
+import { applyWorkspaceTemplate, createWorkspace, updateWorkspace, archiveWorkspace, unarchiveWorkspace, setWorkspaceAccess } from '@/app/actions/settings'
+import { WORKSPACE_TEMPLATES } from '@/lib/workspace-templates'
+import { StatusIcon } from '@/components/tasks/status-icon'
 import { WORKSPACE_COLORS } from '@/lib/constants'
 import { WorkspaceMark, monogramOf } from '@/components/app/marks'
 import { cn } from '@/lib/utils'
@@ -118,7 +120,9 @@ export function NewWorkspace({ usage }: { usage: Usage | null }) {
   const te = useTranslations('errors')
   const router = useRouter()
   const { account } = useApp()
+  const tt = useTranslations('settings.workspaces.templates')
   const [form, setForm] = useState({ name: '', icon: '', color: 'violet', description: '' })
+  const [template, setTemplate] = useState('blank')
   const [pending, start] = useTransition()
   const full = usage?.max_workspaces != null && usage.workspaces_count >= usage.max_workspaces
 
@@ -129,8 +133,22 @@ export function NewWorkspace({ usage }: { usage: Usage | null }) {
         toast.error(te(res.error))
         return
       }
+      // la plantilla: estados, campos y primeras tareas, en el idioma de quien lo crea
+      const tpl = WORKSPACE_TEMPLATES.find((x) => x.key === template)
+      if (tpl && tpl.key !== 'blank' && 'id' in res) {
+        const applied = await applyWorkspaceTemplate(res.id, {
+          statuses: tpl.statuses.map((x) => ({ name: tt(`${tpl.key}.${x.key}`), category: x.category })),
+          fields: tpl.fields.map((f) => ({
+            name: tt(`${tpl.key}.${f.key}`),
+            type: f.type,
+            ...(f.options ? { options: f.options.map((o) => tt(`${tpl.key}.${f.key}${o}`)) } : {}),
+          })),
+          tasks: tpl.tasks.map((x) => ({ title: tt(`${tpl.key}.${x.key}`), status: x.status })),
+        })
+        if (!applied.ok) toast.error(t('templateFailed'))
+      }
       toast.success(t('created'))
-      if ('slug' in res) router.push(`/settings/workspaces/${res.slug}?tab=statuses`)
+      if ('slug' in res) router.push(tpl && tpl.key !== 'blank' ? `/w/${res.slug}` : `/settings/workspaces/${res.slug}?tab=statuses`)
       router.refresh()
     })
 
@@ -139,6 +157,7 @@ export function NewWorkspace({ usage }: { usage: Usage | null }) {
       <SettingsHeader title={t('newTitle')} description={t('newDescription')} />
       {full ? <p className="mb-6 rounded-lg bg-warning-soft px-3 py-2 text-sm text-fg">{t('limitReached')}</p> : null}
       <IdentityCard form={form} onChange={(p) => setForm((f) => ({ ...f, ...p }))} autoFocus />
+      <TemplatePicker value={template} onChange={setTemplate} />
       <div className="flex justify-end gap-2">
         <Link href="/settings/workspaces" className={buttonVariants({ variant: 'ghost' })}>
           {t('cancel')}
@@ -148,6 +167,62 @@ export function NewWorkspace({ usage }: { usage: Usage | null }) {
         </Button>
       </div>
     </div>
+  )
+}
+
+/** Con qué arranca el espacio: en blanco o una plantilla con sus estados, campos y primeras tareas. */
+function TemplatePicker({ value, onChange }: { value: string; onChange: (key: string) => void }) {
+  const t = useTranslations('settings.workspaces')
+  const tt = useTranslations('settings.workspaces.templates')
+  const ts = useTranslations('tasks.status')
+  return (
+    <section className="mb-6 rounded-xl border border-line bg-panel p-5">
+      <h2 className="text-sm font-semibold text-fg">{t('templateTitle')}</h2>
+      <p className="mt-0.5 text-sm text-fg-muted">{t('templateHint')}</p>
+      <div className="mt-4 flex flex-col gap-1.5" role="radiogroup" aria-label={t('templateTitle')}>
+        {WORKSPACE_TEMPLATES.map((tpl) => {
+          const on = value === tpl.key
+          return (
+            <button
+              key={tpl.key}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChange(tpl.key)}
+              className={cn(
+                'flex items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors',
+                on ? 'border-accent-mid bg-accent-soft/60' : 'border-line hover:border-line-strong hover:bg-hover/40',
+              )}
+            >
+              <span className={cn('mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border', on ? 'border-accent bg-accent' : 'border-line-strong')}>
+                {on ? <span className="size-1.5 rounded-full bg-accent-fg" /> : null}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-fg">{tt(`${tpl.key}.name`)}</span>
+                <span className="block text-xs leading-relaxed text-fg-muted">{tt(`${tpl.key}.description`)}</span>
+                {tpl.statuses.length ? (
+                  <span className="mt-2 flex flex-wrap gap-1">
+                    {tpl.statuses.map((x) => (
+                      <span key={x.key} className="inline-flex items-center gap-1 rounded-md bg-hover px-1.5 py-0.5 text-2xs text-fg-muted">
+                        <StatusIcon status={x.category} className="size-3" />
+                        {tt(`${tpl.key}.${x.key}`)}
+                      </span>
+                    ))}
+                    {tpl.fields.map((f) => (
+                      <span key={f.key} className="inline-flex items-center rounded-md border border-dashed border-line px-1.5 py-0.5 text-2xs text-fg-subtle">
+                        {tt(`${tpl.key}.${f.key}`)}
+                      </span>
+                    ))}
+                  </span>
+                ) : (
+                  <span className="mt-2 block text-2xs text-fg-subtle">{(['backlog', 'todo', 'in_progress', 'blocked', 'done'] as const).map((c) => ts(c)).join(' · ')}</span>
+                )}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 

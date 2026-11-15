@@ -502,7 +502,8 @@
       "hint": "When the last blocker is done, this one moves to To do and its assignees are notified.",
       "waiting": "{count, plural, one {Waits on #} other {Waits on #}}",
       "waitingHint": "{count, plural, one {Blocked by # unfinished task} other {Blocked by # unfinished tasks}}"
-    }
+    },
+    "saveAsTemplate": "Save as template"
   },
   "docs": {
     "untitled": "Untitled",
@@ -786,7 +787,8 @@
       "groupYou": "You",
       "preferences": "Preferences",
       "newWorkspace": "New space",
-      "teams": "Teams"
+      "teams": "Teams",
+      "templates": "Templates"
     },
     "profile": {
       "title": "Profile",
@@ -1022,7 +1024,95 @@
       "removeAccess": "Remove access",
       "accessUpdated": "Access updated",
       "adminsTitle": "Account admins",
-      "adminsHint": "They see and edit every space; no need to give them access."
+      "adminsHint": "They see and edit every space; no need to give them access.",
+      "templateTitle": "Template",
+      "templateHint": "Start with statuses, fields and first tasks made for the kind of work. Everything can be changed later.",
+      "templateFailed": "The workspace was created, but we couldn't apply the whole template. Adjust it in Settings › Workspaces.",
+      "templates": {
+        "blank": {
+          "name": "Blank",
+          "description": "The standard statuses and nothing else."
+        },
+        "client": {
+          "name": "Client account",
+          "description": "Deliverables for a client, with review and waiting on their answer.",
+          "s1": "Pending",
+          "s2": "In progress",
+          "s3": "In client review",
+          "s4": "Waiting on client",
+          "s5": "Delivered",
+          "f1": "Deliverable type",
+          "f1o1": "Design piece",
+          "f1o2": "Report",
+          "f1o3": "Activation",
+          "f1o4": "Other",
+          "f2": "Deliverable link",
+          "t1": "Kickoff meeting with the client",
+          "t2": "Define this month's deliverables"
+        },
+        "project": {
+          "name": "Project",
+          "description": "Work in phases, from ideas to done.",
+          "s1": "Ideas",
+          "s2": "To do",
+          "s3": "In progress",
+          "s4": "In review",
+          "s5": "Blocked",
+          "s6": "Done",
+          "f1": "Phase",
+          "f1o1": "Discovery",
+          "f1o2": "Execution",
+          "f1o3": "Wrap-up",
+          "t1": "Define scope and deliverables",
+          "t2": "Build the timeline"
+        },
+        "sales": {
+          "name": "Sales",
+          "description": "Opportunities from prospect to won or lost, with amount and probability.",
+          "s1": "Prospect",
+          "s2": "Contacted",
+          "s3": "Proposal sent",
+          "s4": "Negotiation",
+          "s5": "Won",
+          "s6": "Lost",
+          "f1": "Client",
+          "f2": "Amount",
+          "f3": "Probability",
+          "f3o1": "Low",
+          "f3o2": "Medium",
+          "f3o3": "High",
+          "t1": "Load the open opportunities"
+        },
+        "helpdesk": {
+          "name": "Help desk",
+          "description": "Internal requests handled in order, with who asked and from which area.",
+          "s1": "New",
+          "s2": "In progress",
+          "s3": "Waiting for reply",
+          "s4": "Resolved",
+          "f1": "Requester",
+          "f2": "Area",
+          "f2o1": "Sales",
+          "f2o2": "Operations",
+          "f2o3": "Admin"
+        },
+        "content": {
+          "name": "Content",
+          "description": "Pieces from idea to published, with channel and release date.",
+          "s1": "Ideas",
+          "s2": "Writing",
+          "s3": "Design",
+          "s4": "Approval",
+          "s5": "Published",
+          "f1": "Channel",
+          "f1o1": "Instagram",
+          "f1o2": "LinkedIn",
+          "f1o3": "Web",
+          "f1o4": "Email",
+          "f2": "Publish date",
+          "t1": "Plan this month's content calendar"
+        }
+      }
     },
     "integrations": {
       "googleDescription": "Show your schedule in Veltro, open notes for each meeting and create meetings with Google Meet.",
@@ -1151,6 +1241,22 @@
         "red": "Red",
         "amber": "Amber"
       }
+    },
+    "templates": {
+      "title": "Templates",
+      "description": "Task and agenda templates so you don't start from scratch. Create them from a task or a meeting; rename or delete them here.",
+      "tasks": "Task templates",
+      "tasksHint": "Use them from Tasks › ⋯ › New from template.",
+      "agendas": "Agenda templates",
+      "agendasHint": "Load them from a meeting room, in Prepare.",
+      "empty": "None yet.",
+      "name": "Name",
+      "account": "Whole account",
+      "taskDetail": "{count, plural, =0 {no subtasks} one {# subtask} other {# subtasks}}",
+      "agendaDetail": "{count, plural, one {# item} other {# items}}",
+      "rename": "Rename",
+      "delete": "Delete",
+      "deleteConfirm": "Delete the template “{name}”?"
     }
   },
   "errors": {
@@ -2853,6 +2959,46 @@
       "submitEmpty": "Import",
       "done": "{count, plural, one {# task imported into {workspace}} other {# tasks imported into {workspace}}}",
       "pickWorkspace": "Pick the workspace"
+    },
+    "fromTemplate": "New from template…"
+  },
+  "templates": {
+    "task": {
+      "saveTitle": "Save as template",
+      "saveHint": "Saves the title, description, priority and labels, to create identical tasks in one click.",
+      "name": "Template name",
+      "scope": "Available in",
+      "scopeWorkspace": "This workspace ({name})",
+      "scopeAccount": "Whole account",
+      "withSubtasks": "{count, plural, one {Include the subtask} other {Include the # subtasks}}",
+      "withDue": "{count, plural, =0 {Due the same day it's created} one {Due # day after it's created} other {Due # days after it's created}}",
+      "cancel": "Cancel",
+      "save": "Save template",
+      "saved": "Template “{name}” saved",
+      "useTitle": "New task from template",
+      "useHint": "Pick a template: the task is created with its subtasks, ready to assign.",
+      "empty": "No task templates yet",
+      "emptyHint": "Open a task you repeat often and, in its ⋯ menu, choose “Save as template”.",
+      "workspace": "Workspace",
+      "taskTitle": "Title",
+      "create": "Create task",
+      "created": "Task created from the template"
+    },
+    "agenda": {
+      "templates": "Templates",
+      "use": "Use an agenda",
+      "empty": "No saved agendas. Build this one and save it for next time.",
+      "save": "Save this agenda…",
+      "saveTitle": "Save agenda as template",
+      "saveHint": "{count, plural, one {Saves # item to load in other meetings.} other {Saves # items to load in other meetings.}}",
+      "name": "Name",
+      "scope": "Available in",
+      "scopeWorkspace": "This workspace ({name})",
+      "scopeAccount": "Whole account",
+      "cancel": "Cancel",
+      "saveButton": "Save",
+      "saved": "Agenda “{name}” saved",
+      "applied": "Loaded the agenda “{name}”"
     }
   }
 }

@@ -502,7 +502,8 @@
       "hint": "Quando a última que a bloqueia terminar, esta passa para A fazer e avisamos os responsáveis.",
       "waiting": "{count, plural, one {Espera #} other {Espera #}}",
       "waitingHint": "{count, plural, one {Bloqueada por # tarefa não terminada} other {Bloqueada por # tarefas não terminadas}}"
-    }
+    },
+    "saveAsTemplate": "Salvar como modelo"
   },
   "docs": {
     "untitled": "Sem título",
@@ -786,7 +787,8 @@
       "groupYou": "Você",
       "preferences": "Preferências",
       "newWorkspace": "Novo espaço",
-      "teams": "Equipes"
+      "teams": "Equipes",
+      "templates": "Modelos"
     },
     "profile": {
       "title": "Perfil",
@@ -1022,7 +1024,95 @@
       "removeAccess": "Remover acesso",
       "accessUpdated": "Acesso atualizado",
       "adminsTitle": "Admins da conta",
-      "adminsHint": "Veem e editam todos os espaços; não precisa dar acesso."
+      "adminsHint": "Veem e editam todos os espaços; não precisa dar acesso.",
+      "templateTitle": "Modelo",
+      "templateHint": "Comece com status, campos e primeiras tarefas pensados para o tipo de trabalho. Tudo pode ser mudado depois.",
+      "templateFailed": "O espaço foi criado, mas não conseguimos aplicar todo o modelo. Ajuste em Configurações › Espaços.",
+      "templates": {
+        "blank": {
+          "name": "Em branco",
+          "description": "Os status padrão e nada mais."
+        },
+        "client": {
+          "name": "Conta de cliente",
+          "description": "Entregas para um cliente, com revisão e espera da resposta dele.",
+          "s1": "Pendente",
+          "s2": "Em andamento",
+          "s3": "Em revisão do cliente",
+          "s4": "Aguardando o cliente",
+          "s5": "Entregue",
+          "f1": "Tipo de entrega",
+          "f1o1": "Peça gráfica",
+          "f1o2": "Relatório",
+          "f1o3": "Ativação",
+          "f1o4": "Outro",
+          "f2": "Link da entrega",
+          "t1": "Reunião de início com o cliente",
+          "t2": "Definir as entregas do mês"
+        },
+        "project": {
+          "name": "Projeto",
+          "description": "Um trabalho com fases, das ideias ao concluído.",
+          "s1": "Ideias",
+          "s2": "A fazer",
+          "s3": "Em andamento",
+          "s4": "Em revisão",
+          "s5": "Bloqueada",
+          "s6": "Concluída",
+          "f1": "Fase",
+          "f1o1": "Descoberta",
+          "f1o2": "Execução",
+          "f1o3": "Encerramento",
+          "t1": "Definir escopo e entregas",
+          "t2": "Montar o cronograma"
+        },
+        "sales": {
+          "name": "Vendas",
+          "description": "Oportunidades de prospecto a ganha ou perdida, com valor e probabilidade.",
+          "s1": "Prospecto",
+          "s2": "Contatado",
+          "s3": "Proposta enviada",
+          "s4": "Negociação",
+          "s5": "Ganha",
+          "s6": "Perdida",
+          "f1": "Cliente",
+          "f2": "Valor",
+          "f3": "Probabilidade",
+          "f3o1": "Baixa",
+          "f3o2": "Média",
+          "f3o3": "Alta",
+          "t1": "Cadastrar as oportunidades abertas"
+        },
+        "helpdesk": {
+          "name": "Central de ajuda",
+          "description": "Pedidos internos atendidos por ordem, com quem pediu e de qual área.",
+          "s1": "Novo",
+          "s2": "Em andamento",
+          "s3": "Aguardando resposta",
+          "s4": "Resolvido",
+          "f1": "Solicitante",
+          "f2": "Área",
+          "f2o1": "Vendas",
+          "f2o2": "Operações",
+          "f2o3": "Administração"
+        },
+        "content": {
+          "name": "Conteúdo",
+          "description": "Peças da ideia à publicação, com canal e data de saída.",
+          "s1": "Ideias",
+          "s2": "Redação",
+          "s3": "Design",
+          "s4": "Aprovação",
+          "s5": "Publicado",
+          "f1": "Canal",
+          "f1o1": "Instagram",
+          "f1o2": "LinkedIn",
+          "f1o3": "Web",
+          "f1o4": "Email",
+          "f2": "Data de publicação",
+          "t1": "Montar o calendário de conteúdo do mês"
+        }
+      }
     },
     "integrations": {
       "googleDescription": "Mostra sua agenda no Veltro, abre notas por reunião e cria reuniões com Google Meet.",
@@ -1151,6 +1241,22 @@
         "red": "Vermelho",
         "amber": "Âmbar"
       }
+    },
+    "templates": {
+      "title": "Modelos",
+      "description": "Modelos de tarefas e de pauta para não começar do zero. São criados a partir de uma tarefa ou reunião; aqui você renomeia ou apaga.",
+      "tasks": "De tarefas",
+      "tasksHint": "Use em Tarefas › ⋯ › Nova a partir de modelo.",
+      "agendas": "De pauta",
+      "agendasHint": "Carregue na sala de uma reunião, em Preparar.",
+      "empty": "Ainda não há nenhum.",
+      "name": "Nome",
+      "account": "Toda a conta",
+      "taskDetail": "{count, plural, =0 {sem subtarefas} one {# subtarefa} other {# subtarefas}}",
+      "agendaDetail": "{count, plural, one {# ponto} other {# pontos}}",
+      "rename": "Renomear",
+      "delete": "Apagar",
+      "deleteConfirm": "Apagar o modelo “{name}”?"
     }
   },
   "errors": {
@@ -2853,6 +2959,46 @@
       "submitEmpty": "Importar",
       "done": "{count, plural, one {# tarefa importada em {workspace}} other {# tarefas importadas em {workspace}}}",
       "pickWorkspace": "Escolha o espaço"
+    },
+    "fromTemplate": "Nova a partir de modelo…"
+  },
+  "templates": {
+    "task": {
+      "saveTitle": "Salvar como modelo",
+      "saveHint": "Salva o título, a descrição, a prioridade e as etiquetas, para criar tarefas iguais com um clique.",
+      "name": "Nome do modelo",
+      "scope": "Disponível em",
+      "scopeWorkspace": "Este espaço ({name})",
+      "scopeAccount": "Toda a conta",
+      "withSubtasks": "{count, plural, one {Incluir a subtarefa} other {Incluir as # subtarefas}}",
+      "withDue": "{count, plural, =0 {Entrega no mesmo dia em que é criada} one {Entrega # dia depois de criada} other {Entrega # dias depois de criada}}",
+      "cancel": "Cancelar",
+      "save": "Salvar modelo",
+      "saved": "Modelo “{name}” salvo",
+      "useTitle": "Nova tarefa a partir de modelo",
+      "useHint": "Escolha um modelo: a tarefa é criada com suas subtarefas, pronta para atribuir.",
+      "empty": "Ainda não há modelos de tarefas",
+      "emptyHint": "Abra uma tarefa que você repete e, no menu ⋯, escolha “Salvar como modelo”.",
+      "workspace": "Espaço",
+      "taskTitle": "Título",
+      "create": "Criar tarefa",
+      "created": "Tarefa criada a partir do modelo"
+    },
+    "agenda": {
+      "templates": "Modelos",
+      "use": "Usar uma pauta",
+      "empty": "Não há pautas salvas. Monte esta e salve para a próxima.",
+      "save": "Salvar esta pauta…",
+      "saveTitle": "Salvar pauta como modelo",
+      "saveHint": "{count, plural, one {Salva # ponto para carregar em outras reuniões.} other {Salva # pontos para carregar em outras reuniões.}}",
+      "name": "Nome",
+      "scope": "Disponível em",
+      "scopeWorkspace": "Este espaço ({name})",
+      "scopeAccount": "Toda a conta",
+      "cancel": "Cancelar",
+      "saveButton": "Salvar",
+      "saved": "Pauta “{name}” salva",
+      "applied": "A pauta “{name}” foi carregada"
     }
   }
 }

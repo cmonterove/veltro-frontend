@@ -502,7 +502,8 @@
       "hint": "Cuando se termine la última que la bloquea, esta pasa a Por hacer y avisamos a sus responsables.",
       "waiting": "{count, plural, one {Espera #} other {Espera #}}",
       "waitingHint": "{count, plural, one {Bloqueada por # tarea sin terminar} other {Bloqueada por # tareas sin terminar}}"
-    }
+    },
+    "saveAsTemplate": "Guardar como plantilla"
   },
   "docs": {
     "untitled": "Sin título",
@@ -786,7 +787,8 @@
       "groupYou": "Tú",
       "preferences": "Preferencias",
       "newWorkspace": "Nuevo espacio",
-      "teams": "Equipos"
+      "teams": "Equipos",
+      "templates": "Plantillas"
     },
     "profile": {
       "title": "Perfil",
@@ -1022,7 +1024,95 @@
       "removeAccess": "Quitar acceso",
       "accessUpdated": "Acceso actualizado",
       "adminsTitle": "Admins de la cuenta",
-      "adminsHint": "Ven y editan todos los espacios; no hace falta darles acceso."
+      "adminsHint": "Ven y editan todos los espacios; no hace falta darles acceso.",
+      "templateTitle": "Plantilla",
+      "templateHint": "Arranca con estados, campos y primeras tareas pensados para el tipo de trabajo. Todo se puede cambiar después.",
+      "templateFailed": "El espacio se creó, pero no pudimos aplicar toda la plantilla. Ajústalo en Ajustes › Espacios.",
+      "templates": {
+        "blank": {
+          "name": "En blanco",
+          "description": "Los estados estándar y nada más."
+        },
+        "client": {
+          "name": "Cuenta de cliente",
+          "description": "Entregas para un cliente, con revisión y espera de su respuesta.",
+          "s1": "Pendiente",
+          "s2": "En curso",
+          "s3": "En revisión del cliente",
+          "s4": "Esperando al cliente",
+          "s5": "Entregado",
+          "f1": "Tipo de entrega",
+          "f1o1": "Pieza gráfica",
+          "f1o2": "Informe",
+          "f1o3": "Activación",
+          "f1o4": "Otro",
+          "f2": "Enlace al entregable",
+          "t1": "Reunión de arranque con el cliente",
+          "t2": "Definir entregables del mes"
+        },
+        "project": {
+          "name": "Proyecto",
+          "description": "Un trabajo con fases, de las ideas a lo terminado.",
+          "s1": "Ideas",
+          "s2": "Por hacer",
+          "s3": "En curso",
+          "s4": "En revisión",
+          "s5": "Bloqueada",
+          "s6": "Hecha",
+          "f1": "Fase",
+          "f1o1": "Descubrimiento",
+          "f1o2": "Ejecución",
+          "f1o3": "Cierre",
+          "t1": "Definir alcance y entregables",
+          "t2": "Armar el cronograma"
+        },
+        "sales": {
+          "name": "Ventas",
+          "description": "Oportunidades de prospecto a ganada o perdida, con monto y probabilidad.",
+          "s1": "Prospecto",
+          "s2": "Contactado",
+          "s3": "Propuesta enviada",
+          "s4": "Negociación",
+          "s5": "Ganada",
+          "s6": "Perdida",
+          "f1": "Cliente",
+          "f2": "Monto",
+          "f3": "Probabilidad",
+          "f3o1": "Baja",
+          "f3o2": "Media",
+          "f3o3": "Alta",
+          "t1": "Cargar las oportunidades abiertas"
+        },
+        "helpdesk": {
+          "name": "Mesa de ayuda",
+          "description": "Pedidos internos que se atienden por orden, con quién pidió y de qué área.",
+          "s1": "Nuevo",
+          "s2": "En curso",
+          "s3": "Esperando respuesta",
+          "s4": "Resuelto",
+          "f1": "Solicitante",
+          "f2": "Área",
+          "f2o1": "Ventas",
+          "f2o2": "Operaciones",
+          "f2o3": "Administración"
+        },
+        "content": {
+          "name": "Contenidos",
+          "description": "Piezas de la idea a publicadas, con canal y fecha de salida.",
+          "s1": "Ideas",
+          "s2": "Redacción",
+          "s3": "Diseño",
+          "s4": "Aprobación",
+          "s5": "Publicado",
+          "f1": "Canal",
+          "f1o1": "Instagram",
+          "f1o2": "LinkedIn",
+          "f1o3": "Web",
+          "f1o4": "Email",
+          "f2": "Fecha de publicación",
+          "t1": "Armar el calendario de contenidos del mes"
+        }
+      }
     },
     "integrations": {
       "googleDescription": "Muestra tu agenda en Veltro, abre notas por reunión y crea reuniones con Google Meet.",
@@ -1151,6 +1241,22 @@
         "red": "Rojo",
         "amber": "Ámbar"
       }
+    },
+    "templates": {
+      "title": "Plantillas",
+      "description": "Plantillas de tareas y de agenda para no empezar de cero. Se crean desde una tarea o una reunión; aquí se renombran o se borran.",
+      "tasks": "De tareas",
+      "tasksHint": "Se usan desde Tareas › ⋯ › Nueva desde plantilla.",
+      "agendas": "De agenda",
+      "agendasHint": "Se cargan desde la sala de una reunión, en Preparar.",
+      "empty": "Todavía no hay ninguna.",
+      "name": "Nombre",
+      "account": "Toda la cuenta",
+      "taskDetail": "{count, plural, =0 {sin subtareas} one {# subtarea} other {# subtareas}}",
+      "agendaDetail": "{count, plural, one {# punto} other {# puntos}}",
+      "rename": "Renombrar",
+      "delete": "Borrar",
+      "deleteConfirm": "¿Borrar la plantilla «{name}»?"
     }
   },
   "errors": {
@@ -2853,6 +2959,46 @@
       "submitEmpty": "Importar",
       "done": "{count, plural, one {# tarea importada en {workspace}} other {# tareas importadas en {workspace}}}",
       "pickWorkspace": "Elige el espacio"
+    },
+    "fromTemplate": "Nueva desde plantilla…"
+  },
+  "templates": {
+    "task": {
+      "saveTitle": "Guardar como plantilla",
+      "saveHint": "Se guardan el título, la descripción, la prioridad y las etiquetas, para crear tareas iguales de un clic.",
+      "name": "Nombre de la plantilla",
+      "scope": "Disponible en",
+      "scopeWorkspace": "Este espacio ({name})",
+      "scopeAccount": "Toda la cuenta",
+      "withSubtasks": "{count, plural, one {Incluir la subtarea} other {Incluir las # subtareas}}",
+      "withDue": "{count, plural, =0 {Entrega el mismo día en que se crea} one {Entrega # día después de crearla} other {Entrega # días después de crearla}}",
+      "cancel": "Cancelar",
+      "save": "Guardar plantilla",
+      "saved": "Plantilla «{name}» guardada",
+      "useTitle": "Nueva tarea desde plantilla",
+      "useHint": "Elige una plantilla: se crea la tarea con sus subtareas, lista para asignar.",
+      "empty": "Todavía no hay plantillas de tareas",
+      "emptyHint": "Abre una tarea que repitas seguido y, en su menú ⋯, elige «Guardar como plantilla».",
+      "workspace": "Espacio",
+      "taskTitle": "Título",
+      "create": "Crear tarea",
+      "created": "Tarea creada desde la plantilla"
+    },
+    "agenda": {
+      "templates": "Plantillas",
+      "use": "Usar una agenda",
+      "empty": "No hay agendas guardadas. Arma esta y guárdala para la próxima.",
+      "save": "Guardar esta agenda…",
+      "saveTitle": "Guardar agenda como plantilla",
+      "saveHint": "{count, plural, one {Se guarda # punto para cargarlo en otras reuniones.} other {Se guardan # puntos para cargarlos en otras reuniones.}}",
+      "name": "Nombre",
+      "scope": "Disponible en",
+      "scopeWorkspace": "Este espacio ({name})",
+      "scopeAccount": "Toda la cuenta",
+      "cancel": "Cancelar",
+      "saveButton": "Guardar",
+      "saved": "Agenda «{name}» guardada",
+      "applied": "Se cargó la agenda «{name}»"
     }
   }
 }

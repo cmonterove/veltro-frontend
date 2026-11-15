@@ -24,6 +24,7 @@ import { summarizeMeeting } from '@/lib/assistant'
 import { closeMeeting } from '@/app/actions/meetings'
 import { track } from '@/lib/telemetry'
 import { cn, positionBetween } from '@/lib/utils'
+import { AgendaTemplatesMenu } from './agenda-templates'
 import type { MeetingItemRow, MeetingPhase, MeetingRow } from '@/lib/database.types'
 import { ItemRow, TaskLink } from './item-row'
 import { CaptureBox } from './capture-box'
@@ -279,12 +280,15 @@ function PrepView({ meeting, items, editable, onStart }: { meeting: MeetingRow; 
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">{t('agenda')}</h2>
-          {editable && meeting.phase === 'prep' ? (
-            <Button variant="primary" size="sm" onClick={onStart}>
-              <Play />
-              {t('start')}
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-1.5">
+            {editable ? <AgendaTemplatesMenu meeting={meeting} agenda={agenda} /> : null}
+            {editable && meeting.phase === 'prep' ? (
+              <Button variant="primary" size="sm" onClick={onStart}>
+                <Play />
+                {t('start')}
+              </Button>
+            ) : null}
+          </div>
         </div>
         {agenda.length ? (
           <ol className="flex flex-col gap-1">

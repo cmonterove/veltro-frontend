@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { FileSpreadsheet, FileUp, MoreHorizontal, TriangleAlert, Upload } from 'lucide-react'
+import { FileSpreadsheet, FileUp, LayoutTemplate, MoreHorizontal, TriangleAlert, Upload } from 'lucide-react'
 import { canEdit, useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import { track } from '@/lib/telemetry'
 import type { TaskRow } from '@/lib/database.types'
 import { cn, taskRef } from '@/lib/utils'
 import { StatusIcon } from './status-icon'
+import { UseTaskTemplateDialog } from './task-templates'
 
 /** El «⋯» de Tareas: bajar a Excel lo que se ve e importar tareas de Excel, CSV o Trello. */
 export function TasksMoreMenu({ tasks }: { tasks: TaskRow[] | undefined }) {
@@ -28,6 +29,7 @@ export function TasksMoreMenu({ tasks }: { tasks: TaskRow[] | undefined }) {
   const { workspaces } = useApp()
   const exportXlsx = useExportTasks()
   const [importing, setImporting] = useState(false)
+  const [fromTemplate, setFromTemplate] = useState(false)
   const [busy, setBusy] = useState(false)
   const canImport = workspaces.some((w) => canEdit(w))
   return (
@@ -60,14 +62,21 @@ export function TasksMoreMenu({ tasks }: { tasks: TaskRow[] | undefined }) {
             {tasks?.length ? <span className="text-xs tabular-nums text-fg-subtle">{tasks.length}</span> : null}
           </MenuItem>
           {canImport ? (
-            <MenuItem onClick={() => setImporting(true)}>
-              <FileUp />
-              {t('import')}
-            </MenuItem>
+            <>
+              <MenuItem onClick={() => setFromTemplate(true)}>
+                <LayoutTemplate />
+                {t('fromTemplate')}
+              </MenuItem>
+              <MenuItem onClick={() => setImporting(true)}>
+                <FileUp />
+                {t('import')}
+              </MenuItem>
+            </>
           ) : null}
         </MenuContent>
       </Menu>
       {canImport ? <ImportTasksDialog open={importing} onOpenChange={setImporting} /> : null}
+      {canImport ? <UseTaskTemplateDialog open={fromTemplate} onOpenChange={setFromTemplate} /> : null}
     </>
   )
 }

@@ -29,6 +29,7 @@ import {
   Trash2,
   Video,
   MessageCircle,
+  LayoutTemplate,
 } from 'lucide-react'
 import { useApp, useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
 import { statusPatch, taskStatusOf, workspaceStatuses, type StatusOption } from '@/lib/statuses'
@@ -41,6 +42,7 @@ import { RichText } from '@/components/mentions/rich-text'
 import { TaskActivity } from './task-activity'
 import { FollowButton } from './follow-button'
 import { TaskDependencies } from './task-dependencies'
+import { SaveTaskTemplateDialog } from './task-templates'
 import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/components/ui/menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -195,6 +197,7 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
 
   const [draft, setDraft] = useState<Draft | null>(null)
   const [sharing, setSharing] = useState(false)
+  const [savingTemplate, setSavingTemplate] = useState(false)
   const [descTouched, setDescTouched] = useState(false)
   // cambia al cancelar para que el editor vuelva al texto guardado
   const [editorRev, setEditorRev] = useState(0)
@@ -384,7 +387,11 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
                   <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('more')} />}>
                     <MoreHorizontal />
                   </MenuTrigger>
-                  <MenuContent align="end">
+                  <MenuContent align="end" className="w-56">
+                    <MenuItem onClick={() => setSavingTemplate(true)}>
+                      <LayoutTemplate />
+                      {t('saveAsTemplate')}
+                    </MenuItem>
                     <MenuItem
                       danger
                       onClick={() => {
@@ -590,6 +597,7 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
         </div>
       </div>
       <ShareToChatDialog open={sharing} onOpenChange={setSharing} item={{ kind: 'task', refId: task.id, title: `${ref} ${task.title}` }} />
+      {editable ? <SaveTaskTemplateDialog task={task} open={savingTemplate} onOpenChange={setSavingTemplate} /> : null}
     </div>
   )
 }

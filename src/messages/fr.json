@@ -502,7 +502,8 @@
       "hint": "Quand la dernière tâche bloquante est terminée, celle-ci passe à À faire et ses responsables sont prévenus.",
       "waiting": "{count, plural, one {Attend #} other {Attend #}}",
       "waitingHint": "{count, plural, one {Bloquée par # tâche non terminée} other {Bloquée par # tâches non terminées}}"
-    }
+    },
+    "saveAsTemplate": "Enregistrer comme modèle"
   },
   "docs": {
     "untitled": "Sans titre",
@@ -786,7 +787,8 @@
       "groupYou": "Vous",
       "preferences": "Préférences",
       "newWorkspace": "Nouvel espace",
-      "teams": "Équipes"
+      "teams": "Équipes",
+      "templates": "Modèles"
     },
     "profile": {
       "title": "Profil",
@@ -1022,7 +1024,95 @@
       "removeAccess": "Retirer l’accès",
       "accessUpdated": "Accès mis à jour",
       "adminsTitle": "Admins du compte",
-      "adminsHint": "Ils voient et modifient tous les espaces ; inutile de leur donner accès."
+      "adminsHint": "Ils voient et modifient tous les espaces ; inutile de leur donner accès.",
+      "templateTitle": "Modèle",
+      "templateHint": "Démarrez avec des statuts, des champs et des premières tâches adaptés au type de travail. Tout se modifie ensuite.",
+      "templateFailed": "L’espace a été créé, mais nous n’avons pas pu appliquer tout le modèle. Ajustez-le dans Réglages › Espaces.",
+      "templates": {
+        "blank": {
+          "name": "Vierge",
+          "description": "Les statuts standard, rien de plus."
+        },
+        "client": {
+          "name": "Compte client",
+          "description": "Des livrables pour un client, avec relecture et attente de sa réponse.",
+          "s1": "En attente",
+          "s2": "En cours",
+          "s3": "En relecture client",
+          "s4": "Attente du client",
+          "s5": "Livré",
+          "f1": "Type de livrable",
+          "f1o1": "Création graphique",
+          "f1o2": "Rapport",
+          "f1o3": "Activation",
+          "f1o4": "Autre",
+          "f2": "Lien du livrable",
+          "t1": "Réunion de lancement avec le client",
+          "t2": "Définir les livrables du mois"
+        },
+        "project": {
+          "name": "Projet",
+          "description": "Un travail par phases, des idées jusqu’au terminé.",
+          "s1": "Idées",
+          "s2": "À faire",
+          "s3": "En cours",
+          "s4": "En revue",
+          "s5": "Bloquée",
+          "s6": "Terminée",
+          "f1": "Phase",
+          "f1o1": "Découverte",
+          "f1o2": "Exécution",
+          "f1o3": "Clôture",
+          "t1": "Définir le périmètre et les livrables",
+          "t2": "Construire le planning"
+        },
+        "sales": {
+          "name": "Ventes",
+          "description": "Des opportunités de prospect à gagnée ou perdue, avec montant et probabilité.",
+          "s1": "Prospect",
+          "s2": "Contacté",
+          "s3": "Proposition envoyée",
+          "s4": "Négociation",
+          "s5": "Gagnée",
+          "s6": "Perdue",
+          "f1": "Client",
+          "f2": "Montant",
+          "f3": "Probabilité",
+          "f3o1": "Faible",
+          "f3o2": "Moyenne",
+          "f3o3": "Élevée",
+          "t1": "Saisir les opportunités ouvertes"
+        },
+        "helpdesk": {
+          "name": "Support interne",
+          "description": "Des demandes internes traitées dans l’ordre, avec le demandeur et son service.",
+          "s1": "Nouveau",
+          "s2": "En cours",
+          "s3": "En attente de réponse",
+          "s4": "Résolu",
+          "f1": "Demandeur",
+          "f2": "Service",
+          "f2o1": "Ventes",
+          "f2o2": "Opérations",
+          "f2o3": "Administration"
+        },
+        "content": {
+          "name": "Contenus",
+          "description": "Des contenus de l’idée à la publication, avec canal et date de sortie.",
+          "s1": "Idées",
+          "s2": "Rédaction",
+          "s3": "Design",
+          "s4": "Validation",
+          "s5": "Publié",
+          "f1": "Canal",
+          "f1o1": "Instagram",
+          "f1o2": "LinkedIn",
+          "f1o3": "Web",
+          "f1o4": "E-mail",
+          "f2": "Date de publication",
+          "t1": "Préparer le calendrier éditorial du mois"
+        }
+      }
     },
     "integrations": {
       "googleDescription": "Affichez votre agenda dans Veltro, ouvrez des notes pour chaque réunion et créez des réunions avec Google Meet.",
@@ -1151,6 +1241,22 @@
         "red": "Rouge",
         "amber": "Ambre"
       }
+    },
+    "templates": {
+      "title": "Modèles",
+      "description": "Des modèles de tâches et d’ordres du jour pour ne pas repartir de zéro. Créez-les depuis une tâche ou une réunion ; renommez-les ou supprimez-les ici.",
+      "tasks": "De tâches",
+      "tasksHint": "À utiliser depuis Tâches › ⋯ › Nouvelle depuis un modèle.",
+      "agendas": "D’ordre du jour",
+      "agendasHint": "À charger depuis la salle d’une réunion, dans Préparer.",
+      "empty": "Aucun pour l’instant.",
+      "name": "Nom",
+      "account": "Tout le compte",
+      "taskDetail": "{count, plural, =0 {sans sous-tâches} one {# sous-tâche} other {# sous-tâches}}",
+      "agendaDetail": "{count, plural, one {# point} other {# points}}",
+      "rename": "Renommer",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer le modèle « {name} » ?"
     }
   },
   "errors": {
@@ -2853,6 +2959,46 @@
       "submitEmpty": "Importer",
       "done": "{count, plural, one {# tâche importée dans {workspace}} other {# tâches importées dans {workspace}}}",
       "pickWorkspace": "Choisissez l’espace"
+    },
+    "fromTemplate": "Nouvelle depuis un modèle…"
+  },
+  "templates": {
+    "task": {
+      "saveTitle": "Enregistrer comme modèle",
+      "saveHint": "Enregistre le titre, la description, la priorité et les étiquettes, pour créer des tâches identiques en un clic.",
+      "name": "Nom du modèle",
+      "scope": "Disponible dans",
+      "scopeWorkspace": "Cet espace ({name})",
+      "scopeAccount": "Tout le compte",
+      "withSubtasks": "{count, plural, one {Inclure la sous-tâche} other {Inclure les # sous-tâches}}",
+      "withDue": "{count, plural, =0 {Échéance le jour de la création} one {Échéance # jour après la création} other {Échéance # jours après la création}}",
+      "cancel": "Annuler",
+      "save": "Enregistrer le modèle",
+      "saved": "Modèle « {name} » enregistré",
+      "useTitle": "Nouvelle tâche depuis un modèle",
+      "useHint": "Choisissez un modèle : la tâche est créée avec ses sous-tâches, prête à être attribuée.",
+      "empty": "Pas encore de modèles de tâches",
+      "emptyHint": "Ouvrez une tâche que vous répétez souvent et, dans son menu ⋯, choisissez « Enregistrer comme modèle ».",
+      "workspace": "Espace",
+      "taskTitle": "Titre",
+      "create": "Créer la tâche",
+      "created": "Tâche créée depuis le modèle"
+    },
+    "agenda": {
+      "templates": "Modèles",
+      "use": "Utiliser un ordre du jour",
+      "empty": "Aucun ordre du jour enregistré. Préparez celui-ci et enregistrez-le pour la prochaine fois.",
+      "save": "Enregistrer cet ordre du jour…",
+      "saveTitle": "Enregistrer l’ordre du jour comme modèle",
+      "saveHint": "{count, plural, one {Enregistre # point à charger dans d’autres réunions.} other {Enregistre # points à charger dans d’autres réunions.}}",
+      "name": "Nom",
+      "scope": "Disponible dans",
+      "scopeWorkspace": "Cet espace ({name})",
+      "scopeAccount": "Tout le compte",
+      "cancel": "Annuler",
+      "saveButton": "Enregistrer",
+      "saved": "Ordre du jour « {name} » enregistré",
+      "applied": "L’ordre du jour « {name} » a été chargé"
     }
   }
 }

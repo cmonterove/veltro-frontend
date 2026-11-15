@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Building2, ChevronDown, Network, Plus, SlidersHorizontal, User, Users, UsersRound } from 'lucide-react'
+import { Building2, ChevronDown, Network, Plus, SlidersHorizontal, User, Users, UsersRound, LayoutTemplate } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Menu, MenuContent, MenuGroup, MenuLabel, MenuLinkItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
@@ -36,6 +36,7 @@ function useSettingsGroups(admin: boolean): Group[] {
         ...(admin ? [{ href: '/settings/members', label: t('members'), icon: <Users />, active: exact('/settings/members') }] : []),
         { href: '/settings/org', label: t('org'), icon: <Network />, active: exact('/settings/org') },
         { href: '/settings/teams', label: t('teams'), icon: <UsersRound />, active: exact('/settings/teams') },
+        { href: '/settings/templates', label: t('templates'), icon: <LayoutTemplate />, active: exact('/settings/templates') },
         { href: '/settings/support', label: t('support'), icon: <SupportIcon />, active: exact('/settings/support') },
       ],
     },

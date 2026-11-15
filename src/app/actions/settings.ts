@@ -161,6 +161,29 @@ export async function createWorkspace(accountId: string, input: { name: string; 
   return res.ok ? { ok: true as const, slug: res.data.slug, id: res.data.id } : res
 }
 
+/**
+ * Plantilla de espacio: sus estados, campos y tareas de arranque, recién creado el espacio. Lo que
+ * falle se informa sin deshacer el espacio (se puede ajustar en Ajustes › Espacios).
+ */
+export async function applyWorkspaceTemplate(
+  id: string,
+  t: { statuses: { name: string; category: string }[]; fields: { name: string; type: string; options?: string[] }[]; tasks: { title: string; status: string }[] },
+) {
+  if (t.statuses.length) {
+    const r = await attempt(() => api(`/v1/workspaces/${id}/task-statuses`, { method: 'PUT', body: { statuses: t.statuses } }))
+    if (!r.ok) return r
+  }
+  if (t.fields.length) {
+    const r = await attempt(() => api(`/v1/workspaces/${id}/task-fields`, { method: 'PUT', body: { fields: t.fields } }))
+    if (!r.ok) return r
+  }
+  if (t.tasks.length) {
+    const r = await attempt(() => api(`/v1/workspaces/${id}/tasks/batch`, { method: 'POST', body: { tasks: t.tasks } }))
+    if (!r.ok) return r
+  }
+  return { ok: true as const }
+}
+
 export async function updateWorkspace(id: string, patch: { name?: string; icon?: string; color?: string; description?: string | null }) {
   const body = {
     ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
