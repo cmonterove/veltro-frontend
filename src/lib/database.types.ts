@@ -288,6 +288,14 @@ export type ChatMessageRow = {
   edited_at: string | null
   /** borrado: queda su lugar en la conversación, sin el contenido */
   deleted_at: string | null
+  /** respuesta dentro del hilo de ese mensaje (no sale en la conversación principal) */
+  thread_id?: string | null
+  /** el hilo de este mensaje: cuántas respuestas, la última y quiénes respondieron */
+  replies?: { count: number; last_at: string | null; user_ids: string[] }
+  /** reacciones por emoji, en el orden en que llegaron */
+  reactions?: { emoji: string; user_ids: string[] }[]
+  /** fijado en el chat */
+  pinned?: { by: string | null; at: string } | null
 }
 
 export type TaskCommentRow = Timestamps & {

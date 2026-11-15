@@ -14,9 +14,12 @@ import {
   Copy,
   FileText,
   LogOut,
+  MessagesSquare,
   MoreHorizontal,
   Paperclip,
   Pencil,
+  Pin,
+  PinOff,
   Reply,
   Search,
   SendHorizontal,
@@ -41,7 +44,8 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { NewMeetingDialog } from '@/components/calendar/new-meeting-dialog'
 import { FileKindIcon, fileTitle } from '@/components/vault/file-visual'
-import { sendTyping, useChatMessages, useChatMutations, useChats, type ChatSummary, type NewMessage } from '@/lib/queries/chats'
+import { sendTyping, useChatMessages, useChatMutations, useChats, useThreadMessages, type ChatSummary, type NewMessage } from '@/lib/queries/chats'
+import { ChatSearchBar, PinsButton, ReactionBar, ReactionPicker, ThreadSummary } from './chat-extras'
 import { useRealtimeLive, useTypingIn } from '@/lib/realtime'
 import { useAttachmentMutations, useVaultFiles } from '@/lib/queries/attachments'
 import { useTasks } from '@/lib/queries/tasks'
@@ -75,9 +79,21 @@ export function ChatThread({ chatId }: { chatId: string }) {
   const stick = useRef(true)
   const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  // el hilo abierto (a la derecha) y la búsqueda dentro del chat
+  const [threadId, setThreadId] = useState<string | null>(null)
+  const [searching, setSearching] = useState(false)
+  useEffect(() => {
+    setThreadId(null)
+    setSearching(false)
+  }, [chatId])
 
-  // llegar a un mensaje desde un aviso (?m=…): se centra y se ilumina un momento
-  const target = useSearchParams().get('m')
+  // llegar a un mensaje desde un aviso (?m=…): se centra y se ilumina un momento; ?t=… abre su hilo
+  const search = useSearchParams()
+  const target = search.get('m')
+  const threadParam = search.get('t')
+  useEffect(() => {
+    if (threadParam) setThreadId(threadParam)
+  }, [threadParam])
   const [flash, setFlash] = useState<string | null>(null)
   const loaded = Boolean(messages?.length)
   useEffect(() => {
@@ -136,80 +152,119 @@ export function ChatThread({ chatId }: { chatId: string }) {
 
   const firstNew = readMark ? messages?.find((m) => m.created_at > readMark && m.user_id !== user.id && m.kind !== 'system')?.id : undefined
 
+  // ir a un mensaje (búsqueda, fijados): si es de un hilo, se abre el hilo; si no está cargado, se
+  // traen páginas anteriores hasta encontrarlo
+  const jumpTo = async (m: ChatMessageRow) => {
+    setSearching(false)
+    if (m.thread_id) {
+      setThreadId(m.thread_id)
+      return
+    }
+    for (let i = 0; i < 15 && !document.getElementById(`msg-${m.id}`); i++) {
+      if (!hasOlder) break
+      await loadOlder()
+      await new Promise((r) => requestAnimationFrame(r))
+    }
+    const el = document.getElementById(`msg-${m.id}`)
+    if (!el) return
+    stick.current = false
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    setFlash(null)
+    requestAnimationFrame(() => setFlash(m.id))
+  }
+  const threadRoot = threadId ? messages?.find((m) => m.id === threadId) : undefined
+
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <ThreadHeader chat={chat} onBack={() => router.push('/chat')} />
-      <div
-        ref={scrollRef}
-        onScroll={(e) => {
-          const el = e.currentTarget
-          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-        }}
-        className="min-h-0 flex-1 overflow-y-auto pb-4 pt-2 scrollbar-thin"
-      >
-        <div ref={contentRef} className="flex min-h-full flex-col">
-          {isLoading ? (
-            <div className="flex flex-col gap-4 p-5">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-12" />
-              ))}
-            </div>
-          ) : messages?.length ? (
-            <>
-              {hasOlder ? (
-                <div className="flex justify-center pb-1 pt-3">
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    loading={loadingOlder}
-                    onClick={async () => {
-                      // lo anterior entra arriba: se conserva lo que se estaba viendo
-                      const el = scrollRef.current
-                      const before = el?.scrollHeight ?? 0
-                      await loadOlder()
-                      requestAnimationFrame(() => {
-                        if (el) el.scrollTop += el.scrollHeight - before
-                      })
-                    }}
-                  >
-                    {t('loadOlder')}
-                  </Button>
-                </div>
-              ) : null}
-              <MessageList
-                messages={messages}
-                firstNew={firstNew}
-                flash={flash}
-                editingId={editingId}
-                onEdit={setEditingId}
-                onReply={setReplyTo}
-              />
-            </>
-          ) : (
-            <EmptyThread chat={chat} />
-          )}
+    <div className="relative flex min-h-0 min-w-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <ThreadHeader chat={chat} onBack={() => router.push('/chat')} onSearch={() => setSearching((v) => !v)} searching={searching} onJump={jumpTo} />
+        {searching ? <ChatSearchBar chatId={chat.id} onClose={() => setSearching(false)} onJump={jumpTo} /> : null}
+        <div
+          ref={scrollRef}
+          onScroll={(e) => {
+            const el = e.currentTarget
+            stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+          }}
+          className="min-h-0 flex-1 overflow-y-auto pb-4 pt-2 scrollbar-thin"
+        >
+          <div ref={contentRef} className="flex min-h-full flex-col">
+            {isLoading ? (
+              <div className="flex flex-col gap-4 p-5">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-12" />
+                ))}
+              </div>
+            ) : messages?.length ? (
+              <>
+                {hasOlder ? (
+                  <div className="flex justify-center pb-1 pt-3">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      loading={loadingOlder}
+                      onClick={async () => {
+                        // lo anterior entra arriba: se conserva lo que se estaba viendo
+                        const el = scrollRef.current
+                        const before = el?.scrollHeight ?? 0
+                        await loadOlder()
+                        requestAnimationFrame(() => {
+                          if (el) el.scrollTop += el.scrollHeight - before
+                        })
+                      }}
+                    >
+                      {t('loadOlder')}
+                    </Button>
+                  </div>
+                ) : null}
+                <MessageList
+                  messages={messages}
+                  firstNew={firstNew}
+                  flash={flash}
+                  editingId={editingId}
+                  onEdit={setEditingId}
+                  onReply={setReplyTo}
+                  onThread={(m) => setThreadId(m.id)}
+                />
+              </>
+            ) : (
+              <EmptyThread chat={chat} />
+            )}
+          </div>
         </div>
+        <Composer
+          chat={chat}
+          replyTo={replyTo}
+          onClearReply={() => setReplyTo(null)}
+          onSent={() => {
+            stick.current = true
+          }}
+          onEditLast={() => {
+            // ↑ con el cuadro vacío: editar mi último mensaje (como en Slack)
+            const mine = [...(messages ?? [])].reverse().find((m) => m.user_id === user.id && m.kind !== 'system' && !m.deleted_at && !m.id.startsWith('temp-'))
+            if (!mine) return false
+            setEditingId(mine.id)
+            return true
+          }}
+        />
       </div>
-      <Composer
-        chat={chat}
-        replyTo={replyTo}
-        onClearReply={() => setReplyTo(null)}
-        onSent={() => {
-          stick.current = true
-        }}
-        onEditLast={() => {
-          // ↑ con el cuadro vacío: editar mi último mensaje (como en Slack)
-          const mine = [...(messages ?? [])].reverse().find((m) => m.user_id === user.id && m.kind !== 'system' && !m.deleted_at && !m.id.startsWith('temp-'))
-          if (!mine) return false
-          setEditingId(mine.id)
-          return true
-        }}
-      />
+      {threadId ? <ThreadPanel chat={chat} rootId={threadId} root={threadRoot} onClose={() => setThreadId(null)} /> : null}
     </div>
   )
 }
 
-function ThreadHeader({ chat, onBack }: { chat: ChatSummary; onBack: () => void }) {
+function ThreadHeader({
+  chat,
+  onBack,
+  onSearch,
+  searching,
+  onJump,
+}: {
+  chat: ChatSummary
+  onBack: () => void
+  onSearch: () => void
+  searching: boolean
+  onJump: (m: ChatMessageRow) => void
+}) {
   const t = useTranslations('pasillo')
   const { user, members, google } = useApp()
   const { send } = useChatMutations()
@@ -245,6 +300,16 @@ function ThreadHeader({ chat, onBack }: { chat: ChatSummary; onBack: () => void 
       </div>
       <div className="ml-auto flex items-center gap-2">
         {chat.kind === 'group' ? <AvatarStack people={people} size={26} max={4} className="hidden sm:flex" /> : null}
+        <PinsButton
+          chatId={chat.id}
+          onJump={onJump}
+          className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-fg-muted outline-none hover:bg-hover hover:text-fg data-[popup-open]:bg-hover"
+        />
+        <Tooltip content={t('extras.search')} shortcut={['⌘', 'F']}>
+          <Button variant={searching ? 'secondary' : 'ghost'} size="icon-sm" onClick={onSearch} aria-label={t('extras.search')} aria-pressed={searching}>
+            <Search />
+          </Button>
+        </Tooltip>
         <Tooltip content={google ? t('meetNow.hint') : t('meetNow.hintNative')}>
           <Button
             variant="primary"
@@ -361,6 +426,7 @@ function dayLabel(d: Date, t: (k: string) => string, locale: Parameters<typeof f
 }
 
 type ListProps = {
+  onThread: (m: ChatMessageRow) => void
   messages: ChatMessageRow[]
   firstNew?: string
   flash: string | null
@@ -369,7 +435,7 @@ type ListProps = {
   onReply: (m: ChatMessageRow) => void
 }
 
-function MessageList({ messages, firstNew, flash, editingId, onEdit, onReply }: ListProps) {
+function MessageList({ messages, firstNew, flash, editingId, onEdit, onReply, onThread }: ListProps) {
   const t = useTranslations('pasillo')
   const locale = useDateLocale()
   const { user } = useApp()
@@ -421,6 +487,7 @@ function MessageList({ messages, firstNew, flash, editingId, onEdit, onReply }: 
                     editing={editingId === m.id}
                     onEdit={(on) => onEdit(on ? m.id : null)}
                     onReply={() => onReply(m)}
+                    onThread={() => onThread(m)}
                   />
                 )}
               </Fragment>
@@ -444,9 +511,19 @@ function SystemLine({ m }: { m: ChatMessageRow }) {
 
 const actionClass = 'inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg'
 
-type RowProps = { m: ChatMessageRow; joined: boolean; flash: boolean; editing: boolean; onEdit: (on: boolean) => void; onReply: () => void }
+type RowProps = {
+  m: ChatMessageRow
+  joined: boolean
+  flash: boolean
+  editing: boolean
+  onEdit: (on: boolean) => void
+  /** citar el mensaje en el cuadro de abajo (no en el panel del hilo) */
+  onReply?: () => void
+  /** abrir su hilo (en la conversación principal) */
+  onThread?: () => void
+}
 
-function MessageRow({ m, joined, flash, editing, onEdit, onReply }: RowProps) {
+function MessageRow({ m, joined, flash, editing, onEdit, onReply, onThread }: RowProps) {
   const copy = useCopy()
   const t = useTranslations('pasillo')
   const tConfirm = useTranslations('confirm')
@@ -454,8 +531,13 @@ function MessageRow({ m, joined, flash, editing, onEdit, onReply }: RowProps) {
   const locale = useDateLocale()
   const { user } = useApp()
   const memberMap = useMemberMap()
-  const { remove } = useChatMutations()
+  const { remove, react, pin } = useChatMutations()
   const author = memberMap.get(m.user_id ?? '')
+  const pinnedLabel = !m.pinned
+    ? ''
+    : m.pinned.by === user.id
+      ? t('extras.pinnedByMe')
+      : t('extras.pinnedBy', { name: memberMap.get(m.pinned.by ?? '')?.full_name.split(' ')[0] ?? '?' })
   const at = new Date(m.created_at)
   const sending = m.id.startsWith('temp-')
   const deleted = Boolean(m.deleted_at)
@@ -485,10 +567,25 @@ function MessageRow({ m, joined, flash, editing, onEdit, onReply }: RowProps) {
       )}
     >
       {actions ? (
-        <div className="absolute -top-3 right-5 z-[2] hidden items-center rounded-lg border border-line bg-panel p-0.5 shadow-card group-hover/msg:flex group-focus-within/msg:flex">
-          <Tooltip content={t('reply')}>
-            <button type="button" onClick={onReply} aria-label={t('reply')} className={actionClass}>
-              <Reply className="size-4" />
+        <div className="absolute -top-3 right-5 z-[2] hidden items-center rounded-lg border border-line bg-panel p-0.5 shadow-card group-hover/msg:flex group-focus-within/msg:flex has-[[data-popup-open]]:flex">
+          <ReactionPicker label={t('extras.react')} onPick={(emoji) => react.mutate({ message: m, emoji })} className={cn(actionClass, 'data-[popup-open]:bg-hover')} />
+          {onThread ? (
+            <Tooltip content={t('extras.replyThread')}>
+              <button type="button" onClick={onThread} aria-label={t('extras.replyThread')} className={actionClass}>
+                <MessagesSquare className="size-4" />
+              </button>
+            </Tooltip>
+          ) : null}
+          {onReply ? (
+            <Tooltip content={t('reply')}>
+              <button type="button" onClick={onReply} aria-label={t('reply')} className={actionClass}>
+                <Reply className="size-4" />
+              </button>
+            </Tooltip>
+          ) : null}
+          <Tooltip content={m.pinned ? t('extras.unpin') : t('extras.pin')}>
+            <button type="button" onClick={() => pin.mutate({ message: m, on: !m.pinned })} aria-label={m.pinned ? t('extras.unpin') : t('extras.pin')} className={actionClass}>
+              {m.pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
             </button>
           </Tooltip>
           {m.body ? (
@@ -526,8 +623,20 @@ function MessageRow({ m, joined, flash, editing, onEdit, onReply }: RowProps) {
           <p className="flex items-baseline gap-2">
             <span className="text-sm font-semibold text-fg">{mine ? t('you') : (author?.full_name ?? '?')}</span>
             <span className="text-2xs tabular-nums text-fg-subtle">{format(at, 'HH:mm')}</span>
+            {m.pinned ? (
+              <span className="inline-flex items-center gap-0.5 text-2xs font-medium text-mandarina-ink">
+                <Pin className="size-3" />
+                {pinnedLabel}
+              </span>
+            ) : null}
           </p>
         )}
+        {joined && m.pinned ? (
+          <span className="inline-flex items-center gap-0.5 text-2xs font-medium text-mandarina-ink">
+            <Pin className="size-3" />
+            {pinnedLabel}
+          </span>
+        ) : null}
         {deleted ? (
           <p className="flex items-center gap-1.5 py-0.5 text-sm italic text-fg-subtle">
             <Ban className="size-3.5 shrink-0" />
@@ -564,8 +673,111 @@ function MessageRow({ m, joined, flash, editing, onEdit, onReply }: RowProps) {
             {m.kind === 'file' && m.ref_id ? <FileCard id={m.ref_id} /> : null}
             {m.kind === 'doc' && m.ref_id ? <DocCard id={m.ref_id} /> : null}
             {m.kind === 'meeting' ? <InviteCard message={m} /> : null}
+            <ReactionBar m={m} />
+            {onThread ? <ThreadSummary m={m} onOpen={onThread} /> : null}
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * El hilo de un mensaje, a la derecha de la conversación (en el celular, encima): el mensaje, sus
+ * respuestas y un cuadro para responder ahí. Las respuestas no salen en la conversación principal.
+ */
+function ThreadPanel({ chat, rootId, root, onClose }: { chat: ChatSummary; rootId: string; root: ChatMessageRow | undefined; onClose: () => void }) {
+  const t = useTranslations('pasillo')
+  const { data: replies, isLoading } = useThreadMessages(chat.id, rootId)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const scroller = useRef<HTMLDivElement>(null)
+  const count = replies?.length ?? 0
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight })
+  }, [count])
+  return (
+    // un cajón sobre la conversación; en pantallas muy anchas, al lado
+    <aside
+      className="absolute inset-y-0 right-0 z-10 flex min-h-0 w-full flex-col border-line bg-canvas shadow-popover sm:w-[420px] sm:border-l 2xl:static 2xl:shrink-0 2xl:shadow-none"
+      aria-label={t('extras.thread')}
+    >
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-4 md:h-[68px]">
+        <MessagesSquare className="size-4 text-accent" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-fg">{t('extras.thread')}</p>
+          <p className="truncate text-xs text-fg-muted">{t('extras.repliesCount', { count })}</p>
+        </div>
+        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={t('extras.closeThread')}>
+          <X />
+        </Button>
+      </header>
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto pb-3 pt-2 scrollbar-thin">
+        {root ? (
+          <MessageRow m={root} joined={false} flash={false} editing={false} onEdit={() => undefined} />
+        ) : (
+          <p className="px-5 py-3 text-xs text-fg-subtle">{t('extras.rootNotLoaded')}</p>
+        )}
+        <div className="my-2 flex items-center gap-3 px-5">
+          <span className="text-2xs font-medium text-fg-subtle">{t('extras.repliesCount', { count })}</span>
+          <span className="h-px flex-1 bg-line" />
+        </div>
+        {isLoading ? (
+          <div className="px-5">
+            <Skeleton className="h-10" />
+          </div>
+        ) : (
+          (replies ?? []).map((m, i, list) => {
+            const prev = list[i - 1]
+            const joined = Boolean(prev && prev.user_id === m.user_id && !prev.deleted_at && differenceInMinutes(new Date(m.created_at), new Date(prev.created_at)) < GROUP_MINUTES)
+            return <MessageRow key={m.id} m={m} joined={joined} flash={false} editing={editingId === m.id} onEdit={(on) => setEditingId(on ? m.id : null)} />
+          })
+        )}
+      </div>
+      <ThreadComposer chat={chat} rootId={rootId} />
+    </aside>
+  )
+}
+
+/** Responder en el hilo: texto con menciones. Enter envía; Mayús+Enter, otra línea. */
+function ThreadComposer({ chat, rootId }: { chat: ChatSummary; rootId: string }) {
+  const t = useTranslations('pasillo')
+  const { send } = useChatMutations()
+  const candidates = useMentionables(chat)
+  const [text, setText] = useState('')
+  const [picked, setPicked] = useState<MentionCandidate[]>([])
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => ref.current?.focus(), [rootId])
+  const submit = () => {
+    if (!text.trim()) return
+    send.mutate({ chatId: chat.id, kind: 'text', body: text.trim(), mentions: mentionIds(text, picked), threadId: rootId })
+    track('feature.chat_thread_reply')
+    setText('')
+    setPicked([])
+  }
+  return (
+    <div className="shrink-0 px-3 pb-3">
+      <div className="flex items-end gap-2 rounded-xl border border-line bg-panel p-2 shadow-card focus-within:border-accent-mid">
+        <MentionTextarea
+          ref={ref}
+          value={text}
+          onValueChange={setText}
+          candidates={chat.kind === 'group' ? candidates : []}
+          picked={picked}
+          onPickedChange={setPicked}
+          maxLength={4000}
+          placeholder={t('extras.replyInThread')}
+          aria-label={t('extras.replyInThread')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault()
+              submit()
+            }
+          }}
+          className="max-h-40 min-h-9 flex-1 bg-transparent px-1.5 py-1.5 text-sm leading-relaxed outline-none placeholder:text-fg-subtle"
+        />
+        <Button variant="primary" size="icon-sm" onClick={submit} disabled={!text.trim()} aria-label={t('composer.send')}>
+          <SendHorizontal />
+        </Button>
       </div>
     </div>
   )

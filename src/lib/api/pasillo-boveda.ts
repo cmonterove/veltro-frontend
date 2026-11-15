@@ -26,6 +26,10 @@ export type ApiChatMessage = {
   editedAt: string | null
   deletedAt?: string | null
   author: { id: string; fullName: string; avatarUrl: string | null } | null
+  threadId?: string | null
+  replies?: { count: number; lastAt: string | null; userIds: string[] }
+  reactions?: { emoji: string; userIds: string[] }[]
+  pinned?: { by: string | null; at: string } | null
 }
 
 export type ApiChatMember = {
@@ -112,6 +116,10 @@ export function toChatMessage(m: ApiChatMessage): ChatMessageRow {
     created_at: m.createdAt,
     edited_at: m.editedAt,
     deleted_at: m.deletedAt ?? null,
+    thread_id: m.threadId ?? null,
+    replies: m.replies ? { count: m.replies.count, last_at: m.replies.lastAt, user_ids: m.replies.userIds } : { count: 0, last_at: null, user_ids: [] },
+    reactions: (m.reactions ?? []).map((r) => ({ emoji: r.emoji, user_ids: r.userIds })),
+    pinned: m.pinned ?? null,
   }
 }
 
@@ -173,12 +181,16 @@ export type OutgoingMessage = {
   replyToId?: string | null
   /** personas del chat mencionadas (@) */
   mentions?: string[]
+  /** responder dentro del hilo de este mensaje */
+  threadId?: string | null
 }
 
 export function toMessageBody(m: OutgoingMessage, withReply = true) {
   const body = (m.body ?? '').slice(0, 4000)
   // la cita y las menciones son de un chat: al compartir en varios no van
-  const reply = withReply ? { ...(m.replyToId ? { replyToId: m.replyToId } : {}), ...(m.mentions?.length ? { mentions: m.mentions } : {}) } : {}
+  const reply = withReply
+    ? { ...(m.replyToId ? { replyToId: m.replyToId } : {}), ...(m.mentions?.length ? { mentions: m.mentions } : {}), ...(m.threadId ? { threadId: m.threadId } : {}) }
+    : {}
   const kind = m.kind ?? 'text'
   if (kind === 'text') return { kind, body, ...reply }
   if (kind === 'meeting') {

@@ -22,6 +22,10 @@ export const chatKeys = {
   list: (accountId: string) => ['chats', 'list', accountId] as const,
   unread: (accountId: string) => ['chats', 'unread', accountId] as const,
   messages: (chatId: string) => ['chats', 'messages', chatId] as const,
+  /** respuestas del hilo de un mensaje */
+  thread: (chatId: string, rootId: string) => ['chats', 'thread', chatId, rootId] as const,
+  pins: (chatId: string) => ['chats', 'pins', chatId] as const,
+  search: (chatId: string, q: string) => ['chats', 'search', chatId, q] as const,
 }
 
 export type { ChatSummary }
@@ -184,7 +188,7 @@ export function useChatMutations() {
     },
     // el mensaje aparece al instante (con la cita armada aquí); al llegar la respuesta se cambia por el real
     onMutate: async (m) => {
-      const key = chatKeys.messages(m.chatId)
+      const key = m.threadId ? chatKeys.thread(m.chatId, m.threadId) : chatKeys.messages(m.chatId)
       await qc.cancelQueries({ queryKey: key })
       const temp: ChatMessageRow = {
         id: `temp-${crypto.randomUUID()}`,
@@ -198,6 +202,7 @@ export function useChatMutations() {
         created_at: new Date().toISOString(),
         edited_at: null,
         deleted_at: null,
+        thread_id: m.threadId ?? null,
       }
       pending.add(temp.id)
       qc.setQueryData<ChatMessageRow[]>(key, (old) => [...(old ?? []), temp])
@@ -205,11 +210,15 @@ export function useChatMutations() {
     },
     onSuccess: (row, m, ctx) => {
       if (ctx) pending.delete(ctx.tempId)
-      qc.setQueryData<ChatMessageRow[]>(chatKeys.messages(m.chatId), (old) => merge(old?.filter((x) => x.id !== ctx?.tempId), [row]))
+      const key = m.threadId ? chatKeys.thread(m.chatId, m.threadId) : chatKeys.messages(m.chatId)
+      qc.setQueryData<ChatMessageRow[]>(key, (old) => merge(old?.filter((x) => x.id !== ctx?.tempId), [row]))
+      // el mensaje raíz cuenta una respuesta más
+      if (m.threadId) refreshChatMessages(qc, m.chatId, true)
     },
     onError: (e, m, ctx) => {
       if (ctx) pending.delete(ctx.tempId)
-      qc.setQueryData<ChatMessageRow[]>(chatKeys.messages(m.chatId), (old) => old?.filter((x) => x.id !== ctx?.tempId))
+      const key = m.threadId ? chatKeys.thread(m.chatId, m.threadId) : chatKeys.messages(m.chatId)
+      qc.setQueryData<ChatMessageRow[]>(key, (old) => old?.filter((x) => x.id !== ctx?.tempId))
       onError(e)
     },
     onSettled: refresh,
@@ -351,7 +360,85 @@ export function useChatMutations() {
     },
   })
 
-  return { send, markRead, openDirect, createGroup, rename, addMembers, leave, rsvp, share, edit, remove }
+  /** Poner o quitar una reacción (se ve al instante). */
+  const react = useMutation({
+    mutationFn: async ({ message, emoji }: { message: ChatMessageRow; emoji: string }) =>
+      toChatMessage(await api<ApiChatMessage>(`/v1/chats/${message.chat_id}/messages/${message.id}/reactions`, { method: 'POST', body: { emoji } })),
+    onMutate: ({ message, emoji }) => {
+      const toggle = (m: ChatMessageRow): ChatMessageRow => {
+        if (m.id !== message.id) return m
+        const list = m.reactions ?? []
+        const hit = list.find((r) => r.emoji === emoji)
+        const next = hit
+          ? list
+              .map((r) => (r.emoji === emoji ? { ...r, user_ids: r.user_ids.includes(user.id) ? r.user_ids.filter((u) => u !== user.id) : [...r.user_ids, user.id] } : r))
+              .filter((r) => r.user_ids.length)
+          : [...list, { emoji, user_ids: [user.id] }]
+        return { ...m, reactions: next }
+      }
+      for (const key of messageKeys(qc, message)) qc.setQueryData<ChatMessageRow[]>(key, (old) => old?.map(toggle))
+    },
+    onSuccess: (row) => {
+      for (const key of messageKeys(qc, row)) qc.setQueryData<ChatMessageRow[]>(key, (old) => old?.map((m) => (m.id === row.id ? row : m)))
+    },
+    onError: (e, { message }) => {
+      onError(e)
+      refreshChatMessages(qc, message.chat_id, true)
+    },
+  })
+
+  /** Fijar o desfijar un mensaje del chat. */
+  const pin = useMutation({
+    mutationFn: async ({ message, on }: { message: ChatMessageRow; on: boolean }) =>
+      toChatMessage(await api<ApiChatMessage>(`/v1/chats/${message.chat_id}/messages/${message.id}/pin`, { method: on ? 'POST' : 'DELETE' })),
+    onSuccess: (row) => {
+      for (const key of messageKeys(qc, row)) qc.setQueryData<ChatMessageRow[]>(key, (old) => old?.map((m) => (m.id === row.id ? row : m)))
+      qc.invalidateQueries({ queryKey: chatKeys.pins(row.chat_id) })
+    },
+    onError,
+  })
+
+  return { send, markRead, openDirect, createGroup, rename, addMembers, leave, rsvp, share, edit, remove, react, pin }
+}
+
+/** Dónde puede estar un mensaje en la caché: la conversación principal o el hilo de su raíz. */
+function messageKeys(qc: QueryClient, m: ChatMessageRow) {
+  return m.thread_id ? [chatKeys.thread(m.chat_id, m.thread_id), chatKeys.messages(m.chat_id)] : [chatKeys.messages(m.chat_id)]
+}
+
+/** Las respuestas del hilo de un mensaje, de la más vieja a la más nueva. */
+export function useThreadMessages(chatId: string, rootId: string | null) {
+  const live = useRealtimeLive()
+  return useQuery({
+    queryKey: chatKeys.thread(chatId, rootId ?? 'none'),
+    enabled: Boolean(rootId),
+    refetchInterval: live ? 60_000 : 4000,
+    queryFn: async () => {
+      const page = await api<Page<ApiChatMessage>>(`/v1/chats/${chatId}/messages`, { query: { thread: rootId!, order: 'asc', limit: 200 } })
+      return page.items.map(toChatMessage)
+    },
+  })
+}
+
+/** Los mensajes fijados del chat. */
+export function useChatPins(chatId: string) {
+  return useQuery({
+    queryKey: chatKeys.pins(chatId),
+    staleTime: 30_000,
+    queryFn: async () => (await api<{ items: ApiChatMessage[] }>(`/v1/chats/${chatId}/pins`)).items.map(toChatMessage),
+  })
+}
+
+/** Buscar en un chat (incluye respuestas de hilos), del más nuevo al más viejo. */
+export function useChatSearch(chatId: string, q: string) {
+  const term = q.trim()
+  return useQuery({
+    queryKey: chatKeys.search(chatId, term),
+    enabled: term.length >= 2,
+    staleTime: 30_000,
+    queryFn: async () => (await api<Page<ApiChatMessage>>(`/v1/chats/${chatId}/messages`, { query: { q: term, limit: 30 } })).items.map(toChatMessage),
+    placeholderData: (prev) => prev,
+  })
 }
 
 /**
@@ -360,6 +447,9 @@ export function useChatMutations() {
  */
 export function refreshChatMessages(qc: QueryClient, chatId: string, full = false) {
   if (full) lastFull.set(chatId, 0)
+  // los hilos abiertos y los fijados de ese chat también pueden haber cambiado
+  qc.invalidateQueries({ queryKey: ['chats', 'thread', chatId] })
+  qc.invalidateQueries({ queryKey: chatKeys.pins(chatId) })
   return qc.invalidateQueries({ queryKey: chatKeys.messages(chatId) })
 }
 

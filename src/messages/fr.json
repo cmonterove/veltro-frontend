@@ -2338,6 +2338,31 @@
       "showPanel": "Afficher le panneau de droite",
       "collapse": "Replier",
       "expand": "Déplier"
+    },
+    "extras": {
+      "you": "vous",
+      "react": "Réagir",
+      "reactedBy": "{names} a réagi avec {emoji}",
+      "replies": "{count, plural, one {# réponse} other {# réponses}}",
+      "lastReply": "la dernière {when}",
+      "search": "Rechercher dans le chat",
+      "searchPlaceholder": "Rechercher dans cette conversation",
+      "closeSearch": "Fermer la recherche",
+      "noResults": "Rien avec « {q} » dans ce chat.",
+      "inThread": "dans un fil",
+      "pinned": "{count, plural, one {# message épinglé} other {# messages épinglés}}",
+      "pinnedTitle": "Épinglés",
+      "card": "(carte partagée)",
+      "pin": "Épingler dans le chat",
+      "unpin": "Désépingler",
+      "pinnedBy": "Épinglé par {name}",
+      "replyThread": "Répondre dans un fil",
+      "thread": "Fil",
+      "repliesCount": "{count, plural, =0 {Pas encore de réponses} one {# réponse} other {# réponses}}",
+      "closeThread": "Fermer le fil",
+      "rootNotLoaded": "Le message d’origine est plus ancien que ce qui est chargé.",
+      "replyInThread": "Répondre dans le fil…",
+      "pinnedByMe": "Épinglé par vous"
     }
   },
   "confirm": {
@@ -2463,7 +2488,8 @@
       "task_unblocked": "<b>{actor}</b> a terminé <b>{ref}</b> : votre tâche peut avancer",
       "request_new": "{assigned, select, yes {<b>{actor}</b> vous a attribué une demande} other {{forwarded, select, yes {<b>{actor}</b> a transféré une demande à <b>{department}</b>} other {<b>{actor}</b> a demandé quelque chose à <b>{department}</b>}}}}",
       "request_message": "{count, plural, one {<b>{actor}</b> a écrit dans une demande} other {# nouveaux messages dans une demande, le dernier de <b>{actor}</b>}}",
-      "request_status": "{status, select, in_progress {<b>{actor}</b> a commencé à traiter votre demande} delivered {Votre demande a été livrée : confirmez qu’elle est résolue} resolved {<b>{actor}</b> a marqué la demande résolue} declined {<b>{actor}</b> a refusé votre demande} forwarded {<b>{actor}</b> a transféré votre demande à <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> a rouvert sa demande} other {<b>{actor}</b> examine votre demande}}} other {<b>{actor}</b> a changé le statut d’une demande}}"
+      "request_status": "{status, select, in_progress {<b>{actor}</b> a commencé à traiter votre demande} delivered {Votre demande a été livrée : confirmez qu’elle est résolue} resolved {<b>{actor}</b> a marqué la demande résolue} declined {<b>{actor}</b> a refusé votre demande} forwarded {<b>{actor}</b> a transféré votre demande à <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> a rouvert sa demande} other {<b>{actor}</b> examine votre demande}}} other {<b>{actor}</b> a changé le statut d’une demande}}",
+      "chat_thread": "<b>{actor}</b> a répondu dans un fil de <b>{chat}</b>"
     },
     "desktop": {
       "offer": "Recevez les notifications et les messages directs même quand Veltro est dans un autre onglet.",

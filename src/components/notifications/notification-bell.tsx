@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { formatDistanceToNowStrict } from 'date-fns'
-import { ArrowRightLeft, AtSign, Bell, BellOff, CalendarClock, CalendarSync, CalendarX2, CheckCheck, CircleCheck, MessageSquare, UserRoundCheck, UserRoundPlus, LockOpen, Inbox } from 'lucide-react'
+import { ArrowRightLeft, AtSign, Bell, BellOff, CalendarClock, CalendarSync, CalendarX2, CheckCheck, CircleCheck, MessageSquare, UserRoundCheck, UserRoundPlus, LockOpen, Inbox, MessagesSquare } from 'lucide-react'
 import { LogoMark } from '@/components/app/logo'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -198,6 +198,7 @@ const KIND_ICON: Record<NotificationKind, typeof Bell> = {
   request_new: Inbox,
   request_message: MessageSquare,
   request_status: ArrowRightLeft,
+  chat_thread: MessagesSquare,
 }
 
 // el color dice qué pasó: asignada en ciruela, hecha en frambuesa, mención y «vence hoy» en mandarina,
@@ -217,6 +218,7 @@ const KIND_TONE: Record<NotificationKind, string> = {
   request_new: 'bg-mandarina text-on-mandarina',
   request_message: 'bg-fg-muted text-canvas',
   request_status: 'bg-info text-canvas',
+  chat_thread: 'bg-accent text-accent-fg',
 }
 
 function NotificationItem({ n, onOpened }: { n: AppNotification; onOpened: () => void }) {
@@ -233,7 +235,8 @@ function NotificationItem({ n, onOpened }: { n: AppNotification; onOpened: () =>
     if (unread) markRead.mutate([n.id])
     track('feature.notification_click', { props: { kind: n.kind } })
     onOpened()
-    if (n.chat && n.message) router.push(`/chat/${n.chat.id}?m=${n.message.id}`)
+    if (n.chat && n.kind === 'chat_thread' && typeof n.data?.root === 'string') router.push(`/chat/${n.chat.id}?m=${n.data.root}&t=${n.data.root}`)
+    else if (n.chat && n.message) router.push(`/chat/${n.chat.id}?m=${n.message.id}`)
     else if (n.request) router.push(`/requests/${n.request.id}`)
     else if (n.task) openTask(n.task.id)
     else if (n.kind === 'member_joined') router.push('/settings/members')

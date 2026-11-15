@@ -223,7 +223,8 @@ function useRouting() {
       const { openTask, router } = ctx.current
       qc.setQueryData<number>(notificationKeys.unread(account.id), (c) => Math.max(0, (c ?? 1) - 1))
       void api(`/v1/accounts/${account.id}/notifications/read`, { method: 'POST', body: { ids: [n.id] } }).catch(() => undefined)
-      if (n.chat && n.message) router.push(`/chat/${n.chat.id}?m=${n.message.id}`)
+      if (n.chat && n.kind === 'chat_thread' && typeof n.data?.root === 'string') router.push(`/chat/${n.chat.id}?m=${n.data.root}&t=${n.data.root}`)
+      else if (n.chat && n.message) router.push(`/chat/${n.chat.id}?m=${n.message.id}`)
       else if (n.request) router.push(`/requests/${n.request.id}`)
       else if (n.task) openTask(n.task.id)
       else if (n.kind === 'member_joined') router.push('/settings/members')

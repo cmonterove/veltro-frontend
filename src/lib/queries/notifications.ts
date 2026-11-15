@@ -29,6 +29,7 @@ export type NotificationKind =
   | 'request_new'
   | 'request_message'
   | 'request_status'
+  | 'chat_thread'
 
 export type AppNotification = {
   id: string

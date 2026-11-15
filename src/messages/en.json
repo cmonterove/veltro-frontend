@@ -2338,6 +2338,31 @@
       "showPanel": "Show the side panel",
       "collapse": "Collapse",
       "expand": "Expand"
+    },
+    "extras": {
+      "you": "you",
+      "react": "React",
+      "reactedBy": "{names} reacted with {emoji}",
+      "replies": "{count, plural, one {# reply} other {# replies}}",
+      "lastReply": "last {when}",
+      "search": "Search this chat",
+      "searchPlaceholder": "Search this conversation",
+      "closeSearch": "Close search",
+      "noResults": "Nothing with “{q}” in this chat.",
+      "inThread": "in a thread",
+      "pinned": "{count, plural, one {# pinned message} other {# pinned messages}}",
+      "pinnedTitle": "Pinned",
+      "card": "(shared card)",
+      "pin": "Pin to chat",
+      "unpin": "Unpin",
+      "pinnedBy": "Pinned by {name}",
+      "replyThread": "Reply in thread",
+      "thread": "Thread",
+      "repliesCount": "{count, plural, =0 {No replies yet} one {# reply} other {# replies}}",
+      "closeThread": "Close thread",
+      "rootNotLoaded": "The original message is older than what's loaded in the conversation.",
+      "replyInThread": "Reply in thread…",
+      "pinnedByMe": "Pinned by you"
     }
   },
   "confirm": {
@@ -2463,7 +2488,8 @@
       "task_unblocked": "<b>{actor}</b> finished <b>{ref}</b>: your task can move ahead",
       "request_new": "{assigned, select, yes {<b>{actor}</b> assigned you a request} other {{forwarded, select, yes {<b>{actor}</b> forwarded a request to <b>{department}</b>} other {<b>{actor}</b> asked <b>{department}</b> for something}}}}",
       "request_message": "{count, plural, one {<b>{actor}</b> wrote on a request} other {# new messages on a request, the latest from <b>{actor}</b>}}",
-      "request_status": "{status, select, in_progress {<b>{actor}</b> started working on your request} delivered {Your request was delivered: confirm it's resolved} resolved {<b>{actor}</b> marked the request resolved} declined {<b>{actor}</b> declined your request} forwarded {<b>{actor}</b> forwarded your request to <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> reopened their request} other {<b>{actor}</b> is reviewing your request}}} other {<b>{actor}</b> changed a request's status}}"
+      "request_status": "{status, select, in_progress {<b>{actor}</b> started working on your request} delivered {Your request was delivered: confirm it's resolved} resolved {<b>{actor}</b> marked the request resolved} declined {<b>{actor}</b> declined your request} forwarded {<b>{actor}</b> forwarded your request to <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> reopened their request} other {<b>{actor}</b> is reviewing your request}}} other {<b>{actor}</b> changed a request's status}}",
+      "chat_thread": "<b>{actor}</b> replied in a thread in <b>{chat}</b>"
     },
     "desktop": {
       "offer": "Get notifications and direct messages even when Veltro is in another tab.",
