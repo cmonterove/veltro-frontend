@@ -10,9 +10,11 @@ import { WorkspaceMark } from '@/components/app/marks'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AllClear } from '@/components/ui/empty-state'
 import { Menu, MenuContent, MenuGroup, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { ConnectCalendar, ConnectCalendarHint } from '@/components/calendar/connect-calendar'
 import { NotesButton } from '@/components/calendar/notes-button'
+import { NoMeetingsAhead, dueThisWeek } from '@/components/calendar/no-meetings'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { useCreateTask, useUpdateTask } from '@/lib/queries/tasks'
 import { useMeetingItemMutations } from '@/lib/queries/meetings'
@@ -89,12 +91,18 @@ export function useBriefModel(
     const overdue = scoped.filter((x) => x.status !== 'done' && x.due_date && x.due_date < todayKey)
     const dueToday = scoped.filter((x) => x.status !== 'done' && x.due_date === todayKey)
     const inProgress = scoped.filter((x) => x.status === 'in_progress' && !(x.due_date && x.due_date <= todayKey))
+    const dueWeek = dueThisWeek(scoped, now)
+    // sin nada urgente: lo próximo por hacer (primero lo que vence antes; lo sin fecha al final)
+    const ahead = scoped
+      .filter((x) => x.status === 'todo' && !(x.due_date && x.due_date <= todayKey))
+      .sort((a, b) => (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999') || PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority])
+      .slice(0, 4)
 
     const unclosed = meetings
       .filter((m) => scopeIds.includes(m.workspace_id) && m.phase !== 'closed' && new Date(m.ends_at ?? m.starts_at) < now)
       .sort((a, b) => b.starts_at.localeCompare(a.starts_at))
 
-    return { meetingByEvent, live, next, today, nextDay, counts, overdue, dueToday, inProgress, unclosed }
+    return { meetingByEvent, live, next, today, nextDay, counts, overdue, dueToday, inProgress, dueWeek, ahead, unclosed }
   }, [now, scopeIds, filter, events, meetings, tasks, people, everyone, counters])
 }
 
@@ -305,7 +313,19 @@ export function TodayColumn({ data, model, scope }: { data: BriefData; model: Br
             <Skeleton className="h-8" />
           </div>
         ) : total === 0 ? (
-          <p className="px-4 py-6 text-sm text-fg-muted">{t('empty')}</p>
+          <div className="flex-1 pb-2">
+            <AllClear title={t('clear')} hint={t('empty')} className="px-4 pb-2 pt-5" />
+            {model.ahead.length ? (
+              <>
+                <GroupLabel>{t('ahead')}</GroupLabel>
+                <ul>
+                  {model.ahead.map((x) => (
+                    <TaskLine key={x.id} task={x} data={data} showOwner={showOwner} />
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </div>
         ) : (
           <div className="flex-1 pb-2">
             {groups.map((g) => (
@@ -473,7 +493,7 @@ export function AgendaColumn({ data, model, onTimeline }: { data: BriefData; mod
       ) : (
         <div className="pb-3">
           {/* lo que está pasando o lo que sigue */}
-          <div className={cn('m-3 rounded-xl border p-3', live ? 'border-mandarina/50 bg-highlight' : 'border-line bg-sidebar/40')}>
+          <div className={cn('m-3 rounded-xl border p-3', live ? 'border-mandarina/50 bg-highlight' : event ? 'border-line bg-sidebar/40' : 'border-line bg-[color-mix(in_oklch,var(--accent)_4%,var(--panel))]')}>
             {event ? (
               <>
                 <p className={cn('flex items-center gap-1.5 text-xs first-letter:uppercase', live ? 'font-medium text-mandarina-ink' : 'text-fg-muted')}>
@@ -499,19 +519,22 @@ export function AgendaColumn({ data, model, onTimeline }: { data: BriefData; mod
                 {live && meeting && ws ? <LiveCapture meeting={meeting} /> : null}
               </>
             ) : (
-              <>
-                <p className="text-sm font-medium">{tn('free')}</p>
-                <p className="mt-0.5 text-xs text-fg-muted">{tn('freeHint')}</p>
-              </>
+              <NoMeetingsAhead now={data.now} due={model.dueWeek} hint={tn('freeHint')} compact />
             )}
           </div>
 
-          <GroupLabel>{t('today')}</GroupLabel>
+          {/* sin nada por delante, «Hoy: sin reuniones» repetiría el bloque de arriba */}
           {model.today.length ? (
-            <AgendaList events={model.today} data={data} model={model} withNow />
-          ) : (
-            <p className="px-4 py-1 text-sm text-fg-subtle">{t('empty')}</p>
-          )}
+            <>
+              <GroupLabel>{t('today')}</GroupLabel>
+              <AgendaList events={model.today} data={data} model={model} withNow />
+            </>
+          ) : event ? (
+            <>
+              <GroupLabel>{t('today')}</GroupLabel>
+              <p className="px-4 py-1 text-sm text-fg-subtle">{t('empty')}</p>
+            </>
+          ) : null}
           {showNextDay ? (
             <>
               <GroupLabel>{nextDayLabel}</GroupLabel>
@@ -632,10 +655,7 @@ export function LooseColumn({ data, model }: { data: BriefData; model: BriefMode
           <Skeleton className="h-8" />
         </div>
       ) : total === 0 ? (
-        <div className="flex items-center gap-2.5 px-4 py-6 text-sm text-fg-muted">
-          <CheckCheck className="size-4 shrink-0 text-done" />
-          {t('empty')}
-        </div>
+        <AllClear title={t('clear')} hint={t('empty')} className="px-4 py-5" />
       ) : (
         <div className="pb-3">
           {model.unclosed.length ? (

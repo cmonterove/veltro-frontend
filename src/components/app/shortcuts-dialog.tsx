@@ -17,6 +17,7 @@ export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenC
         { keys: ['⌘', 'K'], label: t('palette') },
         { keys: ['C'], label: t('newTask') },
         { keys: ['['], label: t('toggleSidebar') },
+        { keys: ['F'], label: t('fullscreen') },
         { keys: ['?'], label: t('help') },
       ],
     },

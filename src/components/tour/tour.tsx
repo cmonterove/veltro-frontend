@@ -205,7 +205,9 @@ function TourOverlay({ step, onStep, onClose }: { step: number; onStep: (n: numb
     const vh = viewport.height
     const clampX = (x: number) => Math.min(Math.max(x, MARGIN), vw - card.width - MARGIN)
     const clampY = (y: number) => Math.min(Math.max(y, MARGIN), vh - card.height - MARGIN)
-    if (!box || vw < 640) return { top: vh < 640 || vw < 640 ? Math.max(MARGIN, vh - card.height - MARGIN) : clampY((vh - card.height) / 2), left: clampX((vw - card.width) / 2) }
+    // sin elemento (o en el celular): centrada; abajo solo en pantallas angostas, como una hoja.
+    // Una ventana de escritorio baja (p. ej. 1366×617) también va centrada.
+    if (!box || vw < 640) return { top: vw < 640 ? Math.max(MARGIN, vh - card.height - MARGIN) : clampY((vh - card.height) / 2), left: clampX((vw - card.width) / 2) }
     const fitsRight = box.left + box.width + GAP + card.width + MARGIN <= vw
     if (s.placement === 'right' && fitsRight) return { top: clampY(box.top + box.height / 2 - card.height / 2), left: box.left + box.width + GAP }
     const below = box.top + box.height + GAP

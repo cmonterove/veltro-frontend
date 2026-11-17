@@ -100,7 +100,23 @@
     "workspaceLabel": "Tu primer espacio",
     "workspaceHint": "Un proyecto, cliente o empresa. Cada espacio tiene sus tareas, docs y reuniones.",
     "workspacePlaceholder": "Ej. Marketing",
-    "submit": "Empezar"
+    "submit": "Empezar",
+    "eyebrow": "Último paso",
+    "colorLabel": "Color del espacio",
+    "preview": {
+      "title": "Así arranca tu cuenta",
+      "subtitle": "Tu primer espacio llega listo: con tareas para empezar y un doc de bienvenida. Lo demás lo sumas cuando quieras.",
+      "accountFallback": "Tu cuenta",
+      "workspaceFallback": "Tu primer espacio",
+      "oneWorkspace": "1 espacio",
+      "workspaces": "Espacios",
+      "more": "Los que sumes",
+      "tabSummary": "Resumen",
+      "tabTasks": "Tareas",
+      "tabDocs": "Docs",
+      "tabMeetings": "Reuniones",
+      "ready": "Listo para empezar"
+    }
   },
   "seed": {
     "welcomeTitle": "Bienvenida a Veltro",
@@ -186,7 +202,9 @@
     "tour": "Ver el recorrido",
     "decisions": "Decisiones",
     "requests": "Solicitudes",
-    "veltroHelp": "Ayuda de Veltro"
+    "veltroHelp": "Ayuda de Veltro",
+    "fullscreen": "Pantalla completa",
+    "exitFullscreen": "Salir de pantalla completa"
   },
   "command": {
     "title": "Buscar y ejecutar",
@@ -503,7 +521,9 @@
       "waiting": "{count, plural, one {Espera #} other {Espera #}}",
       "waitingHint": "{count, plural, one {Bloqueada por # tarea sin terminar} other {Bloqueada por # tareas sin terminar}}"
     },
-    "saveAsTemplate": "Guardar como plantilla"
+    "saveAsTemplate": "Guardar como plantilla",
+    "fullscreen": "Ampliar vista",
+    "exitFullscreen": "Volver a la vista normal"
   },
   "docs": {
     "untitled": "Sin título",
@@ -718,7 +738,14 @@
     "moreTasks": "+{count} más",
     "lessTasks": "Ver menos",
     "loadError": "No pudimos traer tu calendario de Google.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "empty": {
+      "title": "Sin reuniones por delante",
+      "hint": "Crea una en Veltro: llegan con agenda y salen con acuerdos y tareas.",
+      "new": "Nueva reunión",
+      "calendar": "Ver calendario",
+      "due": "{count, plural, one {# tarea vence} other {# tareas vencen}} esta semana"
+    }
   },
   "workspace": {
     "summary": "Resumen",
@@ -735,10 +762,10 @@
       "noFocus": "Nada bloqueado ni vencido.",
       "recentMeetings": "Reuniones recientes",
       "allMeetings": "Ver reuniones",
-      "noMeetings": "Toma notas de una reunión para verla aquí.",
+      "noMeetings": "Las reuniones de este espacio aparecen aquí, con sus notas y lo que quedó sin cerrar.",
       "recentDocs": "Docs recientes",
       "allDocs": "Ver docs",
-      "noDocs": "Aún no hay docs.",
+      "noDocs": "Las notas de reunión y los docs del espacio quedan aquí.",
       "people": "{count, plural, one {# persona} other {# personas}}",
       "untitled": "Sin título",
       "nextMeeting": "Próxima reunión",
@@ -747,15 +774,13 @@
       "enter": "Entrar",
       "prepare": "Preparar",
       "join": "Unirse",
-      "noNext": "No hay reuniones próximas enlazadas a este espacio. Enlaza un evento del calendario para prepararlo con Veltro.",
-      "openCalendar": "Ver calendario",
       "doneOf": "{done} de {total} hechas",
       "blocked": "{count, plural, one {# bloqueada} other {# bloqueadas}}",
       "overdue": "{count, plural, one {# vencida} other {# vencidas}}",
       "hoursLeft": "{hours} h por hacer",
       "agreements": "Acuerdos vivos",
       "agreementsHint": "Decisiones con tareas abiertas",
-      "noAgreements": "Sin acuerdos pendientes.",
+      "noAgreements": "Cuando una reunión cierre con decisiones, quedan aquí con sus tareas hasta terminarlas.",
       "meetings": "Reuniones",
       "upcoming": "Próximas",
       "recent": "Recientes",
@@ -763,7 +788,8 @@
       "files": "Archivos recientes",
       "allFiles": "Ver archivos",
       "noFiles": "Aún no hay archivos. Súbelos desde una tarea, una reunión o la biblioteca.",
-      "allDecisions": "Todas las decisiones"
+      "allDecisions": "Todas las decisiones",
+      "focusClear": "Todo en orden"
     },
     "sections": "Secciones del espacio"
   },
@@ -1191,7 +1217,12 @@
       "headLabel": "Jefe: {name}",
       "areaTasks": "Ver tareas del área",
       "reportsToName": "Reporta a {name}",
-      "noMatches": "Nadie coincide con «{q}»."
+      "noMatches": "Nadie coincide con «{q}».",
+      "createdName": "Departamento {name} creado",
+      "suggestions": "Ventas,Tecnología,Operaciones,Finanzas,Recursos Humanos,Marketing,Compras",
+      "suggestionsTitle": "Empieza por las áreas de tu empresa",
+      "suggestionsMore": "Otras áreas comunes",
+      "departmentOf": "Departamento de {name}"
     },
     "common": {
       "unsaved": "Tienes cambios sin guardar",
@@ -1240,6 +1271,15 @@
         "pink": "Rosa",
         "red": "Rojo",
         "amber": "Ámbar"
+      },
+      "membersCount": "{count, plural, one {# persona} other {# personas}}",
+      "more": "+{count} más",
+      "emptyTeam": "Suma a quienes trabajan juntos y verás aquí cómo van sus tareas.",
+      "addPeople": "Agregar personas",
+      "stats": {
+        "open": "Abiertas",
+        "overdue": "Vencidas",
+        "progress": "En curso"
       }
     },
     "templates": {
@@ -1470,14 +1510,6 @@
       "pageTitle": "Soporte",
       "pageBody": "Cuando alguien reporta un problema, el ticket le llega a quien se elija aquí según su rol. Lo ve toda la cuenta; solo el dueño lo cambia.",
       "yours": "Como {role}, tus tickets llegan a: {to}."
-    },
-    "pulse": {
-      "replied": "Te respondieron {when}",
-      "incoming": "{name} reportó un problema · {code}",
-      "wrote": "{name} escribió {when}",
-      "request": "Novedades en {code}",
-      "allClear": "Nada pendiente: tus tickets están al día.",
-      "more": "{count, plural, one {y # más} other {y # más}}"
     },
     "new": "Nuevo",
     "filterLabel": "Filtrar por estado",
@@ -1856,7 +1888,6 @@
         "inMinutes": "En {minutes} min",
         "atTime": "Hoy a las {time}",
         "join": "Unirse",
-        "free": "Sin reuniones por delante",
         "freeHint": "Buen momento para avanzar en tu lista."
       },
       "agenda": {
@@ -1899,7 +1930,9 @@
         "understood": "Veltro lo completa",
         "workspace": "Espacio",
         "titleDept": "Tareas del departamento {name}",
-        "progressAbove": "{count, plural, one {Otra en curso ya aparece arriba.} other {Otras # en curso ya aparecen arriba.}}"
+        "progressAbove": "{count, plural, one {Otra en curso ya aparece arriba.} other {Otras # en curso ya aparecen arriba.}}",
+        "clear": "Todo al día",
+        "ahead": "Para adelantar"
       },
       "loose": {
         "title": "Pendientes de reuniones",
@@ -1914,7 +1947,8 @@
         "unownedHint": "Asígnalas y se vuelven tareas al cerrar la reunión.",
         "assign": "Asignar",
         "assignTo": "Asignar a",
-        "empty": "Nada quedó suelto de tus reuniones."
+        "empty": "Nada quedó suelto de tus reuniones.",
+        "clear": "Todo con dueño"
       }
     },
     "pasillo": {
@@ -2034,7 +2068,8 @@
     "goVault": "Bóveda",
     "goPasillo": "Pasillo",
     "goDecisions": "Ir a Decisiones",
-    "goRequests": "Ir a Solicitudes"
+    "goRequests": "Ir a Solicitudes",
+    "fullscreen": "Pantalla completa (Esc para volver)"
   },
   "scope": {
     "me": "Mías",
@@ -2882,6 +2917,15 @@
       "cancel": "Cancelar",
       "submit": "Derivar",
       "done": "Derivada a {department}"
+    },
+    "pulse": {
+      "allClear": "Nada pendiente con otros departamentos.",
+      "incoming": "{name} lo pidió {when}",
+      "incomingFrom": "{name} ({department}) lo pidió {when}",
+      "updated": "novedades de {department} {when}",
+      "more": "{count} más",
+      "askTo": "Pedir a",
+      "new": "Nueva solicitud"
     }
   },
   "views": {

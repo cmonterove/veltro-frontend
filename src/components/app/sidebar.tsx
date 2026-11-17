@@ -75,7 +75,7 @@ import { SupportIcon } from '@/components/support/support-bits'
 // Lo activo es una pastilla en relieve: en el menú principal se desliza de un ítem al otro.
 // Cada ícono va en su baldosa (lila sobre el marco); en lo activo la baldosa se llena.
 export const navItemClass =
-  'group/nav relative flex h-9 w-full min-w-0 items-center gap-2.5 rounded-[11px] px-1 text-sm text-fg-muted outline-none transition-colors duration-150 hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/35 [&>svg]:relative [&>svg]:size-7 [&>svg]:shrink-0 [&>svg]:rounded-[9px] [&>svg]:p-[6px] [&>svg]:text-accent [&>svg]:transition-colors'
+  'group/nav relative flex h-9 w-full min-w-0 items-center gap-2.5 rounded-[11px] px-1 text-sm [@media(max-height:760px)]:h-8 [@media(max-height:760px)]:[&>svg]:size-6 [@media(max-height:760px)]:[&>svg]:p-[5px] text-fg-muted outline-none transition-colors duration-150 hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/35 [&>svg]:relative [&>svg]:size-7 [&>svg]:shrink-0 [&>svg]:rounded-[9px] [&>svg]:p-[6px] [&>svg]:text-accent [&>svg]:transition-colors'
 export const navActiveClass = 'bg-panel font-semibold text-fg shadow-card hover:bg-panel hover:text-fg [&>svg]:bg-accent [&>svg]:text-accent-fg'
 /** el fondo lo pone la pastilla que se desliza (NavPill) */
 const navCurrentClass = 'font-semibold text-fg hover:bg-transparent hover:text-fg [&>svg]:bg-accent [&>svg]:text-accent-fg'
@@ -239,73 +239,77 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
         </Tooltip>
       </div>
 
-      <div className="hidden px-2.5 pb-3 pt-1 md:block">
-        <AccountSwitcher card />
-      </div>
+      {/* el medio se desplaza entero si no cabe (pantallas bajas): nada se monta sobre el pie */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-none">
+        <div className="hidden px-2.5 pb-3 pt-1 md:block">
+          <AccountSwitcher card />
+        </div>
 
-      {/* en el celular el buscador va aquí; en escritorio está en la barra de arriba */}
-      <div className="px-2 pb-2.5 pt-0.5 md:hidden">
-        <button
-          type="button"
-          onClick={onSearch}
-          data-tour="search"
-          className="flex h-8 w-full items-center gap-2 rounded-md border border-line bg-panel/70 px-2 text-[13px] text-fg-subtle shadow-[0_1px_0_oklch(0.243_0.088_312.7/0.03)] outline-none transition-[background-color,border-color,color] duration-150 hover:border-line-strong hover:bg-panel hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent-mid/35"
-        >
-          <Search className="size-[15px] shrink-0" />
-          <span className="flex-1 text-left">{t('search')}</span>
-          <Kbd>⌘K</Kbd>
-        </button>
-      </div>
+        {/* en el celular el buscador va aquí; en escritorio está en la barra de arriba */}
+        <div className="px-2 pb-2.5 pt-0.5 md:hidden">
+          <button
+            type="button"
+            onClick={onSearch}
+            data-tour="search"
+            className="flex h-8 w-full items-center gap-2 rounded-md border border-line bg-panel/70 px-2 text-[13px] text-fg-subtle shadow-[0_1px_0_oklch(0.243_0.088_312.7/0.03)] outline-none transition-[background-color,border-color,color] duration-150 hover:border-line-strong hover:bg-panel hover:text-fg-muted focus-visible:ring-2 focus-visible:ring-accent-mid/35"
+          >
+            <Search className="size-[15px] shrink-0" />
+            <span className="flex-1 text-left">{t('search')}</span>
+            <Kbd>⌘K</Kbd>
+          </button>
+        </div>
 
-      <nav className="flex flex-col gap-0.5 px-2.5">
-        {top.map(({ href, label, icon: Icon, badge }) => {
-          const current = isActive(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              prefetch
-              onClick={navClick(href)}
-              data-tour={`nav-${href.slice(1)}`}
-              aria-current={current ? 'page' : undefined}
-              className={cn(navItemClass, current && navCurrentClass)}
-            >
-              {current ? <NavPill id={`nav-${pillId}`} /> : null}
-              <Icon />
-              <span className="relative truncate">{label}</span>
-              {badge ? (
-                <span className="relative ml-auto mr-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-count px-1.5 text-[11px] font-semibold tabular-nums text-count-fg">{badge > 99 ? '99+' : badge}</span>
-              ) : null}
-            </Link>
-          )
-        })}
-      </nav>
-
-      <div className="mt-5 flex min-h-0 flex-1 flex-col" data-tour="spaces">
-        <div className="group/section flex h-6 items-center justify-between pl-4 pr-3">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-subtle">{t('workspaces')}</span>
-          {isAdmin ? (
-            <Tooltip content={t('newWorkspace')}>
+        <nav className="flex flex-col gap-0.5 px-2.5">
+          {top.map(({ href, label, icon: Icon, badge }) => {
+            const current = isActive(href)
+            return (
               <Link
-                href="/settings/workspaces/new"
-                className="inline-flex size-5 items-center justify-center rounded-sm text-fg-subtle opacity-0 transition-opacity hover:bg-hover hover:text-fg group-hover/section:opacity-100 focus-visible:opacity-100"
-                aria-label={t('newWorkspace')}
+                key={href}
+                href={href}
+                prefetch
+                onClick={navClick(href)}
+                data-tour={`nav-${href.slice(1)}`}
+                aria-current={current ? 'page' : undefined}
+                className={cn(navItemClass, current && navCurrentClass)}
               >
-                <Plus className="size-3.5" />
+                {current ? <NavPill id={`nav-${pillId}`} /> : null}
+                <Icon />
+                <span className="relative truncate">{label}</span>
+                {badge ? (
+                  <span className="relative ml-auto mr-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-count px-1.5 text-[11px] font-semibold tabular-nums text-count-fg">{badge > 99 ? '99+' : badge}</span>
+                ) : null}
               </Link>
-            </Tooltip>
-          ) : null}
+            )
+          })}
+        </nav>
+
+        <div className="mt-5 flex flex-col" data-tour="spaces">
+          <div className="group/section flex h-6 items-center justify-between pl-4 pr-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-subtle">{t('workspaces')}</span>
+            {isAdmin ? (
+              <Tooltip content={t('newWorkspace')}>
+                <Link
+                  href="/settings/workspaces/new"
+                  className="inline-flex size-5 items-center justify-center rounded-sm text-fg-subtle opacity-0 transition-opacity hover:bg-hover hover:text-fg group-hover/section:opacity-100 focus-visible:opacity-100"
+                  aria-label={t('newWorkspace')}
+                >
+                  <Plus className="size-3.5" />
+                </Link>
+              </Tooltip>
+            ) : null}
+          </div>
+          <div className="px-2.5 pb-3 pt-1">
+            {workspaces.length === 0 ? (
+              <p className="px-2.5 py-1 text-xs text-fg-subtle">{t('noWorkspaces')}</p>
+            ) : (
+              workspaces.map((ws) => <WorkspaceNav key={ws.id} ws={ws} pathname={pathname} />)
+            )}
+          </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3 pt-1 scrollbar-thin">
-          {workspaces.length === 0 ? (
-            <p className="px-2.5 py-1 text-xs text-fg-subtle">{t('noWorkspaces')}</p>
-          ) : (
-            workspaces.map((ws) => <WorkspaceNav key={ws.id} ws={ws} pathname={pathname} />)
-          )}
-        </div>
+
       </div>
 
-      <div className="flex flex-col gap-0.5 px-2.5 pb-2.5 pt-1.5">
+      <div className="flex shrink-0 flex-col gap-0.5 border-t border-line/60 px-2.5 pb-2.5 pt-1.5">
         {DEMO ? <DemoBadge /> : null}
         {isAdmin ? (
           <Link href="/settings/members" className={cn(navItemClass, pathname === '/settings/members' && navActiveClass)}>

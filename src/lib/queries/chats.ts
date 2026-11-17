@@ -51,7 +51,7 @@ export function useChats({ fast = false }: { fast?: boolean } = {}) {
   const live = useRealtimeLive()
   return useQuery({
     queryKey: chatKeys.list(account.id),
-    refetchInterval: fast ? (live ? 120_000 : 5000) : false,
+    refetchInterval: fast ? (live ? 120_000 : 8000) : false,
     staleTime: fast ? 0 : 15_000,
     queryFn: async () => {
       const { items } = await api<{ items: ApiChat[] }>(`/v1/accounts/${account.id}/chats`)
@@ -123,7 +123,7 @@ export function useChatMessages(chatId: string | null) {
     queryKey: key,
     enabled: Boolean(chatId),
     // en vivo, cada evento trae lo nuevo; esto queda de red de seguridad
-    refetchInterval: live ? 60_000 : 3000,
+    refetchInterval: live ? 60_000 : 5000,
     queryFn: async () => {
       const id = chatId!
       const path = `/v1/chats/${id}/messages`
@@ -412,7 +412,7 @@ export function useThreadMessages(chatId: string, rootId: string | null) {
   return useQuery({
     queryKey: chatKeys.thread(chatId, rootId ?? 'none'),
     enabled: Boolean(rootId),
-    refetchInterval: live ? 60_000 : 4000,
+    refetchInterval: live ? 60_000 : 6000,
     queryFn: async () => {
       const page = await api<Page<ApiChatMessage>>(`/v1/chats/${chatId}/messages`, { query: { thread: rootId!, order: 'asc', limit: 200 } })
       return page.items.map(toChatMessage)

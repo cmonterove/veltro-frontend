@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { requireWorkspace } from '@/lib/workspace'
-import { WorkspaceMeetings } from '@/components/workspace/workspace-meetings'
+import { WorkspaceView } from '@/components/workspace/workspace-gate'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -12,6 +12,5 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function MeetingsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const { ws } = await requireWorkspace(slug)
-  return <WorkspaceMeetings workspaceId={ws.id} />
+  return <WorkspaceView slug={slug} view="meetings" />
 }

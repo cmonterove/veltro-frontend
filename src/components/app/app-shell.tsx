@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu as MenuIcon } from 'lucide-react'
+import { Menu as MenuIcon, Minimize2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Sidebar } from './sidebar'
 import { CommandPalette } from './command-palette'
@@ -37,6 +37,12 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   const [quickTaskOpen, setQuickTaskOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(sidebarCollapsed)
+  // pantalla completa: la hoja ocupa toda la ventana (sin menú ni barra de arriba); se sigue navegando con ⌘K
+  const [full, setFull] = useState(false)
+  const toggleFull = useCallback(() => {
+    setFull((f) => !f)
+    track('feature.fullscreen')
+  }, [])
   const toggleSidebar = useCallback(() => {
     setCollapsed((c) => {
       document.cookie = `${SIDEBAR_COOKIE}=${c ? '0' : '1'}; path=/; max-age=31536000; samesite=lax`
@@ -53,6 +59,16 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   useSuspensionWatcher()
 
   useEffect(() => setMobileOpen(false), [pathname])
+  useEffect(() => {
+    if (!full) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-view-fullscreen]')) return
+      setFull(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [full])
   // Esc cierra el menú del celular
   useEffect(() => {
     if (!mobileOpen) return
@@ -144,6 +160,11 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
         setShortcutsOpen(true)
         return
       }
+      if (key === 'f' && !e.shiftKey) {
+        e.preventDefault()
+        toggleFull()
+        return
+      }
       if (key === 'c' && !e.shiftKey) {
         e.preventDefault()
         setQuickTaskOpen(true)
@@ -151,7 +172,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [router, workspaces, toggleSidebar])
+  }, [router, workspaces, toggleSidebar, toggleFull])
 
   return (
     <ConfirmProvider>
@@ -166,7 +187,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
           </svg>
         </div>
         {/* sidebar desktop */}
-        <div className={cn('on-frame hidden shrink-0 md:block', collapsed ? 'w-[56px]' : 'w-[236px]')}>
+        <div className={cn('on-frame hidden shrink-0', !full && 'md:block', collapsed ? 'w-[56px]' : 'w-[236px]')}>
           <Sidebar
             onSearch={() => setPaletteOpen(true)}
             onNewTask={() => setQuickTaskOpen(true)}
@@ -196,8 +217,15 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar onSearch={() => setPaletteOpen(true)} />
-        <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col md:mb-2 md:mr-2', !bare && 'md:overflow-hidden md:rounded-[18px] md:bg-canvas md:shadow-sheet')}>
+        {full ? <FullscreenExit onExit={toggleFull} /> : <TopBar onSearch={() => setPaletteOpen(true)} onFullscreen={toggleFull} />}
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-1 flex-col',
+            !full && 'md:mb-2 md:mr-2',
+            !bare && 'md:overflow-hidden md:bg-canvas',
+            !bare && !full && 'md:rounded-[18px] md:shadow-sheet',
+          )}
+        >
           <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-3 md:hidden">
             <button
               type="button"
@@ -246,5 +274,39 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
       </div>
       </TourProvider>
     </ConfirmProvider>
+  )
+}
+
+/**
+ * Para salir de la pantalla completa: un botón que se asoma arriba al entrar y cuando el mouse
+ * toca el borde superior (como la pantalla completa del navegador). Esc también sale.
+ */
+function FullscreenExit({ onExit }: { onExit: () => void }) {
+  const t = useTranslations('nav')
+  const [shown, setShown] = useState(true)
+  useEffect(() => {
+    const id = window.setTimeout(() => setShown(false), 2500)
+    return () => window.clearTimeout(id)
+  }, [])
+  return (
+    <div
+      className={cn('fixed inset-x-0 top-0 z-30 hidden justify-center md:flex', shown ? 'h-14' : 'h-2')}
+      onMouseEnter={() => setShown(true)}
+      onMouseLeave={() => setShown(false)}
+    >
+      <button
+        type="button"
+        onClick={onExit}
+        onFocus={() => setShown(true)}
+        className={cn(
+          'mt-2 inline-flex h-8 items-center gap-2 rounded-full bg-fg pl-3 pr-1.5 text-xs font-medium text-canvas shadow-lift transition-[transform,opacity] duration-200 ease-[var(--ease-out-quart)]',
+          shown ? 'translate-y-0 opacity-100' : '-translate-y-12 opacity-0',
+        )}
+      >
+        <Minimize2 className="size-3.5" />
+        {t('exitFullscreen')}
+        <kbd className="rounded-full bg-canvas/15 px-1.5 py-0.5 font-sans text-2xs">Esc</kbd>
+      </button>
+    </div>
   )
 }

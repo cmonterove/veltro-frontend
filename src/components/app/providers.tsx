@@ -33,13 +33,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
           {children}
         </Tooltip.Provider>
         <ValidationBubble />
+        {/* arriba, al centro de la hoja (debajo de la barra de «Pregúntale a Veltro»): se ve sin buscarlo */}
         <Toaster
-          position="bottom-right"
+          position="top-center"
+          offset={{ top: 76 }}
+          mobileOffset={{ top: 12 }}
           gap={10}
           visibleToasts={4}
           icons={{
             success: (
-              <ToastIcon tone="bg-done-soft text-done">
+              // verde: salió bien (el frambuesa queda para «hecho» en las tareas)
+              <ToastIcon tone="bg-success-soft text-success">
                 <Check className="size-3.5" strokeWidth={3} />
               </ToastIcon>
             ),

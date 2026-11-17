@@ -17,6 +17,7 @@ import { GROUP_BYS, useTaskGroupsBy, type GroupBy } from '@/components/tasks/my-
 import { GroupByMenu, TaskFilterBar } from '@/components/tasks/task-filters'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { TaskCalendar } from '@/components/tasks/task-calendar'
+import { FULLSCREEN_CLASS, FullscreenButton, useFullscreen } from '@/components/tasks/fullscreen'
 import { TaskGrid } from '@/components/tasks/task-grid'
 import { TasksDashboard } from '@/components/tasks/tasks-dashboard'
 import { ScopeChips } from '@/components/app/scope-menu'
@@ -69,6 +70,7 @@ export function MyTasksView() {
   const setCollapsed = (next: CollapsedGroups) => setCollapsedBy((prev) => ({ ...prev, [groupBy]: next }))
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
+  const { full, toggle: toggleFull } = useFullscreen()
 
   useEffect(() => {
     if (tabParam && TABS.includes(tabParam) && tabParam !== lastTab) setLastTab(tabParam)
@@ -197,87 +199,91 @@ export function MyTasksView() {
         </nav>
       </div>
 
-      {/* búsqueda y filtros: comunes a Lista, Tabla, Tablero y Calendario */}
-      {tab !== 'summary' && searched && scoped ? (
-        <TaskFilterBar
-          tasks={searched}
-          universe={scoped}
-          filters={filters}
-          onChange={(update) => {
-            updateFilters(update)
-            track('feature.tasks_filter')
-          }}
-          query={query}
-          onQuery={setQuery}
-          showPeople={multi}
-        >
-          {tab === 'list' ? <CollapseAllButton groups={grouped} collapsed={collapsed} onChange={setCollapsed} /> : null}
-          {tab === 'list' ? (
-            <GroupByMenu
-              value={groupBy}
-              options={groupOptions}
-              onChange={(g) => {
-                setGroupPref(g)
-                track(`feature.tasks_group_${g}`)
-              }}
-            />
-          ) : null}
-          {/* sin filtros el total ya está en el subtítulo */}
-          {filtering ? <span className="whitespace-nowrap pl-1 text-xs tabular-nums text-fg-subtle">{tf('shownOf', { shown: counted.shown, count: counted.total })}</span> : null}
-        </TaskFilterBar>
-      ) : null}
+      {/* filtros y vista: a pantalla completa con el botón (o Esc para volver) */}
+      <div className={cn('flex min-h-0 flex-1 flex-col', full && tab !== 'summary' && FULLSCREEN_CLASS)} data-view-fullscreen={full && tab !== 'summary' ? '' : undefined}>
+        {/* búsqueda y filtros: comunes a Lista, Tabla, Tablero y Calendario */}
+        {tab !== 'summary' && searched && scoped ? (
+          <TaskFilterBar
+            tasks={searched}
+            universe={scoped}
+            filters={filters}
+            onChange={(update) => {
+              updateFilters(update)
+              track('feature.tasks_filter')
+            }}
+            query={query}
+            onQuery={setQuery}
+            showPeople={multi}
+          >
+            {tab === 'list' ? <CollapseAllButton groups={grouped} collapsed={collapsed} onChange={setCollapsed} /> : null}
+            {tab === 'list' ? (
+              <GroupByMenu
+                value={groupBy}
+                options={groupOptions}
+                onChange={(g) => {
+                  setGroupPref(g)
+                  track(`feature.tasks_group_${g}`)
+                }}
+              />
+            ) : null}
+            {/* sin filtros el total ya está en el subtítulo */}
+            {filtering ? <span className="whitespace-nowrap pl-1 text-xs tabular-nums text-fg-subtle">{tf('shownOf', { shown: counted.shown, count: counted.total })}</span> : null}
+            <FullscreenButton full={full} onToggle={toggleFull} />
+          </TaskFilterBar>
+        ) : null}
 
-      <div className={cn('min-h-0 flex-1', tab === 'summary' || tab === 'list' ? 'overflow-y-auto scrollbar-thin' : '')}>
-        {tasksQuery.isError ? (
-          <div className="px-6">
-            <ErrorState onRetry={() => tasksQuery.refetch()} />
-          </div>
-        ) : isLoading || !shown || !scoped ? (
-          <div className="flex flex-col gap-2 p-6">
-            <Skeleton className="h-9" />
-            <Skeleton className="h-9" />
-            <Skeleton className="h-9" />
-          </div>
-        ) : tab === 'summary' ? (
-          <TasksDashboard
-            tasks={scoped}
-            stats={stats.data}
-            scope={scope}
-            onFilter={(c) => setFilters({ ...NO_FILTERS, ...counterFilters(c) }, 'list')}
-            onTab={(next) => setFilters(NO_FILTERS, next)}
-          />
-        ) : counted.shown === 0 ? (
-          <div className="px-6">
-            <EmptyState
-              icon={<CircleCheck />}
-              title={filtering ? t('emptyFiltered') : t('empty.title')}
-              description={filtering ? t('emptyFilteredHint') : t('empty.description')}
-              action={
-                filtering ? (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setQuery('')
-                      setFilters(NO_FILTERS)
-                    }}
-                  >
-                    {tf('clearFilters')}
-                  </Button>
-                ) : null
-              }
+        <div className={cn('min-h-0 flex-1', tab === 'summary' || tab === 'list' ? 'overflow-y-auto scrollbar-thin' : '')}>
+          {tasksQuery.isError ? (
+            <div className="px-6">
+              <ErrorState onRetry={() => tasksQuery.refetch()} />
+            </div>
+          ) : isLoading || !shown || !scoped ? (
+            <div className="flex flex-col gap-2 p-6">
+              <Skeleton className="h-9" />
+              <Skeleton className="h-9" />
+              <Skeleton className="h-9" />
+            </div>
+          ) : tab === 'summary' ? (
+            <TasksDashboard
+              tasks={scoped}
+              stats={stats.data}
+              scope={scope}
+              onFilter={(c) => setFilters({ ...NO_FILTERS, ...counterFilters(c) }, 'list')}
+              onTab={(next) => setFilters(NO_FILTERS, next)}
             />
-          </div>
-        ) : tab === 'list' ? (
-          <ShowIdleContext.Provider value={scope.kind !== 'me'}>
-            <TaskGroupList groups={grouped} showWorkspace={groupBy !== 'space'} hideEmpty collapsed={collapsed} onCollapsedChange={setCollapsed} />
-          </ShowIdleContext.Provider>
-        ) : tab === 'table' ? (
-          <TaskGrid tasks={shown} />
-        ) : tab === 'board' ? (
-          <TaskBoard tasks={shown} />
-        ) : (
-          <TaskCalendar tasks={shown} editable={false} />
-        )}
+          ) : counted.shown === 0 ? (
+            <div className="px-6">
+              <EmptyState
+                icon={<CircleCheck />}
+                title={filtering ? t('emptyFiltered') : t('empty.title')}
+                description={filtering ? t('emptyFilteredHint') : t('empty.description')}
+                action={
+                  filtering ? (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setQuery('')
+                        setFilters(NO_FILTERS)
+                      }}
+                    >
+                      {tf('clearFilters')}
+                    </Button>
+                  ) : null
+                }
+              />
+            </div>
+          ) : tab === 'list' ? (
+            <ShowIdleContext.Provider value={scope.kind !== 'me'}>
+              <TaskGroupList groups={grouped} showWorkspace={groupBy !== 'space'} hideEmpty collapsed={collapsed} onCollapsedChange={setCollapsed} />
+            </ShowIdleContext.Provider>
+          ) : tab === 'table' ? (
+            <TaskGrid tasks={shown} />
+          ) : tab === 'board' ? (
+            <TaskBoard tasks={shown} />
+          ) : (
+            <TaskCalendar tasks={shown} editable={false} />
+          )}
+        </div>
       </div>
 
       <QuickTaskDialog open={creating} onOpenChange={setCreating} defaults={{

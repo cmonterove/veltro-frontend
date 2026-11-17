@@ -100,7 +100,23 @@
     "workspaceLabel": "Your first workspace",
     "workspaceHint": "A project, client or company. Each workspace has its own tasks, docs and meetings.",
     "workspacePlaceholder": "e.g. Marketing",
-    "submit": "Get started"
+    "submit": "Get started",
+    "eyebrow": "Last step",
+    "colorLabel": "Workspace color",
+    "preview": {
+      "title": "How your account starts",
+      "subtitle": "Your first workspace comes ready: tasks to get going and a welcome doc. Add the rest whenever you want.",
+      "accountFallback": "Your account",
+      "workspaceFallback": "Your first workspace",
+      "oneWorkspace": "1 workspace",
+      "workspaces": "Workspaces",
+      "more": "The ones you add",
+      "tabSummary": "Summary",
+      "tabTasks": "Tasks",
+      "tabDocs": "Docs",
+      "tabMeetings": "Meetings",
+      "ready": "Ready to go"
+    }
   },
   "seed": {
     "welcomeTitle": "Welcome to Veltro",
@@ -186,7 +202,9 @@
     "tour": "Take the tour",
     "decisions": "Decisions",
     "requests": "Requests",
-    "veltroHelp": "Veltro help"
+    "veltroHelp": "Veltro help",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen"
   },
   "command": {
     "title": "Search and run",
@@ -503,7 +521,9 @@
       "waiting": "{count, plural, one {Waits on #} other {Waits on #}}",
       "waitingHint": "{count, plural, one {Blocked by # unfinished task} other {Blocked by # unfinished tasks}}"
     },
-    "saveAsTemplate": "Save as template"
+    "saveAsTemplate": "Save as template",
+    "fullscreen": "Expand view",
+    "exitFullscreen": "Back to normal view"
   },
   "docs": {
     "untitled": "Untitled",
@@ -718,7 +738,14 @@
     "moreTasks": "+{count} more",
     "lessTasks": "Show less",
     "loadError": "We couldn't fetch your Google calendar.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "empty": {
+      "title": "No meetings ahead",
+      "hint": "Create one in Veltro: people arrive with an agenda and leave with agreements and tasks.",
+      "new": "New meeting",
+      "calendar": "Open calendar",
+      "due": "{count, plural, one {# task due} other {# tasks due}} this week"
+    }
   },
   "workspace": {
     "summary": "Overview",
@@ -735,10 +762,10 @@
       "noFocus": "Nothing blocked or overdue.",
       "recentMeetings": "Recent meetings",
       "allMeetings": "View meetings",
-      "noMeetings": "Take notes for a meeting to see it here.",
+      "noMeetings": "This space's meetings show up here, with their notes and anything left open.",
       "recentDocs": "Recent docs",
       "allDocs": "View docs",
-      "noDocs": "No docs yet.",
+      "noDocs": "Meeting notes and this space's docs live here.",
       "people": "{count, plural, one {# person} other {# people}}",
       "untitled": "Untitled",
       "nextMeeting": "Next meeting",
@@ -747,15 +774,13 @@
       "enter": "Enter",
       "prepare": "Prepare",
       "join": "Join",
-      "noNext": "No upcoming meetings linked to this space. Link a calendar event to prepare it with Veltro.",
-      "openCalendar": "Open calendar",
       "doneOf": "{done} of {total} done",
       "blocked": "{count} blocked",
       "overdue": "{count} overdue",
       "hoursLeft": "{hours} h to go",
       "agreements": "Live agreements",
       "agreementsHint": "Decisions with open tasks",
-      "noAgreements": "No pending agreements.",
+      "noAgreements": "When a meeting closes with decisions, they stay here with their tasks until they're done.",
       "meetings": "Meetings",
       "upcoming": "Upcoming",
       "recent": "Recent",
@@ -763,7 +788,8 @@
       "files": "Recent files",
       "allFiles": "All files",
       "noFiles": "No files yet. Upload them from a task, a meeting or the library.",
-      "allDecisions": "All decisions"
+      "allDecisions": "All decisions",
+      "focusClear": "All clear"
     },
     "sections": "Space sections"
   },
@@ -1191,7 +1217,12 @@
       "headLabel": "Head: {name}",
       "areaTasks": "See department tasks",
       "reportsToName": "Reports to {name}",
-      "noMatches": "No one matches “{q}”."
+      "noMatches": "No one matches “{q}”.",
+      "createdName": "{name} department created",
+      "suggestions": "Sales,Technology,Operations,Finance,Human Resources,Marketing,Purchasing",
+      "suggestionsTitle": "Start with your company's areas",
+      "suggestionsMore": "Other common areas",
+      "departmentOf": "{name}'s department"
     },
     "common": {
       "unsaved": "You have unsaved changes",
@@ -1240,6 +1271,15 @@
         "pink": "Pink",
         "red": "Red",
         "amber": "Amber"
+      },
+      "membersCount": "{count, plural, one {# person} other {# people}}",
+      "more": "+{count} more",
+      "emptyTeam": "Add the people who work together and you'll see how their tasks are going here.",
+      "addPeople": "Add people",
+      "stats": {
+        "open": "Open",
+        "overdue": "Overdue",
+        "progress": "In progress"
       }
     },
     "templates": {
@@ -1470,14 +1510,6 @@
       "pageTitle": "Support",
       "pageBody": "When someone reports a problem, the ticket goes to whoever is chosen here for their role. The whole account can see it; only the owner can change it.",
       "yours": "As {role}, your tickets go to: {to}."
-    },
-    "pulse": {
-      "replied": "You got a reply {when}",
-      "incoming": "{name} reported a problem · {code}",
-      "wrote": "{name} wrote {when}",
-      "request": "News on {code}",
-      "allClear": "Nothing pending: your tickets are up to date.",
-      "more": "{count, plural, one {and # more} other {and # more}}"
     },
     "new": "New",
     "filterLabel": "Filter by status",
@@ -1856,7 +1888,6 @@
         "inMinutes": "In {minutes} min",
         "atTime": "Today at {time}",
         "join": "Join",
-        "free": "No meetings ahead",
         "freeHint": "A good moment to move your list forward."
       },
       "agenda": {
@@ -1899,7 +1930,9 @@
         "understood": "Veltro fills it in",
         "workspace": "Space",
         "titleDept": "{name} department tasks",
-        "progressAbove": "{count, plural, one {Another one in progress is already listed above.} other {# more in progress are already listed above.}}"
+        "progressAbove": "{count, plural, one {Another one in progress is already listed above.} other {# more in progress are already listed above.}}",
+        "clear": "All caught up",
+        "ahead": "Get ahead"
       },
       "loose": {
         "title": "Meeting follow-ups",
@@ -1914,7 +1947,8 @@
         "unownedHint": "Assign them and they become tasks when the meeting is closed.",
         "assign": "Assign",
         "assignTo": "Assign to",
-        "empty": "Nothing left loose from your meetings."
+        "empty": "Nothing left loose from your meetings.",
+        "clear": "Everything has an owner"
       }
     },
     "pasillo": {
@@ -2034,7 +2068,8 @@
     "goVault": "Vault",
     "goPasillo": "Hallway",
     "goDecisions": "Go to Decisions",
-    "goRequests": "Go to Requests"
+    "goRequests": "Go to Requests",
+    "fullscreen": "Full screen (Esc to go back)"
   },
   "scope": {
     "me": "Mine",
@@ -2882,6 +2917,15 @@
       "cancel": "Cancel",
       "submit": "Forward",
       "done": "Forwarded to {department}"
+    },
+    "pulse": {
+      "allClear": "Nothing pending with other departments.",
+      "incoming": "{name} asked {when}",
+      "incomingFrom": "{name} ({department}) asked {when}",
+      "updated": "update from {department} {when}",
+      "more": "{count} more",
+      "askTo": "Ask",
+      "new": "New request"
     }
   },
   "views": {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Search, Sparkles } from 'lucide-react'
+import { Maximize2, Search, Sparkles } from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip } from '@/components/ui/tooltip'
 import { NotificationBell } from '@/components/notifications/notification-bell'
@@ -17,7 +17,7 @@ export const ASK_INPUT_ID = 'veltro-ask'
  * La barra de arriba vive sobre el marco: «Pregúntale a Veltro» al centro, siempre a mano (⌘J),
  * y a la derecha el buscador (⌘K) y los avisos. Solo en escritorio; en el celular cada pantalla trae lo suyo.
  */
-export function TopBar({ onSearch }: { onSearch: () => void }) {
+export function TopBar({ onSearch, onFullscreen }: { onSearch: () => void; onFullscreen: () => void }) {
   const t = useTranslations('pulse.ask')
   const tn = useTranslations('nav')
   const router = useRouter()
@@ -82,6 +82,17 @@ export function TopBar({ onSearch }: { onSearch: () => void }) {
           </button>
         </Tooltip>
         <NotificationBell variant="frame" />
+        {/* la pantalla actual a toda la ventana, sin el menú ni esta barra (F; Esc para volver) */}
+        <Tooltip content={tn('fullscreen')} shortcut={['F']}>
+          <button
+            type="button"
+            onClick={onFullscreen}
+            aria-label={tn('fullscreen')}
+            className="inline-flex size-9 items-center justify-center rounded-[10px] text-fg-muted outline-none transition-colors hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+          >
+            <Maximize2 className="size-[17px]" />
+          </button>
+        </Tooltip>
       </div>
     </div>
   )

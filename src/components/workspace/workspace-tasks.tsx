@@ -11,26 +11,34 @@ import { useLocalStorage } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { track } from '@/lib/telemetry'
 import type { TaskRow } from '@/lib/database.types'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CollapseAllButton, TaskGroupList, useStatusGroups, type CollapsedGroups } from '@/components/tasks/task-list'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { TaskCalendar } from '@/components/tasks/task-calendar'
+import { FULLSCREEN_CLASS, FullscreenButton, useFullscreen } from '@/components/tasks/fullscreen'
 import { TaskTable } from '@/components/tasks/task-table'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { isAssignedTo } from '@/lib/assignees'
 
 type View = 'list' | 'table' | 'board' | 'calendar'
 
-export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: string; initialTasks: TaskRow[] }) {
+const NO_TASKS: TaskRow[] = []
+
+export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: string; initialTasks?: TaskRow[] }) {
   const t = useTranslations('tasks')
   const { user } = useApp()
   const ws = useWorkspaceMap().get(workspaceId)
   const editable = canEdit(ws)
-  const { data: tasks = initialTasks } = useTasks({ kind: 'workspace', workspaceId }, initialTasks)
+  // sin datos del servidor: la página se ve al instante y las tareas llegan (o salen de la caché)
+  const { data } = useTasks({ kind: 'workspace', workspaceId }, initialTasks)
+  const tasks = data ?? NO_TASKS
+  const loading = !data
   const [view, setView] = useLocalStorage<View>(`veltro:tasks-view:${workspaceId}`, 'list')
   const [collapsed, setCollapsed] = useLocalStorage<CollapsedGroups>(`veltro:tasks-collapsed:${workspaceId}`, {})
   const [mine, setMine] = useState(false)
   const [query, setQuery] = useState('')
   const [quickOpen, setQuickOpen] = useState(false)
+  const { full, toggle: toggleFull } = useFullscreen()
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -55,7 +63,7 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
   ]
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className={cn('flex min-h-0 flex-1 flex-col', full && FULLSCREEN_CLASS)} data-view-fullscreen={full ? '' : undefined}>
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-4 py-2 sm:px-6">
         <div className="flex items-center rounded-md bg-hover p-0.5">
           {views.map(({ id, label, icon: Icon }) => (
@@ -116,10 +124,17 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
             {t('newTask')}
           </Button>
         ) : null}
+        <FullscreenButton full={full} onToggle={toggleFull} />
       </div>
 
       <div className="min-h-0 flex-1">
-        {tasks.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col gap-2 p-6">
+            <Skeleton className="h-9" />
+            <Skeleton className="h-9" />
+            <Skeleton className="h-9" />
+          </div>
+        ) : tasks.length === 0 ? (
           <div className="px-6">
             <EmptyState
               icon={<ListTodo />}
@@ -140,6 +155,7 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
           <div className="px-6">
             <EmptyState
               icon={<Search />}
+              tone="quiet"
               title={t('noMatches')}
               description={t('noMatchesHint')}
               action={

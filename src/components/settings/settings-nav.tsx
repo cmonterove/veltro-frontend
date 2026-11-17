@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Building2, ChevronDown, Network, Plus, SlidersHorizontal, User, Users, UsersRound, LayoutTemplate } from 'lucide-react'
-import { useApp } from '@/components/app/app-context'
+import { useApp, useIsAccountAdmin } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Menu, MenuContent, MenuGroup, MenuLabel, MenuLinkItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { cn } from '@/lib/utils'
@@ -59,7 +59,8 @@ function useSettingsGroups(admin: boolean): Group[] {
   return groups
 }
 
-export function SettingsNav({ admin }: { admin: boolean }) {
+export function SettingsNav() {
+  const admin = useIsAccountAdmin()
   const t = useTranslations('settings')
   const pathname = usePathname()
   const groups = useSettingsGroups(admin)
@@ -95,7 +96,8 @@ export function SettingsNav({ admin }: { admin: boolean }) {
 }
 
 /** En pantallas angostas el menú lateral se vuelve un selector arriba de la página. */
-export function SettingsNavMobile({ admin }: { admin: boolean }) {
+export function SettingsNavMobile() {
+  const admin = useIsAccountAdmin()
   const t = useTranslations('settings')
   const pathname = usePathname()
   const groups = useSettingsGroups(admin)
@@ -123,4 +125,14 @@ export function SettingsNavMobile({ admin }: { admin: boolean }) {
       </MenuContent>
     </Menu>
   )
+}
+
+/** Las páginas de formularios van angostas; el organigrama necesita ancho para el árbol y su panel. */
+const WIDE = ['/settings/org']
+
+export function SettingsContainer({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const wide = WIDE.some((p) => pathname === p)
+  // las anchas ocupan todo el alto: sus tarjetas llegan hasta abajo
+  return <div className={cn('mx-auto w-full px-4 pt-6 sm:px-10 sm:pt-10', wide ? 'flex min-h-full max-w-6xl flex-col pb-6 lg:h-full' : 'max-w-3xl pb-24')}>{children}</div>
 }

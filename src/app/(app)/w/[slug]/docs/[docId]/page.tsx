@@ -11,12 +11,15 @@ type Params = Promise<{ slug: string; docId: string }>
 
 // una sola llamada por petición (la usan generateMetadata y la página)
 const loadDoc = cache(async (slug: string, docId: string) => {
-  const { ws } = await requireWorkspace(slug)
   if (!/^[0-9a-f-]{36}$/i.test(docId)) notFound()
-  const doc = await api<ApiDoc>(`/v1/docs/${docId}`).catch((e) => {
-    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null
-    throw e
-  })
+  // el espacio y el doc a la vez (antes uno después del otro: dos esperas a la API seguidas)
+  const [{ ws }, doc] = await Promise.all([
+    requireWorkspace(slug),
+    api<ApiDoc>(`/v1/docs/${docId}`).catch((e) => {
+      if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null
+      throw e
+    }),
+  ])
   if (!doc || doc.workspaceId !== ws.id || doc.archivedAt) notFound()
   return { ws, doc: toDocRow(doc) }
 })

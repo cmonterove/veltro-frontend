@@ -5,11 +5,12 @@ import Link from 'next/link'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { differenceInMinutes, format, formatDistanceToNowStrict, isPast } from 'date-fns'
-import { ArrowRight, CalendarDays, Play, PenLine, Video } from 'lucide-react'
+import { ArrowRight, Image as ImageIcon, Paperclip, Play, PenLine, Video } from 'lucide-react'
 import { useWorkspaceMap } from '@/components/app/app-context'
 import { Avatar } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AllClear, GhostRows } from '@/components/ui/empty-state'
 import { useTasks } from '@/lib/queries/tasks'
 import { useWorkspaceDocs } from '@/lib/queries/docs'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
@@ -29,6 +30,7 @@ import { DocMark } from '@/components/app/marks'
 import { AttachmentIcon, formatBytes } from '@/components/attachments/attachments'
 import { useOpenTask } from '@/lib/use-open-task'
 import { previewOrOpen } from '@/components/vault/file-viewer'
+import { NoMeetingsAhead, dueThisWeek } from '@/components/calendar/no-meetings'
 
 /** Inicio del espacio: lo que viene, cómo va, qué se acordó y qué quedó guardado. */
 export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
@@ -52,7 +54,7 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
       {ws.description ? <p className="mb-6 max-w-2xl text-sm leading-relaxed text-fg-muted">{ws.description}</p> : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <NextUp ws={ws} meetings={meetings} now={now} />
+        <NextUp ws={ws} meetings={meetings} tasks={tasks} now={now} />
         <Health ws={ws} tasks={tasks} loading={isLoading} now={now} />
       </div>
 
@@ -67,7 +69,7 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
                 <TaskGroupList groups={[{ id: 'focus', label: t('focusGroup'), tasks: focus, defaults: null }]} className="pb-0" />
               </div>
             ) : (
-              <Empty>{t('noFocus')}</Empty>
+              <AllClear title={t('focusClear')} hint={t('noFocus')} className="rounded-xl border border-line-soft bg-panel/60 px-4 py-3.5" />
             )}
           </section>
           <Agreements ws={ws} items={items ?? []} meetings={meetings ?? []} tasks={tasks ?? []} />
@@ -105,7 +107,7 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 // ---------------- próxima reunión ----------------
 
-function NextUp({ ws, meetings, now }: { ws: WorkspaceWithRole; meetings: MeetingWithNotes[] | undefined; now: Date }) {
+function NextUp({ ws, meetings, tasks, now }: { ws: WorkspaceWithRole; meetings: MeetingWithNotes[] | undefined; tasks: TaskRow[] | undefined; now: Date }) {
   const t = useTranslations('workspace.overview')
   const locale = useDateLocale()
 
@@ -120,15 +122,11 @@ function NextUp({ ws, meetings, now }: { ws: WorkspaceWithRole; meetings: Meetin
 
   if (!next) {
     return (
-      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-dashed border-line-strong p-5">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-fg-subtle">{t('nextMeeting')}</p>
-          <p className="mt-2 max-w-sm text-sm text-fg-muted">{t('noNext')}</p>
-        </div>
-        <Link href={`/w/${ws.slug}/meetings`} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'self-start')}>
-          <CalendarDays />
-          {t('openCalendar')}
-        </Link>
+      <div
+        className={cn('ws-' + ws.color, 'relative overflow-hidden rounded-2xl border border-line p-5')}
+        style={{ background: 'color-mix(in oklch, var(--ws-color) 5%, var(--panel))' }}
+      >
+        <NoMeetingsAhead now={now} workspaceId={ws.id} due={dueThisWeek(tasks, now)} calendarHref={`/w/${ws.slug}/meetings`} eyebrow={t('nextMeeting')} />
       </div>
     )
   }
@@ -306,7 +304,7 @@ function Agreements({ ws, items, meetings, tasks }: { ws: WorkspaceWithRole; ite
           ))}
         </ul>
       ) : (
-        <Empty>{t('noAgreements')}</Empty>
+        <GhostRows icons={[0, 1].map((i) => <span key={i} className="size-2 rotate-45 bg-k-decision/70" />)}>{t('noAgreements')}</GhostRows>
       )}
     </section>
   )
@@ -348,7 +346,7 @@ function MeetingsList({ ws, meetings, now }: { ws: WorkspaceWithRole; meetings: 
       {!meetings ? (
         <Skeleton className="h-24" />
       ) : !meetings.length ? (
-        <Empty>{t('noMeetings')}</Empty>
+        <GhostRows icons={[0, 1].map((i) => <DocMark key={i} source="meeting" />)}>{t('noMeetings')}</GhostRows>
       ) : (
         <div className="flex flex-col gap-3">
           {upcoming.length ? (
@@ -393,7 +391,7 @@ function RecentDocs({ ws }: { ws: WorkspaceWithRole }) {
           ))}
         </ul>
       ) : (
-        <Empty>{t('noDocs')}</Empty>
+        <GhostRows icons={[0, 1].map((i) => <DocMark key={i} source="manual" />)}>{t('noDocs')}</GhostRows>
       )}
     </section>
   )
@@ -434,7 +432,7 @@ function RecentFiles({ ws, tasks, meetings }: { ws: WorkspaceWithRole; tasks: Ta
           })}
         </ul>
       ) : (
-        <Empty>{t('noFiles')}</Empty>
+        <GhostRows icons={[<Paperclip key="a" className="text-fg-subtle" />, <ImageIcon key="b" className="text-fg-subtle" />]}>{t('noFiles')}</GhostRows>
       )}
     </section>
   )

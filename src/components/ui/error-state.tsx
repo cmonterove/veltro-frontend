@@ -11,6 +11,7 @@ export function ErrorState({ onRetry, className }: { onRetry?: () => void; class
   return (
     <EmptyState
       icon={<CloudOff />}
+      tone="danger"
       title={t('loadTitle')}
       description={t('loadBody')}
       className={className}

@@ -10,12 +10,15 @@ import { MeetingRoom } from '@/components/meeting/meeting-room'
 
 // una sola llamada por petición (la usan generateMetadata y la página)
 const load = cache(async (id: string) => {
-  const ctx = await requireAppContext()
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound()
-  const meeting = await api<ApiMeetingDetail>(`/v1/meetings/${id}`).catch((e) => {
-    if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null
-    throw e
-  })
+  // el contexto y la reunión a la vez (antes uno después del otro: dos esperas a la API seguidas)
+  const [ctx, meeting] = await Promise.all([
+    requireAppContext(),
+    api<ApiMeetingDetail>(`/v1/meetings/${id}`).catch((e) => {
+      if (e instanceof ApiError && (e.status === 404 || e.status === 403)) return null
+      throw e
+    }),
+  ])
   if (!meeting) notFound()
   if (!ctx.workspaces.some((w) => w.id === meeting.workspaceId)) {
     // de otra de mis cuentas: se cambia de cuenta y se vuelve acá

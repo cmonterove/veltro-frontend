@@ -83,10 +83,11 @@ export const requestKeys = {
   one: (id: string) => ['request', id] as const,
 }
 
-export function useRequests(box: RequestBox, filters: RequestFilters) {
+export function useRequests(box: RequestBox, filters: RequestFilters, opts?: { enabled?: boolean }) {
   const { account } = useApp()
   return useInfiniteQuery({
     queryKey: requestKeys.list(account.id, box, filters),
+    enabled: opts?.enabled ?? true,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       api<Page<DeptRequest>>(`/v1/accounts/${account.id}/requests`, {

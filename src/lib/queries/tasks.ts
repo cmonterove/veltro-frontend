@@ -182,6 +182,11 @@ function useErrorToast() {
   return (error: unknown) => toast.error(t(toErrorCode(error as { message?: string })))
 }
 
+/** Tarea recién creada que todavía no volvió de la API (se ve al instante con este id). */
+export const isTempTask = (id: string) => id.startsWith('tmp-')
+// cambios hechos a una tarea mientras se crea: se aplican a la de verdad cuando llega su id
+const queuedPatches = new Map<string, TaskPatch[]>()
+
 export function useUpdateTask() {
   const qc = useQueryClient()
   const onError = useErrorToast()
@@ -189,6 +194,10 @@ export function useUpdateTask() {
   const locale = useDateLocale()
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: TaskPatch }) => {
+      if (isTempTask(id)) {
+        queuedPatches.set(id, [...(queuedPatches.get(id) ?? []), patch])
+        return { ...(findCachedTask(qc, id) as TaskRow), ...(patch as Partial<TaskRow>) }
+      }
       const d = await api<ApiTaskDetail>(`/v1/tasks/${id}`, { method: 'PATCH', body: toTaskBody(patch) })
       seedDetail(qc, d)
       return toTaskRow(d)
@@ -238,10 +247,67 @@ export type NewTask = TaskPatch & Pick<TaskRow, 'workspace_id' | 'title'>
 // La API crea hasta 100 de una vez (todo o nada).
 const BATCH = 100
 
+/**
+ * ¿Entra una tarea nueva en esta lista? Lo que decide la API (alcances de equipo, área…) se
+ * aproxima solo para «mías», una persona o toda la empresa; el resto se vuelve a pedir.
+ */
+function fitsOptimistic(scope: CacheScope, t: TaskRow, me: string): boolean {
+  const known = matchesScope(scope, t)
+  if (known !== null) return known
+  if (scope.kind !== 'scope' || t.parent_id) return false
+  if (scope.workspaceIds?.length && !scope.workspaceIds.includes(t.workspace_id)) return false
+  if (scope.scopeId === 'me') return isAssignedTo(t, me)
+  if (scope.scopeId.startsWith('person:')) return isAssignedTo(t, scope.scopeId.slice(7))
+  return scope.scopeId === 'all'
+}
+
 export function useCreateTask() {
   const qc = useQueryClient()
   const onError = useErrorToast()
+  const { user } = useApp()
   return useMutation({
+    // una sola tarea: se ve al instante en sus listas y se reemplaza por la de verdad al volver de la API
+    onMutate: async (input: NewTask | NewTask[]) => {
+      if (Array.isArray(input)) return { tmpId: null }
+      await qc.cancelQueries({ queryKey: taskKeys.all })
+      const now = new Date().toISOString()
+      const assignees = input.assignee_ids ?? (input.assignee_id ? [input.assignee_id] : [])
+      const tmp: TaskRow = {
+        description: null,
+        description_text: '',
+        status: 'todo',
+        status_id: null,
+        priority: 'none',
+        due_date: null,
+        start_date: null,
+        estimate_hours: null,
+        custom: {},
+        labels: [],
+        position: Date.now() / 1000,
+        parent_id: null,
+        doc_id: null,
+        doc_block_id: null,
+        meeting_id: null,
+        recurrence: null,
+        ...(input as Partial<TaskRow>),
+        workspace_id: input.workspace_id,
+        title: input.title,
+        assignee_ids: assignees,
+        assignee_id: assignees[0] ?? null,
+        id: `tmp-${crypto.randomUUID()}`,
+        number: 0,
+        created_by: user.id,
+        completed_at: null,
+        created_at: now,
+        updated_at: now,
+      }
+      for (const [key, list] of qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })) {
+        const scope = key[1] as CacheScope | undefined
+        if (!Array.isArray(list) || !scope || typeof scope !== 'object') continue
+        if (fitsOptimistic(scope, tmp, user.id)) qc.setQueryData(key, [...list, tmp])
+      }
+      return { tmpId: tmp.id }
+    },
     mutationFn: async (input: NewTask | NewTask[]): Promise<TaskRow[]> => {
       if (!Array.isArray(input)) {
         const d = await api<ApiTaskDetail>(`/v1/workspaces/${input.workspace_id}/tasks`, { method: 'POST', body: toTaskBody(input, 'create') })
@@ -264,7 +330,22 @@ export function useCreateTask() {
       }
       return out
     },
-    onSuccess: (tasks) => {
+    onSuccess: (tasks, _input, ctx) => {
+      // la provisoria pasa a ser la de verdad (con su número y su id)
+      const tmpId = ctx?.tmpId
+      if (tmpId && tasks[0]) {
+        const real = tasks[0]
+        qc.setQueriesData<TaskRow[]>({ queryKey: taskKeys.all }, (old) => (Array.isArray(old) ? old.map((t) => (t.id === tmpId ? real : t)) : old))
+        const queued = queuedPatches.get(tmpId)
+        queuedPatches.delete(tmpId)
+        if (queued?.length) {
+          const patch = Object.assign({}, ...queued) as TaskPatch
+          patchCaches(qc, real.id, patch as Partial<TaskRow>)
+          void api<ApiTaskDetail>(`/v1/tasks/${real.id}`, { method: 'PATCH', body: toTaskBody(patch) })
+            .then((d) => patchCaches(qc, d.id, toTaskRow(d)))
+            .catch(onError)
+        }
+      }
       let refetch = false
       for (const [key, list] of qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })) {
         const scope = key[1] as CacheScope | undefined
@@ -278,7 +359,14 @@ export function useCreateTask() {
       if (refetch) qc.invalidateQueries({ queryKey: taskKeys.all, predicate: (q) => (q.queryKey[1] as CacheScope | undefined)?.kind === 'scope' })
       qc.invalidateQueries({ queryKey: taskKeys.stats })
     },
-    onError,
+    onError: (error, _input, ctx) => {
+      const tmpId = ctx?.tmpId
+      if (tmpId) {
+        queuedPatches.delete(tmpId)
+        qc.setQueriesData<TaskRow[]>({ queryKey: taskKeys.all }, (old) => (Array.isArray(old) ? old.filter((t) => t.id !== tmpId) : old))
+      }
+      onError(error)
+    },
   })
 }
 

@@ -29,6 +29,8 @@ export function useOpenTask() {
   const wsMap = useWorkspaceMap()
   const open = useCallback(
     (id: string) => {
+      // recién creada: en un segundo tiene su página (la provisoria no existe en la API)
+      if (id.startsWith('tmp-')) return
       const task = qc.getQueryData<TaskRow>(taskKeys.one(id)) ?? findCachedTask(qc, id)
       const ws = task ? wsMap.get(task.workspace_id) : undefined
       try {

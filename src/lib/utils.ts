@@ -44,7 +44,8 @@ export function positionBetween(before: number | null | undefined, after: number
 }
 
 export function taskRef(key: string, number: number) {
-  return `${key}-${number}`
+  // 0: recién creada, todavía sin número (vuelve de la API en un momento)
+  return `${key}-${number || '…'}`
 }
 
 /** Extracto legible de un texto multilínea: une las líneas con un separador para que títulos y párrafos no se peguen. */

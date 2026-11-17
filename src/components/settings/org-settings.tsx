@@ -24,7 +24,6 @@ import type { WorkspaceColor } from '@/lib/constants'
 import type { DepartmentRow } from '@/lib/database.types'
 import type { Member } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { SettingsSection } from './section'
 import { SettingsHeader } from './ui'
 
 type Patch = Partial<Pick<Member, 'title' | 'department_id' | 'reports_to'>>
@@ -44,15 +43,30 @@ type OrgCtx = {
   /** persona → departamento que encabeza */
   headOf: Map<string, string>
   update: (id: string, patch: Patch) => void
+  /** cambios a departamentos que ya se ven, mientras la API confirma */
+  deptOp: (op: DeptOp) => void
+  resetDeptOps: () => void
   q: string
 }
+
+type DeptOp = { kind: 'create'; row: DepartmentRow } | { kind: 'patch'; id: string; patch: Partial<Pick<DepartmentRow, 'name' | 'head_id'>> } | { kind: 'delete'; id: string }
+
+const applyDeptOp = (list: DepartmentRow[], op: DeptOp): DepartmentRow[] =>
+  op.kind === 'create'
+    ? [...list, op.row]
+    : op.kind === 'delete'
+      ? list.filter((d) => d.id !== op.id)
+      : list.map((d) => (d.id === op.id ? { ...d, ...op.patch } : d))
+
+/** Departamento recién creado que todavía no volvió de la API: se ve, pero no se edita. */
+const isTemp = (id: string) => id.startsWith('tmp-')
 const Ctx = createContext<OrgCtx | null>(null)
 const useOrg = () => use(Ctx)!
 
 const firstName = (m: Pick<Member, 'full_name'>) => m.full_name.split(' ')[0]
 
 /** Organigrama de la cuenta: quién reporta a quién, en qué área está cada persona y los departamentos. */
-export function OrgSettings({ members, departments }: { members: Member[]; departments: DepartmentRow[] }) {
+export function OrgSettings({ members, departments: serverDepartments }: { members: Member[]; departments: DepartmentRow[] }) {
   const t = useTranslations('settings.org')
   const te = useTranslations('errors')
   const router = useRouter()
@@ -71,6 +85,12 @@ export function OrgSettings({ members, departments }: { members: Member[]; depar
     [members, patches],
   )
   const byId = useMemo(() => new Map(live.map((m) => [m.id, m])), [live])
+  // lo mismo con los departamentos: crear, renombrar, cambiar jefe o borrar se ve al instante
+  const [deptOverrides, setDeptOverrides] = useState<{ base: DepartmentRow[]; ops: DeptOp[] }>({ base: serverDepartments, ops: [] })
+  const deptOps = deptOverrides.base === serverDepartments ? deptOverrides.ops : null
+  const departments = useMemo(() => (deptOps ?? []).reduce(applyDeptOp, serverDepartments), [serverDepartments, deptOps])
+  const deptOp = (op: DeptOp) => setDeptOverrides((o) => ({ base: serverDepartments, ops: [...(o.base === serverDepartments ? o.ops : []), op] }))
+  const resetDeptOps = () => setDeptOverrides({ base: serverDepartments, ops: [] })
   const deptInfo = useMemo(() => {
     const ordered = [...departments].sort((a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? ''))
     return new Map(ordered.map((d, i) => [d.id, { name: d.name, color: DEPT_PALETTE[i % DEPT_PALETTE.length] }]))
@@ -94,12 +114,16 @@ export function OrgSettings({ members, departments }: { members: Member[]; depar
     })
   }
 
-  const ctx: OrgCtx = { members: live, departments, byId, admin, dept: (id) => (id ? (deptInfo.get(id) ?? null) : null), headOf, update, q }
+  const ctx: OrgCtx = { members: live, departments, byId, admin, dept: (id) => (id ? (deptInfo.get(id) ?? null) : null), headOf, update, deptOp, resetDeptOps, q }
 
   return (
     <Ctx value={ctx}>
       <SettingsHeader title={t('pageTitle')} description={t('chartHint')} />
 
+      {/* los departamentos al lado (primer paso y siempre a mano), el organigrama con todo el ancho */}
+      <div className="grid flex-1 grid-cols-1 gap-6 lg:min-h-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <DepartmentsPanel />
+        <div className="flex min-w-0 flex-col lg:min-h-0">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="flex rounded-lg bg-hover p-0.5" role="group" aria-label={t('viewLabel')}>
           {(
@@ -127,7 +151,7 @@ export function OrgSettings({ members, departments }: { members: Member[]; depar
           {t('people', { count: live.length })} · {t('departmentsCount', { count: departments.length })}
           {unplaced ? <span className="ml-1.5 rounded-full bg-warning-soft px-1.5 py-0.5 font-medium text-warning">{t('unplaced', { count: unplaced })}</span> : null}
         </p>
-        <div className="relative ml-auto flex w-full items-center sm:w-60">
+        <div className="relative ml-auto flex w-full items-center sm:w-56">
           <Search className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
           <input
             value={query}
@@ -145,10 +169,16 @@ export function OrgSettings({ members, departments }: { members: Member[]; depar
         </div>
       </div>
 
-      {view === 'chart' ? <OrgChart tree={tree} /> : <OrgAreas departments={departments} />}
+      {view === 'chart' ? (
+        <OrgChart tree={tree} />
+      ) : (
+        <div className="scrollbar-thin lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+          <OrgAreas departments={departments} />
+        </div>
+      )}
       {!admin ? <p className="mt-3 text-xs text-fg-subtle">{t('readOnly')}</p> : null}
-
-      <DepartmentsSection />
+        </div>
+      </div>
     </Ctx>
   )
 }
@@ -187,9 +217,9 @@ function OrgChart({ tree }: { tree: OrgNode<Member>[] }) {
 
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setDragId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setDragId(null)}>
-      <div className="relative overflow-hidden rounded-xl border border-line bg-[radial-gradient(var(--line)_1px,transparent_1px)] [background-size:18px_18px]">
+      <div className="relative flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-[radial-gradient(var(--line)_1px,transparent_1px)] [background-size:18px_18px]">
         {admin && dragged?.reports_to ? <RootDrop /> : null}
-        <div className="overflow-x-auto px-6 pb-8 pt-7 scrollbar-thin">
+        <div className="flex-1 overflow-auto px-6 pb-8 pt-7 scrollbar-thin">
           <div className="org-tree mx-auto w-max">
             <ul>
               {tree.map((n) => (
@@ -396,7 +426,7 @@ function PersonPopover({ m, trigger }: { m: Member; trigger: React.ReactElement<
                 value={m.department_id ?? ''}
                 aria-label={t('department')}
                 onChange={(v) => update(m.id, { department_id: v || null })}
-                options={[{ value: '', label: t('noDepartment') }, ...departments.map((d) => ({ value: d.id, label: d.name, icon: <DeptDot id={d.id} /> }))]}
+                options={[{ value: '', label: t('noDepartment') }, ...departments.filter((d) => !isTemp(d.id)).map((d) => ({ value: d.id, label: d.name, icon: <DeptDot id={d.id} /> }))]}
                 className="h-8"
               />
             </Field>
@@ -466,8 +496,12 @@ function DeptDot({ id }: { id: string }) {
 
 function OrgAreas({ departments }: { departments: DepartmentRow[] }) {
   const t = useTranslations('settings.org')
-  const { members, dept, q, byId } = useOrg()
+  const { members, departments: allDepts, dept, q, byId, admin, update } = useOrg()
   const { options } = useScopes()
+  const deptOptions = useMemo(
+    () => [{ value: '', label: t('noDepartment') }, ...[...allDepts].filter((d) => !isTemp(d.id)).sort((a, b) => a.name.localeCompare(b.name)).map((d) => ({ value: d.id, label: d.name, icon: <DeptDot id={d.id} /> }))],
+    [allDepts, t],
+  )
   const eff = useMemo(() => effectiveDepartments(members), [members])
   const groups = useMemo(() => {
     const list = [...departments]
@@ -506,17 +540,18 @@ function OrgAreas({ departments }: { departments: DepartmentRow[] }) {
             {g.people.map((m) => {
               const boss = m.reports_to ? byId.get(m.reports_to) : undefined
               return (
-                <li key={m.id}>
+                // para ubicar a la gente de a una sin abrir su ficha: el departamento ahí mismo
+                <li key={m.id} className="flex items-center gap-2 pr-3 hover:bg-hover/40">
                   <PersonPopover
                     m={m}
                     trigger={
-                      <button type="button" className="flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors hover:bg-hover/60 focus-visible:bg-hover">
+                      <button type="button" className="flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors focus-visible:bg-hover">
                         <Avatar name={m.full_name} src={m.avatar_url} seed={m.id} size={30} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium text-fg">{m.full_name}</span>
                           <span className={cn('block truncate text-xs', m.title ? 'text-fg-muted' : 'italic text-fg-subtle')}>{m.title || t('noTitle')}</span>
                         </span>
-                        <span className="hidden min-w-0 max-w-[45%] items-center gap-1.5 truncate text-xs text-fg-muted sm:flex">
+                        <span className={cn('hidden min-w-0 max-w-[45%] items-center gap-1.5 truncate text-xs text-fg-muted', admin ? 'xl:flex' : 'sm:flex')}>
                           {boss ? (
                             <>
                               <CornerLeftUp className="size-3.5 shrink-0 text-fg-subtle" />
@@ -529,6 +564,15 @@ function OrgAreas({ departments }: { departments: DepartmentRow[] }) {
                       </button>
                     }
                   />
+                  {admin && departments.length ? (
+                    <Select
+                      value={m.department_id ?? ''}
+                      aria-label={t('departmentOf', { name: m.full_name })}
+                      onChange={(v) => update(m.id, { department_id: v || null })}
+                      options={deptOptions}
+                      className="h-7 w-40 shrink-0 text-xs"
+                    />
+                  ) : null}
                 </li>
               )
             })}
@@ -541,108 +585,167 @@ function OrgAreas({ departments }: { departments: DepartmentRow[] }) {
 
 // --- departamentos ---
 
-function DepartmentsSection() {
+/**
+ * Panel de departamentos al lado del organigrama: crear arriba (o con un clic desde las áreas más
+ * comunes), y en cada uno su jefe y cuánta gente tiene. Antes estaba debajo de todo, con el campo
+ * para crear debajo de «Todavía no hay departamentos».
+ */
+function DepartmentsPanel() {
   const t = useTranslations('settings.org')
   const te = useTranslations('errors')
   const tConfirm = useTranslations('confirm')
   const confirm = useConfirm()
   const router = useRouter()
   const { account } = useApp()
-  const { admin, members, departments, byId, dept } = useOrg()
-  const [pending, start] = useTransition()
+  const { admin, members, departments, byId, dept, deptOp, resetDeptOps } = useOrg()
+  const [, start] = useTransition()
   const [newDept, setNewDept] = useState('')
   const base = `/v1/accounts/${account.id}/departments`
 
-  const run = (fn: () => Promise<unknown>, success?: string) =>
+  // el cambio se ve al instante; la API confirma detrás (antes: guardar 2 s + recargar todo, ~6 s)
+  const run = (op: DeptOp, fn: () => Promise<unknown>, success?: string) => {
+    deptOp(op)
+    if (success) toast.success(success)
     start(async () => {
       try {
         await fn()
       } catch (e) {
         toast.error(te(ajustesError(e)))
+        resetDeptOps()
         return
       }
-      if (success) toast.success(success)
       router.refresh()
     })
+  }
+  const create = (name: string) => {
+    const now = new Date().toISOString()
+    run(
+      { kind: 'create', row: { id: `tmp-${crypto.randomUUID()}`, account_id: account.id, name, head_id: null, created_at: now, updated_at: now } as DepartmentRow },
+      () => api(base, { method: 'POST', body: { name } }),
+      t('createdName', { name }),
+    )
+  }
 
   const sorted = [...departments].sort((a, b) => a.name.localeCompare(b.name))
+  const taken = new Set(departments.map((d) => d.name.trim().toLowerCase()))
+  const suggestions = t('suggestions')
+    .split(',')
+    .map((x) => x.trim())
+    .filter((x) => x && !taken.has(x.toLowerCase()))
 
   return (
-    <SettingsSection title={t('departmentsTitle')} description={t('departmentsHint')} className="mt-10">
+    <aside className="flex flex-col overflow-hidden rounded-xl border border-line bg-panel lg:min-h-0">
+      <header className="border-b border-line-soft px-4 pb-3 pt-3.5">
+        <h2 className="flex items-baseline gap-2 text-sm font-semibold text-fg">
+          {t('departmentsTitle')}
+          {departments.length ? <span className="text-xs font-normal tabular-nums text-fg-subtle">{departments.length}</span> : null}
+        </h2>
+        {admin ? (
+          <form
+            className="relative mt-3 flex items-center"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const name = newDept.trim()
+              if (!name) return
+              create(name)
+              setNewDept('')
+            }}
+          >
+            <Plus className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
+            <input
+              value={newDept}
+              onChange={(e) => setNewDept(e.target.value)}
+              placeholder={t('newDepartment')}
+              maxLength={80}
+              aria-label={t('newDepartment')}
+              className={cn(inputClass, 'h-8 pl-8')}
+            />
+          </form>
+        ) : null}
+      </header>
+
+      {/* en pantallas grandes la tarjeta llega hasta abajo y la lista se desplaza adentro */}
+      <div className="scrollbar-thin lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {sorted.length ? (
-        <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+        <ul className="flex flex-col divide-y divide-line-soft">
           {sorted.map((d) => {
             const info = dept(d.id)
             const people = [...departmentMembers(d, members)].flatMap((id) => byId.get(id) ?? [])
             return (
-              <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-                {info ? <span className={cn(`ws-${info.color}`, 'size-2.5 shrink-0 rounded-full bg-[var(--ws-color)]')} aria-hidden /> : null}
-                <input
-                  defaultValue={d.name}
-                  key={`${d.id}-${d.name}`}
-                  disabled={!admin || pending}
-                  maxLength={80}
-                  aria-label={t('departmentName')}
-                  onBlur={(e) => {
-                    const v = e.target.value.trim()
-                    if (v && v !== d.name) run(() => api(`${base}/${d.id}`, { method: 'PATCH', body: { name: v } }))
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                  className="-ml-2 h-8 min-w-36 flex-1 rounded-md border border-transparent bg-transparent px-2 text-sm font-medium text-fg outline-none hover:border-line focus:border-accent-mid disabled:hover:border-transparent"
-                />
-                <Select
-                  value={d.head_id ?? ''}
-                  disabled={!admin || pending}
-                  aria-label={t('head')}
-                  onChange={(v) => run(() => api(`${base}/${d.id}`, { method: 'PATCH', body: { headId: v || null } }))}
-                  options={[
-                    { value: '', label: t('noHead') },
-                    ...members.map((m) => ({ value: m.id, label: m.full_name, icon: <Avatar name={m.full_name} seed={m.id} src={m.avatar_url} size={18} />, hint: m.title ?? undefined })),
-                  ]}
-                  className="h-8 w-44 shrink-0"
-                />
-                <span className="ml-auto flex shrink-0 items-center gap-2">
-                  {people.length ? <AvatarStack people={people} size={22} max={4} ring="panel" /> : null}
-                  <span className="text-xs text-fg-muted">{t('people', { count: people.length })}</span>
-                </span>
-                {admin ? (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (await confirm({ title: t('deleteConfirm', { name: d.name }), danger: true, confirmLabel: tConfirm('delete') }))
-                        run(() => api(`${base}/${d.id}`, { method: 'DELETE' }), t('deleted'))
+              <li key={d.id} className="group/dept flex flex-col gap-1.5 px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  {info ? <span className={cn(`ws-${info.color}`, 'size-2.5 shrink-0 rounded-full bg-[var(--ws-color)]')} aria-hidden /> : null}
+                  <input
+                    defaultValue={d.name}
+                    key={`${d.id}-${d.name}`}
+                    disabled={!admin || isTemp(d.id)}
+                    maxLength={80}
+                    aria-label={t('departmentName')}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim()
+                      if (v && v !== d.name) run({ kind: 'patch', id: d.id, patch: { name: v } }, () => api(`${base}/${d.id}`, { method: 'PATCH', body: { name: v } }))
                     }}
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-fg-subtle hover:bg-danger-soft hover:text-danger"
-                    aria-label={t('delete')}
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                    className="-ml-1.5 h-7 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-sm font-medium text-fg outline-none hover:border-line focus:border-accent-mid disabled:hover:border-transparent"
+                  />
+                  {people.length ? <AvatarStack people={people} size={20} max={3} ring="panel" /> : null}
+                  {admin && !isTemp(d.id) ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (await confirm({ title: t('deleteConfirm', { name: d.name }), danger: true, confirmLabel: tConfirm('delete') }))
+                          run({ kind: 'delete', id: d.id }, () => api(`${base}/${d.id}`, { method: 'DELETE' }), t('deleted'))
+                      }}
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-subtle opacity-0 transition-opacity hover:bg-danger-soft hover:text-danger focus-visible:opacity-100 group-hover/dept:opacity-100"
+                      aria-label={t('delete')}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+                {admin ? (
+                  <Select
+                    value={d.head_id ?? ''}
+                    disabled={isTemp(d.id)}
+                    aria-label={t('head')}
+                    onChange={(v) => run({ kind: 'patch', id: d.id, patch: { head_id: v || null } }, () => api(`${base}/${d.id}`, { method: 'PATCH', body: { headId: v || null } }))}
+                    options={[
+                      { value: '', label: t('noHead') },
+                      ...members.map((m) => ({ value: m.id, label: t('headLabel', { name: m.full_name }), icon: <Avatar name={m.full_name} seed={m.id} src={m.avatar_url} size={18} />, hint: m.title ?? undefined })),
+                    ]}
+                    className={cn('-ml-1.5 h-7 w-[calc(100%+0.375rem)] border-transparent bg-transparent px-1.5 text-xs shadow-none hover:border-line', d.head_id ? 'text-fg-muted' : 'text-fg-subtle')}
+                  />
+                ) : d.head_id && byId.get(d.head_id) ? (
+                  <p className="truncate text-xs text-fg-muted">{t('headLabel', { name: byId.get(d.head_id)!.full_name })}</p>
                 ) : null}
               </li>
             )
           })}
         </ul>
-      ) : (
-        <p className="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-fg-subtle">{t('noDepartments')}</p>
-      )}
-      {admin ? (
-        <form
-          className="mt-3 flex items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const name = newDept.trim()
-            if (!name) return
-            run(() => api(base, { method: 'POST', body: { name } }), t('created'))
-            setNewDept('')
-          }}
-        >
-          <input value={newDept} onChange={(e) => setNewDept(e.target.value)} placeholder={t('newDepartment')} maxLength={80} aria-label={t('newDepartment')} className={cn(inputClass, 'h-8 max-w-xs')} />
-          <Button type="submit" variant="secondary" size="sm" disabled={!newDept.trim()}>
-            <Plus />
-            {t('addDepartment')}
-          </Button>
-        </form>
       ) : null}
-    </SettingsSection>
+
+      {/* las áreas de casi cualquier empresa, a un clic (sin departamentos es el primer paso) */}
+      {admin && suggestions.length && departments.length < 6 ? (
+        <div className={cn('px-4 pb-4', sorted.length ? 'border-t border-line-soft pt-3' : 'pt-3.5')}>
+          <p className="text-xs font-medium text-fg-muted">{sorted.length ? t('suggestionsMore') : t('suggestionsTitle')}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {suggestions.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => create(name)}
+                className="inline-flex h-7 items-center gap-1 rounded-full border border-dashed border-line-strong px-2.5 text-xs text-fg-muted transition-colors hover:border-accent-mid hover:bg-accent-soft hover:text-accent-ink disabled:opacity-50"
+              >
+                <Plus className="size-3" />
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : !sorted.length ? (
+        <p className="px-4 py-5 text-sm text-fg-subtle">{t('noDepartments')}</p>
+      ) : null}
+      </div>
+    </aside>
   )
 }

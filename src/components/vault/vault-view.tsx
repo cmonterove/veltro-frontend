@@ -327,6 +327,7 @@ export function VaultView() {
                 ) : shown.length === 0 ? (
                   <EmptyState
                     icon={<Search />}
+              tone="quiet"
                     title={t('noMatches')}
                     description={t('noMatchesHint')}
                     action={

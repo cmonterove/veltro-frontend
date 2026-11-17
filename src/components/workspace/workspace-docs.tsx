@@ -21,6 +21,7 @@ import { useDateLocale } from '@/lib/dates'
 import { cn, taskRef, excerptOf } from '@/lib/utils'
 import type { AttachmentRow, DocSource } from '@/lib/database.types'
 import type { DocSummary, WorkspaceWithRole } from '@/lib/types'
+import { Skeleton } from '@/components/ui/skeleton'
 import { SourceBadge } from '@/components/docs/source-badge'
 import { useNewDoc } from '@/components/docs/doc-tree'
 import { ImportMarkdownDialog } from '@/components/docs/import-markdown-dialog'
@@ -38,11 +39,14 @@ const GROUPS: { id: string; sources: DocSource[] }[] = [
   { id: 'docs', sources: ['manual', 'import'] },
 ]
 
-export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: string; initialDocs: DocSummary[] }) {
+const NO_DOCS: DocSummary[] = []
+
+export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: string; initialDocs?: DocSummary[] }) {
   const t = useTranslations('docs')
   const ws = useWorkspaceMap().get(workspaceId)!
   const editable = canEdit(ws)
-  const { data: docs = initialDocs } = useWorkspaceDocs(workspaceId, initialDocs)
+  const { data } = useWorkspaceDocs(workspaceId, initialDocs)
+  const docs = data ?? NO_DOCS
   const { data: files } = useAttachments({ kind: 'workspace', workspaceId })
   const newDoc = useNewDoc(ws)
   const params = useSearchParams()
@@ -117,7 +121,13 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
       </div>
 
       <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
-        {tab === 'docs' ? (
+        {!data ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-9" />
+            <Skeleton className="h-9" />
+            <Skeleton className="h-9" />
+          </div>
+        ) : tab === 'docs' ? (
           <DocsLibrary ws={ws} docs={docs} files={files ?? []} query={query} editable={editable} onNew={() => newDoc.create()} onImport={() => setImportOpen(true)} />
         ) : (
           <FilesLibrary ws={ws} files={files ?? []} docs={docs} query={query} editable={editable} />
