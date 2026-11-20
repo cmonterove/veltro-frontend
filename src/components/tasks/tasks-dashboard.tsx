@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { differenceInCalendarDays, format, isToday, parseISO, startOfDay } from 'date-fns'
-import { ArrowRight, CheckCheck, OctagonPause } from 'lucide-react'
+import { Activity, ArrowRight, CalendarDays, CheckCheck, LayoutGrid, OctagonPause, Users } from 'lucide-react'
 import { useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
@@ -17,6 +17,7 @@ import type { ApiTaskStats } from '@/lib/api/tareas'
 import { useOpenTask } from '@/lib/use-open-task'
 import { useDateLocale, toDateKey } from '@/lib/dates'
 import { cn, taskRef } from '@/lib/utils'
+import { CARD } from '@/components/ui/surface'
 import type { TaskRow } from '@/lib/database.types'
 
 type Tab = 'list' | 'calendar'
@@ -68,6 +69,13 @@ export function TasksDashboard({
 
   // lo que urge: atrasadas (más atrasadas primero), bloqueadas y lo de hoy
   const urgent = [...new Set([...overdue, ...blocked, ...dueToday])]
+  // sin nada urgente, lo que sigue: abiertas, primero lo que vence antes (lo sin fecha al final)
+  const urgentIds = new Set(urgent.map((x) => x.id))
+  // con poco urgente, lo que sigue llena el resto (hasta 5 filas entre las dos listas)
+  const next = [...open]
+    .filter((x) => !urgentIds.has(x.id))
+    .sort((a, b) => (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999'))
+    .slice(0, Math.max(0, 5 - Math.min(urgent.length, 5)))
 
   // cifras: de la API
   const c = stats?.counters
@@ -108,131 +116,175 @@ export function TasksDashboard({
 
   if (!stats) {
     return (
-      <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 px-4 pb-16 pt-8 sm:px-6">
-        <Skeleton className="h-7 w-2/3" />
-        <Skeleton className="h-4 w-1/3" />
-        <Skeleton className="mt-6 h-40" />
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-24 rounded-[22px]" />
+        <div className="grid gap-4 lg:grid-cols-12">
+          <Skeleton className="h-56 rounded-[24px] lg:col-span-7" />
+          <Skeleton className="h-56 rounded-[24px] lg:col-span-5" />
+        </div>
       </div>
     )
   }
 
   // solo se nombra lo que existe: "4 tareas atrasadas y 2 bloqueadas"; cada parte filtra la lista
   const pill = (counter: Counter, tone: string, text: string) => (
-    <button key={counter} type="button" onClick={() => onFilter(counter)} className={cn('rounded-md px-0.5 font-semibold underline decoration-2 underline-offset-4 transition-colors hover:bg-hover', tone)}>
+    <button key={counter} type="button" onClick={() => onFilter(counter)} className={cn('rounded-md px-0.5 font-semibold underline decoration-2 underline-offset-[5px] transition-colors hover:bg-fg/[0.08]', tone)}>
       {text}
     </button>
   )
   const parts = [
-    c!.overdue ? pill('overdue', 'text-danger decoration-danger/30', t('parts.late', { count: c!.overdue })) : null,
-    c!.blocked ? pill('blocked', 'text-st-blocked decoration-st-blocked/30', t('parts.stuck', { count: c!.blocked })) : null,
-    c!.today ? pill('today', 'text-mandarina-ink decoration-mandarina/40', t('parts.due', { count: c!.today })) : null,
+    c!.overdue ? pill('overdue', 'text-danger decoration-danger/40', t('parts.late', { count: c!.overdue })) : null,
+    c!.blocked ? pill('blocked', 'text-st-blocked decoration-st-blocked/40', t('parts.stuck', { count: c!.blocked })) : null,
+    c!.today ? pill('today', 'text-mandarina-ink decoration-mandarina-ink/40', t('parts.due', { count: c!.today })) : null,
   ].filter(Boolean) as React.ReactElement[]
   const joined = parts.flatMap((p, i) => (i === 0 ? [p] : [i === parts.length - 1 ? ` ${t('and')} ` : ', ', p]))
   const net = closed14 - created14
+  const nextList = next.length ? (
+      <>
+        <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-fg-muted">
+          <span aria-hidden className="size-1.5 rounded-full bg-current" />
+          {t('urgent.next')}
+        </p>
+        <ul className="-mx-2 mt-1 flex-1">
+          {next.map((x) => {
+            const ws = wsMap.get(x.workspace_id)
+            return (
+              <li key={x.id}>
+                <button type="button" onClick={() => openTask(x.id)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-hover/60">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-fg">{x.title}</span>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-xs text-fg-subtle">
+                      {ws ? <WorkspaceMark ws={ws} size={14} /> : null}
+                      <span className="font-mono">{ws ? taskRef(ws.key, x.number) : ''}</span>
+                      {ws ? <span className="truncate">· {ws.name}</span> : null}
+                    </span>
+                  </span>
+                  {x.due_date ? (
+                    <span className="shrink-0 rounded-md bg-fg/[0.05] px-1.5 py-0.5 text-xs font-medium text-fg-muted first-letter:uppercase">
+                      {format(parseISO(x.due_date), 'EEE d MMM', { locale })}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </>
+  ) : null
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-8 sm:px-6">
-      {/* 1 · la respuesta corta */}
-      <section>
-        <p className="max-w-[60ch] text-[22px] font-medium leading-snug tracking-[-0.01em] text-fg">
-          {parts.length ? (
-            <>
-              {t('subject', { subject, who: scope.display })} {joined}.
-            </>
-          ) : (
-            t('allClear', { subject, who: scope.display })
-          )}
-        </p>
-        <p className="mt-2 text-sm text-fg-muted">{t('subline', { open: openCount, spaces, done: doneWeek })}</p>
-
-        <div className="mt-6 flex flex-col gap-2.5">
-          <LoadBar load={total} max={Math.max(1, openCount)} className="!h-3.5" />
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-            <LoadLegend />
-            <span className="ml-auto text-xs tabular-nums text-fg-muted">{t('loadNumbers', { risk: total.risk, progress: total.progress, rest: total.rest })}</span>
+    <div className="flex flex-col gap-4 pb-2">
+      {/* 1 · la respuesta corta, sobre la ciruela del marco: el estado de las tareas de un vistazo */}
+      <section className="on-frame day-surface grid items-center gap-x-10 gap-y-4 rounded-[22px] px-6 py-5 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)] sm:px-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <p className="text-[20px] font-semibold leading-snug tracking-[-0.02em] text-fg">
+            {parts.length ? (
+              <>
+                {t('subject', { subject, who: scope.display })} {joined}.
+              </>
+            ) : (
+              t('allClear', { subject, who: scope.display })
+            )}
+          </p>
+          <p className="mt-1 text-[13px] text-fg-muted">{t('subline', { open: openCount, spaces, done: doneWeek })}</p>
+        </div>
+        <div className="flex min-w-0 flex-col gap-2.5">
+          <LoadBar load={total} max={Math.max(1, openCount)} className="!h-2.5" />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <LoadLegend className="text-fg-muted" />
+            <span className="ml-auto text-xs font-medium tabular-nums text-fg-muted">{t('loadNumbers', { risk: total.risk, progress: total.progress, rest: total.rest })}</span>
           </div>
         </div>
       </section>
 
-      {/* 2 · qué urge y cómo viene el ritmo */}
-      <div className="mt-10 grid gap-4 lg:grid-cols-12">
-        <section className="flex flex-col rounded-xl border border-line bg-panel lg:col-span-7">
-          <header className="flex items-baseline gap-2 px-5 pb-2 pt-4">
-            <h2 className="text-sm font-semibold text-fg">{t('urgent.title')}</h2>
-            {urgent.length ? <span className="text-xs tabular-nums text-fg-subtle">{urgent.length}</span> : null}
-          </header>
+      {/* 2 · qué urge y cómo viene el ritmo: misma altura */}
+      <div className="grid gap-4 lg:grid-cols-12">
+        <section className={cn(CARD, 'flex flex-col px-5 pb-4 pt-4 lg:col-span-7')}>
+          <CardHead icon={urgent.length ? <OctagonPause className="text-danger" /> : <CheckCheck className="text-done" />} title={t('urgent.title')} count={urgent.length || undefined} />
           {urgent.length ? (
-            <ul className="flex-1 px-2 pb-2">
+            <>
+            <ul className="-mx-2 mt-2">
               {urgent.slice(0, 5).map((x) => {
                 const late = lateDays(x)
                 const ws = wsMap.get(x.workspace_id)
                 const people = assigneesOf(x).flatMap((id) => memberMap.get(id) ?? [])
                 return (
                   <li key={x.id}>
-                    <button type="button" onClick={() => openTask(x.id)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-hover/60">
-                      <span className="flex w-11 shrink-0 flex-col items-center leading-none">
+                    <button type="button" onClick={() => openTask(x.id)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-hover/60">
+                      <span className="flex w-12 shrink-0 flex-col items-center leading-none">
                         {late ? (
-                          <>
-                            <span className="text-lg font-semibold text-danger">{late}</span>
-                            <span className="mt-0.5 text-2xs text-fg-subtle">{t('urgent.days', { count: late })}</span>
-                          </>
+                          <span className="flex w-full flex-col items-center rounded-xl bg-danger-soft py-1.5">
+                            <span className="text-lg font-semibold tabular-nums text-danger">{late}</span>
+                            <span className="mt-0.5 text-2xs font-medium text-danger/80">{t('urgent.days', { count: late })}</span>
+                          </span>
                         ) : x.status === 'blocked' ? (
-                          <>
+                          <span className="flex w-full flex-col items-center rounded-xl bg-danger-soft/70 py-1.5">
                             <OctagonPause className="size-5 text-st-blocked" />
-                            <span className="mt-1 text-2xs text-fg-subtle">{t('urgent.blocked')}</span>
-                          </>
+                            <span className="mt-1 text-2xs font-medium text-st-blocked">{t('urgent.blocked')}</span>
+                          </span>
                         ) : (
-                          <span className="rounded-md bg-warning-soft px-1.5 py-1 text-2xs font-semibold text-mandarina-ink">{t('urgent.today')}</span>
+                          <span className="rounded-lg bg-warning-soft px-1.5 py-1.5 text-2xs font-semibold text-mandarina-ink">{t('urgent.today')}</span>
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm text-fg">{x.title}</span>
+                        <span className="block truncate text-sm font-medium text-fg">{x.title}</span>
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-fg-subtle">
                           {ws ? <WorkspaceMark ws={ws} size={14} /> : null}
                           <span className="font-mono">{ws ? taskRef(ws.key, x.number) : ''}</span>
                           {ws ? <span className="truncate">· {ws.name}</span> : null}
                         </span>
                       </span>
-                      {multi ? <AvatarStack people={people} size={20} ring="panel" /> : null}
+                      {multi ? <AvatarStack people={people} size={22} ring="panel" /> : null}
                     </button>
                   </li>
                 )
               })}
             </ul>
+            {/* con poco urgente, lo que sigue llena el resto */}
+            {nextList}
+            </>
           ) : (
-            <p className="flex flex-1 items-center gap-2.5 px-5 pb-6 pt-2 text-sm text-fg-muted">
-              <CheckCheck className="size-4 text-done" />
-              {t('urgent.empty')}
-            </p>
+            <>
+              {/* la calma, en una línea; debajo, lo que sigue: lo útil en vez de un recuadro vacío */}
+              <p className="mt-2.5 flex items-center gap-2.5 rounded-xl bg-success-soft/60 px-3 py-2 text-sm text-fg-muted ring-1 ring-success/10">
+                <CheckCheck className="size-4 shrink-0 text-success" strokeWidth={2.25} />
+                {t('urgent.empty')}
+              </p>
+              {nextList}
+            </>
           )}
           {urgent.length > 5 ? (
-            <button type="button" onClick={() => onTab('list')} className="flex items-center gap-1 border-t border-line-soft px-5 py-2.5 text-xs text-fg-muted hover:text-fg">
+            <button type="button" onClick={() => onTab('list')} className="mt-1 flex items-center gap-1 border-t border-line-soft pt-3 text-xs font-medium text-fg-muted hover:text-fg">
               {t('urgent.more', { count: urgent.length - 5 })}
               <ArrowRight className="size-3" />
             </button>
           ) : null}
         </section>
 
-        <section className="flex flex-col rounded-xl border border-line bg-panel px-5 pb-4 pt-4 lg:col-span-5">
-          <h2 className="text-sm font-semibold text-fg">{t('pace.title')}</h2>
-          <p className="mt-0.5 text-xs text-fg-muted">{t('pace.hint')}</p>
-          <div className="mt-4 flex items-baseline gap-6">
-            <Figure value={closed14} label={t('pace.closed')} swatch="var(--chart-bar)" />
-            <Figure value={created14} label={t('pace.created')} swatch="var(--chart-rest)" />
-            <span className={cn('ml-auto text-sm font-medium tabular-nums', net > 0 ? 'text-success' : net < 0 ? 'text-warning' : 'text-fg-muted')}>
+        <section className={cn(CARD, 'flex flex-col px-5 pb-4 pt-4 lg:col-span-5')}>
+          <CardHead icon={<Activity className="text-accent" />} title={t('pace.title')} hint={t('pace.hint')} />
+          <div className="mt-4 flex items-end gap-7">
+            <Figure value={closed14} label={t('pace.closed')} swatch="var(--chart-closed)" />
+            <Figure value={created14} label={t('pace.created')} swatch="var(--chart-new)" />
+            <span
+              className={cn(
+                'mb-0.5 ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold tabular-nums',
+                net > 0 ? 'bg-success-soft text-success' : net < 0 ? 'bg-warning-soft text-mandarina-ink' : 'bg-hover text-fg-muted',
+              )}
+            >
               {t('pace.net', { net: net > 0 ? `+${net}` : String(net) })}
             </span>
           </div>
           {/* el gráfico ocupa el alto que deja la lista de al lado (mínimo 7rem) */}
-          <div className="flex max-h-56 min-h-28 flex-1 items-stretch gap-1 pt-5">
+          <div className="flex max-h-44 min-h-28 flex-1 items-stretch gap-1 pt-4">
             {pace.map((p) => (
               <Tooltip key={p.d.toISOString()} content={t('pace.tip', { when: format(p.d, 'EEE d MMM', { locale }), closed: p.closed, created: p.created })}>
-                <span className="flex min-w-0 flex-1 flex-col justify-end" tabIndex={0}>
-                  <span className="relative flex flex-1 items-end justify-center gap-px">
-                    <Column value={p.closed} max={maxPace} color="var(--chart-bar)" />
-                    <Column value={p.created} max={maxPace} color="var(--chart-rest)" />
+                <span className="group/day flex min-w-0 flex-1 flex-col justify-end rounded-md transition-colors hover:bg-fg/[0.035]" tabIndex={0}>
+                  <span className="relative flex flex-1 items-end justify-center gap-[2px]">
+                    <Column value={p.closed} max={maxPace} color="var(--chart-closed)" />
+                    <Column value={p.created} max={maxPace} color="var(--chart-new)" />
                   </span>
-                  <span className={cn('mt-1.5 text-center text-2xs tabular-nums', isToday(p.d) ? 'font-semibold text-accent-ink' : 'text-fg-subtle')}>{format(p.d, 'd')}</span>
+                  <span className={cn('mt-1.5 text-center text-2xs tabular-nums', isToday(p.d) ? 'font-semibold text-fg' : 'text-fg-subtle')}>{format(p.d, 'd')}</span>
                 </span>
               </Tooltip>
             ))}
@@ -241,15 +293,18 @@ export function TasksDashboard({
       </div>
 
       {/* 3 · lo que viene */}
-      <section className="mt-4 rounded-xl border border-line bg-panel px-5 pb-5 pt-4">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="text-sm font-semibold text-fg">{t('ahead.title')}</h2>
-          <p className="text-xs text-fg-muted">{t('ahead.hint')}</p>
-          <button type="button" onClick={() => onTab('calendar')} className="ml-auto inline-flex items-center gap-1 text-xs text-fg-muted hover:text-fg">
-            {t('ahead.open')}
-            <ArrowRight className="size-3" />
-          </button>
-        </div>
+      <section className={cn(CARD, 'px-5 pb-5 pt-4')}>
+        <CardHead
+          icon={<CalendarDays className="text-mandarina-ink" />}
+          title={t('ahead.title')}
+          hint={t('ahead.hint')}
+          aside={
+            <button type="button" onClick={() => onTab('calendar')} className="inline-flex items-center gap-1 text-xs font-medium text-fg-muted hover:text-fg">
+              {t('ahead.open')}
+              <ArrowRight className="size-3" />
+            </button>
+          }
+        />
         <div className="mt-4 grid grid-cols-7 gap-1.5 sm:grid-cols-14">
           {ahead.map(({ d, n, list }) => {
             const strength = n / maxAhead
@@ -259,10 +314,10 @@ export function TasksDashboard({
             return (
               <Tooltip key={d.toISOString()} content={<span className="block max-w-64 whitespace-pre-line text-left font-normal leading-snug">{tip}</span>}>
                 <button type="button" onClick={() => onTab('calendar')} className="flex flex-col items-stretch gap-1 text-left">
-                  <span className={cn('text-center text-2xs uppercase', isToday(d) ? 'font-semibold text-accent-ink' : 'text-fg-subtle')}>{format(d, 'EEEEEE', { locale })}</span>
+                  <span className={cn('text-center text-2xs font-semibold uppercase', isToday(d) ? 'text-accent-ink' : 'text-fg-subtle')}>{format(d, 'EEEEEE', { locale })}</span>
                   <span
                     className={cn(
-                      'flex h-12 items-center justify-center rounded-lg text-sm font-semibold tabular-nums transition-transform hover:-translate-y-0.5',
+                      'flex h-12 items-center justify-center rounded-xl text-sm font-semibold tabular-nums transition-transform duration-150 ease-out hover:-translate-y-0.5',
                       isToday(d) && 'ring-2 ring-accent ring-offset-2 ring-offset-panel',
                       strength > 0.5 ? 'text-accent-fg' : n ? 'text-fg' : 'text-fg-subtle',
                     )}
@@ -279,14 +334,15 @@ export function TasksDashboard({
       </section>
 
       {/* 4 · dónde está la carga */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <LoadList
           title={t('bySpace')}
+          icon={<LayoutGrid className="text-accent" />}
           className={multi ? undefined : 'lg:col-span-2'}
           rows={bySpace.map((s) => ({
             key: s.ws.id,
             label: s.ws.name,
-            icon: <WorkspaceMark ws={s.ws} size={18} />,
+            icon: <WorkspaceMark ws={s.ws} size={22} />,
             load: s.load,
             total: s.total,
             href: `/w/${s.ws.slug}/tasks`,
@@ -297,10 +353,11 @@ export function TasksDashboard({
         {multi ? (
           <LoadList
             title={t('byPerson')}
+            icon={<Users className="text-accent" />}
             rows={byPerson.map((p) => ({
               key: p.member.id,
               label: p.member.full_name,
-              icon: <Avatar name={p.member.full_name} src={p.member.avatar_url} seed={p.member.id} size={20} />,
+              icon: <Avatar name={p.member.full_name} src={p.member.avatar_url} seed={p.member.id} size={24} />,
               load: p.load,
               total: p.total,
               href: `/tasks?tab=list&scope=${encodeURIComponent(`person:${p.member.id}`)}`,
@@ -314,14 +371,37 @@ export function TasksDashboard({
   )
 }
 
+/** Encabezado dentro de una tarjeta: ícono, título con su cuenta, una línea que explica y algo a la derecha. */
+function CardHead({ icon, title, count, hint, aside }: { icon?: React.ReactNode; title: string; count?: number; hint?: string; aside?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
+      <div className="min-w-0 flex-1">
+        <h2 className="flex items-center gap-2 text-base font-semibold tracking-[-0.015em] text-fg">
+          {icon ? (
+            <span className="flex shrink-0 [&_svg]:size-4" aria-hidden>
+              {icon}
+            </span>
+          ) : null}
+          {title}
+          {count != null ? (
+            <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-fg/[0.06] px-1.5 text-[11px] font-semibold tabular-nums text-fg-muted">{count}</span>
+          ) : null}
+        </h2>
+        {hint ? <p className="mt-0.5 text-xs text-fg-muted">{hint}</p> : null}
+      </div>
+      {aside}
+    </div>
+  )
+}
+
 function Figure({ value, label, swatch }: { value: number; label: string; swatch: string }) {
   return (
     <span className="flex flex-col">
-      <span className="text-2xl font-semibold leading-none text-fg">{value}</span>
-      <span className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-fg-muted">
-        <span className="size-2 rounded-[2px]" style={{ background: swatch }} />
+      <span className="flex items-center gap-1.5 text-xs font-medium text-fg-muted">
+        <span className="size-2.5 rounded-[3px]" style={{ background: swatch }} />
         {label}
       </span>
+      <span className="mt-1 text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-fg">{value}</span>
     </span>
   )
 }
@@ -329,20 +409,22 @@ function Figure({ value, label, swatch }: { value: number; label: string; swatch
 function Column({ value, max, color }: { value: number; max: number; color: string }) {
   return (
     <span
-      className={cn('w-full max-w-2.5', value ? 'rounded-t-[3px]' : 'rounded-[1px]')}
-      style={{ height: value ? `${Math.max(8, (value / max) * 100)}%` : 2, background: value ? color : 'var(--chart-track)' }}
+      className={cn('w-full max-w-3', value ? 'rounded-t-[4px] rounded-b-[1px]' : 'rounded-[1px]')}
+      style={{ height: value ? `${Math.max(8, (value / max) * 100)}%` : 3, background: value ? color : 'var(--chart-track)' }}
     />
   )
 }
 
 function LoadList({
   title,
+  icon,
   rows,
   max,
   empty,
   className,
 }: {
   title: string
+  icon: React.ReactNode
   rows: { key: string; label: string; icon: React.ReactNode; load: Load; total: number; href: string }[]
   max: number
   empty: string
@@ -350,31 +432,28 @@ function LoadList({
 }) {
   const t = useTranslations('tasksDashboard')
   return (
-    <section className={cn('rounded-xl border border-line bg-panel px-5 pb-4 pt-4', className)}>
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h2 className="text-sm font-semibold text-fg">{title}</h2>
-        <LoadLegend className="ml-auto" />
-      </div>
+    <section className={cn(CARD, 'px-5 pb-4 pt-4', className)}>
+      <CardHead icon={icon} title={title} count={rows.length || undefined} aside={<LoadLegend />} />
       {rows.length ? (
-        <ul className="flex flex-col">
+        <ul className="-mx-2 mt-3 flex flex-col">
           {rows.map((r) => (
             <li key={r.key}>
-              <Link href={r.href} className="-mx-2 grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_auto] items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-hover/50">
-                <span className="flex min-w-0 items-center gap-2 text-sm text-fg">
+              <Link href={r.href} className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] items-center gap-4 rounded-xl px-2 py-2.5 transition-colors hover:bg-hover/60">
+                <span className="flex min-w-0 items-center gap-2.5 text-sm font-medium text-fg">
                   {r.icon}
                   <span className="truncate">{r.label}</span>
                 </span>
-                <LoadBar load={r.load} max={max} />
+                <LoadBar load={r.load} max={max} className="h-2.5" />
                 <span className="w-24 text-right text-xs tabular-nums text-fg-muted">
-                  <span className="text-sm text-fg">{r.total}</span>
-                  {r.load.risk ? <span className="ml-1.5 text-danger">{t('riskShort', { count: r.load.risk })}</span> : null}
+                  <span className="text-sm font-semibold text-fg">{r.total}</span>
+                  {r.load.risk ? <span className="ml-1.5 rounded-[4px] bg-danger-soft px-1 py-px font-semibold text-danger">{t('riskShort', { count: r.load.risk })}</span> : null}
                 </span>
               </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-fg-muted">{empty}</p>
+        <p className="mt-2 text-sm text-fg-muted">{empty}</p>
       )}
     </section>
   )

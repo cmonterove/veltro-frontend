@@ -1,8 +1,8 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu as MenuIcon, Minimize2 } from 'lucide-react'
+import { Menu as MenuIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Sidebar } from './sidebar'
 import { CommandPalette } from './command-palette'
@@ -11,6 +11,7 @@ import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { LegacyTaskParam } from '@/components/tasks/legacy-task-param'
 import { LogoMark } from './logo'
 import { TopBar } from './top-bar'
+import { FullscreenContext, FullscreenExitButton } from './fullscreen'
 import { isTypingTarget } from '@/lib/hooks'
 import { useApp } from './app-context'
 import { ConfirmProvider } from '@/components/ui/confirm'
@@ -26,6 +27,7 @@ import { useNotificationsUnread } from '@/lib/queries/notifications'
 import { cn } from '@/lib/utils'
 import { SIDEBAR_COOKIE } from '@/lib/constants'
 import { flushEvents, ping, setTelemetryAccount, track, viewEvent } from '@/lib/telemetry'
+import { AI_ENABLED } from '@/lib/features'
 
 export function AppShell({ children, sidebarCollapsed = false }: { children: React.ReactNode; sidebarCollapsed?: boolean }) {
   const t = useTranslations('nav')
@@ -43,6 +45,17 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
     setFull((f) => !f)
     track('feature.fullscreen')
   }, [])
+  // pantallas que ponen su propio botón «Salir» (si ninguna, el marco muestra uno flotante)
+  const [claims, setClaims] = useState(0)
+  const claimExit = useCallback(() => {
+    setClaims((c) => c + 1)
+    return () => setClaims((c) => c - 1)
+  }, [])
+  const fullscreen = useMemo(() => ({ full, exit: () => setFull(false), claim: claimExit }), [full, claimExit])
+  // al entrar y salir la barra de arriba se pliega con animación; se recorta solo mientras está plegada
+  // o plegándose (a la vista no: su sombra sale de la caja)
+  const [clipTop, setClipTop] = useState(false)
+  if (full && !clipTop) setClipTop(true)
   const toggleSidebar = useCallback(() => {
     setCollapsed((c) => {
       document.cookie = `${SIDEBAR_COOKIE}=${c ? '0' : '1'}; path=/; max-age=31536000; samesite=lax`
@@ -63,7 +76,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
     if (!full) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return
-      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-view-fullscreen]')) return
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]')) return
       setFull(false)
     }
     window.addEventListener('keydown', onKey)
@@ -121,7 +134,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [quickTaskOpen])
 
   useEffect(() => {
-    const routes: Record<string, string> = { h: '/home', v: '/veltro', m: '/mesa', c: '/calendar', t: '/tasks', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
+    const routes: Record<string, string> = { h: '/home', ...(AI_ENABLED ? { v: '/veltro' } : {}), m: '/mesa', c: '/calendar', t: '/tasks', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -175,6 +188,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [router, workspaces, toggleSidebar, toggleFull])
 
   return (
+    <FullscreenContext.Provider value={fullscreen}>
     <ConfirmProvider>
       <TourProvider>
       {/* el marco (ciruela empolvado) lleva el menú y la barra de arriba; el contenido es una hoja encima, con sus esquinas */}
@@ -187,14 +201,23 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
           </svg>
         </div>
         {/* sidebar desktop */}
-        <div className={cn('on-frame hidden shrink-0', !full && 'md:block', collapsed ? 'w-[56px]' : 'w-[236px]')}>
-          <Sidebar
-            onSearch={() => setPaletteOpen(true)}
-            onNewTask={() => setQuickTaskOpen(true)}
-            onShortcuts={() => setShortcutsOpen(true)}
-            collapsed={collapsed}
-            onToggleCollapsed={toggleSidebar}
-          />
+        {/* en pantalla completa el menú se va hacia la izquierda (y vuelve) en vez de desaparecer de golpe */}
+        <div
+          inert={full}
+          className={cn(
+            'on-frame hidden shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-[var(--ease-out-quart)] md:block',
+            full ? 'w-0 opacity-0' : collapsed ? 'w-[56px]' : 'w-[236px]',
+          )}
+        >
+          <div className={cn('h-full', collapsed ? 'w-[56px]' : 'w-[236px]')}>
+            <Sidebar
+              onSearch={() => setPaletteOpen(true)}
+              onNewTask={() => setQuickTaskOpen(true)}
+              onShortcuts={() => setShortcutsOpen(true)}
+              collapsed={collapsed}
+              onToggleCollapsed={toggleSidebar}
+            />
+          </div>
         </div>
 
         {/* sidebar móvil */}
@@ -217,11 +240,27 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-        {full ? <FullscreenExit onExit={toggleFull} /> : <TopBar onSearch={() => setPaletteOpen(true)} onFullscreen={toggleFull} />}
+        {/* la barra de arriba se pliega hacia arriba al entrar en pantalla completa y se despliega al salir */}
+        <div
+          inert={full}
+          onTransitionEnd={(e) => {
+            if (e.target === e.currentTarget && !full) setClipTop(false)
+          }}
+          className={cn(
+            'grid shrink-0 transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out-quart)]',
+            full ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
+          )}
+        >
+          <div className={cn('min-h-0', clipTop && 'overflow-hidden')}>
+            <TopBar onSearch={() => setPaletteOpen(true)} onFullscreen={toggleFull} />
+          </div>
+        </div>
+        {full && !claims ? <FullscreenExitButton floating /> : null}
         <div
           className={cn(
-            'flex min-h-0 min-w-0 flex-1 flex-col',
-            !full && 'md:mb-2 md:mr-2',
+            // la hoja se estira hasta los bordes (y vuelve) con la misma curva
+            'flex min-h-0 min-w-0 flex-1 flex-col transition-[margin,border-radius] duration-300 ease-[var(--ease-out-quart)]',
+            full ? 'md:m-0' : 'md:mb-2 md:mr-2',
             !bare && 'md:overflow-hidden md:bg-canvas',
             !bare && !full && 'md:rounded-[18px] md:shadow-sheet',
           )}
@@ -274,39 +313,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
       </div>
       </TourProvider>
     </ConfirmProvider>
+    </FullscreenContext.Provider>
   )
 }
 
-/**
- * Para salir de la pantalla completa: un botón que se asoma arriba al entrar y cuando el mouse
- * toca el borde superior (como la pantalla completa del navegador). Esc también sale.
- */
-function FullscreenExit({ onExit }: { onExit: () => void }) {
-  const t = useTranslations('nav')
-  const [shown, setShown] = useState(true)
-  useEffect(() => {
-    const id = window.setTimeout(() => setShown(false), 2500)
-    return () => window.clearTimeout(id)
-  }, [])
-  return (
-    <div
-      className={cn('fixed inset-x-0 top-0 z-30 hidden justify-center md:flex', shown ? 'h-14' : 'h-2')}
-      onMouseEnter={() => setShown(true)}
-      onMouseLeave={() => setShown(false)}
-    >
-      <button
-        type="button"
-        onClick={onExit}
-        onFocus={() => setShown(true)}
-        className={cn(
-          'mt-2 inline-flex h-8 items-center gap-2 rounded-full bg-fg pl-3 pr-1.5 text-xs font-medium text-canvas shadow-lift transition-[transform,opacity] duration-200 ease-[var(--ease-out-quart)]',
-          shown ? 'translate-y-0 opacity-100' : '-translate-y-12 opacity-0',
-        )}
-      >
-        <Minimize2 className="size-3.5" />
-        {t('exitFullscreen')}
-        <kbd className="rounded-full bg-canvas/15 px-1.5 py-0.5 font-sans text-2xs">Esc</kbd>
-      </button>
-    </div>
-  )
-}

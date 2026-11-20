@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { differenceInMinutes, format, formatDistanceToNowStrict } from 'date-fns'
 import { toast } from 'sonner'
-import { Check, CheckCheck, ClipboardCopy, ExternalLink, FileText, Mail, MessageCircle, Play, Plus, Sparkles, Video } from 'lucide-react'
+import { Check, CheckCheck, ClipboardCopy, Diamond, ExternalLink, FileText, Mail, MessageCircle, Play, Plus, Sparkles, Video } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
@@ -32,6 +32,7 @@ import { KindChip, KIND_STYLE } from './kinds'
 import { AttachmentsSection } from '@/components/attachments/attachments'
 import { useHydrated, useNow } from '@/lib/hooks'
 import { useCopy } from '@/lib/clipboard'
+import { AI_ENABLED } from '@/lib/features'
 
 type View = MeetingPhase
 
@@ -227,8 +228,8 @@ export function MeetingRoom({
               </Button>
             ) : null}
             <Button variant="primary" size="sm" onClick={() => setView('closed')}>
-              <Sparkles />
-              {t('ended.close')}
+              {AI_ENABLED ? <Sparkles /> : <CheckCheck />}
+              {AI_ENABLED ? t('ended.close') : t('closeTitle')}
             </Button>
           </span>
         </div>
@@ -269,7 +270,8 @@ function PrepView({ meeting, items, editable, onStart }: { meeting: MeetingRow; 
   const members = useWorkspaceMembers(meeting.workspace_id)
   const { add, addSuggestions, update, remove } = useMeetingItemMutations(meeting.id)
   // pendientes de la reunión anterior y tareas que necesitan a los convocados (las arma la API)
-  const { data: suggestions = [] } = useAgendaSuggestions(meeting.id, editable)
+  // «Veltro preparó esto»: oculto mientras la IA esté apagada (lib/features)
+  const { data: suggestions = [] } = useAgendaSuggestions(meeting.id, editable && AI_ENABLED)
   const agenda = items.filter((i) => i.kind === 'agenda')
   const [draft, setDraft] = useState('')
 
@@ -296,7 +298,7 @@ function PrepView({ meeting, items, editable, onStart }: { meeting: MeetingRow; 
               <li key={item.id} className="group/ag flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-hover/60">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-sidebar font-mono text-xs text-fg-muted">{i + 1}</span>
                 <span className="min-w-0 flex-1 text-[15px]">{item.text}</span>
-                {item.source === 'assistant' ? <Sparkles className="size-3.5 text-accent" aria-label={t('fromAssistant')} /> : null}
+                {item.source === 'assistant' && AI_ENABLED ? <Sparkles className="size-3.5 text-accent" aria-label={t('fromAssistant')} /> : null}
                 {item.task_id ? <TaskLink taskId={item.task_id} /> : null}
                 {editable ? (
                   <button type="button" onClick={() => remove.mutate(item.id)} className="text-xs text-fg-subtle opacity-0 hover:text-danger focus-visible:opacity-100 group-hover/ag:opacity-100">
@@ -503,7 +505,7 @@ function CloseView({ meeting, items, editable }: { meeting: MeetingRow; items: M
               {t('closeStepEmail')}
             </li>
             <li className="flex items-center gap-2">
-              <Sparkles className="size-4 text-fg-subtle" />
+              {AI_ENABLED ? <Sparkles className="size-4 text-fg-subtle" /> : <Diamond className="size-4 text-fg-subtle" />}
               {t('closeStepMemory', { count: decisions.length })}
             </li>
           </ul>
@@ -514,8 +516,8 @@ function CloseView({ meeting, items, editable }: { meeting: MeetingRow; items: M
           </div>
           {editable ? (
             <Button variant="primary" className="mt-5" onClick={doClose} loading={pending}>
-              <Sparkles />
-              {t('closeWithAssistant')}
+              {AI_ENABLED ? <Sparkles /> : <CheckCheck />}
+              {AI_ENABLED ? t('closeWithAssistant') : t('closeTitle')}
             </Button>
           ) : null}
         </section>

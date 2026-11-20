@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { addDays, addWeeks, differenceInMinutes, eachDayOfInterval, endOfDay, format, isSameDay, isToday, startOfDay, startOfWeek } from 'date-fns'
-import { CalendarPlus, ChevronLeft, ChevronRight, CircleCheck, CircleUser, CloudOff, LayoutGrid, RotateCw, Users, Video } from 'lucide-react'
+import { addDays, addWeeks, differenceInMinutes, eachDayOfInterval, endOfDay, format, isSameDay, isToday, isWeekend, startOfDay, startOfWeek } from 'date-fns'
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, CircleUser, CloudOff, LayoutGrid, RotateCw, Users } from 'lucide-react'
 import { useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Avatar } from '@/components/ui/avatar'
 import { FilterFacet, type FilterOption } from '@/components/tasks/task-filters'
-import { useLocalStorage } from '@/lib/hooks'
+import { useHydrated, useLocalStorage } from '@/lib/hooks'
 import { assigneesOf, isAssignedTo } from '@/lib/assignees'
 import { UNASSIGNED, whoKeys } from '@/lib/task-filters'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ import { useMeetingsInRange, withVeltroMeetings } from '@/lib/queries/meetings'
 import { useTasks } from '@/lib/queries/tasks'
 import { toDateKey, useDateLocale } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { CARD } from '@/components/ui/surface'
 import type { CalendarEvent } from '@/lib/types'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { EventDetails } from './event-details'
@@ -27,6 +28,8 @@ import { ConnectCalendar, ConnectCalendarHint } from './connect-calendar'
 import { NewMeetingDialog } from './new-meeting-dialog'
 import { useOpenTask } from '@/lib/use-open-task'
 import { TaskPeek } from './task-peek'
+import { WeekAside } from './week-aside'
+import { FullscreenExitButton } from '@/components/app/fullscreen'
 
 const HOUR = 48
 
@@ -105,6 +108,18 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
   const { open: openTask } = useOpenTask()
   const weekStartsOn = locale.options?.weekStartsOn ?? 1
   const [anchor, setAnchor] = useState(() => startOfWeek(new Date(), { weekStartsOn }))
+  // hacia dónde se movió la semana: la que llega entra desde ese lado (y no se anima al abrir)
+  const [nav, setNav] = useState({ key: anchor.getTime(), dir: 0 })
+  if (nav.key !== anchor.getTime()) setNav({ key: anchor.getTime(), dir: anchor.getTime() > nav.key ? 1 : -1 })
+  const slide = nav.dir > 0 ? 'slide-in-next' : nav.dir < 0 ? 'slide-in-prev' : ''
+  // el día al que se saltó (desde el mes chico u «Hoy»): su columna se ilumina un instante
+  const [focus, setFocus] = useState<{ day: string; n: number } | null>(null)
+  const goToDay = (d: Date) => {
+    setAnchor(startOfWeek(d, { weekStartsOn }))
+    setFocus({ day: toDateKey(d), n: Date.now() })
+  }
+  const glow = (d: Date) =>
+    focus?.day === toDateKey(d) ? <span key={focus.n} aria-hidden className="day-glow pointer-events-none absolute inset-0 -z-10 bg-accent/[0.14]" /> : null
   const [dialogOpen, setDialogOpen] = useState(false)
   const [slot, setSlot] = useState<Date | null>(null)
   const params = useSearchParams()
@@ -132,6 +147,8 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
   }
   const scrollRef = useRef<HTMLDivElement>(null)
   const [now, setNow] = useState(() => new Date())
+  // la hora de ahora (línea y etiqueta) solo en el navegador: el servidor puede ir un minuto atrás
+  const hydrated = useHydrated()
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000)
@@ -205,23 +222,25 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
   const connectReturn = workspaceId && scopeWs ? `/w/${scopeWs.slug}/meetings` : '/calendar'
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-4 py-3 sm:px-6">
-        <h1 className="mr-2 text-lg font-semibold capitalize tracking-tight">{format(anchor, 'LLLL yyyy', { locale })}</h1>
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, -1))} aria-label={t('prevWeek')}>
-            <ChevronLeft />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setAnchor(startOfWeek(new Date(), { weekStartsOn }))}>
-            {t('today')}
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, 1))} aria-label={t('nextWeek')}>
-            <ChevronRight />
-          </Button>
+    // la semana en una tarjeta que llega hasta abajo y, al lado, el mes chico y la semana como lista
+    <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-5 sm:px-6">
+      <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 px-1">
+        {/* el mes y, debajo, cómo viene la semana (lo que se ve con los filtros puestos) */}
+        <div className="mr-auto min-w-0">
+          <h1 className="text-[26px] font-semibold capitalize leading-tight tracking-[-0.025em]">{format(anchor, 'LLLL yyyy', { locale })}</h1>
+          <p className="truncate text-sm text-fg-muted">
+            {t('weekSummary', {
+              week: format(anchor, 'w', { locale }),
+              // «16 – 22 nov» (o «30 nov – 6 dic» si cambia de mes)
+              range: `${format(anchor, anchor.getMonth() === addDays(anchor, 6).getMonth() ? 'd' : 'd MMM', { locale })} – ${format(addDays(anchor, 6), 'd MMM', { locale })}`,
+              meetings: allDay.length + timed.length,
+              tasks: days.reduce((n, d) => n + dayTasks(d).length, 0),
+            })}
+          </p>
         </div>
         {google ? <span className="hidden text-xs text-fg-subtle md:inline">{google.email}</span> : null}
         {workspaceId ? (
-          <span className="ml-auto hidden items-center gap-3 text-xs text-fg-muted lg:flex">
+          <span className="hidden items-center gap-3 text-xs text-fg-muted lg:flex">
             <span className="inline-flex items-center gap-1.5">
               <span className={cn('ws-' + (scopeWs?.color ?? 'violet'), 'size-2.5 rounded-sm')} style={{ background: 'var(--ws-color)' }} />
               {t('legend.mine', { workspace: scopeWs?.name ?? '' })}
@@ -232,11 +251,22 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
             </span>
           </span>
         ) : null}
+        {/* moverse de semana: una pastilla con las tres acciones juntas */}
+        <div className="flex items-center rounded-xl bg-panel p-0.5 shadow-card">
+          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, -1))} aria-label={t('prevWeek')}>
+            <ChevronLeft />
+          </Button>
+          <Button variant="ghost" size="sm" className="font-semibold text-fg" onClick={() => goToDay(new Date())}>
+            {t('today')}
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, 1))} aria-label={t('nextWeek')}>
+            <ChevronRight />
+          </Button>
+        </div>
         {/* con o sin Google: sin Google la reunión se crea en Veltro */}
         <Button
           variant="primary"
-          size="sm"
-          className={workspaceId ? 'ml-auto lg:ml-0' : 'ml-auto'}
+          size="md"
           onClick={() => {
             setSlot(null)
             setDialogOpen(true)
@@ -245,13 +275,36 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
           <CalendarPlus />
           {t('newMeeting')}
         </Button>
-      </div>
+        <FullscreenExitButton />
+      </header>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-4 py-2 sm:px-6">
-        <div className="flex items-center rounded-lg bg-hover p-0.5" role="group" aria-label={tf('show')}>
+      {errorCode === 'google_auth_revoked' ? (
+        <div className="shrink-0">
+          <ConnectCalendar reason={errorCode} returnTo={connectReturn} />
+        </div>
+      ) : !google || errorCode === 'google_not_connected' ? (
+        // sin Google el calendario funciona con las reuniones de Veltro; Google solo suma sus eventos
+        <ConnectCalendarHint returnTo={connectReturn} className="shrink-0 self-start" />
+      ) : errorCode ? (
+        // cualquier otro error de Google: se avisa (antes el calendario quedaba vacío sin explicación)
+        <div className="flex shrink-0 items-center gap-3 rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+          <CloudOff className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1">{t('loadError')}</span>
+          <Button size="xs" variant="secondary" onClick={() => refetchEvents()}>
+            <RotateCw />
+            {t('retry')}
+          </Button>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-0 flex-1 gap-4">
+      <section className={cn(CARD, 'flex min-w-0 flex-1 flex-col overflow-hidden')}>
+      {/* qué se ve: reuniones y/o tareas, de qué espacio y de quién */}
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line-soft px-4 py-2.5">
+        {/* reuniones y tareas se prenden por separado (pueden ir las dos): dos pastillas con su casilla */}
+        <div className="flex items-center gap-1.5" role="group" aria-label={tf('show')}>
           {(['meetings', 'tasks'] as const).map((k) => {
             const on = filters.show.includes(k)
-            const Icon = k === 'meetings' ? Video : CircleCheck
             return (
               <button
                 key={k}
@@ -260,11 +313,19 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
                 // siempre queda algo a la vista
                 onClick={() => setFilters((f) => (on && f.show.length === 1 ? f : { ...f, show: on ? f.show.filter((x) => x !== k) : [...f.show, k] }))}
                 className={cn(
-                  'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40',
-                  on ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
+                  'inline-flex h-8 items-center gap-2 rounded-full pl-2 pr-3 text-sm font-medium outline-none ring-1 transition-[background-color,color,box-shadow] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40 active:scale-[0.98]',
+                  on ? 'bg-accent-soft text-accent-ink ring-accent/15' : 'text-fg-muted ring-line hover:bg-hover hover:text-fg',
                 )}
               >
-                <Icon className="size-3.5" />
+                <span
+                  aria-hidden
+                  className={cn(
+                    'flex size-4 items-center justify-center rounded-full transition-colors duration-150',
+                    on ? 'bg-accent text-accent-fg' : 'ring-[1.5px] ring-inset ring-line-control',
+                  )}
+                >
+                  {on ? <Check className="size-2.5" strokeWidth={3.5} /> : null}
+                </span>
                 {tf(k)}
               </button>
             )
@@ -301,33 +362,21 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
         ) : null}
       </div>
 
-      {errorCode === 'google_auth_revoked' ? (
-        <div className="p-6 pb-3">
-          <ConnectCalendar reason={errorCode} returnTo={connectReturn} />
-        </div>
-      ) : !google || errorCode === 'google_not_connected' ? (
-        // sin Google el calendario funciona con las reuniones de Veltro; Google solo suma sus eventos
-        <ConnectCalendarHint returnTo={connectReturn} className="mx-4 mt-3 self-start sm:mx-6" />
-      ) : errorCode ? (
-        // cualquier otro error de Google: se avisa (antes el calendario quedaba vacío sin explicación)
-        <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger sm:mx-6">
-          <CloudOff className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1">{t('loadError')}</span>
-          <Button size="xs" variant="secondary" onClick={() => refetchEvents()}>
-            <RotateCw />
-            {t('retry')}
-          </Button>
-        </div>
-      ) : null}
-
-      <div className="flex shrink-0 border-b border-line pl-14">
-        {days.map((d) => (
-          <div key={d.toISOString()} className="flex min-w-0 flex-1 flex-col border-l border-line px-2 py-2">
-            <span className="text-2xs font-medium uppercase text-fg-subtle">{format(d, 'EEE', { locale })}</span>
+      {/* los días: hoy destacado, el fin de semana apenas sombreado */}
+      <div className="flex shrink-0 border-b border-line-soft pl-14">
+        {days.map((d, i) => (
+          <div
+            key={d.toISOString()}
+            className={cn('relative isolate flex min-w-0 flex-1 flex-col border-l border-line-soft px-2 pb-2 pt-2.5', isToday(d) ? 'bg-highlight/60' : isWeekend(d) && 'bg-canvas/70', slide)}
+            // los días entran en cascada, uno detrás de otro
+            style={slide ? { animationDelay: `${i * 18}ms` } : undefined}
+          >
+            {glow(d)}
+            <span className={cn('text-[11px] font-semibold uppercase tracking-wide', isToday(d) ? 'text-accent-ink' : 'text-fg-subtle')}>{format(d, 'EEE', { locale })}</span>
             <span
               className={cn(
-                'mt-0.5 inline-flex size-7 items-center justify-center rounded-full text-base tabular-nums',
-                isToday(d) ? 'bg-accent font-semibold text-accent-fg' : 'text-fg',
+                'mt-1 inline-flex size-8 items-center justify-center rounded-full text-lg font-semibold tabular-nums tracking-[-0.02em]',
+                isToday(d) ? 'bg-accent text-accent-fg shadow-[0_6px_14px_-8px_var(--accent)]' : isWeekend(d) ? 'text-fg-muted' : 'text-fg',
               )}
             >
               {format(d, 'd')}
@@ -341,7 +390,7 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
                 })
                 .map((e) => (
                   <Popover key={e.id}>
-                    <PopoverTrigger className="truncate rounded-xs bg-hover px-1.5 py-0.5 text-left text-2xs text-fg-muted hover:bg-active">
+                    <PopoverTrigger className="truncate rounded-md bg-hover px-1.5 py-0.5 text-left text-2xs font-medium text-fg-muted hover:bg-active">
                       {e.title || t('untitled')}
                     </PopoverTrigger>
                     <PopoverContent className="p-0">
@@ -357,8 +406,8 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
                     <PopoverTrigger
                       className={cn(
                         'ws-' + (wsMap.get(task.workspace_id)?.color ?? 'green'),
-                        'flex min-w-0 items-center gap-1 rounded-xs border px-1 py-0.5 text-left text-2xs hover:bg-hover data-[popup-open]:bg-hover',
-                        nobody ? 'border-dashed border-fg-subtle/50 text-fg-muted' : 'border-transparent text-fg',
+                        'flex min-w-0 items-center gap-1 rounded-md border px-1 py-0.5 text-left text-2xs hover:bg-hover data-[popup-open]:bg-hover',
+                        nobody ? 'border-dashed border-fg-subtle/50 text-fg-muted' : 'border-line-soft bg-panel text-fg',
                       )}
                     >
                       <StatusIcon status={task.status} className="size-3" />
@@ -399,28 +448,33 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
             {Array.from({ length: 24 }, (_, h) => (
               <div key={h} className="relative" style={{ height: HOUR }}>
                 {h > 0 ? (
-                  <span className="absolute -top-2 right-2 font-mono text-2xs tabular-nums text-fg-subtle">{String(h).padStart(2, '0')}:00</span>
+                  <span className="absolute -top-2 right-2.5 text-[11px] font-medium tabular-nums text-fg-subtle">{String(h).padStart(2, '0')}:00</span>
                 ) : null}
               </div>
             ))}
-            {days.some((d) => isSameDay(d, now)) ? (
+            {hydrated && days.some((d) => isSameDay(d, now)) ? (
               <span
-                className="absolute right-1 z-20 -translate-y-1/2 rounded-sm bg-mandarina px-1 font-mono text-2xs font-semibold tabular-nums text-on-mandarina"
+                className="absolute right-1 z-20 -translate-y-1/2 rounded-full bg-mandarina px-1.5 font-mono text-2xs font-semibold tabular-nums text-on-mandarina shadow-[0_2px_10px_-2px_oklch(0.75_0.167_50.5/0.7)]"
                 style={{ top: (differenceInMinutes(now, startOfDay(now)) / 60) * HOUR }}
               >
                 {format(now, 'HH:mm')}
               </span>
             ) : null}
           </div>
-          {days.map((d) => {
+          {days.map((d, i) => {
             const placed = layoutDay(
               timed.filter((e) => new Date(e.start) < endOfDay(d) && new Date(e.end) > startOfDay(d)),
               d,
             )
             return (
-              <div key={d.toISOString()} className={cn('group/day relative min-w-0 flex-1 border-l border-line', isToday(d) && 'bg-highlight/50')}>
+              <div
+                key={d.toISOString()}
+                className={cn('group/day relative isolate min-w-0 flex-1 border-l border-line-soft', isToday(d) ? 'bg-highlight/40' : isWeekend(d) && 'bg-canvas/60', slide)}
+                style={slide ? { animationDelay: `${i * 18}ms` } : undefined}
+              >
+                {glow(d)}
                 {Array.from({ length: 24 }, (_, h) => (
-                  <div key={h} className="border-b border-line/60" style={{ height: HOUR }}>
+                  <div key={h} className="border-b border-line-soft" style={{ height: HOUR }}>
                     {
                       // Cada media hora es un hueco: un click abre "Nueva reunión" a esa hora.
                       [0, 30].map((m) => (
@@ -448,16 +502,20 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
                 {placed.map(({ event, top, height, col, cols }) => {
                   const tone = eventTone(event)
                   const linked = tone === 'linked'
+                  // en el calendario general, cada reunión en el color de su espacio (en pastel)
+                  const evWs = linked && event.links[0] ? wsMap.get(event.links[0].workspaceId) : undefined
+                  const tinted = tone === 'mine' || Boolean(evWs)
                   const past = new Date(event.end) < now
                   const isLive = new Date(event.start) <= now && !past
                   return (
                     <Popover key={`${event.calendarId}:${event.id}`}>
                       <PopoverTrigger
                         className={cn(
-                          'absolute overflow-hidden rounded-md border px-1.5 py-1 text-left text-xs leading-tight transition-[filter,opacity] hover:brightness-[0.97]',
-                          linked && 'border-transparent bg-highlight text-highlight-ink',
+                          'absolute overflow-hidden rounded-lg border px-2 py-1 text-left text-xs leading-tight transition-[filter,opacity] hover:brightness-[0.97]',
+                          linked && !evWs && 'border-transparent bg-highlight text-highlight-ink',
+                          evWs && cn('ws-' + evWs.color, 'text-fg shadow-card'),
                           tone === 'plain' && 'border-line bg-panel text-fg shadow-card',
-                          tone === 'mine' && cn('ws-' + (scopeWs?.color ?? 'violet'), 'font-medium text-fg shadow-card'),
+                          tone === 'mine' && cn('ws-' + (scopeWs?.color ?? 'violet'), 'text-fg shadow-card'),
                           tone === 'other' && 'border-line bg-sidebar text-fg-subtle opacity-55 hover:opacity-100',
                           tone === 'unlinked' && 'border-dashed border-fg-subtle/60 bg-transparent text-fg-muted hover:border-accent hover:text-fg',
                           past && tone !== 'mine' && 'opacity-50',
@@ -469,15 +527,15 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
                           height,
                           left: `calc(${(col / cols) * 100}% + 2px)`,
                           width: `calc(${100 / cols}% - 4px)`,
-                          ...(tone === 'mine'
+                          ...(tinted
                             ? {
-                                background: 'color-mix(in oklch, var(--ws-color) 26%, var(--panel))',
-                                borderColor: 'color-mix(in oklch, var(--ws-color) 55%, transparent)',
+                                background: 'color-mix(in oklch, var(--ws-color) 22%, var(--panel))',
+                                borderColor: 'color-mix(in oklch, var(--ws-color) 45%, transparent)',
                               }
                             : {}),
                         }}
                       >
-                        <span className="block truncate font-medium">{event.title || t('untitled')}</span>
+                        <span className="block truncate font-semibold">{event.title || t('untitled')}</span>
                         {height > 34 ? (
                           <span className="block truncate text-2xs opacity-75">
                             {format(new Date(event.start), 'HH:mm')} - {format(new Date(event.end), 'HH:mm')}
@@ -490,19 +548,32 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
                     </Popover>
                   )
                 })}
-                {isSameDay(d, now) ? (
+                {hydrated && isSameDay(d, now) ? (
                   <div
                     className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
                     style={{ top: (differenceInMinutes(now, startOfDay(now)) / 60) * HOUR }}
                   >
-                    <span className="-ml-1 size-2 rounded-full bg-mandarina" />
-                    <span className="h-px flex-1 bg-mandarina" />
+                    <span className="-ml-1 size-2.5 rounded-full bg-mandarina ring-2 ring-panel" />
+                    <span className="h-0.5 flex-1 bg-mandarina shadow-[0_0_8px_oklch(0.75_0.167_50.5/0.6)]" />
                   </div>
                 ) : null}
               </div>
             )
           })}
         </div>
+      </div>
+      </section>
+      <WeekAside
+        anchor={anchor}
+        weekStartsOn={weekStartsOn}
+        onPickDay={goToDay}
+        events={[...allDay, ...timed]}
+        tasks={showTasks ? [...tasksByDay.values()].flat() : []}
+        onNewMeeting={() => {
+          setSlot(null)
+          setDialogOpen(true)
+        }}
+      />
       </div>
 
       <NewMeetingDialog open={dialogOpen} onOpenChange={setDialogOpen} defaults={{ ...(workspaceId ? { workspaceId } : {}), ...(slot ? { start: slot } : {}) }} />

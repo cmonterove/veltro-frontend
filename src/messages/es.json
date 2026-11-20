@@ -84,7 +84,8 @@
         "meet": "Reúnete",
         "decide": "Decide",
         "advance": "Avanza"
-      }
+      },
+      "closePlain": "Cerrar la reunión"
     },
     "oauth": {
       "continueWith": "Continuar con {provider}",
@@ -204,7 +205,8 @@
     "requests": "Solicitudes",
     "veltroHelp": "Ayuda de Veltro",
     "fullscreen": "Pantalla completa",
-    "exitFullscreen": "Salir de pantalla completa"
+    "exitFullscreen": "Salir de pantalla completa",
+    "exitShort": "Salir"
   },
   "command": {
     "title": "Buscar y ejecutar",
@@ -283,6 +285,9 @@
     }
   },
   "tasks": {
+    "openFull": "Abrir tarea",
+    "previewKeys": "↑ ↓ para moverte · Enter la abre",
+    "dropHere": "Suelta una tarea aquí",
     "status": {
       "backlog": "Backlog",
       "todo": "Por hacer",
@@ -523,7 +528,11 @@
     },
     "saveAsTemplate": "Guardar como plantilla",
     "fullscreen": "Ampliar vista",
-    "exitFullscreen": "Volver a la vista normal"
+    "exitFullscreen": "Volver a la vista normal",
+    "calendarTray": {
+      "title": "Sin fecha",
+      "hint": "Arrástralas a un día para ponerles fecha. Para quitársela, tráelas de vuelta acá."
+    }
   },
   "docs": {
     "untitled": "Sin título",
@@ -745,6 +754,17 @@
       "new": "Nueva reunión",
       "calendar": "Ver calendario",
       "due": "{count, plural, one {# tarea vence} other {# tareas vencen}} esta semana"
+    },
+    "weekSummary": "Semana {week} · {range} · {meetings, plural, =0 {sin reuniones} one {# reunión} other {# reuniones}} · {tasks, plural, =0 {no vence nada} one {vence # tarea} other {vencen # tareas}}",
+    "aside": {
+      "prevMonth": "Mes anterior",
+      "nextMonth": "Mes siguiente",
+      "thisWeek": "Esta semana",
+      "today": "Hoy",
+      "untitled": "(sin título)",
+      "free": "Semana libre",
+      "freeHint": "Sin reuniones ni tareas que venzan en estos días.",
+      "newMeeting": "Nueva reunión"
     }
   },
   "workspace": {
@@ -1873,6 +1893,15 @@
     },
     "closeNow": "Cerrar",
     "linkToCapture": "Entra y elige el espacio para capturar notas, decisiones y acciones.",
+    "day": {
+      "free": "Libre · {duration}",
+      "freeDay": "Sin reuniones · {duration} libres",
+      "over": "Tu jornada terminó",
+      "h": "{h} h",
+      "hm": "{h} h {m} min",
+      "m": "{m} min",
+      "label": "Tu día, hora por hora"
+    },
     "brief": {
       "greeting": {
         "morning": "Buenos días, {name}",
@@ -1905,13 +1934,27 @@
         "all": "Línea de tiempo",
         "empty": "Todavía no hay reuniones cerradas ni sesiones documentadas."
       },
+      "tabs": {
+        "focus": "Hoy",
+        "next": "Lo que sigue",
+        "blocked": "Bloqueadas",
+        "done": "Hechas",
+        "overdue": "{count, plural, one {# vencida} other {# vencidas}}",
+        "focusEmpty": "Nada vencido, para hoy ni en curso.",
+        "seeNext": "Ver lo que sigue",
+        "nextEmpty": "Nada más en tu lista. Agrega algo abajo.",
+        "blockedEmpty": "Nada bloqueado.",
+        "doneEmpty": "Todavía nada cerrado en los últimos 7 días.",
+        "reopen": "Reabrir"
+      },
       "counters": {
         "overdue": "Vencidas",
         "today": "Vencen hoy",
         "in_progress": "En curso",
         "blocked": "Bloqueadas",
         "todo": "Por hacer",
-        "done": "Hechas (7 días)"
+        "done": "Hechas (7 días)",
+        "label": "Cifras de tus tareas"
       },
       "today": {
         "title": "Tus tareas",
@@ -1932,7 +1975,8 @@
         "titleDept": "Tareas del departamento {name}",
         "progressAbove": "{count, plural, one {Otra en curso ya aparece arriba.} other {Otras # en curso ya aparecen arriba.}}",
         "clear": "Todo al día",
-        "ahead": "Para adelantar"
+        "ahead": "Para adelantar",
+        "next": "Lo que sigue"
       },
       "loose": {
         "title": "Pendientes de reuniones",
@@ -1949,6 +1993,20 @@
         "assignTo": "Asignar a",
         "empty": "Nada quedó suelto de tus reuniones.",
         "clear": "Todo con dueño"
+      },
+      "summary": {
+        "lead": "Hoy tienes",
+        "leadOthers": "Hoy hay",
+        "clear": "Nada pendiente para hoy.",
+        "overdue": "{count, plural, one {# vencida} other {# vencidas}}",
+        "today": "{count} para hoy",
+        "progress": "{count} en curso",
+        "blocked": "{count, plural, one {# bloqueada} other {# bloqueadas}}",
+        "todo": "{count} por hacer",
+        "nothingOverdue": "nada vencido",
+        "noMeetings": "Sin reuniones hoy.",
+        "now": "Ahora: <b>{title}</b>.",
+        "next": "Lo próximo: <b>{title}</b> a las {time}."
       }
     },
     "pasillo": {
@@ -1982,6 +2040,23 @@
     "justNow": "ahora"
   },
   "mesa": {
+    "rhythm": {
+      "title": "Ritmo",
+      "hint": {
+        "day": "Lo que se cerró y lo que entró, día por día.",
+        "week": "Lo que se cerró y lo que entró, semana por semana.",
+        "month": "Lo que se cerró y lo que entró, mes por mes."
+      },
+      "closed": "Cerradas",
+      "created": "Nuevas",
+      "balance": "Balance",
+      "open": "Abiertas hoy",
+      "down": "el pendiente baja",
+      "up": "el pendiente sube",
+      "even": "parejo",
+      "tooltip": "{when}: {closed, plural, =0 {ninguna cerrada} one {# cerrada} other {# cerradas}} · {created, plural, =0 {ninguna nueva} one {# nueva} other {# nuevas}}",
+      "when": "Cuándo"
+    },
     "title": "Mesa de control",
     "subtitle": "Cómo van los espacios: su estado, si avanzan y quién está sobrecargado.",
     "sentence": "{period}: <done>{closed, plural, =0 {ninguna tarea cerrada} one {# tarea cerrada} other {# tareas cerradas}}</done> y <new>{created, plural, =0 {ninguna nueva} one {# nueva} other {# nuevas}}</new>. {problems, select, none {No hay nada vencido ni bloqueado.} other {Hay <late>{overdue, plural, one {# vencida} other {# vencidas}}</late> y <stuck>{blocked, plural, one {# bloqueada} other {# bloqueadas}}</stuck>{atRisk, plural, =0 {.} one {; <risk># espacio está en riesgo</risk>.} other {; <risk># espacios están en riesgo</risk>.}}}}",
@@ -2023,6 +2098,16 @@
       "atRisk": "{count} en riesgo",
       "closed": "{count, plural, =0 {ninguna cerrada} one {# cerrada} other {# cerradas}}",
       "empty": "Nadie tiene tareas en este alcance."
+    },
+    "attention": {
+      "title": "Pide atención",
+      "risk": "En riesgo",
+      "watch": "Atención",
+      "overdue": "{count, plural, one {# vencida} other {# vencidas}}",
+      "oldest": "la más vieja, hace {days, plural, one {# día} other {# días}}",
+      "blocked": "{count, plural, one {# bloqueada} other {# bloqueadas}}",
+      "clearTitle": "Todo en orden",
+      "clearHint": "Ningún espacio en riesgo y nadie con tareas vencidas o bloqueadas."
     }
   },
   "attachments": {
@@ -2130,6 +2215,7 @@
       "blocked": "Bloq.",
       "today": "Hoy",
       "empty": "Nada urgente: ni atrasado, ni bloqueado, ni para hoy.",
+      "next": "Lo que sigue",
       "more": "Ver {count} más en la lista"
     },
     "pace": {
@@ -2195,9 +2281,50 @@
     "emptyBody": "Aquí aparecen los documentos de todos tus espacios: notas de reuniones, sesiones con Claude y lo que escribas.",
     "noMatches": "Ningún documento coincide",
     "noMatchesHint": "Prueba con otras palabras o quita algún filtro.",
-    "clearFilters": "Limpiar filtros"
+    "clearFilters": "Limpiar filtros",
+    "results": "Resultados",
+    "columns": {
+      "name": "Nombre",
+      "space": "Espacio",
+      "edited": "Editado"
+    },
+    "start": {
+      "title": "Empezar desde…",
+      "hint": "Una estructura lista que cambias como quieras.",
+      "firstHint": "Empieza el primero: en blanco o con una estructura lista que cambias como quieras.",
+      "blank": {
+        "name": "En blanco",
+        "hint": "Una página vacía. Escribe / para insertar títulos, listas o tablas."
+      },
+      "meeting": {
+        "name": "Notas de reunión",
+        "hint": "Quién estuvo, de qué se habló, qué se acordó y qué sigue.",
+        "body": "## Asistentes\n\n_Quién estuvo._\n\n## Temas\n\n_De qué se habló._\n\n## Acuerdos\n\n_Lo que se decidió._\n\n## Próximos pasos\n\n_Qué sigue, quién lo hace y para cuándo._"
+      },
+      "proposal": {
+        "name": "Propuesta",
+        "hint": "Para presentar una idea: el contexto, la meta, cómo y cuánto.",
+        "body": "## Contexto\n\n_Qué pasa hoy y por qué importa._\n\n## Objetivo\n\n_Qué queremos lograr._\n\n## Propuesta\n\n_Cómo lo haríamos._\n\n## Costo y plazos\n\n_Cuánto cuesta y cuándo estaría._"
+      },
+      "process": {
+        "name": "Proceso o guía",
+        "hint": "Los pasos para hacer algo siempre igual, y quién lo lleva.",
+        "body": "## Para qué sirve\n\n_Cuándo se usa este proceso._\n\n## Pasos\n\n1. Primer paso\n2. Segundo paso\n3. Tercer paso\n\n## Responsable\n\n_Quién lo lleva._\n\n## Dudas frecuentes\n\n_Lo que la gente suele preguntar._"
+      }
+    }
   },
   "vault": {
+    "ideas": {
+      "title": "Qué guardar aquí",
+      "pdf": "Contratos y propuestas",
+      "pdfHint": "PDF y Word, con sus versiones.",
+      "image": "Fotos y diseños",
+      "imageHint": "Se ven sin descargarlos.",
+      "sheet": "Planillas y cotizaciones",
+      "sheetHint": "Excel y CSV, a mano del equipo.",
+      "link": "Links",
+      "linkHint": "Drive, Figma, Notion o cualquier página."
+    },
     "title": "Bóveda",
     "subtitle": "{count, plural, =0 {Sin archivos} one {# archivo} other {# archivos}} · {size}",
     "upload": "Subir archivos",
@@ -2319,7 +2446,8 @@
       "restoreHint": "Pasa a ser la vigente con un número nuevo. Ninguna versión se borra.",
       "uploaded": "Ahora es la versión {version}",
       "restored": "Restaurada como versión {version}"
-    }
+    },
+    "dropHint": "Arrastra archivos aquí o haz clic para elegirlos"
   },
   "pasillo": {
     "title": "Pasillo",
@@ -2562,7 +2690,7 @@
       },
       "counters": {
         "title": "Tu día, de un vistazo",
-        "body": "Lo vencido, lo que vence hoy, lo que está en curso o bloqueado. Toca cualquier número y ves esas tareas."
+        "body": "Lo de hoy, lo que sigue, lo bloqueado y lo que cerraste en la semana. Cambia de pestaña y ves esas tareas sin salir de Pulso."
       },
       "spaces": {
         "title": "Espacios",
@@ -2715,6 +2843,23 @@
     }
   },
   "decisions": {
+    "flow": {
+      "write": "En la reunión, escribe",
+      "mark": "Queda marcada como decisión",
+      "land": "Y aparece aquí, con su fecha y su reunión",
+      "today": "Hoy · Revisión semanal",
+      "meetings": "Tus reuniones",
+      "meetingsHint": "Ahí se toman las decisiones: ábrela y anótalas con <>.",
+      "upcoming": "Próximas",
+      "recent": "Recientes",
+      "noMeetings": "No hay reuniones en estas dos semanas.",
+      "open": "Abrir"
+    },
+    "side": {
+      "spaces": "Por espacio",
+      "meetings": "Reuniones que más decidieron",
+      "total": "{count, plural, one {# decisión} other {# decisiones}}"
+    },
     "title": "Decisiones",
     "subtitle": "Todo lo que se decidió en las reuniones de tus espacios.",
     "search": "¿Qué decidimos de…? Busca un tema o una reunión",
@@ -2747,10 +2892,19 @@
       "searchTitle": "Nada decidido sobre «{q}»",
       "filteredTitle": "Nada con estos filtros",
       "searchBody": "Prueba con otras palabras, quita filtros o pregúntale a Veltro.",
-      "ask": "Pregúntale a Veltro"
-    }
+      "ask": "Pregúntale a Veltro",
+      "demoNote": "En la reunión",
+      "example": "Lanzar la campaña en noviembre"
+    },
+    "countLine": "{count}{more, select, yes {+} other {}} {count, plural, one {decisión} other {decisiones}} · {meetings, plural, one {# reunión} other {# reuniones}}"
   },
   "requests": {
+    "stepHint": {
+      "new": "Llega a la bandeja del departamento.",
+      "in_review": "Alguien la toma y la revisa.",
+      "in_progress": "Se vuelve tareas con responsable.",
+      "delivered": "Quien pidió confirma y se cierra."
+    },
     "title": "Solicitudes",
     "subtitle": "Pídele algo a otro departamento y sigue en qué va.",
     "new": "Nueva",
@@ -2926,6 +3080,19 @@
       "more": "{count} más",
       "askTo": "Pedir a",
       "new": "Nueva solicitud"
+    },
+    "askToName": "Pedir a {name}",
+    "pipeline": {
+      "inbox": "Lo que le llegó a tu departamento",
+      "mine": "Lo que pediste",
+      "hint": "{count, plural, one {# solicitud abierta} other {# solicitudes abiertas}}, por etapa. Abre una para responder, tomarla o volverla tareas.",
+      "emptyColumn": "Nada en esta etapa"
+    },
+    "example": {
+      "title": "Acceso al CRM para las tres personas que entran el lunes",
+      "from": "Ventas",
+      "to": "Tecnología",
+      "tasks": "2 tareas: crear los usuarios y darles los permisos"
     }
   },
   "views": {

@@ -42,7 +42,7 @@ export function TaskGrid({ tasks }: { tasks: TaskRow[] }) {
     })
   }, [tasks, sort, wsMap])
 
-  const head = 'sticky top-0 z-10 h-9 border-b border-line bg-sidebar px-2 text-left text-xs font-medium text-fg-muted whitespace-nowrap'
+  const head = 'sticky top-0 z-10 h-10 border-b border-line-soft bg-canvas px-2 text-left text-[11.5px] font-semibold text-fg-muted whitespace-nowrap'
 
   return (
     <div className="h-full min-h-0 overflow-auto scrollbar-thin">
@@ -78,6 +78,22 @@ export function TaskGrid({ tasks }: { tasks: TaskRow[] }) {
   )
 }
 
+/** Pastilla por estado y por prioridad: lo que no dice nada queda neutro. */
+const STATUS_PILL: Record<string, string> = {
+  backlog: 'bg-fg/[0.04] text-fg-muted',
+  todo: 'bg-fg/[0.05] text-fg',
+  in_progress: 'bg-warning-soft text-mandarina-ink',
+  blocked: 'bg-danger-soft text-danger',
+  done: 'bg-done-soft text-done',
+}
+const PRIORITY_PILL: Record<string, string> = {
+  urgent: 'bg-danger-soft text-danger',
+  high: 'bg-warning-soft text-mandarina-ink',
+  medium: 'bg-fg/[0.05] text-fg',
+  low: 'bg-fg/[0.04] text-fg-muted',
+  none: 'text-fg-subtle',
+}
+
 function GridRow({ task }: { task: TaskRow }) {
   const statusName = useStatusName()
   const tPriority = useTranslations('tasks.priority')
@@ -89,15 +105,15 @@ function GridRow({ task }: { task: TaskRow }) {
   const { open } = useOpenTask()
   const people = assigneesOf(task).flatMap((id) => memberMap.get(id) ?? [])
   const patch = (p: Parameters<typeof update.mutate>[0]['patch']) => update.mutate({ id: task.id, patch: p })
-  const cell = 'h-10 border-b border-line-soft px-1.5 align-middle'
+  const cell = 'h-11 border-b border-line-soft px-1.5 align-middle'
   const done = task.status === 'done'
 
   return (
-    <tr className="group/tr hover:bg-hover/50">
-      <td className={cn(cell, 'sticky left-0 z-[1] bg-canvas pl-4 group-hover/tr:bg-hover')}>
+    <tr className="group/tr transition-colors duration-150 hover:bg-hover/50">
+      <td className={cn(cell, 'sticky left-0 z-[1] bg-panel pl-4 group-hover/tr:bg-[color-mix(in_oklch,var(--hover)_50%,var(--panel))]')}>
         <button type="button" onClick={() => open(task.id)} className="flex w-full min-w-0 items-center gap-2 text-left">
           <span className="w-14 shrink-0 font-mono text-xs text-fg-subtle">{ws ? taskRef(ws.key, task.number) : ''}</span>
-          <span className={cn('truncate', done ? 'text-fg-muted line-through decoration-fg-subtle/40' : 'text-fg')}>{task.title}</span>
+          <span className={cn('truncate font-medium', done ? 'text-fg-muted line-through decoration-fg-subtle/40' : 'text-fg')}>{task.title}</span>
         </button>
       </td>
       <td className={cell}>
@@ -109,15 +125,21 @@ function GridRow({ task }: { task: TaskRow }) {
         ) : null}
       </td>
       <td className={cell}>
-        <StatusMenu options={workspaceStatuses(ws)} value={taskStatusOf(task, ws)} onChange={(o) => patch(statusPatch(o))} disabled={!editable} className="h-7 px-2">
+        <StatusMenu
+          options={workspaceStatuses(ws)}
+          value={taskStatusOf(task, ws)}
+          onChange={(o) => patch(statusPatch(o))}
+          disabled={!editable}
+          className={cn('h-7 rounded-full px-2.5 font-medium', STATUS_PILL[task.status])}
+        >
           <StatusIcon status={task.status} />
           <span className="truncate">{statusName(taskStatusOf(task, ws))}</span>
         </StatusMenu>
       </td>
       <td className={cell}>
-        <PriorityMenu value={task.priority} onChange={(priority) => patch({ priority })} disabled={!editable} className="h-7 px-2">
+        <PriorityMenu value={task.priority} onChange={(priority) => patch({ priority })} disabled={!editable} className={cn('h-7 rounded-full px-2.5', PRIORITY_PILL[task.priority])}>
           <PriorityIcon priority={task.priority} />
-          <span className={cn('whitespace-nowrap text-sm', task.priority === 'none' && 'text-fg-subtle')}>{tPriority(task.priority)}</span>
+          <span className="whitespace-nowrap text-sm font-medium">{tPriority(task.priority)}</span>
         </PriorityMenu>
       </td>
       <td className={cell}>
@@ -133,7 +155,7 @@ function GridRow({ task }: { task: TaskRow }) {
         </AssigneesMenu>
       </td>
       <td className={cell}>
-        <DuePopover value={task.due_date} onChange={(due_date) => patch({ due_date })} disabled={!editable} className="h-7 px-2">
+        <DuePopover value={task.due_date} onChange={(due_date) => patch({ due_date })} disabled={!editable} className={cn('h-7 rounded-full px-2.5', task.due_date && 'bg-fg/[0.04]')}>
           {task.due_date ? <DueDate due={task.due_date} done={done} repeats={Boolean(task.recurrence)} /> : <span className="text-sm text-fg-subtle">—</span>}
         </DuePopover>
       </td>

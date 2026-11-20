@@ -22,7 +22,10 @@ import type { MeetingItemRow, MeetingRow, TaskRow } from '@/lib/database.types'
 import type { CalendarEvent, DocSummary, WorkspaceWithRole } from '@/lib/types'
 import { PasilloStrip } from './pasillo-strip'
 import { AskBar } from './ask-bar'
-import { AgendaColumn, Counters, LooseColumn, TodayColumn, ViewSentence, useBriefModel, type BriefData } from './brief'
+import { DaySummary, MeetingsRail, PULSE_CARD, TasksPanel, useBriefModel, type BriefData } from './brief'
+import { AgendaNow, DayRuler } from './day'
+import { FullscreenExitButton } from '@/components/app/fullscreen'
+import { AI_ENABLED } from '@/lib/features'
 import { DocThread, LiveCard, MeetingThread, UpcomingCard } from './cards'
 import { useOpenTask } from '@/lib/use-open-task'
 import { RequestsPulse } from '@/components/requests/requests-pulse'
@@ -89,7 +92,7 @@ export function PulseView() {
       out.push({ type: 'meeting', at: new Date(m.starts_at), meeting: m })
     }
     for (const d of docs ?? []) {
-      if (d.source !== 'claude' || !scopeIds.includes(d.workspace_id)) continue
+      if (!AI_ENABLED || d.source !== 'claude' || !scopeIds.includes(d.workspace_id)) continue
       if (new Date(d.created_at) < from) continue
       out.push({ type: 'doc', at: new Date(d.created_at), doc: d })
     }
@@ -200,28 +203,39 @@ export function PulseView() {
     )
   }
 
-  // Pulso: todo en una pantalla. Arriba quién eres, qué estás mirando y la pregunta a Veltro;
-  // después cuánto hay y tres columnas que hacen scroll por dentro.
+  // Pulso, de arriba abajo: el día (saludo, las tareas en una frase, lo que sigue en la agenda y la
+  // regla de horas); abajo la lista de tareas como pieza principal y, al lado y sin cajas, lo que
+  // dejaron las reuniones y las solicitudes entre departamentos.
   return (
     <div className="@container/pulse h-full">
-      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4 px-4 py-5 sm:px-6 @min-[1000px]/pulse:h-full">
-        <header className="flex shrink-0 flex-wrap items-end gap-x-6 gap-y-2">
-          <div className="mr-auto min-w-0">
-            <p className="text-xs font-medium text-fg-subtle first-letter:uppercase">{dateLine}</p>
-            <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-              {t(`brief.greeting.${greeting}`, { name: profile.full_name.split(' ')[0] })}
-            </h1>
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4 px-4 py-4 sm:px-6 @min-[1000px]/pulse:h-full">
+        {/* el día en ciruela de marca, con texto perla: la única superficie de color fuerte de Pulso */}
+        <section
+          data-tour="day"
+          className="on-frame day-surface relative shrink-0 rounded-[22px] px-5 pb-4 pt-4 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)] sm:px-7"
+        >
+          <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+            <div className="mr-auto min-w-0">
+              <p className="text-[13px] font-medium tracking-[0.01em] text-fg-subtle first-letter:uppercase">{dateLine}</p>
+              <h1 className="mt-0.5 text-[30px] font-semibold leading-[1.15] tracking-[-0.03em]">
+                {t(`brief.greeting.${greeting}`, { name: profile.full_name.split(' ')[0] })}
+              </h1>
+              <div className="mt-1">
+                <DaySummary model={model} scope={scope} />
+              </div>
+            </div>
+            <AgendaNow data={briefData} model={model} />
+            <FullscreenExitButton className="self-start" />
           </div>
-          <ViewSentence scopes={scopes} scope={scope} onScope={setScopeId} workspaces={workspaces} filter={filter} onFilter={setFilter} />
-        </header>
 
-        <div className="relative z-20 shrink-0" data-tour="ask">
-          <AskBar tasks={tasks ?? []} items={items ?? []} meetings={meetings ?? []} docs={docs ?? []} />
-        </div>
+          <DayRuler data={briefData} model={model} className="mt-3" />
 
-        <div className="shrink-0" data-tour="counters">
-          <Counters model={model} scope={scope} loading={!model.counts} />
-        </div>
+          {AI_ENABLED ? (
+            <div className="relative z-20 mt-4 min-w-0 border-t border-fg/[0.07] pt-4" data-tour="ask">
+              <AskBar tasks={tasks ?? []} items={items ?? []} meetings={meetings ?? []} docs={docs ?? []} />
+            </div>
+          ) : null}
+        </section>
 
         {scope.kind === 'me' ? (
           <div className="shrink-0 empty:hidden">
@@ -229,12 +243,20 @@ export function PulseView() {
           </div>
         ) : null}
 
-        {scope.kind === 'me' ? <RequestsPulse /> : null}
-
-        <div className="grid grid-cols-1 gap-4 @min-[1000px]/pulse:min-h-0 @min-[1000px]/pulse:flex-1 @min-[1000px]/pulse:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <TodayColumn data={briefData} model={model} scope={scope} />
-          <AgendaColumn data={briefData} model={model} onTimeline={() => setView('timeline')} />
-          <LooseColumn data={briefData} model={model} />
+        {/* la lista nunca baja de ~22rem: en pantallas bajas la página baja un poco en vez de aplastarla */}
+        <div className="grid grid-cols-1 gap-x-7 gap-y-5 @min-[1000px]/pulse:min-h-[22rem] @min-[1000px]/pulse:flex-1 @min-[1000px]/pulse:grid-cols-[minmax(0,1fr)_minmax(17rem,22rem)]">
+          <TasksPanel data={briefData} model={model} scope={scope} scopes={scopes} onScope={setScopeId} workspaces={workspaces} onFilter={setFilter} />
+          {/* dos tarjetas apiladas; la de reuniones se estira para que el pie quede alineado con Tareas */}
+          <aside className="flex min-h-0 flex-col gap-4">
+            <div className={cn(PULSE_CARD, 'min-h-0 px-5 py-4 scrollbar-thin @min-[1000px]/pulse:flex-1 @min-[1000px]/pulse:overflow-y-auto')}>
+              <MeetingsRail data={briefData} model={model} onTimeline={() => setView('timeline')} />
+            </div>
+            {scope.kind === 'me' ? (
+              <div className={cn(PULSE_CARD, 'shrink-0 px-5 py-4')}>
+                <RequestsPulse rail />
+              </div>
+            ) : null}
+          </aside>
         </div>
       </div>
     </div>

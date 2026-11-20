@@ -13,6 +13,23 @@ export function useHydrated() {
   )
 }
 
+/** ¿Se cumple la media query? false en el servidor y en la hidratación. */
+export function useMediaQuery(query: string) {
+  const subscribe = useCallback(
+    (cb: () => void) => {
+      const m = window.matchMedia(query)
+      m.addEventListener('change', cb)
+      return () => m.removeEventListener('change', cb)
+    },
+    [query],
+  )
+  return useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(query).matches,
+    () => false,
+  )
+}
+
 /** Hora actual que se refresca cada `ms`. */
 export function useNow(ms = 60_000) {
   const [now, setNow] = useState(() => new Date())

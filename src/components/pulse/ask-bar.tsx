@@ -93,7 +93,8 @@ export function AskBar({ tasks, items, meetings, docs }: { tasks: TaskRow[]; ite
 
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded-2xl border border-accent/30 bg-panel shadow-card transition-[border-color,box-shadow] focus-within:border-accent focus-within:shadow-[0_0_0_4px_color-mix(in_oklch,var(--accent)_14%,transparent)]">
+      {/* en el celular, la pregunta con sus sugerencias; en la compu la pregunta está en la barra de arriba y acá quedan solo las sugerencias, sin caja */}
+      <div className="overflow-hidden rounded-2xl border border-accent/30 bg-panel shadow-card transition-[border-color,box-shadow] focus-within:border-accent focus-within:shadow-[0_0_0_4px_color-mix(in_oklch,var(--accent)_14%,transparent)] md:overflow-visible md:rounded-none md:border-0 md:bg-transparent md:shadow-none md:focus-within:shadow-none">
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -139,14 +140,17 @@ export function AskBar({ tasks, items, meetings, docs }: { tasks: TaskRow[]; ite
             </button>
           </Tooltip>
         </form>
-        <div className="flex items-center gap-1.5 overflow-x-auto border-t border-line-soft bg-sidebar/40 px-3 py-2 scrollbar-thin md:border-t-0">
-          <span className="shrink-0 pr-1 text-2xs font-medium uppercase tracking-wide text-fg-subtle">{t('try')}</span>
+        <div className="flex items-center gap-1.5 overflow-x-auto border-t border-line-soft bg-sidebar/40 px-3 py-2 scrollbar-thin md:border-t-0 md:bg-transparent md:p-0">
+          <span className="flex shrink-0 items-center gap-1 pr-1 text-2xs font-medium uppercase tracking-wide text-fg-subtle">
+            <Sparkles className="hidden size-3.5 text-accent-mid md:block" />
+            {t('try')}
+          </span>
           {examples.map((ex) => (
             <button
               key={ex}
               type="button"
               onClick={() => ask(ex)}
-              className="max-w-80 shrink-0 truncate rounded-full border border-line bg-panel px-2.5 py-1 text-xs text-fg-muted transition-colors hover:border-accent hover:text-fg"
+              className="max-w-80 shrink-0 truncate rounded-full border border-line bg-panel px-2.5 py-1 text-xs text-fg-muted transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent-ink"
             >
               {ex}
             </button>

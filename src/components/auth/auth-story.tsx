@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'motion/react'
 import { ArrowRight, Check, Diamond, HelpCircle, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AI_ENABLED } from '@/lib/features'
 
 // Línea de tiempo de la historia (ms). Paso final = estado "cerrado".
 const STEPS = [0, 900, 1900, 2900, 4200, 5000, 6400]
@@ -130,8 +131,8 @@ export function AuthStory() {
                       closed ? 'bg-hover text-fg-muted' : step >= 4 ? 'bg-accent text-accent-fg' : 'bg-accent/90 text-accent-fg',
                     )}
                   >
-                    <Sparkles className="size-3.5" />
-                    {closed ? t('closed') : t('close')}
+                    {AI_ENABLED ? <Sparkles className="size-3.5" /> : <Check className="size-3.5" />}
+                    {closed ? t('closed') : AI_ENABLED ? t('close') : t('closePlain')}
                   </motion.span>
                 </div>
               </div>

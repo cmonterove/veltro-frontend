@@ -29,15 +29,22 @@ import { AttachmentIcon, formatBytes } from '@/components/attachments/attachment
 import { useOpenTask } from '@/lib/use-open-task'
 import { useConfirm } from '@/components/ui/confirm'
 import { previewOrOpen } from '@/components/vault/file-viewer'
+import { AI_ENABLED } from '@/lib/features'
 
 type Tab = 'docs' | 'files'
 type FileFilter = 'all' | 'docs' | 'images' | 'sheets' | 'links'
 
-const GROUPS: { id: string; sources: DocSource[] }[] = [
-  { id: 'meeting', sources: ['meeting'] },
-  { id: 'claude', sources: ['claude'] },
-  { id: 'docs', sources: ['manual', 'import'] },
-]
+// sin la IA (lib/features), los docs de Claude van con los demás
+const GROUPS: { id: string; sources: DocSource[] }[] = AI_ENABLED
+  ? [
+      { id: 'meeting', sources: ['meeting'] },
+      { id: 'claude', sources: ['claude'] },
+      { id: 'docs', sources: ['manual', 'import'] },
+    ]
+  : [
+      { id: 'meeting', sources: ['meeting'] },
+      { id: 'docs', sources: ['manual', 'import', 'claude'] },
+    ]
 
 const NO_DOCS: DocSummary[] = []
 
@@ -53,7 +60,7 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
   const [tab, setTab] = useState<Tab>(() => (params.get('tab') === 'files' ? 'files' : 'docs'))
   const [query, setQuery] = useState('')
   const [importOpen, setImportOpen] = useState(false)
-  const [fromClaude, setFromClaude] = useState(true)
+  const [fromClaude, setFromClaude] = useState(AI_ENABLED)
   const { upload } = useAttachmentMutations()
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -139,10 +146,12 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
         onOpenChange={setImportOpen}
         allowReplace={false}
         footerStart={
-          <label className="flex items-center gap-2 text-xs text-fg-muted">
-            <Switch checked={fromClaude} onCheckedChange={setFromClaude} />
-            {t('import.fromClaude')}
-          </label>
+          AI_ENABLED ? (
+            <label className="flex items-center gap-2 text-xs text-fg-muted">
+              <Switch checked={fromClaude} onCheckedChange={setFromClaude} />
+              {t('import.fromClaude')}
+            </label>
+          ) : undefined
         }
         onImport={(markdown) => {
           const firstHeading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim()

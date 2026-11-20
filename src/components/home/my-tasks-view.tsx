@@ -12,12 +12,13 @@ import { ErrorState } from '@/components/ui/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTaskStats, useTasks } from '@/lib/queries/tasks'
 import type { TaskRow } from '@/lib/database.types'
-import { CollapseAllButton, TaskGroupList, type CollapsedGroups } from '@/components/tasks/task-list'
+import { CollapseAllButton, TaskGroupList, isGroupCollapsed, type CollapsedGroups } from '@/components/tasks/task-list'
+import { TaskPreview } from '@/components/tasks/task-preview'
+import { useOpenTask } from '@/lib/use-open-task'
 import { GROUP_BYS, useTaskGroupsBy, type GroupBy } from '@/components/tasks/my-task-groups'
 import { GroupByMenu, TaskFilterBar } from '@/components/tasks/task-filters'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { TaskCalendar } from '@/components/tasks/task-calendar'
-import { FULLSCREEN_CLASS, FullscreenButton, useFullscreen } from '@/components/tasks/fullscreen'
 import { TaskGrid } from '@/components/tasks/task-grid'
 import { TasksDashboard } from '@/components/tasks/tasks-dashboard'
 import { ScopeChips } from '@/components/app/scope-menu'
@@ -26,11 +27,13 @@ import { TasksMoreMenu } from '@/components/tasks/task-transfer'
 import { ShowIdleContext } from '@/components/tasks/task-row'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { toDateKey } from '@/lib/dates'
-import { useLocalStorage } from '@/lib/hooks'
+import { isTypingTarget, useLocalStorage, useMediaQuery } from '@/lib/hooks'
 import { isCounter, useScopes } from '@/lib/scope'
 import { NO_FILTERS, activeFilterCount, counterFilters, matchesTaskFilters, matchesTaskQuery, parseTaskFilters, writeTaskFilters, type TaskFilters } from '@/lib/task-filters'
 import { track } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
+import { CARD } from '@/components/ui/surface'
+import { FullscreenExitButton } from '@/components/app/fullscreen'
 
 const TABS = ['summary', 'list', 'table', 'board', 'calendar'] as const
 const NO_TASKS: TaskRow[] = []
@@ -66,15 +69,15 @@ export function MyTasksView() {
   const groupBy: GroupBy = groupOptions.includes(groupPref) ? groupPref : 'date'
   // grupos plegados, recordados por cada forma de agrupar
   const [collapsedBy, setCollapsedBy] = useLocalStorage<Partial<Record<GroupBy, CollapsedGroups>>>('veltro:tasks-collapsed', {})
-  const collapsed = collapsedBy[groupBy] ?? {}
+  const collapsed = useMemo(() => collapsedBy[groupBy] ?? {}, [collapsedBy, groupBy])
   const setCollapsed = (next: CollapsedGroups) => setCollapsedBy((prev) => ({ ...prev, [groupBy]: next }))
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
-  const { full, toggle: toggleFull } = useFullscreen()
 
   useEffect(() => {
     if (tabParam && TABS.includes(tabParam) && tabParam !== lastTab) setLastTab(tabParam)
   }, [tabParam, lastTab, setLastTab])
+
 
   // el alcance lo resuelve la API (mías, mi equipo, un departamento, una persona o toda la empresa,
   // que incluye las que no tienen responsable); búsqueda y filtros siguen en el navegador
@@ -96,6 +99,38 @@ export function MyTasksView() {
   const filtering = activeFilterCount(filters) > 0 || q !== ''
   const onlyDone = filters.status.length > 0 && filters.status.every((s) => s === 'done')
   const grouped = useTaskGroupsBy(shown, groupBy, { ownOnly: scope.kind === 'me', expandDone: onlyDone })
+  const wide = useMediaQuery('(min-width: 1280px)')
+  const { open: openTask } = useOpenTask()
+  // la tarea del vistazo: la elegida o, si no hay, la primera de la lista (en el orden que se ve)
+  const ordered = useMemo(() => grouped.filter((g) => g.tasks.length && !isGroupCollapsed(g, collapsed)).flatMap((g) => g.tasks), [grouped, collapsed])
+  const [pickedId, setPickedId] = useState<string | null>(null)
+  const selected = ordered.find((x) => x.id === pickedId) ?? ordered[0] ?? null
+
+  // ↑ ↓ cambian de tarea, Enter la abre (si no se está escribiendo ni hay un menú abierto)
+  const peekOn = tab === 'list' && wide
+  useEffect(() => {
+    if (!peekOn || !selected) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target)) return
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]')) return
+      if (e.key === 'Enter') {
+        // Enter sobre otro botón es de ese botón
+        if (e.target instanceof HTMLElement && e.target.closest('button, a, [role="button"]:not([data-task-id])')) return
+        e.preventDefault()
+        openTask(selected.id)
+        return
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+      e.preventDefault()
+      const i = ordered.findIndex((x) => x.id === selected.id)
+      const next = ordered[Math.min(ordered.length - 1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))]
+      if (!next) return
+      setPickedId(next.id)
+      document.querySelector(`[data-task-id="${next.id}"]`)?.scrollIntoView({ block: 'nearest' })
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [peekOn, selected, ordered, openTask])
 
   // lo que se exporta: lo que se ve (en Resumen, todo el alcance)
   const exportable = useMemo(() => {
@@ -141,13 +176,17 @@ export function MyTasksView() {
     { id: 'calendar', label: tt('views.calendar'), icon: CalendarDays },
   ]
 
+  // la Lista con su vistazo al lado (en pantallas anchas): la tarea elegida se ve sin salir
+  const peek = tab === 'list' && wide
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-line px-4 pt-6 sm:px-6">
-        <div className="flex flex-wrap items-start gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
+      {/* encabezado compacto: lo que importa es el contenido de abajo */}
+      <header className="flex shrink-0 flex-col gap-3 px-1">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="mr-auto min-w-0">
-            <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
-            <p className="truncate text-sm text-fg-muted">
+            <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{t('title')}</h1>
+            <p className="truncate text-[13px] text-fg-muted">
               {!scoped ? '\u00a0' : scope.kind === 'me' ? t('subtitle', { count: open }) : t('subtitleScoped', { count: open, who: `${scope.display} · ${scope.hint}` })}
             </p>
           </div>
@@ -158,92 +197,62 @@ export function MyTasksView() {
               <Plus />
               {t('newTask')}
             </Button>
+            <FullscreenExitButton />
           </div>
         </div>
 
-        {/* de quién son las tareas: a la vista, no en un menú */}
-        <div className="mt-4 flex flex-wrap items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <ScopeChips options={options} value={scope} onChange={(id) => setParam('scope', id === 'me' ? null : id)} />
-          </div>
-          {/* vistas guardadas: alcance, filtros, pestaña y agrupación con nombre */}
-          <SavedViewsMenu
-            groupBy={groupBy}
-            onApply={(query, group) => {
-              window.history.replaceState(null, '', `${pathname}${query ? `?${query}` : ''}`)
-              if (group && (GROUP_BYS as readonly string[]).includes(group)) setGroupPref(group as GroupBy)
-            }}
-          />
-        </div>
-
-        {/* las vistas son la navegación de la página */}
-        <nav className="-mb-px mt-4 flex gap-1 overflow-x-auto scrollbar-none" aria-label={t('title')}>
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => {
-                setParam('tab', id)
-                track(`feature.my_tasks_${id}`)
-              }}
-              aria-current={tab === id ? 'page' : undefined}
-              className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-t-md border-b-2 px-3 text-sm outline-none transition-colors focus-visible:bg-hover focus-visible:text-fg',
-                tab === id ? 'border-accent font-medium text-fg' : 'border-transparent text-fg-muted hover:text-fg',
-              )}
-            >
-              <Icon className="size-4" />
-              {label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* filtros y vista: a pantalla completa con el botón (o Esc para volver) */}
-      <div className={cn('flex min-h-0 flex-1 flex-col', full && tab !== 'summary' && FULLSCREEN_CLASS)} data-view-fullscreen={full && tab !== 'summary' ? '' : undefined}>
-        {/* búsqueda y filtros: comunes a Lista, Tabla, Tablero y Calendario */}
-        {tab !== 'summary' && searched && scoped ? (
-          <TaskFilterBar
-            tasks={searched}
-            universe={scoped}
-            filters={filters}
-            onChange={(update) => {
-              updateFilters(update)
-              track('feature.tasks_filter')
-            }}
-            query={query}
-            onQuery={setQuery}
-            showPeople={multi}
-          >
-            {tab === 'list' ? <CollapseAllButton groups={grouped} collapsed={collapsed} onChange={setCollapsed} /> : null}
-            {tab === 'list' ? (
-              <GroupByMenu
-                value={groupBy}
-                options={groupOptions}
-                onChange={(g) => {
-                  setGroupPref(g)
-                  track(`feature.tasks_group_${g}`)
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
+          {/* las vistas son la navegación de la página: un control segmentado, la activa en relieve */}
+          <nav className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-2xl bg-fg/[0.05] p-1 scrollbar-none" aria-label={t('title')}>
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setParam('tab', id)
+                  track(`feature.my_tasks_${id}`)
                 }}
-              />
-            ) : null}
-            {/* sin filtros el total ya está en el subtítulo */}
-            {filtering ? <span className="whitespace-nowrap pl-1 text-xs tabular-nums text-fg-subtle">{tf('shownOf', { shown: counted.shown, count: counted.total })}</span> : null}
-            <FullscreenButton full={full} onToggle={toggleFull} />
-          </TaskFilterBar>
-        ) : null}
+                aria-current={tab === id ? 'page' : undefined}
+                className={cn(
+                  'inline-flex h-8 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-medium outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40',
+                  tab === id ? 'bg-panel text-fg shadow-card' : 'text-fg-muted hover:text-fg',
+                )}
+              >
+                <Icon className={cn('size-4 transition-colors', tab === id ? 'text-accent' : 'text-fg-subtle')} />
+                {label}
+              </button>
+            ))}
+          </nav>
 
-        <div className={cn('min-h-0 flex-1', tab === 'summary' || tab === 'list' ? 'overflow-y-auto scrollbar-thin' : '')}>
+          {/* de quién son las tareas (a la vista, no en un menú) y las vistas guardadas */}
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+            <ScopeChips options={options} value={scope} onChange={(id) => setParam('scope', id === 'me' ? null : id)} />
+            {/* vistas guardadas: alcance, filtros, pestaña y agrupación con nombre */}
+            <SavedViewsMenu
+              groupBy={groupBy}
+              onApply={(query, group) => {
+                window.history.replaceState(null, '', `${pathname}${query ? `?${query}` : ''}`)
+                if (group && (GROUP_BYS as readonly string[]).includes(group)) setGroupPref(group as GroupBy)
+              }}
+            />
+          </div>
+        </div>
+      </header>
+
+      {tab === 'summary' ? (
+        // el Resumen arma sus propias tarjetas; aquí solo se desplaza (con aire para sus sombras)
+        <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1 scrollbar-thin sm:-mx-6 sm:px-6">
           {tasksQuery.isError ? (
-            <div className="px-6">
-              <ErrorState onRetry={() => tasksQuery.refetch()} />
+            <ErrorState onRetry={() => tasksQuery.refetch()} />
+          ) : isLoading || !scoped ? (
+            <div className="flex flex-col gap-4">
+              <Skeleton className="h-24 rounded-[22px]" />
+              <div className="grid gap-4 lg:grid-cols-12">
+                <Skeleton className="h-56 rounded-[24px] lg:col-span-7" />
+                <Skeleton className="h-56 rounded-[24px] lg:col-span-5" />
+              </div>
             </div>
-          ) : isLoading || !shown || !scoped ? (
-            <div className="flex flex-col gap-2 p-6">
-              <Skeleton className="h-9" />
-              <Skeleton className="h-9" />
-              <Skeleton className="h-9" />
-            </div>
-          ) : tab === 'summary' ? (
+          ) : (
             <TasksDashboard
               tasks={scoped}
               stats={stats.data}
@@ -251,40 +260,102 @@ export function MyTasksView() {
               onFilter={(c) => setFilters({ ...NO_FILTERS, ...counterFilters(c) }, 'list')}
               onTab={(next) => setFilters(NO_FILTERS, next)}
             />
-          ) : counted.shown === 0 ? (
-            <div className="px-6">
-              <EmptyState
-                icon={<CircleCheck />}
-                title={filtering ? t('emptyFiltered') : t('empty.title')}
-                description={filtering ? t('emptyFilteredHint') : t('empty.description')}
-                action={
-                  filtering ? (
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setQuery('')
-                        setFilters(NO_FILTERS)
-                      }}
-                    >
-                      {tf('clearFilters')}
-                    </Button>
-                  ) : null
-                }
-              />
-            </div>
-          ) : tab === 'list' ? (
-            <ShowIdleContext.Provider value={scope.kind !== 'me'}>
-              <TaskGroupList groups={grouped} showWorkspace={groupBy !== 'space'} hideEmpty collapsed={collapsed} onCollapsedChange={setCollapsed} />
-            </ShowIdleContext.Provider>
-          ) : tab === 'table' ? (
-            <TaskGrid tasks={shown} />
-          ) : tab === 'board' ? (
-            <TaskBoard tasks={shown} />
-          ) : (
-            <TaskCalendar tasks={shown} editable={false} />
           )}
         </div>
-      </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 gap-4">
+        {/* filtros y vista en una tarjeta hasta abajo (para verla más grande: la pantalla completa general, F) */}
+        <section
+          className={cn(CARD, 'flex min-h-0 flex-1 flex-col overflow-hidden')}
+        >
+          {/* búsqueda y filtros: comunes a Lista, Tabla, Tablero y Calendario */}
+          {searched && scoped ? (
+            <TaskFilterBar
+              brand
+              tasks={searched}
+              universe={scoped}
+              filters={filters}
+              onChange={(update) => {
+                updateFilters(update)
+                track('feature.tasks_filter')
+              }}
+              query={query}
+              onQuery={setQuery}
+              showPeople={multi}
+            >
+              {tab === 'list' ? <CollapseAllButton groups={grouped} collapsed={collapsed} onChange={setCollapsed} /> : null}
+              {tab === 'list' ? (
+                <GroupByMenu
+                  value={groupBy}
+                  options={groupOptions}
+                  onChange={(g) => {
+                    setGroupPref(g)
+                    track(`feature.tasks_group_${g}`)
+                  }}
+                />
+              ) : null}
+              {/* sin filtros el total ya está en el subtítulo */}
+              {filtering ? <span className="whitespace-nowrap pl-1 text-xs tabular-nums text-fg-subtle">{tf('shownOf', { shown: counted.shown, count: counted.total })}</span> : null}
+            </TaskFilterBar>
+          ) : null}
+
+          <div className={cn('min-h-0 flex-1', tab === 'list' ? 'overflow-y-auto scrollbar-thin' : '')}>
+            {tasksQuery.isError ? (
+              <div className="px-6">
+                <ErrorState onRetry={() => tasksQuery.refetch()} />
+              </div>
+            ) : isLoading || !shown || !scoped ? (
+              <div className="flex flex-col gap-2 p-5">
+                <Skeleton className="h-10 rounded-xl" />
+                <Skeleton className="h-10 rounded-xl" />
+                <Skeleton className="h-10 rounded-xl" />
+              </div>
+            ) : counted.shown === 0 ? (
+              <div className="px-6">
+                <EmptyState
+                  icon={<CircleCheck />}
+                  title={filtering ? t('emptyFiltered') : t('empty.title')}
+                  description={filtering ? t('emptyFilteredHint') : t('empty.description')}
+                  action={
+                    filtering ? (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setQuery('')
+                          setFilters(NO_FILTERS)
+                        }}
+                      >
+                        {tf('clearFilters')}
+                      </Button>
+                    ) : null
+                  }
+                />
+              </div>
+            ) : tab === 'list' ? (
+              <ShowIdleContext.Provider value={scope.kind !== 'me'}>
+                <TaskGroupList
+                  groups={grouped}
+                  showWorkspace={groupBy !== 'space'}
+                  hideEmpty
+                  collapsed={collapsed}
+                  onCollapsedChange={setCollapsed}
+                  selectedId={peek ? selected?.id : undefined}
+                  onSelect={peek ? setPickedId : undefined}
+                />
+              </ShowIdleContext.Provider>
+            ) : tab === 'table' ? (
+              <TaskGrid tasks={shown} />
+            ) : tab === 'board' ? (
+              <TaskBoard tasks={shown} />
+            ) : (
+              <TaskCalendar tasks={shown} editable={false} />
+            )}
+          </div>
+        </section>
+        {/* el vistazo: la tarea elegida, al lado de la lista */}
+        {peek && selected && counted.shown > 0 ? <TaskPreview key={selected.id} task={selected} className="w-[380px] shrink-0 animate-in fade-in-0 duration-200" /> : null}
+        </div>
+      )}
 
       <QuickTaskDialog open={creating} onOpenChange={setCreating} defaults={{
           dueDate: filters.due.length === 1 && filters.due[0] === 'today' ? toDateKey(new Date()) : null,

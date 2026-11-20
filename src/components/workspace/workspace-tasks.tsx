@@ -15,7 +15,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CollapseAllButton, TaskGroupList, useStatusGroups, type CollapsedGroups } from '@/components/tasks/task-list'
 import { TaskBoard } from '@/components/tasks/task-board'
 import { TaskCalendar } from '@/components/tasks/task-calendar'
-import { FULLSCREEN_CLASS, FullscreenButton, useFullscreen } from '@/components/tasks/fullscreen'
 import { TaskTable } from '@/components/tasks/task-table'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { isAssignedTo } from '@/lib/assignees'
@@ -38,7 +37,6 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
   const [mine, setMine] = useState(false)
   const [query, setQuery] = useState('')
   const [quickOpen, setQuickOpen] = useState(false)
-  const { full, toggle: toggleFull } = useFullscreen()
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -63,7 +61,7 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
   ]
 
   return (
-    <div className={cn('flex min-h-0 flex-1 flex-col', full && FULLSCREEN_CLASS)} data-view-fullscreen={full ? '' : undefined}>
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-4 py-2 sm:px-6">
         <div className="flex items-center rounded-md bg-hover p-0.5">
           {views.map(({ id, label, icon: Icon }) => (
@@ -124,7 +122,6 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
             {t('newTask')}
           </Button>
         ) : null}
-        <FullscreenButton full={full} onToggle={toggleFull} />
       </div>
 
       <div className="min-h-0 flex-1">

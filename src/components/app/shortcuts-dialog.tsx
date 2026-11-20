@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { Dialog, DialogBody, DialogContent, DialogHeader } from '@/components/ui/dialog'
 import { Kbd } from '@/components/ui/kbd'
+import { AI_ENABLED } from '@/lib/features'
 
 type Shortcut = { keys: string[]; label: string; then?: boolean }
 
@@ -25,7 +26,7 @@ export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenC
       title: t('navigate'),
       items: [
         { keys: ['G', 'H'], label: t('goToday'), then: true },
-        { keys: ['G', 'V'], label: t('goVeltro'), then: true },
+        ...(AI_ENABLED ? [{ keys: ['G', 'V'], label: t('goVeltro'), then: true }] : []),
         { keys: ['G', 'M'], label: t('goMesa'), then: true },
         { keys: ['G', 'C'], label: t('goCalendar'), then: true },
         { keys: ['G', 'T'], label: t('goMyTasks'), then: true },

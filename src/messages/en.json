@@ -84,7 +84,8 @@
         "meet": "Meet",
         "decide": "Decide",
         "advance": "Move forward"
-      }
+      },
+      "closePlain": "Close the meeting"
     },
     "oauth": {
       "continueWith": "Continue with {provider}",
@@ -204,7 +205,8 @@
     "requests": "Requests",
     "veltroHelp": "Veltro help",
     "fullscreen": "Full screen",
-    "exitFullscreen": "Exit full screen"
+    "exitFullscreen": "Exit full screen",
+    "exitShort": "Exit"
   },
   "command": {
     "title": "Search and run",
@@ -283,6 +285,9 @@
     }
   },
   "tasks": {
+    "openFull": "Open task",
+    "previewKeys": "↑ ↓ to move · Enter opens it",
+    "dropHere": "Drop a task here",
     "status": {
       "backlog": "Backlog",
       "todo": "To do",
@@ -523,7 +528,11 @@
     },
     "saveAsTemplate": "Save as template",
     "fullscreen": "Expand view",
-    "exitFullscreen": "Back to normal view"
+    "exitFullscreen": "Back to normal view",
+    "calendarTray": {
+      "title": "No date",
+      "hint": "Drag them onto a day to give them a date. To remove it, bring them back here."
+    }
   },
   "docs": {
     "untitled": "Untitled",
@@ -745,6 +754,17 @@
       "new": "New meeting",
       "calendar": "Open calendar",
       "due": "{count, plural, one {# task due} other {# tasks due}} this week"
+    },
+    "weekSummary": "Week {week} · {range} · {meetings, plural, =0 {no meetings} one {# meeting} other {# meetings}} · {tasks, plural, =0 {nothing due} one {# task due} other {# tasks due}}",
+    "aside": {
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "thisWeek": "This week",
+      "today": "Today",
+      "untitled": "(untitled)",
+      "free": "A free week",
+      "freeHint": "No meetings and nothing due these days.",
+      "newMeeting": "New meeting"
     }
   },
   "workspace": {
@@ -1873,6 +1893,15 @@
     },
     "closeNow": "Close",
     "linkToCapture": "Enter and pick a space to capture notes, decisions and actions.",
+    "day": {
+      "free": "Free · {duration}",
+      "freeDay": "No meetings · {duration} free",
+      "over": "Your workday is over",
+      "h": "{h}h",
+      "hm": "{h}h {m}m",
+      "m": "{m}m",
+      "label": "Your day, hour by hour"
+    },
     "brief": {
       "greeting": {
         "morning": "Good morning, {name}",
@@ -1905,13 +1934,27 @@
         "all": "Timeline",
         "empty": "No closed meetings or documented sessions yet."
       },
+      "tabs": {
+        "focus": "Today",
+        "next": "Up next",
+        "blocked": "Blocked",
+        "done": "Done",
+        "overdue": "{count} overdue",
+        "focusEmpty": "Nothing overdue, due today or in progress.",
+        "seeNext": "See what’s next",
+        "nextEmpty": "Nothing else on your list. Add something below.",
+        "blockedEmpty": "Nothing blocked.",
+        "doneEmpty": "Nothing closed in the last 7 days yet.",
+        "reopen": "Reopen"
+      },
       "counters": {
         "overdue": "Overdue",
         "today": "Due today",
         "in_progress": "In progress",
         "blocked": "Blocked",
         "todo": "To do",
-        "done": "Done (7 days)"
+        "done": "Done (7 days)",
+        "label": "Task counts"
       },
       "today": {
         "title": "Your tasks",
@@ -1932,7 +1975,8 @@
         "titleDept": "{name} department tasks",
         "progressAbove": "{count, plural, one {Another one in progress is already listed above.} other {# more in progress are already listed above.}}",
         "clear": "All caught up",
-        "ahead": "Get ahead"
+        "ahead": "Get ahead",
+        "next": "Up next"
       },
       "loose": {
         "title": "Meeting follow-ups",
@@ -1949,6 +1993,20 @@
         "assignTo": "Assign to",
         "empty": "Nothing left loose from your meetings.",
         "clear": "Everything has an owner"
+      },
+      "summary": {
+        "lead": "Today you have",
+        "leadOthers": "Today there are",
+        "clear": "Nothing pending today.",
+        "overdue": "{count} overdue",
+        "today": "{count} due today",
+        "progress": "{count} in progress",
+        "blocked": "{count} blocked",
+        "todo": "{count} to do",
+        "nothingOverdue": "nothing overdue",
+        "noMeetings": "No meetings today.",
+        "now": "Now: <b>{title}</b>.",
+        "next": "Next: <b>{title}</b> at {time}."
       }
     },
     "pasillo": {
@@ -1982,6 +2040,23 @@
     "justNow": "just now"
   },
   "mesa": {
+    "rhythm": {
+      "title": "Rhythm",
+      "hint": {
+        "day": "What was closed and what came in, day by day.",
+        "week": "What was closed and what came in, week by week.",
+        "month": "What was closed and what came in, month by month."
+      },
+      "closed": "Closed",
+      "created": "New",
+      "balance": "Balance",
+      "open": "Open now",
+      "down": "backlog going down",
+      "up": "backlog going up",
+      "even": "even",
+      "tooltip": "{when}: {closed} closed · {created} new",
+      "when": "When"
+    },
     "title": "Control desk",
     "subtitle": "How the spaces are doing: their status, whether they move forward and who is overloaded.",
     "sentence": "{period}: <done>{closed, plural, =0 {no tasks closed} one {# task closed} other {# tasks closed}}</done> and <new>{created, plural, =0 {none new} one {# new} other {# new}}</new>. {problems, select, none {Nothing is overdue or blocked.} other {There are <late>{overdue} overdue</late> and <stuck>{blocked} blocked</stuck>{atRisk, plural, =0 {.} one {; <risk># space is at risk</risk>.} other {; <risk># spaces are at risk</risk>.}}}}",
@@ -2023,6 +2098,16 @@
       "atRisk": "{count} at risk",
       "closed": "{count, plural, =0 {none closed} one {# closed} other {# closed}}",
       "empty": "Nobody has tasks in this scope."
+    },
+    "attention": {
+      "title": "Needs attention",
+      "risk": "At risk",
+      "watch": "Watch",
+      "overdue": "{count} overdue",
+      "oldest": "oldest {days, plural, one {# day} other {# days}} ago",
+      "blocked": "{count} blocked",
+      "clearTitle": "All clear",
+      "clearHint": "No space at risk and nobody with overdue or blocked tasks."
     }
   },
   "attachments": {
@@ -2130,6 +2215,7 @@
       "blocked": "Blocked",
       "today": "Today",
       "empty": "Nothing urgent: nothing overdue, blocked or due today.",
+      "next": "Up next",
       "more": "See {count} more in the list"
     },
     "pace": {
@@ -2195,9 +2281,50 @@
     "emptyBody": "Documents from all your spaces show up here: meeting notes, Claude sessions and whatever you write.",
     "noMatches": "No documents match",
     "noMatchesHint": "Try other words or remove a filter.",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "results": "Results",
+    "columns": {
+      "name": "Name",
+      "space": "Space",
+      "edited": "Edited"
+    },
+    "start": {
+      "title": "Start from…",
+      "hint": "A ready structure you can change however you like.",
+      "firstHint": "Start your first one: blank, or with a ready structure you can change however you like.",
+      "blank": {
+        "name": "Blank",
+        "hint": "An empty page. Type / to insert headings, lists or tables."
+      },
+      "meeting": {
+        "name": "Meeting notes",
+        "hint": "Who was there, what was discussed, what was agreed and what’s next.",
+        "body": "## Attendees\n\n_Who was there._\n\n## Topics\n\n_What was discussed._\n\n## Agreements\n\n_What was decided._\n\n## Next steps\n\n_What’s next, who does it and by when._"
+      },
+      "proposal": {
+        "name": "Proposal",
+        "hint": "To pitch an idea: the context, the goal, how and how much.",
+        "body": "## Context\n\n_What’s happening today and why it matters._\n\n## Goal\n\n_What we want to achieve._\n\n## Proposal\n\n_How we would do it._\n\n## Cost and timeline\n\n_What it costs and when it would be ready._"
+      },
+      "process": {
+        "name": "Process or guide",
+        "hint": "The steps to do something the same way every time, and who owns it.",
+        "body": "## What it’s for\n\n_When this process is used._\n\n## Steps\n\n1. First step\n2. Second step\n3. Third step\n\n## Owner\n\n_Who runs it._\n\n## Common questions\n\n_What people usually ask._"
+      }
+    }
   },
   "vault": {
+    "ideas": {
+      "title": "What to keep here",
+      "pdf": "Contracts and proposals",
+      "pdfHint": "PDF and Word, with their versions.",
+      "image": "Photos and designs",
+      "imageHint": "Previewed without downloading.",
+      "sheet": "Sheets and quotes",
+      "sheetHint": "Excel and CSV, handy for the team.",
+      "link": "Links",
+      "linkHint": "Drive, Figma, Notion or any page."
+    },
     "title": "Vault",
     "subtitle": "{count, plural, =0 {No files} one {# file} other {# files}} · {size}",
     "upload": "Upload files",
@@ -2319,7 +2446,8 @@
       "restoreHint": "It becomes the current one with a new number. No version is deleted.",
       "uploaded": "Now it's version {version}",
       "restored": "Restored as version {version}"
-    }
+    },
+    "dropHint": "Drag files here or click to choose them"
   },
   "pasillo": {
     "title": "Hallway",
@@ -2562,7 +2690,7 @@
       },
       "counters": {
         "title": "Your day at a glance",
-        "body": "What's overdue, due today, in progress or blocked. Tap any number to see those tasks."
+        "body": "Today, up next, blocked and what you closed this week. Switch tabs to see those tasks without leaving Pulse."
       },
       "spaces": {
         "title": "Spaces",
@@ -2715,6 +2843,23 @@
     }
   },
   "decisions": {
+    "flow": {
+      "write": "In the meeting, type",
+      "mark": "It’s marked as a decision",
+      "land": "And it shows up here, with its date and meeting",
+      "today": "Today · Weekly review",
+      "meetings": "Your meetings",
+      "meetingsHint": "That’s where decisions are made: open one and note them with <>.",
+      "upcoming": "Upcoming",
+      "recent": "Recent",
+      "noMeetings": "No meetings in these two weeks.",
+      "open": "Open"
+    },
+    "side": {
+      "spaces": "By space",
+      "meetings": "Meetings that decided most",
+      "total": "{count, plural, one {# decision} other {# decisions}}"
+    },
     "title": "Decisions",
     "subtitle": "Everything decided in your workspaces' meetings.",
     "search": "What did we decide about…? Search a topic or a meeting",
@@ -2747,10 +2892,19 @@
       "searchTitle": "Nothing decided about “{q}”",
       "filteredTitle": "Nothing with these filters",
       "searchBody": "Try other words, remove filters or ask Veltro.",
-      "ask": "Ask Veltro"
-    }
+      "ask": "Ask Veltro",
+      "demoNote": "In the meeting",
+      "example": "Launch the campaign in November"
+    },
+    "countLine": "{count}{more, select, yes {+} other {}} {count, plural, one {decision} other {decisions}} · {meetings, plural, one {# meeting} other {# meetings}}"
   },
   "requests": {
+    "stepHint": {
+      "new": "It lands in the department’s inbox.",
+      "in_review": "Someone takes it and reviews it.",
+      "in_progress": "It becomes tasks with an owner.",
+      "delivered": "The requester confirms and it closes."
+    },
     "title": "Requests",
     "subtitle": "Ask another department for something and track it.",
     "new": "New",
@@ -2926,6 +3080,19 @@
       "more": "{count} more",
       "askTo": "Ask",
       "new": "New request"
+    },
+    "askToName": "Ask {name}",
+    "pipeline": {
+      "inbox": "What reached your department",
+      "mine": "What you asked for",
+      "hint": "{count, plural, one {# open request} other {# open requests}}, by stage. Open one to reply, take it or turn it into tasks.",
+      "emptyColumn": "Nothing at this stage"
+    },
+    "example": {
+      "title": "CRM access for the three people starting Monday",
+      "from": "Sales",
+      "to": "Technology",
+      "tasks": "2 tasks: create the users and grant permissions"
     }
   },
   "views": {

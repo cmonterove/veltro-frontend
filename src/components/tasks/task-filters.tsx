@@ -67,6 +67,7 @@ export function TaskFilterBar({
   query,
   onQuery,
   showPeople,
+  brand = false,
   children,
 }: {
   /** las tareas del alcance que pasan la búsqueda: sobre ellas se cuentan las opciones */
@@ -80,6 +81,8 @@ export function TaskFilterBar({
   onQuery: (q: string) => void
   /** el filtro de responsable solo aparece cuando se mira a más de una persona */
   showPeople: boolean
+  /** sobre la ciruela del marco (la franja de arriba de la tarjeta de Tareas) */
+  brand?: boolean
   /** lo que va a la derecha (agrupar, total) */
   children?: React.ReactNode
 }) {
@@ -155,15 +158,15 @@ export function TaskFilterBar({
     <div
       role="search"
       aria-label={t('label')}
-      className="@container flex shrink-0 flex-wrap items-start gap-2 border-b border-line px-4 py-2.5 sm:flex-nowrap sm:px-6"
+      className={cn('@container flex shrink-0 flex-wrap items-start gap-2 px-4 py-3 sm:flex-nowrap sm:px-5', brand ? 'on-frame day-surface' : 'border-b border-line-soft')}
     >
       {/* En el celular: buscador y agrupar arriba, filtros debajo en una fila que se desliza.
-          En pantallas anchas: todo en una línea; si no caben, los filtros bajan y agrupar queda arriba a la derecha. */}
+          En pantallas anchas: todo en una línea; si no caben, los filtros se deslizan (la barra no crece). */}
       <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:flex-none">
         <SearchBox value={query} onChange={onQuery} placeholder={t('search')} clearLabel={t('clearSearch')} />
         <span className="mx-1 hidden h-5 w-px bg-line sm:block" aria-hidden />
       </div>
-      <div className="order-last -mx-4 flex w-[calc(100%+2rem)] items-center gap-1.5 overflow-x-auto px-4 scrollbar-none sm:order-none sm:mx-0 sm:w-auto sm:min-w-0 sm:flex-1 sm:flex-wrap sm:overflow-visible sm:px-0">
+      <div className="order-last -mx-4 flex w-[calc(100%+2rem)] items-center gap-1.5 overflow-x-auto px-4 scrollbar-none sm:order-none sm:mx-0 sm:w-auto sm:min-w-0 sm:flex-1 sm:px-0 @max-[56rem]:sm:pr-6 @max-[56rem]:sm:[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)]">
         {facets
           .filter((f) => !f.hidden)
           .map((f) => {

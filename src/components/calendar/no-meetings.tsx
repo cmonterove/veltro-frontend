@@ -92,18 +92,21 @@ export function NoMeetingsAhead({
     </p>
   ) : null
 
-  const actions = (
+  // `compact` vive en una columna que ya enlaza al calendario: solo «Nueva reunión», sin pelear con lo demás
+  const actions = compact && !canCreate ? null : (
     <div className="flex flex-wrap items-center gap-2">
       {canCreate ? (
-        <Button size="sm" variant="primary" onClick={() => setCreating(true)}>
+        <Button size="sm" variant={compact ? 'secondary' : 'primary'} onClick={() => setCreating(true)}>
           <CalendarPlus />
           {t('new')}
         </Button>
       ) : null}
-      <Link href={calendarHref} className={buttonVariants({ variant: compact ? 'ghost' : 'secondary', size: 'sm' })}>
-        <CalendarDays />
-        {t('calendar')}
-      </Link>
+      {compact ? null : (
+        <Link href={calendarHref} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+          <CalendarDays />
+          {t('calendar')}
+        </Link>
+      )}
     </div>
   )
 
@@ -115,9 +118,7 @@ export function NoMeetingsAhead({
             <p className="text-sm font-semibold text-fg">{t('title')}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">{hint ?? t('hint')}</p>
           </div>
-          <div className="rounded-lg bg-panel/70 px-1 pb-1 pt-2 ring-1 ring-line-soft">
-            <WeekStrip now={now} due={due} />
-          </div>
+          <WeekStrip now={now} due={due} />
           {legend}
           {actions}
         </div>

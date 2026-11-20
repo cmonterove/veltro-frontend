@@ -55,13 +55,16 @@ export function TaskRow({
     <div
       role="button"
       tabIndex={0}
+      data-task-id={task.id}
+      aria-current={active || undefined}
       onClick={() => onOpen(task.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' && e.target === e.currentTarget) onOpen(task.id)
       }}
       className={cn(
-        'group/row flex h-10 min-w-0 items-center gap-2 border-b border-line/70 px-4 text-sm outline-none transition-colors hover:bg-hover/70 focus-visible:bg-hover',
-        active && 'bg-accent-soft/60 hover:bg-accent-soft/60',
+        // filas redondeadas y sin raya: el aire separa (como en Pulso); al pasar el mouse, se marca entera
+        'group/row mx-2 flex h-11 min-w-0 items-center gap-2 rounded-xl px-2 text-sm outline-none transition-colors duration-150 hover:bg-hover/60 focus-visible:bg-hover',
+        active && 'bg-accent-soft hover:bg-accent-soft',
       )}
     >
       <PriorityMenu value={task.priority} onChange={(priority) => patch({ priority })} disabled={!editable} className="size-6 justify-center">
@@ -74,7 +77,7 @@ export function TaskRow({
         <StatusIcon status={task.status} />
       </StatusMenu>
 
-      <span className={cn('min-w-0 flex-1 truncate', done ? 'text-fg-muted' : 'text-fg')}>{task.title}</span>
+      <span className={cn('min-w-0 flex-1 truncate text-[14.5px]', done ? 'text-fg-muted line-through decoration-fg-subtle/40' : 'text-fg')}>{task.title}</span>
 
       {/* esperando a otras tareas (dependencias abiertas) */}
       {!done && task.blocked_by_open ? (

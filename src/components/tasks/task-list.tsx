@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Plus } from 'lucide-react'
+import { CalendarClock, CalendarDays, CalendarOff, CalendarRange, ChevronRight, ChevronsDownUp, ChevronsUpDown, CircleAlert, CircleCheck, Plus } from 'lucide-react'
 import { useCreateTask, type NewTask } from '@/lib/queries/tasks'
 import { cn } from '@/lib/utils'
 import type { TaskRow as Task, TaskStatus, WorkspaceRow } from '@/lib/database.types'
@@ -98,6 +98,8 @@ export function TaskGroupList({
   className,
   collapsed,
   onCollapsedChange,
+  selectedId,
+  onSelect,
 }: {
   groups: TaskGroup[]
   showWorkspace?: boolean
@@ -107,6 +109,9 @@ export function TaskGroupList({
   /** controlado desde afuera (para recordarlo o para "abrir y cerrar todo"); si no, cada lista lleva el suyo */
   collapsed?: CollapsedGroups
   onCollapsedChange?: (next: CollapsedGroups) => void
+  /** con el vistazo al lado: un clic elige la tarea (se ve al lado) en vez de abrirla */
+  selectedId?: string | null
+  onSelect?: (id: string) => void
 }) {
   const { open } = useOpenTask()
   const [own, setOwn] = useState<CollapsedGroups>({})
@@ -118,7 +123,7 @@ export function TaskGroupList({
   if (total === 0 && emptyState) return <>{emptyState}</>
 
   return (
-    <div className={cn('@container pb-24', className)}>
+    <div className={cn('@container pb-24 pt-1', className)}>
       {visible.map((g) => (
         <Group
           key={g.id}
@@ -128,8 +133,9 @@ export function TaskGroupList({
           onCollapse={(value, all) =>
             setState(all ? { ...state, ...Object.fromEntries(visible.map((v) => [v.id, value])) } : { ...state, [g.id]: value })
           }
-          onOpen={open}
+          onOpen={onSelect ?? open}
           showWorkspace={showWorkspace}
+          selectedId={selectedId}
         />
       ))}
     </div>
@@ -142,19 +148,22 @@ function Group({
   onCollapse,
   onOpen,
   showWorkspace,
+  selectedId,
 }: {
   group: TaskGroup
   collapsed: boolean
   onCollapse: (collapsed: boolean, all: boolean) => void
   onOpen: (id: string) => void
   showWorkspace?: boolean
+  selectedId?: string | null
 }) {
   const t = useTranslations('tasks')
   const [composing, setComposing] = useState(false)
 
   return (
     <section>
-      <div className="group/header sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-line bg-sidebar/95 px-4 backdrop-blur-[2px]">
+      {/* el encabezado del grupo queda pegado arriba al desplazarse, sobre el blanco de la tarjeta */}
+      <div className="group/header sticky top-0 z-10 flex h-10 items-center gap-2 bg-panel/95 px-4 pt-1 backdrop-blur-[2px]">
         <button
           type="button"
           onClick={(e) => onCollapse(!collapsed, e.altKey)}
@@ -163,9 +172,16 @@ function Group({
           title={t('collapseHint')}
         >
           <ChevronRight className={cn('size-3.5 shrink-0 text-fg-subtle transition-transform duration-150', !collapsed && 'rotate-90')} />
-          {group.icon}
-          <span className={cn('truncate font-medium', group.tone === 'danger' ? 'text-danger' : 'text-fg')}>{group.label}</span>
-          <span className="text-xs tabular-nums text-fg-subtle">{group.tasks.length}</span>
+          <GroupTile group={group} />
+          <span className={cn('truncate font-semibold', group.tone === 'danger' ? 'text-danger' : 'text-fg')}>{group.label}</span>
+          <span
+            className={cn(
+              'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+              group.tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-fg/[0.06] text-fg-muted',
+            )}
+          >
+            {group.tasks.length}
+          </span>
           {collapsed ? group.summary : null}
         </button>
         {group.defaults ? (
@@ -185,7 +201,7 @@ function Group({
       {collapsed ? null : (
         <>
           {group.tasks.map((task) => (
-            <TaskRow key={task.id} task={task} onOpen={onOpen} showWorkspace={showWorkspace} />
+            <TaskRow key={task.id} task={task} onOpen={onOpen} showWorkspace={showWorkspace} active={selectedId === task.id} />
           ))}
           {group.defaults && composing ? (
             <TaskComposer
@@ -193,11 +209,50 @@ function Group({
               after={group.tasks.at(-1)?.position}
               onDone={() => setComposing(false)}
             />
+          ) : group.defaults ? (
+            // agregar al pie del grupo, a la vista (no solo en el + que aparece al pasar el mouse)
+            <button
+              type="button"
+              onClick={() => setComposing(true)}
+              className="mx-2 flex h-9 w-[calc(100%-1rem)] items-center gap-2 rounded-xl px-2 text-left text-sm text-fg-subtle transition-colors hover:bg-hover/60 hover:text-fg"
+            >
+              <span className="flex size-6 items-center justify-center">
+                <Plus className="size-4" />
+              </span>
+              {t('addTo', { group: group.label })}
+            </button>
           ) : null}
         </>
       )}
     </section>
   )
+}
+
+/** La ficha del grupo: los grupos por fecha llevan su color (vencidas en rojo, hoy en mandarina…); los demás, su ícono. */
+const DATE_TILE: Record<string, { icon: typeof CircleAlert; cls: string }> = {
+  overdue: { icon: CircleAlert, cls: 'bg-danger-soft text-danger' },
+  today: { icon: CalendarDays, cls: 'bg-warning-soft text-mandarina-ink' },
+  week: { icon: CalendarRange, cls: 'bg-accent-soft text-accent-ink' },
+  later: { icon: CalendarClock, cls: 'bg-fg/[0.06] text-fg-muted' },
+  none: { icon: CalendarOff, cls: 'bg-fg/[0.06] text-fg-muted' },
+  done: { icon: CircleCheck, cls: 'bg-done-soft text-done' },
+}
+
+function GroupTile({ group }: { group: TaskGroup }) {
+  const date = DATE_TILE[group.id]
+  if (date && !group.icon) {
+    const Icon = date.icon
+    return (
+      <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-lg', date.cls)} aria-hidden>
+        <Icon className="size-3.5" strokeWidth={2.25} />
+      </span>
+    )
+  }
+  return group.icon ? (
+    <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-fg/[0.05]" aria-hidden>
+      {group.icon}
+    </span>
+  ) : null
 }
 
 export function TaskComposer({
@@ -231,7 +286,7 @@ export function TaskComposer({
   }
 
   return (
-    <div className={cn('flex h-10 items-center gap-2 border-b border-line/70 px-4', compact && 'border-0 px-2.5', className)}>
+    <div className={cn('mx-2 flex h-11 items-center gap-2 rounded-xl bg-hover/40 px-2', compact && 'mx-0 bg-transparent px-2.5', className)}>
       {compact ? null : (
         <>
           <span className="size-6" />

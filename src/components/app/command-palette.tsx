@@ -27,6 +27,7 @@ import { useVaultFiles } from '@/lib/queries/attachments'
 import { useChats } from '@/lib/queries/chats'
 import { setLocale } from '@/app/actions/preferences'
 import { localeNames, locales } from '@/i18n/config'
+import { AI_ENABLED } from '@/lib/features'
 
 const groupClass =
   '[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-2xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-subtle'
@@ -112,7 +113,7 @@ export function CommandPalette({
 
   const nav = [
     { label: tNav('today'), icon: Activity, href: '/home', keys: ['G', 'H'] },
-    { label: tNav('veltro'), icon: Sparkles, href: '/veltro', keys: ['G', 'V'] },
+    ...(AI_ENABLED ? [{ label: tNav('veltro'), icon: Sparkles, href: '/veltro', keys: ['G', 'V'] }] : []),
     { label: tNav('mesa'), icon: Columns3, href: '/mesa', keys: ['G', 'M'] },
     { label: tNav('calendar'), icon: CalendarDays, href: '/calendar', keys: ['G', 'C'] },
     { label: tNav('myTasks'), icon: CircleCheck, href: '/tasks', keys: ['G', 'T'] },

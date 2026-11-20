@@ -50,9 +50,16 @@ export function taskRef(key: string, number: number) {
 
 /** Extracto legible de un texto multilínea: une las líneas con un separador para que títulos y párrafos no se peguen. */
 export function excerptOf(text: string | null | undefined, max = 240) {
+  // un doc que todavía no se abrió guarda el markdown tal cual: sin sus marcas (#, -, >, `, **)
   const out = (text ?? '')
     .split(/\n+/)
-    .map((l) => l.trim())
+    .map((l) =>
+      l
+        .trim()
+        .replace(/^(#{1,6}\s+|>\s*|[-*+]\s+(\[[ xX]\]\s+)?|\d+[.)]\s+)/, '')
+        .replace(/`|\*\*|__/g, '')
+        .replace(/(^|\s)_([^_]+)_/g, '$1$2'),
+    )
     .filter(Boolean)
     .join(' · ')
   return out.length > max ? `${out.slice(0, max).trimEnd()}…` : out

@@ -18,7 +18,7 @@ import { FilterFacet, type FilterOption } from '@/components/tasks/task-filters'
 import { LabelChip } from '@/components/tasks/pickers'
 import { formatBytes } from '@/components/attachments/attachments'
 import { ShareToChatDialog, type ShareItem } from '@/components/chat/share-to-chat'
-import { DocsHub } from '@/components/docs/docs-hub'
+import { DocsHub, NewDocButton } from '@/components/docs/docs-hub'
 import { useAttachment, useVaultPage, useVaultSummary, type VaultQuery } from '@/lib/queries/attachments'
 import { useDocsIn } from '@/lib/queries/docs'
 import { useTasks } from '@/lib/queries/tasks'
@@ -27,6 +27,8 @@ import { useLocalStorage } from '@/lib/hooks'
 import { track } from '@/lib/telemetry'
 import type { AttachmentRow } from '@/lib/database.types'
 import { cn, taskRef } from '@/lib/utils'
+import { CARD } from '@/components/ui/surface'
+import { FullscreenExitButton } from '@/components/app/fullscreen'
 import { FILE_KINDS, FilePreview, FileKindIcon, KIND_STYLE, fileKindOf, fileTitle } from './file-visual'
 import { FileInspector } from './file-inspector'
 import { UploadDialog, type UploadMode } from './upload-dialog'
@@ -41,6 +43,17 @@ const LINKS = ['task', 'meeting', 'doc', NONE] as const
 const countIn = (facet: { value: string; count: number }[] | undefined) => {
   const m = new Map((facet ?? []).map((f) => [f.value, f.count]))
   return (v: string) => m.get(v) ?? 0
+}
+
+/** El color de cada tipo como relleno (la barra de la cabecera), el mismo de su ícono. */
+const KIND_BG: Record<(typeof FILE_KINDS)[number], string> = {
+  pdf: 'bg-danger',
+  image: 'bg-accent',
+  sheet: 'bg-success',
+  slides: 'bg-mandarina',
+  doc: 'bg-st-progress',
+  link: 'bg-accent-mid',
+  other: 'bg-fg-subtle',
 }
 
 /** Lo que se escribe en el buscador llega al servidor con una pequeña pausa (no en cada tecla). */
@@ -61,6 +74,7 @@ function useDebounced<T>(value: T, ms = 250) {
  */
 export function VaultView() {
   const t = useTranslations('vault')
+  const tHub = useTranslations('docsHub')
   const pathname = usePathname()
   const params = useSearchParams()
   const tab = params.get('tab') === 'written' ? 'written' : 'files'
@@ -168,27 +182,67 @@ export function VaultView() {
   const [uploading, setUploading] = useState<{ mode: UploadMode; files?: File[] } | null>(null)
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-line px-4 pt-6 sm:px-6">
-        <div className="flex flex-wrap items-start gap-3">
-          <div className="mr-auto min-w-0">
-            <h1 className="text-lg font-semibold tracking-tight">{t('title')}</h1>
-            <p className="truncate text-sm text-fg-muted">{summary ? t('subtitle', { count: total, size: formatBytes(summary.total.bytes) || '0 KB' }) : ' '}</p>
+    <div className="flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
+      <header className="flex shrink-0 flex-col gap-3 px-1">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{t('title')}</h1>
+            <p className="truncate text-[13px] text-fg-muted">
+              {tab === 'written'
+                ? docs
+                  ? tHub('subtitle', { count: docs.length, spaces: new Set(docs.map((d) => d.workspace_id)).size })
+                  : '\u00a0'
+                : summary
+                  ? t('subtitle', { count: total, size: formatBytes(summary.total.bytes) || '0 KB' })
+                  : '\u00a0'}
+            </p>
           </div>
-          {tab === 'files' ? (
-            <>
-              <Button onClick={() => setUploading({ mode: 'link' })}>
-                <Link2 />
-                {t('addLink')}
-              </Button>
-              <Button variant="primary" onClick={() => setUploading({ mode: 'files' })}>
-                <Upload />
-                {t('upload')}
-              </Button>
-            </>
-          ) : null}
+          {/* de qué está hecha la bóveda: una barra por tipo (como el uso del disco) y su leyenda; cada tipo filtra */}
+          {tab === 'files' && summary && total ? (
+              <div className="min-w-[16rem] max-w-md flex-1">
+                <div className="flex h-2 gap-0.5 overflow-hidden rounded-full" aria-hidden>
+                  {FILE_KINDS.filter((k) => kindN(k)).map((k) => (
+                    <span key={k} className={cn('h-full first:rounded-l-full last:rounded-r-full', KIND_BG[k])} style={{ flexGrow: kindN(k) }} />
+                  ))}
+                </div>
+                <ul className="mt-2 flex flex-wrap gap-x-3.5 gap-y-1">
+                  {FILE_KINDS.filter((k) => kindN(k)).map((k) => (
+                    <li key={k}>
+                      <button
+                        type="button"
+                        onClick={() => toggle('kind')(k, !filters.kind.includes(k))}
+                        aria-pressed={filters.kind.includes(k)}
+                        className={cn('inline-flex items-center gap-1.5 rounded-sm text-xs transition-colors hover:text-fg', filters.kind.includes(k) ? 'font-medium text-fg' : 'text-fg-muted')}
+                      >
+                        <span className={cn('size-2 rounded-full', KIND_BG[k])} />
+                        {t(`kinds.${k}`)}
+                        <span className="tabular-nums text-fg-subtle">{kindN(k)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          <div className="ml-auto flex items-center gap-2">
+            {tab === 'files' ? (
+              <>
+                <Button onClick={() => setUploading({ mode: 'link' })}>
+                  <Link2 />
+                  {t('addLink')}
+                </Button>
+                <Button variant="primary" onClick={() => setUploading({ mode: 'files' })}>
+                  <Upload />
+                  {t('upload')}
+                </Button>
+              </>
+            ) : (
+              <NewDocButton />
+            )}
+            <FullscreenExitButton />
+          </div>
         </div>
-        <nav className="-mb-px mt-4 flex gap-1" aria-label={t('title')}>
+        {/* Archivos y Escritos: un control segmentado, la activa en relieve (como en Tareas) */}
+        <nav className="flex w-fit items-center gap-0.5 rounded-2xl bg-fg/[0.05] p-1" aria-label={t('title')}>
           {(['files', 'written'] as const).map((id) => (
             <button
               key={id}
@@ -196,23 +250,27 @@ export function VaultView() {
               onClick={() => setParam('tab', id === 'files' ? null : id)}
               aria-current={tab === id ? 'page' : undefined}
               className={cn(
-                'inline-flex h-10 items-center gap-1.5 rounded-t-md border-b-2 px-3 text-sm outline-none transition-colors focus-visible:bg-hover',
-                tab === id ? 'border-accent font-medium text-fg' : 'border-transparent text-fg-muted hover:text-fg',
+                'inline-flex h-8 items-center gap-2 rounded-xl px-3 text-sm font-medium outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40',
+                tab === id ? 'bg-panel text-fg shadow-card' : 'text-fg-muted hover:text-fg',
               )}
             >
-              {id === 'files' ? <Vault className="size-4" /> : <FileText className="size-4" />}
+              {id === 'files' ? <Vault className={cn('size-4', tab === id ? 'text-accent' : 'text-fg-subtle')} /> : <FileText className={cn('size-4', tab === id ? 'text-accent' : 'text-fg-subtle')} />}
               {t(`tabs.${id}`)}
               <span className="text-xs tabular-nums text-fg-subtle">{id === 'files' ? (summary ? total : '') : (docs?.length ?? '')}</span>
             </button>
           ))}
         </nav>
-      </div>
+      </header>
 
       {tab === 'written' ? (
-        <DocsHub embedded />
+        <section className={cn(CARD, 'flex min-h-0 flex-1 flex-col overflow-hidden')}>
+          <DocsHub embedded />
+        </section>
       ) : (
-        <>
-          <div role="search" aria-label={t('filters')} className="flex shrink-0 items-start gap-2 border-b border-line px-4 py-2.5 sm:px-6">
+        <div className="flex min-h-0 flex-1 gap-4">
+        <section className={cn(CARD, 'flex min-w-0 flex-1 flex-col overflow-hidden')}>
+          {/* buscar y filtrar: en blanco, con una línea fina debajo (la ciruela no va en todas las pantallas) */}
+          <div role="search" aria-label={t('filters')} className="flex shrink-0 items-start gap-2 border-b border-line-soft px-4 py-3 sm:px-5">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
               <div className="relative flex w-full items-center sm:w-52">
                 <Search className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
@@ -287,7 +345,7 @@ export function VaultView() {
 
           <div className="flex min-h-0 flex-1">
             <div
-              className="@container relative min-w-0 flex-1 overflow-y-auto scrollbar-thin"
+              className="@container relative flex min-w-0 flex-1 flex-col overflow-y-auto scrollbar-thin"
               onDragOver={(e) => {
                 if (!e.dataTransfer.types.includes('Files')) return
                 e.preventDefault()
@@ -303,7 +361,7 @@ export function VaultView() {
                 if (dropped.length) setUploading({ mode: 'files', files: dropped })
               }}
             >
-              <div className="px-4 pb-24 pt-5 sm:px-6">
+              <div className="flex flex-1 flex-col px-4 pb-6 pt-4 sm:px-5">
                 {page.isError ? (
                   <ErrorState onRetry={() => page.refetch()} />
                 ) : !loaded ? (
@@ -313,17 +371,72 @@ export function VaultView() {
                     ))}
                   </div>
                 ) : total === 0 ? (
-                  <EmptyState
-                    icon={<Vault />}
-                    title={t('emptyTitle')}
-                    description={t('emptyBody')}
-                    action={
-                      <Button variant="primary" size="sm" onClick={() => setUploading({ mode: 'files' })}>
-                        <Upload />
-                        {t('upload')}
-                      </Button>
-                    }
-                  />
+                  // vacía: a la izquierda dónde soltar; a la derecha qué guardar aquí (cada idea abre la subida)
+                  <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,1fr)]">
+                    <button
+                      type="button"
+                      onClick={() => setUploading({ mode: 'files' })}
+                      className={cn(
+                        'group flex min-h-[18rem] w-full flex-col items-center justify-center gap-5 rounded-[20px] border-2 border-dashed px-6 py-8 text-center outline-none transition-colors focus-visible:border-accent-mid',
+                        dragging ? 'border-accent-mid bg-accent-soft/50' : 'border-line-strong/80 bg-canvas/50 hover:border-accent-mid/60 hover:bg-accent-soft/25',
+                      )}
+                    >
+                      <span className="flex items-end" aria-hidden>
+                        {(['pdf', 'image', 'sheet', 'link'] as const).map((k, i) => {
+                          const Icon = KIND_STYLE[k].icon
+                          return (
+                            <span
+                              key={k}
+                              className={cn(
+                                '-mx-1.5 flex size-14 items-center justify-center rounded-2xl bg-panel shadow-card ring-1 ring-line-soft transition-transform duration-300 ease-[var(--ease-out-quart)]',
+                                ['-rotate-12 translate-y-2 group-hover:-translate-x-1', '-rotate-3 group-hover:-translate-y-1', 'rotate-3 group-hover:-translate-y-1', 'rotate-12 translate-y-2 group-hover:translate-x-1'][i],
+                              )}
+                            >
+                              <Icon className={cn('size-6', KIND_STYLE[k].tone)} />
+                            </span>
+                          )
+                        })}
+                      </span>
+                      <span className="flex max-w-md flex-col gap-1.5">
+                        <span className="text-lg font-semibold tracking-[-0.01em] text-fg">{t('emptyTitle')}</span>
+                        <span className="text-sm leading-relaxed text-fg-muted">{t('emptyBody')}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-sm font-medium text-accent-fg shadow-[0_6px_14px_-8px_var(--accent)] transition-colors group-hover:bg-accent-hover">
+                        <Upload className="size-4" />
+                        {t('dropHint')}
+                      </span>
+                    </button>
+
+                    <div className="flex min-w-0 flex-col">
+                      <p className="flex items-center gap-2 px-1 text-base font-semibold tracking-[-0.015em] text-fg">
+                        <Shapes className="size-4 text-accent" aria-hidden />
+                        {t('ideas.title')}
+                      </p>
+                      <ul className="mt-2 flex flex-1 flex-col gap-2">
+                        {(['pdf', 'image', 'sheet', 'link'] as const).map((k) => {
+                          const Icon = KIND_STYLE[k].icon
+                          return (
+                            <li key={k} className="flex-1">
+                              <button
+                                type="button"
+                                onClick={() => setUploading({ mode: k === 'link' ? 'link' : 'files' })}
+                                className="flex h-full min-h-16 w-full items-center gap-3 rounded-2xl bg-canvas/60 px-4 py-3 text-left ring-1 ring-line-soft transition-[background-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:bg-panel hover:shadow-card"
+                              >
+                                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-panel shadow-card ring-1 ring-line-soft">
+                                  <Icon className={cn('size-5', KIND_STYLE[k].tone)} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-sm font-semibold text-fg">{t(`ideas.${k}`)}</span>
+                                  <span className="block text-xs text-fg-muted">{t(`ideas.${k}Hint`)}</span>
+                                </span>
+                                <span className="shrink-0 text-fg-subtle">{k === 'link' ? <Link2 className="size-4" /> : <Upload className="size-4" />}</span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  </div>
                 ) : shown.length === 0 ? (
                   <EmptyState
                     icon={<Search />}
@@ -351,8 +464,10 @@ export function VaultView() {
                         onClick={() => setParam('file', a.id === selectedId ? null : a.id)}
                         aria-pressed={a.id === selectedId}
                         className={cn(
-                          'group/tile flex min-w-0 flex-col overflow-hidden rounded-xl border bg-panel text-left outline-none transition-[border-color,box-shadow] focus-visible:ring-2 focus-visible:ring-accent-mid/40',
-                          a.id === selectedId ? 'border-accent-mid shadow-card ring-2 ring-accent-mid/25' : 'border-line hover:border-line-strong hover:shadow-card',
+                          'group/tile flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-panel text-left outline-none transition-[border-color,box-shadow,transform] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40',
+                          a.id === selectedId
+                            ? 'border-accent-mid shadow-card ring-2 ring-accent-mid/25'
+                            : 'border-line-soft shadow-card hover:-translate-y-px hover:border-line hover:shadow-[0_8px_20px_-12px_oklch(0.3_0.09_312/0.35)]',
                         )}
                       >
                         <FilePreview a={a} className="aspect-[16/10] w-full border-b border-line" />
@@ -428,19 +543,21 @@ export function VaultView() {
               ) : null}
             </div>
 
-            {selected ? (
-              <aside className="fixed inset-0 z-40 bg-canvas lg:static lg:inset-auto lg:z-auto lg:w-[360px] lg:shrink-0 lg:border-l lg:border-line">
-                <FileInspector
-                  key={selected.id}
-                  file={selected}
-                  labelSuggestions={labels}
-                  onClose={() => setParam('file', null)}
-                  onShare={() => setSharing({ kind: 'file', refId: selected.id, title: fileTitle(selected) })}
-                />
-              </aside>
-            ) : null}
           </div>
-        </>
+        </section>
+        {/* el detalle del archivo, en su tarjeta al lado (en el celular, a pantalla entera) */}
+        {selected ? (
+          <aside className={cn('fixed inset-0 z-40 bg-canvas lg:static lg:inset-auto lg:z-auto lg:flex lg:w-[360px] lg:shrink-0 lg:flex-col lg:overflow-hidden', 'lg:rounded-[24px] lg:bg-panel lg:shadow-[0_1px_2px_oklch(0.243_0.088_312.7/0.05),0_12px_32px_-20px_oklch(0.3_0.09_312/0.25)] lg:ring-1 lg:ring-line-soft')}>
+            <FileInspector
+              key={selected.id}
+              file={selected}
+              labelSuggestions={labels}
+              onClose={() => setParam('file', null)}
+              onShare={() => setSharing({ kind: 'file', refId: selected.id, title: fileTitle(selected) })}
+            />
+          </aside>
+        ) : null}
+        </div>
       )}
 
       <ShareToChatDialog open={sharing !== null} onOpenChange={(o) => !o && setSharing(null)} item={sharing} />

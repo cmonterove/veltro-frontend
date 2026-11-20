@@ -144,7 +144,7 @@ export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?:
       }}
     >
       {/* solo scroll horizontal aquí; cada columna scrollea por dentro y su encabezado queda a la vista */}
-      <div className="flex h-full min-h-0 gap-3 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-3 scrollbar-thin">
+      <div className="flex h-full min-h-0 gap-3 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-4 scrollbar-thin">
         {options.map((o) => {
           const key = statusKey(o)
           const ids = columns[key] ?? []
@@ -159,7 +159,7 @@ export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?:
               })}
             </SortableContext>
             {composer === key ? (
-              <div className="overflow-hidden rounded-lg border border-line bg-panel">
+              <div className="overflow-hidden rounded-xl bg-panel shadow-card ring-1 ring-line-soft">
                 <TaskComposer
                   defaults={{ workspace_id: workspaceId!, ...statusPatch(o) }}
                   after={byId.get(ids.at(-1) ?? '')?.position}
@@ -177,6 +177,15 @@ export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?:
       </DragOverlay>
     </DndContext>
   )
+}
+
+/** El color de cada estado para teñir el encabezado de su carril. */
+const LANE_COLOR: Record<TaskStatus, string> = {
+  backlog: 'var(--st-backlog)',
+  todo: 'var(--st-todo)',
+  in_progress: 'var(--st-progress)',
+  blocked: 'var(--st-blocked)',
+  done: 'var(--st-done)',
 }
 
 function Column({
@@ -197,11 +206,17 @@ function Column({
   const t = useTranslations('tasks')
   const { setNodeRef, isOver } = useDroppable({ id })
   return (
-    <div className="flex min-h-0 w-[272px] shrink-0 flex-col">
-      <div className="group/col flex h-9 items-center gap-2 px-1">
+    // cada estado es un carril: crema sobre el blanco de la tarjeta, con su encabezado adentro
+    <div className="flex min-h-0 w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl bg-canvas/80 ring-1 ring-line-soft">
+      <div className="group/col flex h-11 shrink-0 items-center gap-2 px-3" style={{ background: `color-mix(in oklch, ${LANE_COLOR[status]} 11%, transparent)` }}>
         <StatusIcon status={status} />
-        <span className="text-sm font-medium">{label}</span>
-        <span className="text-xs tabular-nums text-fg-subtle">{count}</span>
+        <span className="text-sm font-semibold">{label}</span>
+        <span
+          className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums text-fg"
+          style={{ background: `color-mix(in oklch, ${LANE_COLOR[status]} 22%, transparent)` }}
+        >
+          {count}
+        </span>
         {onAdd ? (
           <button
             type="button"
@@ -216,11 +231,15 @@ function Column({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto rounded-lg p-1 transition-colors scrollbar-thin',
-          isOver ? 'bg-accent-soft/50' : 'bg-hover/40',
+          'flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 pt-2 transition-colors duration-150 scrollbar-thin',
+          isOver && 'bg-accent-soft/50',
         )}
       >
         {children}
+        {/* vacío no es un hueco: es donde se suelta */}
+        {count === 0 ? (
+          <div className="flex h-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-line-strong/70 text-xs text-fg-subtle">{t('dropHere')}</div>
+        ) : null}
       </div>
     </div>
   )
@@ -269,7 +288,7 @@ function Card({ task, dragging, showWorkspace }: { task: Task; dragging?: boolea
   return (
     <div
       className={cn(
-        'flex flex-col gap-2 rounded-lg border border-line bg-panel p-3 text-sm shadow-card transition-shadow hover:border-line-strong',
+        'flex flex-col gap-2.5 rounded-xl bg-panel p-3 text-sm shadow-card ring-1 ring-line-soft transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:shadow-[0_8px_20px_-12px_oklch(0.3_0.09_312/0.35)] hover:ring-line',
         dragging && 'rotate-[1.5deg] shadow-lift',
       )}
     >
@@ -280,7 +299,7 @@ function Card({ task, dragging, showWorkspace }: { task: Task; dragging?: boolea
           <AvatarStack people={people} size={18} ring="panel" />
         </span>
       </div>
-      <p className={cn('line-clamp-3 leading-snug', done ? 'text-fg-muted line-through decoration-fg-subtle/50' : 'text-fg')}>
+      <p className={cn('line-clamp-3 font-medium leading-snug', done ? 'text-fg-muted line-through decoration-fg-subtle/50' : 'text-fg')}>
         {task.title}
       </p>
       {task.priority !== 'none' || task.due_date || task.labels.length || attachments || (!done && task.blocked_by_open) ? (

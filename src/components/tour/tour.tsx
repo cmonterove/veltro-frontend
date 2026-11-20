@@ -14,6 +14,7 @@ import { detectKind, extractDue } from '@/lib/capture'
 import { useDateLocale } from '@/lib/dates'
 import { track } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
+import { AI_ENABLED } from '@/lib/features'
 
 /**
  * Recorrido de bienvenida: ilumina cada parte real de la app y explica para qué sirve.
@@ -29,7 +30,8 @@ type Step = { id: string; target?: string; placement?: Placement; interactive?: 
 // para que el foco no salte de un lado a otro. La notación va pegada a las reuniones.
 const STEPS: Step[] = [
   { id: 'welcome' },
-  { id: 'ask', target: 'ask', placement: 'bottom' },
+  // «Pregúntale a Veltro»: oculto mientras la IA esté apagada
+  ...(AI_ENABLED ? [{ id: 'ask', target: 'ask', placement: 'bottom' as const }] : []),
   { id: 'counters', target: 'counters', placement: 'bottom' },
   { id: 'search', target: 'search', placement: 'bottom' },
   { id: 'mesa', target: 'nav-mesa', placement: 'right' },

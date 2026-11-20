@@ -70,6 +70,7 @@ import { useTour } from '@/components/tour/tour'
 import { RequestsIcon } from '@/components/requests/request-bits'
 import { useRequestSummary } from '@/lib/queries/requests'
 import { SupportIcon } from '@/components/support/support-bits'
+import { AI_ENABLED } from '@/lib/features'
 
 // El menú vive sobre el marco (ciruela empolvado, con los colores de on-frame) y el contenido es una hoja encima.
 // Lo activo es una pastilla en relieve: en el menú principal se desliza de un ítem al otro.
@@ -119,7 +120,8 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
 
   const top: { href: string; label: string; icon: typeof Activity; keys: string[]; badge?: number }[] = [
     { href: '/home', label: t('today'), icon: Activity, keys: ['G', 'H'] },
-    { href: '/veltro', label: t('veltro'), icon: Sparkles, keys: ['G', 'V'] },
+    // Veltro IA, oculta por ahora (lib/features)
+    ...(AI_ENABLED ? [{ href: '/veltro', label: t('veltro'), icon: Sparkles, keys: ['G', 'V'] }] : []),
     { href: '/mesa', label: t('mesa'), icon: Columns3, keys: ['G', 'M'] },
     { href: '/calendar', label: t('calendar'), icon: CalendarDays, keys: ['G', 'C'] },
     { href: '/tasks', label: t('myTasks'), icon: CircleCheck, keys: ['G', 'T'] },

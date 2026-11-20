@@ -46,6 +46,7 @@ import { inlineText, type LooseBlock } from '@/lib/blocks'
 import { useOpenTask } from '@/lib/use-open-task'
 import { useConfirm } from '@/components/ui/confirm'
 import { useCopy } from '@/lib/clipboard'
+import { AI_ENABLED } from '@/lib/features'
 
 const BlockEditor = dynamic(() => import('./block-editor').then((m) => m.BlockEditor), {
   ssr: false,
@@ -181,10 +182,12 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
           {saveState === 'saving' ? t('saving') : saveState === 'saved' ? t('saved') : saveState === 'error' ? t('saveError') : null}
         </span>
 
-        <Button variant="ghost" size="sm" onClick={copyMarkdown} className="hidden sm:inline-flex">
-          <ClipboardCopy />
-          {t('copyForClaude')}
-        </Button>
+        {AI_ENABLED ? (
+          <Button variant="ghost" size="sm" onClick={copyMarkdown} className="hidden sm:inline-flex">
+            <ClipboardCopy />
+            {t('copyForClaude')}
+          </Button>
+        ) : null}
         <Tooltip content={t('shareInPasillo')}>
           <Button variant="ghost" size="icon-sm" onClick={() => setSharing(true)} aria-label={t('shareInPasillo')}>
             <MessageCircle />
@@ -273,7 +276,7 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
 
         <aside className="flex min-w-0 flex-col gap-8 xl:sticky xl:top-[68px] xl:max-h-[calc(100dvh-90px)] xl:self-start xl:overflow-y-auto xl:pb-6 scrollbar-thin">
           {doc.meeting_id ? <MeetingContext meetingId={doc.meeting_id} /> : null}
-          {doc.source === 'claude' ? (
+          {doc.source === 'claude' && AI_ENABLED ? (
             <RailSection title={t('rail.origin')}>
               <div className="flex flex-col gap-2 rounded-xl bg-highlight p-3">
                 <span className="flex items-center gap-2 text-sm font-medium text-highlight-ink">
