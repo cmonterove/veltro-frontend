@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Menu as MenuIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Sidebar } from './sidebar'
+import { isBareRoute } from '@/lib/routes'
 import { CommandPalette } from './command-palette'
 import { ShortcutsDialog } from './shortcuts-dialog'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
@@ -28,12 +29,31 @@ import { cn } from '@/lib/utils'
 import { SIDEBAR_COOKIE } from '@/lib/constants'
 import { flushEvents, ping, setTelemetryAccount, track, viewEvent } from '@/lib/telemetry'
 import { AI_ENABLED } from '@/lib/features'
+import { brandAttrs, brandOf, type Brand } from '@/lib/brand'
+import { BrandContext } from './brand'
+
 
 export function AppShell({ children, sidebarCollapsed = false }: { children: React.ReactNode; sidebarCollapsed?: boolean }) {
   const t = useTranslations('nav')
   const pathname = usePathname()
   const router = useRouter()
   const { profile, workspaces, account } = useApp()
+  // el color de la cuenta: llega del servidor con la cuenta (sin parpadeo); al elegir otro se ve al instante
+  const [preview, setPreview] = useState<{ account: string; brand: Brand } | null>(null)
+  const brand = preview && preview.account === account.id ? preview.brand : brandOf(account.color)
+  const brandValue = useMemo(() => ({ brand, preview: (b: Brand | null) => setPreview(b ? { account: account.id, brand: b } : null) }), [brand, account.id])
+  // también en <html>: los menús, diálogos y avisos se abren en portales, fuera del armazón
+  useEffect(() => {
+    const html = document.documentElement
+    const attrs = brandAttrs(brand)
+    html.dataset.brand = attrs['data-brand']
+    // propio: su tono e intensidad en línea; de la lista, los pone su regla
+    const style = (attrs.style ?? {}) as Record<string, string>
+    for (const k of ['--bh', '--bc']) {
+      if (style[k]) html.style.setProperty(k, style[k])
+      else html.style.removeProperty(k)
+    }
+  }, [brand])
   const [mobileOpen, setMobileOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [quickTaskOpen, setQuickTaskOpen] = useState(false)
@@ -66,8 +86,8 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   // `G` seguido de una tecla navega (estilo Linear); la espera dura poco para no secuestrar el teclado.
   const goPending = useRef<number | null>(null)
   // contraseña temporal o cuenta suspendida: la API no deja hacer casi nada, en lugar de la página va el aviso
-  // Pasillo arma sus propias hojas (la lista y el contexto viven sobre el marco); el resto va en una sola hoja
-  const bare = pathname === '/chat' || pathname.startsWith('/chat/')
+  // Pasillo y Ajustes arman sus propias hojas (su lista vive sobre el marco); el resto va en una sola hoja
+  const bare = isBareRoute(pathname)
   const gate = profile.must_change_password && pathname !== '/settings/profile' ? 'password' : account.status === 'suspended' && !SUSPENDED_ALLOWED.includes(pathname) ? 'suspended' : null
   useSuspensionWatcher()
 
@@ -188,11 +208,12 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [router, workspaces, toggleSidebar, toggleFull])
 
   return (
+    <BrandContext.Provider value={brandValue}>
     <FullscreenContext.Provider value={fullscreen}>
     <ConfirmProvider>
       <TourProvider>
       {/* el marco (ciruela empolvado) lleva el menú y la barra de arriba; el contenido es una hoja encima, con sus esquinas */}
-      <div className="relative isolate flex h-dvh overflow-hidden bg-canvas md:frame-bg">
+      <div {...brandAttrs(brand)} className="relative isolate flex h-dvh overflow-hidden bg-canvas md:frame-bg">
         {/* el isotipo como marca de agua, apenas visible sobre el marco (en su propia capa: lo que sobresale no da scroll) */}
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 hidden overflow-clip md:block">
           <svg viewBox="150 23.3 724.3 851" className="absolute -bottom-[330px] -left-[250px] w-[840px] opacity-[0.05] dark:opacity-[0.03]">
@@ -314,6 +335,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
       </TourProvider>
     </ConfirmProvider>
     </FullscreenContext.Provider>
+    </BrandContext.Provider>
   )
 }
 

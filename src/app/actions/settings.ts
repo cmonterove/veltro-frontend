@@ -213,6 +213,12 @@ export async function updateAccountName(accountId: string, name: string) {
   return res.ok ? { ok: true as const } : res
 }
 
+/** El color de la cuenta (lib/brand): la app lo toma mientras estás en ella. */
+export async function updateAccountColor(accountId: string, color: string) {
+  const res = await attempt(() => api(`/v1/accounts/${accountId}`, { method: 'PATCH', body: { color } }))
+  return res.ok ? { ok: true as const } : res
+}
+
 export async function updateProfile(patch: { full_name?: string; timezone?: string }) {
   const body = {
     ...(patch.full_name !== undefined ? { fullName: patch.full_name.trim() } : {}),

@@ -218,7 +218,8 @@
       "workspaceHint": "Un projet ou un service. Vous en ajouterez d’autres ensuite.",
       "submit": "Créer le compte",
       "cancel": "Annuler"
-    }
+    },
+    "preferences": "Préférences"
   },
   "command": {
     "title": "Rechercher et exécuter",
@@ -848,7 +849,8 @@
       "preferences": "Préférences",
       "newWorkspace": "Nouvel espace",
       "teams": "Équipes",
-      "templates": "Modèles"
+      "templates": "Modèles",
+      "planRole": "Offre {plan} · {role}"
     },
     "profile": {
       "title": "Profil",
@@ -893,7 +895,54 @@
       "emailHint": "Vous vous connectez à Veltro avec cet e-mail.",
       "preferencesDescription": "Comment Veltro s’affiche pour vous. Appliqué tout de suite.",
       "languageHint": "Langue de toute l’app.",
-      "themeHint": "Système suit les réglages de votre appareil."
+      "themeHint": "Système suit les réglages de votre appareil.",
+      "dataTitle": "Vos informations",
+      "seenAs": "Ce que les autres voient",
+      "noTitle": "Pas encore de poste",
+      "roleLabel": "Rôle",
+      "areaLabel": "Service",
+      "sinceLabel": "Sur Veltro depuis",
+      "accountsLabel": "Vos comptes",
+      "timezoneZone": "Votre fuseau",
+      "nowThere": "Il est {time} là-bas.",
+      "spacesLabel": "Espaces",
+      "spacesCount": "{count} espaces",
+      "seenSection": "Ce que voient les autres",
+      "seenSectionHint": "Votre nom apparaît dans les tâches, les réunions et le Couloir. La photo vient de votre compte Google ou Apple.",
+      "accountsHint": "Les entreprises où vous travaillez. Changez ici ou depuis le menu.",
+      "since": "Sur Veltro depuis {date}",
+      "ownerHere": "Vous en êtes le propriétaire",
+      "memberHere": "On vous a invité",
+      "current": "Vous êtes ici",
+      "switchTo": "Changer",
+      "seenHint": "Comment vous apparaissez dans les tâches, les réunions et le Couloir. Ça change pendant que vous tapez.",
+      "previewTask": "Relire la proposition de campagne",
+      "previewWhen": "maintenant",
+      "previewMessage": "C’est fait ! Je l’ai mis dans le Coffre.",
+      "previewMention": "Ana vous a mentionné : <m>@{name}</m> vous regardez aujourd’hui ?",
+      "securityTitle": "Sécurité",
+      "changeShort": "Changer",
+      "figureSpaces": "{count, plural, one {espace} other {espaces}}",
+      "figureAccounts": "{count, plural, one {compte} other {comptes}}",
+      "nameHint": "Comment vous apparaissez dans les tâches, les réunions et le Couloir.",
+      "rule": {
+        "length": "8 ou plus",
+        "lower": "minuscule",
+        "upper": "majuscule",
+        "digit": "chiffre",
+        "symbol": "symbole"
+      },
+      "strength": {
+        "1": "Courte",
+        "2": "Faible",
+        "3": "Bonne",
+        "4": "Forte"
+      },
+      "matches": "Ils correspondent",
+      "noMatchYet": "Ils ne correspondent pas encore",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "cancel": "Annuler"
     },
     "account": {
       "title": "Compte",
@@ -909,7 +958,27 @@
       "usage": "{used} sur {max}",
       "unlimitedCount": "{used} · illimité",
       "pageTitle": "Général et offre",
-      "nameHint": "Le nom de votre entreprise dans Veltro."
+      "nameHint": "Le nom de votre entreprise dans Veltro.",
+      "colorTitle": "Couleur du compte",
+      "colorHint": "L’app prend cette couleur tant que vous êtes dans ce compte : vous savez d’un coup d’œil où vous êtes.",
+      "colorHintMember": "L’app prend cette couleur tant que vous êtes dans ce compte. Les admins peuvent la changer.",
+      "colorSaved": "Couleur mise à jour",
+      "colors": {
+        "plum": "Prune",
+        "indigo": "Indigo",
+        "blue": "Bleu",
+        "teal": "Pétrole",
+        "green": "Forêt",
+        "terracotta": "Terracotta",
+        "wine": "Bordeaux",
+        "graphite": "Graphite"
+      },
+      "customColor": "Votre couleur",
+      "customTitle": "Votre couleur",
+      "customHint": "Choisissez-en une ou tapez son code hexa. Nous gardons sa teinte et son intensité, et ajustons la lumière pour que tout reste lisible.",
+      "customPick": "Choisir une couleur",
+      "customHex": "Hexadécimal",
+      "customUse": "Utiliser cette couleur"
     },
     "members": {
       "title": "Personnes",
@@ -2310,12 +2379,13 @@
       "edited": "Modifié"
     },
     "start": {
-      "title": "Partir de…",
+      "title": "Commencer un document",
       "hint": "Une structure prête, à modifier comme vous voulez.",
       "firstHint": "Commencez le premier : vierge ou avec une structure prête, à modifier comme vous voulez.",
       "blank": {
         "name": "Page vierge",
-        "hint": "Une page vide. Tapez / pour insérer des titres, des listes ou des tableaux."
+        "hint": "Une page vide. Tapez / pour insérer des titres, des listes ou des tableaux.",
+        "short": "Tapez / pour insérer des blocs"
       },
       "meeting": {
         "name": "Notes de réunion",
@@ -2332,7 +2402,8 @@
         "hint": "Les étapes pour faire une chose toujours de la même façon, et qui s’en charge.",
         "body": "## À quoi ça sert\n\n_Quand ce processus est utilisé._\n\n## Étapes\n\n1. Première étape\n2. Deuxième étape\n3. Troisième étape\n\n## Responsable\n\n_Qui s’en charge._\n\n## Questions fréquentes\n\n_Ce que les gens demandent souvent._"
       }
-    }
+    },
+    "yours": "Vos documents"
   },
   "vault": {
     "ideas": {

@@ -184,7 +184,7 @@ export function VaultView() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
       <header className="flex shrink-0 flex-col gap-3 px-1">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="min-w-0">
             <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{t('title')}</h1>
             <p className="truncate text-[13px] text-fg-muted">
@@ -197,6 +197,25 @@ export function VaultView() {
                   : '\u00a0'}
             </p>
           </div>
+          {/* Archivos y Escritos: un control segmentado al lado del título (una fila menos de encabezado) */}
+          <nav className="flex w-fit items-center gap-0.5 rounded-2xl bg-fg/[0.05] p-1" aria-label={t('title')}>
+            {(['files', 'written'] as const).map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setParam('tab', id === 'files' ? null : id)}
+                aria-current={tab === id ? 'page' : undefined}
+                className={cn(
+                  'inline-flex h-8 items-center gap-2 rounded-xl px-3 text-sm font-medium outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40',
+                  tab === id ? 'bg-panel text-fg shadow-card' : 'text-fg-muted hover:text-fg',
+                )}
+              >
+                {id === 'files' ? <Vault className={cn('size-4', tab === id ? 'text-accent' : 'text-fg-subtle')} /> : <FileText className={cn('size-4', tab === id ? 'text-accent' : 'text-fg-subtle')} />}
+                {t(`tabs.${id}`)}
+                <span className="text-xs tabular-nums text-fg-subtle">{id === 'files' ? (summary ? total : '') : (docs?.length ?? '')}</span>
+              </button>
+            ))}
+          </nav>
           {/* de qué está hecha la bóveda: una barra por tipo (como el uso del disco) y su leyenda; cada tipo filtra */}
           {tab === 'files' && summary && total ? (
               <div className="min-w-[16rem] max-w-md flex-1">
@@ -241,25 +260,6 @@ export function VaultView() {
             <FullscreenExitButton />
           </div>
         </div>
-        {/* Archivos y Escritos: un control segmentado, la activa en relieve (como en Tareas) */}
-        <nav className="flex w-fit items-center gap-0.5 rounded-2xl bg-fg/[0.05] p-1" aria-label={t('title')}>
-          {(['files', 'written'] as const).map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setParam('tab', id === 'files' ? null : id)}
-              aria-current={tab === id ? 'page' : undefined}
-              className={cn(
-                'inline-flex h-8 items-center gap-2 rounded-xl px-3 text-sm font-medium outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40',
-                tab === id ? 'bg-panel text-fg shadow-card' : 'text-fg-muted hover:text-fg',
-              )}
-            >
-              {id === 'files' ? <Vault className={cn('size-4', tab === id ? 'text-accent' : 'text-fg-subtle')} /> : <FileText className={cn('size-4', tab === id ? 'text-accent' : 'text-fg-subtle')} />}
-              {t(`tabs.${id}`)}
-              <span className="text-xs tabular-nums text-fg-subtle">{id === 'files' ? (summary ? total : '') : (docs?.length ?? '')}</span>
-            </button>
-          ))}
-        </nav>
       </header>
 
       {tab === 'written' ? (

@@ -218,7 +218,8 @@
       "workspaceHint": "A project or a team. You can add more later.",
       "submit": "Create account",
       "cancel": "Cancel"
-    }
+    },
+    "preferences": "Preferences"
   },
   "command": {
     "title": "Search and run",
@@ -848,7 +849,8 @@
       "preferences": "Preferences",
       "newWorkspace": "New space",
       "teams": "Teams",
-      "templates": "Templates"
+      "templates": "Templates",
+      "planRole": "{plan} plan · {role}"
     },
     "profile": {
       "title": "Profile",
@@ -893,7 +895,54 @@
       "emailHint": "You sign in to Veltro with this email.",
       "preferencesDescription": "How Veltro looks and reads for you. Applied right away.",
       "languageHint": "Language for the whole app.",
-      "themeHint": "System follows your device settings."
+      "themeHint": "System follows your device settings.",
+      "dataTitle": "Your details",
+      "seenAs": "How others see you",
+      "noTitle": "No title yet",
+      "roleLabel": "Role",
+      "areaLabel": "Area",
+      "sinceLabel": "On Veltro since",
+      "accountsLabel": "Your accounts",
+      "timezoneZone": "Your zone",
+      "nowThere": "It’s {time} there now.",
+      "spacesLabel": "Spaces",
+      "spacesCount": "{count} spaces",
+      "seenSection": "How others see you",
+      "seenSectionHint": "Your name shows up in tasks, meetings and the Hallway. Your photo comes from your Google or Apple account.",
+      "accountsHint": "The companies you work in. Switch here or from the menu.",
+      "since": "On Veltro since {date}",
+      "ownerHere": "You own it",
+      "memberHere": "You were invited",
+      "current": "You’re here",
+      "switchTo": "Switch",
+      "seenHint": "How you show up in tasks, meetings and the Hallway. It changes as you type.",
+      "previewTask": "Review the campaign proposal",
+      "previewWhen": "now",
+      "previewMessage": "Done! I uploaded it to the Vault.",
+      "previewMention": "Ana mentioned you: <m>@{name}</m> can you check it today?",
+      "securityTitle": "Security",
+      "changeShort": "Change",
+      "figureSpaces": "{count, plural, one {space} other {spaces}}",
+      "figureAccounts": "{count, plural, one {account} other {accounts}}",
+      "nameHint": "How you appear in tasks, meetings and the Hallway.",
+      "rule": {
+        "length": "8 or more",
+        "lower": "lowercase",
+        "upper": "uppercase",
+        "digit": "number",
+        "symbol": "symbol"
+      },
+      "strength": {
+        "1": "Short",
+        "2": "Weak",
+        "3": "Good",
+        "4": "Strong"
+      },
+      "matches": "They match",
+      "noMatchYet": "They don’t match yet",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "cancel": "Cancel"
     },
     "account": {
       "title": "Account",
@@ -909,7 +958,27 @@
       "usage": "{used} of {max}",
       "unlimitedCount": "{used} · unlimited",
       "pageTitle": "General & plan",
-      "nameHint": "Your company's name in Veltro."
+      "nameHint": "Your company's name in Veltro.",
+      "colorTitle": "Account color",
+      "colorHint": "The app takes this color while you’re in this account, so you can tell at a glance where you are.",
+      "colorHintMember": "The app takes this color while you’re in this account. Admins can change it.",
+      "colorSaved": "Color updated",
+      "colors": {
+        "plum": "Plum",
+        "indigo": "Indigo",
+        "blue": "Blue",
+        "teal": "Teal",
+        "green": "Forest",
+        "terracotta": "Terracotta",
+        "wine": "Wine",
+        "graphite": "Graphite"
+      },
+      "customColor": "Your color",
+      "customTitle": "Your color",
+      "customHint": "Pick one or type its hex. We take its hue and intensity and adjust the light so everything stays readable.",
+      "customPick": "Pick a color",
+      "customHex": "Hex",
+      "customUse": "Use this color"
     },
     "members": {
       "title": "People",
@@ -2310,12 +2379,13 @@
       "edited": "Edited"
     },
     "start": {
-      "title": "Start from…",
+      "title": "Start a document",
       "hint": "A ready structure you can change however you like.",
       "firstHint": "Start your first one: blank, or with a ready structure you can change however you like.",
       "blank": {
         "name": "Blank",
-        "hint": "An empty page. Type / to insert headings, lists or tables."
+        "hint": "An empty page. Type / to insert headings, lists or tables.",
+        "short": "Type / to insert blocks"
       },
       "meeting": {
         "name": "Meeting notes",
@@ -2332,7 +2402,8 @@
         "hint": "The steps to do something the same way every time, and who owns it.",
         "body": "## What it’s for\n\n_When this process is used._\n\n## Steps\n\n1. First step\n2. Second step\n3. Third step\n\n## Owner\n\n_Who runs it._\n\n## Common questions\n\n_What people usually ask._"
       }
-    }
+    },
+    "yours": "Your documents"
   },
   "vault": {
     "ideas": {

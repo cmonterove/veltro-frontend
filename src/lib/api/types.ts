@@ -34,10 +34,11 @@ export type ApiAccount = {
   role: AccountRole
   status: 'active' | 'suspended'
   createdAt: string
+  color?: string
   usage: ApiUsage
 }
 
-export type ApiAccountBrief = { id: string; name: string; planId: string; role: AccountRole; status: 'active' | 'suspended'; createdAt: string }
+export type ApiAccountBrief = { id: string; name: string; planId: string; role: AccountRole; status: 'active' | 'suspended'; createdAt: string; color?: string }
 
 export type ApiWorkspace = {
   id: string

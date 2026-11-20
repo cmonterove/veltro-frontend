@@ -36,6 +36,8 @@ import {
   MessagesSquare,
   Compass,
   Diamond,
+  SlidersHorizontal,
+  UserRound,
 } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from './app-context'
 import { DemoDataMenuItem } from './demo-data'
@@ -62,7 +64,9 @@ import { useHydrated } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { DEMO } from '@/lib/demo/config'
 import { DemoBadge } from './demo-badge'
+import { isPersonalSettings } from '@/lib/routes'
 import { NewAccountDialog } from './new-account-dialog'
+import { brandAttrs, brandOf } from '@/lib/brand'
 import { Logo, LogoMark } from './logo'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { WorkspaceMark } from '@/components/app/marks'
@@ -140,7 +144,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
     setPendingNav({ href, from: pathname })
   }
-  const settingsActive = pathname.startsWith('/settings') && pathname !== '/settings/members'
+  const settingsActive = pathname.startsWith('/settings') && pathname !== '/settings/members' && !isPersonalSettings(pathname)
 
   if (collapsed) {
     return (
@@ -489,7 +493,10 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
               })
             }}
           >
-            <Building2 />
+            {/* la ficha de cada cuenta, en su color */}
+            <span {...brandAttrs(brandOf(a.color))} className="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] bg-accent text-[10px] font-bold text-accent-fg">
+              {a.name.trim().charAt(0).toUpperCase()}
+            </span>
             <span className="flex-1 truncate">{a.name}</span>
             {a.id === account.id ? <Check className="!text-fg" /> : null}
           </MenuItem>
@@ -536,9 +543,14 @@ function UserMenu({ onShortcuts, compact = false }: { onShortcuts: () => void; c
           <p className="truncate text-xs text-fg-muted">{profile.email}</p>
         </div>
         <MenuSeparator />
+        {/* tus ajustes viven aquí, aparte de los de la cuenta (el botón «Ajustes» de la barra) */}
         <MenuLinkItem render={<Link href="/settings/profile" />}>
-          <Settings />
+          <UserRound />
           {t('profile')}
+        </MenuLinkItem>
+        <MenuLinkItem render={<Link href="/settings/preferences" />}>
+          <SlidersHorizontal />
+          {t('preferences')}
         </MenuLinkItem>
         <MenuItem onClick={onShortcuts}>
           <Keyboard />

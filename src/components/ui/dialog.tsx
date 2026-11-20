@@ -8,6 +8,9 @@ import { cn } from '@/lib/utils'
 export const Dialog = D.Root
 export const DialogTrigger = D.Trigger
 export const DialogClose = D.Close
+/** Para cabeceras propias (con ícono, por ejemplo): el título y la descripción que lee el lector de pantalla. */
+export const DialogTitle = D.Title
+export const DialogDescription = D.Description
 
 export function DialogContent({
   className,

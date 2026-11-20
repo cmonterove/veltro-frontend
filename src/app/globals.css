@@ -227,6 +227,114 @@
 }
 
 /*
+ * El color de la cuenta (accounts.color): cada cuenta pinta la app con su tono — el marco, el menú, los
+ * acentos y la selección — en claro y en oscuro. La marca es un tono (--bh) y una intensidad (--bc), y los
+ * colores de abajo se calculan con ellos con los mismos claros y cromas del ciruela de siempre (tono 312).
+ * El atributo va en el armazón de la app (llega del servidor, sin parpadeo) y en <html> para los portales.
+ * Donde va el atributo se recalculan los colores (y sus copias --sheet-*), porque los de :root ya vienen
+ * calculados con el tono de la raíz.
+ */
+/* registradas: así el tono se anima (al cambiar de cuenta o de color, la app pasa de un color al otro) */
+@property --bh {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 312;
+}
+@property --bc {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+:root {
+  --bh: 312;
+  --bc: 1;
+}
+:root,
+[data-brand] {
+  transition:
+    --bh 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    --bc 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-brand] {
+    transition: none;
+  }
+}
+[data-brand='plum'] { --bh: 312; --bc: 1; }
+[data-brand='indigo'] { --bh: 274; }
+[data-brand='blue'] { --bh: 250; }
+[data-brand='teal'] { --bh: 205; --bc: 0.9; }
+[data-brand='green'] { --bh: 155; --bc: 0.8; }
+[data-brand='terracotta'] { --bh: 38; --bc: 0.85; }
+[data-brand='wine'] { --bh: 8; --bc: 0.95; }
+[data-brand='graphite'] { --bh: 285; --bc: 0.18; }
+
+:root,
+[data-brand] {
+  --frame: oklch(0.385 calc(0.07 * var(--bc)) calc(var(--bh) + 6));
+  --frame-hi: oklch(0.415 calc(0.076 * var(--bc)) calc(var(--bh) + 6));
+  --frame-lo: oklch(0.33 calc(0.06 * var(--bc)) calc(var(--bh) + 3));
+  --fg: oklch(0.243 calc(0.088 * var(--bc)) calc(var(--bh) + 0.7));
+  --accent: oklch(0.377 calc(0.15 * var(--bc)) var(--bh));
+  --accent-hover: oklch(0.31 calc(0.135 * var(--bc)) var(--bh));
+  --accent-mid: oklch(0.377 calc(0.15 * var(--bc)) var(--bh));
+  --accent-soft: oklch(0.923 calc(0.037 * var(--bc)) var(--bh));
+  --accent-ink: oklch(0.377 calc(0.15 * var(--bc)) var(--bh));
+  --highlight: oklch(0.945 calc(0.027 * var(--bc)) var(--bh));
+  --highlight-ink: oklch(0.31 calc(0.135 * var(--bc)) var(--bh));
+  --lavender: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --info: oklch(0.377 calc(0.15 * var(--bc)) var(--bh));
+  --info-soft: oklch(0.945 calc(0.027 * var(--bc)) var(--bh));
+  --chart-bar: oklch(0.377 calc(0.15 * var(--bc)) var(--bh));
+  --chart-track: oklch(0.93 calc(0.012 * var(--bc)) var(--bh));
+}
+.dark,
+.dark [data-brand] {
+  --frame: oklch(0.27 calc(0.045 * var(--bc)) calc(var(--bh) + 4));
+  --frame-hi: oklch(0.3 calc(0.05 * var(--bc)) calc(var(--bh) + 6));
+  --frame-lo: oklch(0.235 calc(0.04 * var(--bc)) calc(var(--bh) + 2));
+  --fg: oklch(0.969 0.011 54.5);
+  --active: oklch(0.3 calc(0.058 * var(--bc)) calc(var(--bh) - 1));
+  --accent: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --accent-hover: oklch(0.82 calc(0.084 * var(--bc)) var(--bh));
+  --accent-fg: oklch(0.243 calc(0.088 * var(--bc)) calc(var(--bh) + 0.7));
+  --accent-mid: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --accent-soft: oklch(0.28 calc(0.07 * var(--bc)) calc(var(--bh) - 1));
+  --accent-ink: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --highlight: oklch(0.27 calc(0.06 * var(--bc)) calc(var(--bh) - 1));
+  --highlight-ink: oklch(0.895 calc(0.052 * var(--bc)) var(--bh));
+  --lavender: oklch(0.45 calc(0.13 * var(--bc)) calc(var(--bh) - 1));
+  --info: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --info-soft: oklch(0.28 calc(0.07 * var(--bc)) calc(var(--bh) - 1));
+  --chart-bar: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --chart-track: oklch(0.29 calc(0.042 * var(--bc)) calc(var(--bh) - 1));
+}
+/* las copias que usa on-sheet, recalculadas con el color de la cuenta */
+[data-brand] {
+  --sheet-canvas: var(--canvas);
+  --sheet-sidebar: var(--sidebar);
+  --sheet-panel: var(--panel);
+  --sheet-hover: var(--hover);
+  --sheet-active: var(--active);
+  --sheet-line: var(--line);
+  --sheet-line-soft: var(--line-soft);
+  --sheet-line-strong: var(--line-strong);
+  --sheet-fg: var(--fg);
+  --sheet-fg-muted: var(--fg-muted);
+  --sheet-fg-subtle: var(--fg-subtle);
+  --sheet-accent: var(--accent);
+  --sheet-accent-hover: var(--accent-hover);
+  --sheet-accent-fg: var(--accent-fg);
+  --sheet-accent-mid: var(--accent-mid);
+  --sheet-accent-soft: var(--accent-soft);
+  --sheet-accent-ink: var(--accent-ink);
+  --sheet-highlight: var(--highlight);
+  --sheet-highlight-ink: var(--highlight-ink);
+  --sheet-elev-card: var(--elev-card);
+}
+
+/*
  * Lo que vive sobre el marco (menú, barra de arriba): texto perla y superficies translucidas,
  * igual en claro y en oscuro porque el marco es oscuro en los dos. Los menús, avisos y vistazos
  * que se abren desde ahí van en portales, fuera de este bloque, y usan el tema normal.
@@ -244,18 +352,18 @@
   --fg: oklch(0.969 0.011 54.5);
   --fg-muted: oklch(0.969 0.011 54.5 / 0.86);
   --fg-subtle: oklch(0.969 0.011 54.5 / 0.78);
-  --accent: oklch(0.773 0.115 303); /* lila: ícono activo y contadores (tinta encima 7,9:1) */
-  --accent-hover: oklch(0.82 0.084 311.6);
-  --accent-fg: oklch(0.243 0.088 312.7);
-  --accent-mid: oklch(0.773 0.115 303);
-  --accent-soft: oklch(0.773 0.115 303 / 0.18);
-  --accent-ink: oklch(0.773 0.115 303);
-  --highlight: oklch(0.773 0.115 303 / 0.16);
-  --highlight-ink: oklch(0.895 0.052 311.9);
+  --accent: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9)); /* lila (o el tono de la cuenta): ícono activo y contadores */
+  --accent-hover: oklch(0.82 calc(0.084 * var(--bc)) var(--bh));
+  --accent-fg: oklch(0.243 calc(0.088 * var(--bc)) calc(var(--bh) + 0.7));
+  --accent-mid: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --accent-soft: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9) / 0.18);
+  --accent-ink: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9));
+  --highlight: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9) / 0.16);
+  --highlight-ink: oklch(0.895 calc(0.052 * var(--bc)) var(--bh));
   /* los contadores de no leído van en rosa sobre el marco (tinta encima 6,4:1) */
   --count: oklch(0.728 0.18 3.1);
-  --count-fg: oklch(0.243 0.088 312.7);
-  --logo-a: oklch(0.773 0.115 303); /* logo en su versión oscuro */
+  --count-fg: oklch(0.243 calc(0.088 * var(--bc)) calc(var(--bh) + 0.7));
+  --logo-a: oklch(0.773 calc(0.115 * var(--bc)) calc(var(--bh) - 9)); /* logo en su versión oscuro */
   --logo-b: oklch(0.728 0.18 3.1);
   --logo-ink: oklch(0.969 0.011 54.5);
   --elev-card: inset 0 0 0 1px oklch(0.969 0.011 54.5 / 0.1);

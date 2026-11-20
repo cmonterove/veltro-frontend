@@ -1,8 +1,11 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingSheet } from '@/components/app/loading-sheet'
 
 // Se muestra al instante al navegar mientras el servidor prepara la vista.
 export default function Loading() {
+  // en Pasillo y Ajustes, dentro de su propia hoja (la barra no pone la común en esas rutas)
   return (
+    <LoadingSheet>
     <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-8 sm:px-8 sm:pt-12" aria-busy>
       <Skeleton className="h-4 w-40" />
       <Skeleton className="mt-3 h-7 w-72" />
@@ -20,5 +23,6 @@ export default function Loading() {
         </div>
       </div>
     </div>
+    </LoadingSheet>
   )
 }

@@ -2,32 +2,25 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
-import { Building2, ChevronDown, Network, Plus, SlidersHorizontal, User, Users, UsersRound, LayoutTemplate } from 'lucide-react'
+import { Building2, ChevronDown, Network, Plus, Users, UsersRound, LayoutTemplate } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Menu, MenuContent, MenuGroup, MenuLabel, MenuLinkItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { cn } from '@/lib/utils'
-import { navItemClass, navActiveClass } from '@/components/app/sidebar'
 import { SupportIcon } from '@/components/support/support-bits'
+import { isPersonalSettings } from '@/lib/routes'
 
 type Item = { href: string; label: string; icon: React.ReactNode; active: (p: string) => boolean }
 type Group = { id: string; label: string; items: Item[] }
 
-/** Ajustes agrupados: lo tuyo, lo de la empresa y cada espacio con su propia página. */
+/** Ajustes de la cuenta: lo de la empresa y cada espacio con su propia página (los tuyos van aparte). */
 function useSettingsGroups(admin: boolean): Group[] {
   const t = useTranslations('settings.nav')
   const { workspaces, account } = useApp()
   const exact = (href: string) => (p: string) => p === href
   const groups: Group[] = [
-    {
-      id: 'you',
-      label: t('groupYou'),
-      items: [
-        { href: '/settings/profile', label: t('profile'), icon: <User />, active: exact('/settings/profile') },
-        { href: '/settings/preferences', label: t('preferences'), icon: <SlidersHorizontal />, active: exact('/settings/preferences') },
-      ],
-    },
     {
       id: 'account',
       label: account.name,
@@ -59,39 +52,92 @@ function useSettingsGroups(admin: boolean): Group[] {
   return groups
 }
 
+/**
+ * El menú de Ajustes sobre el marco ciruela (como la lista del Pasillo): «Ajustes» en grande, y cada grupo
+ * con su cabecera — la cuenta (su inicial, plan y tu rol) y los espacios. La
+ * opción elegida es crema y llega hasta el borde: se une a la página como la pestaña de una carpeta.
+ */
 export function SettingsNav() {
   const admin = useIsAccountAdmin()
   const t = useTranslations('settings')
+  const tRole = useTranslations('roles')
   const pathname = usePathname()
   const groups = useSettingsGroups(admin)
+  const { account, accountRole } = useApp()
+
+  const head = (g: Group) =>
+    g.id === 'account' ? (
+      <div className="mb-1.5 flex items-center gap-2.5 px-3">
+        <span className="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] bg-accent text-[13px] font-bold text-accent-fg">{account.name.trim().charAt(0).toUpperCase()}</span>
+        <span className="min-w-0">
+          <span className="block truncate text-[13.5px] font-semibold text-fg">{account.name}</span>
+          <span className="block truncate text-[11.5px] text-fg-subtle">{t('nav.planRole', { plan: account.plan_id.charAt(0).toUpperCase() + account.plan_id.slice(1), role: tRole(accountRole) })}</span>
+        </span>
+      </div>
+    ) : (
+      <Link
+        href="/settings/workspaces"
+        className={cn('mb-1 block truncate px-3 text-2xs font-semibold uppercase tracking-wide hover:text-fg', pathname === '/settings/workspaces' ? 'text-fg' : 'text-fg-subtle')}
+      >
+        {g.label}
+      </Link>
+    )
+
   return (
-    <nav className="flex flex-col gap-5" aria-label={t('title')}>
-      {groups.map((g) => (
-        <div key={g.id}>
-          {g.id === 'workspaces' ? (
-            <Link
-              href="/settings/workspaces"
-              className={cn(
-                'mb-1 block truncate rounded-sm px-2 text-2xs font-semibold uppercase tracking-wide hover:text-fg',
-                pathname === '/settings/workspaces' ? 'text-accent-ink' : 'text-fg-subtle',
-              )}
-            >
-              {g.label}
-            </Link>
-          ) : (
-            <p className="mb-1 truncate px-2 text-2xs font-semibold uppercase tracking-wide text-fg-subtle">{g.label}</p>
-          )}
-          <div className="flex flex-col gap-px">
-            {g.items.map((i) => (
-              <Link key={i.href} href={i.href} className={cn(navItemClass, i.active(pathname) && navActiveClass)}>
-                {i.icon}
-                <span className="truncate">{i.label}</span>
-              </Link>
-            ))}
+    <nav className="flex min-h-0 w-full flex-col overflow-y-auto pb-6 pl-2 pt-1 scrollbar-none" aria-label={t('title')}>
+      <h1 className="px-3 pb-5 text-[28px] font-bold leading-none tracking-[-0.035em] text-fg">{t('title')}</h1>
+      <div className="flex flex-col gap-6">
+        {groups.map((g) => (
+          <div key={g.id}>
+            {head(g)}
+            <div className="flex flex-col gap-0.5">
+              {g.items.map((i) => {
+                const active = i.active(pathname)
+                return (
+                  <Link
+                    key={i.href}
+                    href={i.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'relative flex h-10 items-center rounded-[14px] px-3 text-[14px] transition-colors duration-200 [&_svg]:size-4 [&_svg]:shrink-0',
+                      active ? 'on-sheet mr-0 font-medium text-fg [&_svg]:text-accent' : 'mr-3 text-fg-muted hover:bg-hover hover:text-fg [&_svg]:text-fg-subtle',
+                    )}
+                  >
+                    {/* la pestaña crema es una sola: se desliza de una opción a otra al cambiar */}
+                    {active ? (
+                      <motion.span
+                        layoutId="settings-tab"
+                        transition={{ type: 'spring', stiffness: 520, damping: 44, mass: 0.9 }}
+                        className={cn(
+                          'on-sheet absolute inset-0 rounded-l-[14px] bg-canvas',
+                          // las esquinas de la unión, curvas hacia afuera, en el color de la hoja (como en el Pasillo)
+                          'before:pointer-events-none before:absolute before:bottom-full before:right-0 before:size-4 before:bg-[radial-gradient(circle_at_0_0,transparent_15.5px,var(--canvas)_16px)]',
+                          'after:pointer-events-none after:absolute after:right-0 after:top-full after:size-4 after:bg-[radial-gradient(circle_at_0_100%,transparent_15.5px,var(--canvas)_16px)]',
+                        )}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span className="relative flex min-w-0 items-center gap-3">
+                      {i.icon}
+                      <span className="truncate">{i.label}</span>
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </nav>
+  )
+}
+
+/** El panel del menú sobre el marco (solo escritorio): lo usan Ajustes y su carga, para que se vean iguales. */
+export function SettingsAside() {
+  return (
+    <aside className="hidden w-[272px] shrink-0 md:on-frame md:relative md:z-[1] md:flex">
+      <SettingsNav />
+    </aside>
   )
 }
 
@@ -134,5 +180,45 @@ export function SettingsContainer({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const wide = WIDE.some((p) => pathname === p)
   // las anchas ocupan todo el alto: sus tarjetas llegan hasta abajo
-  return <div className={cn('mx-auto w-full px-4 pt-6 sm:px-10 sm:pt-10', wide ? 'flex min-h-full max-w-6xl flex-col pb-6 lg:h-full' : 'max-w-3xl pb-24')}>{children}</div>
+  return (
+    <div
+      className={cn(
+        'mx-auto w-full px-4 pt-6 sm:px-10 sm:pt-10',
+        wide ? 'flex min-h-full max-w-6xl flex-col pb-6 lg:h-full' : 'max-w-3xl pb-24',
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** Tus ajustes (Perfil y Preferencias): en la hoja común, angostos y tranquilos. La cabecera y las pestañas las arma la página. */
+function PersonalFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="h-full overflow-y-auto scrollbar-thin">
+      <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-8 sm:px-8">{children}</div>
+    </div>
+  )
+}
+
+/** El armazón según la página: tus ajustes (página tranquila) o los de la cuenta (menú sobre el marco y su hoja). */
+export function SettingsFrame({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  if (isPersonalSettings(pathname)) return <PersonalFrame>{children}</PersonalFrame>
+  return (
+    <div className="flex h-full min-h-0">
+      <SettingsAside />
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto scrollbar-thin md:rounded-[20px] md:bg-canvas md:shadow-sheet">
+        <SettingsContainer>
+          <div className="mb-6 md:hidden">
+            <SettingsNavMobile />
+          </div>
+          {/* cada página entra con un fundido corto desde abajo */}
+          <div key={pathname} className="flex min-h-0 flex-1 flex-col animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out">
+            {children}
+          </div>
+        </SettingsContainer>
+      </main>
+    </div>
+  )
 }

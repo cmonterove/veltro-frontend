@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { PreferencesSettings } from '@/components/settings/profile-settings'
-import { IntegrationsSection } from '@/components/settings/integrations-settings'
 import { googleRedirectUri } from '@/lib/google/config'
+import { PersonalSettings } from '@/components/settings/profile-settings'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('settings')
@@ -10,10 +9,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function PreferencesPage() {
-  return (
-    <>
-      <PreferencesSettings />
-      <IntegrationsSection redirectUri={googleRedirectUri()} />
-    </>
-  )
+  return <PersonalSettings tab="preferences" redirectUri={googleRedirectUri()} />
 }

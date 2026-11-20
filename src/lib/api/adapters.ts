@@ -30,6 +30,8 @@ export function toAccount(a: ApiAccount | ApiAccountBrief): AccountRow {
     name: a.name,
     plan_id: a.planId,
     owner_id: 'ownerId' in a ? a.ownerId : '',
+    ...('role' in a && a.role ? { my_role: a.role } : {}),
+    ...(a.color ? { color: a.color } : {}),
     status: a.status,
     suspended_at: null,
     suspended_reason: null,

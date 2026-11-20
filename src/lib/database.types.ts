@@ -46,6 +46,10 @@ export type AccountRow = Timestamps & {
   name: string
   plan_id: string
   owner_id: string
+  /** mi rol en esa cuenta (llega con la lista de mis cuentas) */
+  my_role?: AccountRole
+  /** el color de la cuenta (lib/brand): la app lo toma mientras estás en ella */
+  color?: string
   status: 'active' | 'suspended'
   suspended_at: string | null
   suspended_reason: string | null

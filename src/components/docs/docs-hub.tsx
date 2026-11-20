@@ -55,13 +55,17 @@ const STARTERS = [
 ] as const
 type Starter = (typeof STARTERS)[number]
 
-/** Hasta cuántos documentos la pantalla todavía muestra las plantillas en grande (y no al costado). */
-const FEW = 4
+/** Hasta cuántos documentos se muestran todos como páginas; con más, las últimas páginas y la tabla. */
+const SHELF = 8
+
+/** Las páginas en columnas según el ancho (de 2 a 6); las plantillas usan las mismas para quedar alineadas. */
+const SHEET_GRID = 'grid grid-cols-2 gap-x-5 gap-y-6 @min-[40rem]/docs:grid-cols-3 @min-[52rem]/docs:grid-cols-4 @min-[64rem]/docs:grid-cols-5 @min-[84rem]/docs:grid-cols-6'
 
 /**
- * Todos los documentos de todos los espacios en un lugar. Con pocos, la lista y debajo con qué empezar
- * el siguiente (en grande). Con más, lo último que se tocó como páginas para seguir donde quedaste, la
- * lista completa por fecha o por espacio, y las plantillas al costado.
+ * Todos los documentos de todos los espacios en un lugar, como la portada de un procesador de textos:
+ * arriba una franja con las plantillas como hojas para empezar uno; debajo los documentos como páginas.
+ * Con muchos, las últimas páginas (para seguir donde quedaste) y la tabla completa por fecha o espacio.
+ * Buscando o filtrando, solo la tabla.
  */
 /** `embedded`: dentro de la Bóveda (pestaña Escritos), sin encabezado propio. */
 export function DocsHub({ embedded = false }: { embedded?: boolean } = {}) {
@@ -157,9 +161,8 @@ export function DocsHub({ embedded = false }: { embedded?: boolean } = {}) {
 
   const spaces = new Set((docs ?? []).map((d) => d.workspace_id)).size
   const canStart = newDoc.targets.length > 0
-  // pocos documentos (y sin filtrar): las plantillas en grande, debajo de la lista
-  const few = Boolean(docs) && !filtering && (docs?.length ?? 0) <= FEW
-  const aside = canStart && Boolean(docs?.length) && !few
+  const band = canStart && !filtering
+  const shelf = !filtering && (docs?.length ?? 0) <= SHELF
 
   return (
     <div className={cn('flex min-h-0 flex-col', embedded ? 'flex-1' : 'h-full')}>
@@ -226,119 +229,126 @@ export function DocsHub({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        <div className="@container/docs min-h-0 min-w-0 flex-1 overflow-y-auto scrollbar-thin">
-          {docsQuery.isError ? (
-            <div className="p-6">
-              <ErrorState onRetry={() => docsQuery.refetch()} />
-            </div>
-          ) : isLoading || !docs ? (
-            <div className="flex flex-col gap-2 px-5 pt-5">
-              <Skeleton className="mb-2 h-4 w-40 rounded-full" />
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-12 rounded-xl" />
+      <div className="@container/docs min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+        {docsQuery.isError ? (
+          <div className="p-6">
+            <ErrorState onRetry={() => docsQuery.refetch()} />
+          </div>
+        ) : isLoading || !docs ? (
+          <div className="flex flex-col gap-5 px-5 pt-5">
+            <Skeleton className="h-32 rounded-2xl" />
+            <div className={SHEET_GRID}>
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} className="aspect-[16/10] rounded-xl" />
               ))}
             </div>
-          ) : docs.length === 0 && !canStart ? (
-            <EmptyState icon={<FileText />} title={t('emptyTitle')} description={t('emptyBody')} />
-          ) : list.length === 0 && filtering ? (
-            <div className="px-5 py-8">
-              <EmptyState
-                icon={<Search />}
-                tone="quiet"
-                title={t('noMatches')}
-                description={t('noMatchesHint')}
-                action={
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setQuery('')
-                      setFilters(NO_FILTERS)
-                    }}
-                  >
-                    {t('clearFilters')}
-                  </Button>
-                }
-              />
-            </div>
-          ) : (
-            <div className="flex min-h-full flex-col gap-6 px-3 pb-5 pt-4 sm:px-4">
-              {/* lo último que se tocó, como páginas: para seguir donde quedaste */}
-              {!filtering && !few ? (
-                <section className="px-2">
-                  <h2 className="mb-3 text-sm font-semibold text-fg">{t('resume')}</h2>
-                  <div className="grid grid-cols-2 gap-3 @min-[46rem]/docs:grid-cols-3 @min-[64rem]/docs:grid-cols-4">
-                    {list.slice(0, 4).map((d, i) => (
-                      <PaperCard
-                        key={d.id}
-                        doc={d}
-                        ws={wsMap.get(d.workspace_id)}
-                        className={cn(i === 2 && '@max-[46rem]/docs:hidden', i === 3 && '@max-[64rem]/docs:hidden')}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              {docs.length ? (
-                <section>
-                  <h2 className="mb-1 flex items-baseline gap-2 px-2 text-sm font-semibold text-fg">
-                    {filtering ? t('results') : t('all')}
-                    <span className="text-xs font-normal tabular-nums text-fg-subtle">{list.length}</span>
-                  </h2>
-                  {/* las columnas: qué es, dónde vive, cuándo se tocó y quién lo escribió */}
-                  <div className="flex items-center gap-3 border-b border-line-soft px-3 pb-2 pt-2 text-2xs font-medium uppercase tracking-wide text-fg-subtle" aria-hidden>
-                    <span className="w-8 shrink-0" />
-                    <span className="min-w-0 flex-1">{t('columns.name')}</span>
-                    {groupBy !== 'space' ? <span className="hidden w-36 shrink-0 @min-[40rem]/docs:block">{t('columns.space')}</span> : null}
-                    <span className="hidden w-28 shrink-0 text-right @min-[30rem]/docs:block">{t('columns.edited')}</span>
-                    <span className="w-6 shrink-0" />
-                  </div>
-                  {groups.map((g) => (
-                    <div key={g.id}>
-                      <h3 className="flex items-center gap-2 px-3 pb-1 pt-3 text-xs font-semibold text-fg-muted">
-                        {g.icon}
-                        <span className={cn(g.icon && 'text-fg')}>{g.label}</span>
-                        <span className="rounded-full bg-fg/[0.06] px-1.5 text-2xs tabular-nums text-fg-muted">{g.items.length}</span>
-                      </h3>
-                      <ul className="flex flex-col">
-                        {g.items.map((d) => (
-                          <DocRow key={d.id} doc={d} ws={wsMap.get(d.workspace_id)} showSpace={groupBy !== 'space'} />
-                        ))}
-                      </ul>
-                    </div>
+          </div>
+        ) : docs.length === 0 && !canStart ? (
+          <EmptyState icon={<FileText />} title={t('emptyTitle')} description={t('emptyBody')} />
+        ) : list.length === 0 && filtering ? (
+          <div className="px-5 py-8">
+            <EmptyState
+              icon={<Search />}
+              tone="quiet"
+              title={t('noMatches')}
+              description={t('noMatchesHint')}
+              action={
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setQuery('')
+                    setFilters(NO_FILTERS)
+                  }}
+                >
+                  {t('clearFilters')}
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <>
+            {/* con qué empezar: las plantillas como hojas, en una franja crema arriba */}
+            {band ? (
+              <section className="border-b border-line-soft bg-canvas/70 px-5 pb-4 pt-4" aria-label={t('start.title')}>
+                <p className="flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-fg">
+                  {t('start.title')}
+                  <span className="text-xs font-normal text-fg-muted">{t('start.hint')}</span>
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-4 @min-[40rem]/docs:grid-cols-4 @min-[64rem]/docs:grid-cols-5 @min-[84rem]/docs:grid-cols-6">
+                  {STARTERS.map((s) => (
+                    <TemplateThumb key={s.id} starter={s} newDoc={newDoc} />
                   ))}
-                </section>
-              ) : null}
+                </div>
+              </section>
+            ) : null}
 
-              {/* con pocos documentos, con qué empezar el siguiente ocupa el resto (no una caja vacía) */}
-              {few && canStart ? (
-                <section className="flex flex-1 flex-col px-2">
-                  <h2 className="text-sm font-semibold text-fg">{docs.length ? t('start.title') : t('emptyTitle')}</h2>
-                  <p className="mt-0.5 text-xs text-fg-muted">{docs.length ? t('start.hint') : t('start.firstHint')}</p>
-                  <div className="mt-3 grid flex-1 auto-rows-fr grid-cols-1 gap-3 @min-[32rem]/docs:grid-cols-2 @min-[60rem]/docs:grid-cols-4">
-                    {STARTERS.map((s) => (
-                      <StarterTile key={s.id} starter={s} variant="grid" newDoc={newDoc} />
+            <div className="flex flex-col gap-7 px-5 pb-8 pt-5">
+              {docs.length === 0 ? (
+                <p className="text-sm text-fg-muted">{t('emptyBody')}</p>
+              ) : shelf ? (
+                // pocos: todos como páginas
+                <section>
+                  <h2 className="mb-3 flex items-baseline gap-2 text-sm font-semibold text-fg">
+                    {t('yours')}
+                    <span className="text-xs font-normal tabular-nums text-fg-subtle">{docs.length}</span>
+                  </h2>
+                  <div className={SHEET_GRID}>
+                    {list.map((d) => (
+                      <DocSheet key={d.id} doc={d} ws={wsMap.get(d.workspace_id)} />
                     ))}
                   </div>
                 </section>
-              ) : null}
+              ) : (
+                <>
+                  {/* muchos: las últimas como páginas (una fila, según el ancho) y la tabla completa */}
+                  {!filtering ? (
+                    <section>
+                      <h2 className="mb-3 text-sm font-semibold text-fg">{t('resume')}</h2>
+                      <div className={SHEET_GRID}>
+                        {list.slice(0, 6).map((d, i) => (
+                          <DocSheet
+                            key={d.id}
+                            doc={d}
+                            ws={wsMap.get(d.workspace_id)}
+                            className={cn(i >= 2 && '@max-[40rem]/docs:hidden', i >= 3 && '@max-[52rem]/docs:hidden', i >= 4 && '@max-[64rem]/docs:hidden', i >= 5 && '@max-[84rem]/docs:hidden')}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                    <section className="-mx-3">
+                      <h2 className="mb-1 flex items-baseline gap-2 px-3 text-sm font-semibold text-fg">
+                        {filtering ? t('results') : t('all')}
+                        <span className="text-xs font-normal tabular-nums text-fg-subtle">{list.length}</span>
+                      </h2>
+                      {/* las columnas: qué es, dónde vive, cuándo se tocó y quién lo escribió */}
+                      <div className="flex items-center gap-3 border-b border-line-soft px-3 pb-2 pt-2 text-2xs font-medium uppercase tracking-wide text-fg-subtle" aria-hidden>
+                        <span className="w-8 shrink-0" />
+                        <span className="min-w-0 flex-1">{t('columns.name')}</span>
+                        {groupBy !== 'space' ? <span className="hidden w-36 shrink-0 @min-[40rem]/docs:block">{t('columns.space')}</span> : null}
+                        <span className="hidden w-28 shrink-0 text-right @min-[30rem]/docs:block">{t('columns.edited')}</span>
+                        <span className="w-6 shrink-0" />
+                      </div>
+                      {groups.map((g) => (
+                        <div key={g.id}>
+                          <h3 className="flex items-center gap-2 px-3 pb-1 pt-3 text-xs font-semibold text-fg-muted">
+                            {g.icon}
+                            <span className={cn(g.icon && 'text-fg')}>{g.label}</span>
+                            <span className="rounded-full bg-fg/[0.06] px-1.5 text-2xs tabular-nums text-fg-muted">{g.items.length}</span>
+                          </h3>
+                          <ul className="flex flex-col">
+                            {g.items.map((d) => (
+                              <DocRow key={d.id} doc={d} ws={wsMap.get(d.workspace_id)} showSpace={groupBy !== 'space'} />
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </section>
+                </>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* con muchos documentos, las plantillas quedan a mano al costado */}
-        {aside ? (
-          <aside className="hidden w-[18.5rem] shrink-0 flex-col gap-2 overflow-y-auto border-l border-line-soft bg-canvas/50 p-4 scrollbar-thin lg:flex" aria-label={t('start.title')}>
-            <div className="px-1 pb-1">
-              <h2 className="text-sm font-semibold text-fg">{t('start.title')}</h2>
-              <p className="mt-0.5 text-xs text-fg-muted">{t('start.hint')}</p>
-            </div>
-            {STARTERS.map((s) => (
-              <StarterTile key={s.id} starter={s} variant="aside" newDoc={newDoc} />
-            ))}
-          </aside>
-        ) : null}
+          </>
+        )}
       </div>
     </div>
   )
@@ -363,10 +373,10 @@ function useNewDoc() {
 type NewDoc = ReturnType<typeof useNewDoc>
 
 /**
- * Una plantilla. Al costado: qué es y sus secciones en pastillas. En grande: además, cómo queda la
- * página (sus títulos con líneas de texto). Con varios espacios pregunta dónde crearla.
+ * Una plantilla como hoja: la página en miniatura (sus títulos con líneas; la de en blanco, un +) y su
+ * nombre debajo. Crea el doc y lo abre; con varios espacios pregunta dónde.
  */
-function StarterTile({ starter, variant, newDoc }: { starter: Starter; variant: 'aside' | 'grid'; newDoc: NewDoc }) {
+function TemplateThumb({ starter, newDoc }: { starter: Starter; newDoc: NewDoc }) {
   const t = useTranslations('docsHub')
   const body = starter.id === 'blank' ? '' : t(`start.${starter.id}.body`)
   const outline = body
@@ -375,49 +385,45 @@ function StarterTile({ starter, variant, newDoc }: { starter: Starter; variant: 
     .map((l) => l.slice(3).trim())
   const Icon = starter.icon
   const loading = newDoc.busy === starter.id
-  const cls = cn(
-    'group/tile flex flex-col rounded-2xl bg-panel text-left outline-none ring-1 ring-line-soft transition-[box-shadow,transform,--tw-ring-color] duration-200 ease-out',
-    'hover:-translate-y-px hover:shadow-[0_10px_24px_-14px_oklch(0.3_0.09_312/0.35)] hover:ring-line focus-visible:ring-2 focus-visible:ring-accent-mid/40 disabled:pointer-events-none disabled:opacity-70',
-    variant === 'aside' ? 'max-h-32 min-h-[4.5rem] flex-1 justify-center px-3.5 py-3' : 'max-h-72 min-h-[8.5rem] p-4',
-  )
+  const cls = 'group/tpl flex min-w-0 flex-col text-left outline-none disabled:pointer-events-none disabled:opacity-70'
   const inner = (
     <>
-      <span className="flex items-start gap-3">
-        <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-xl', starter.tone)}>
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-fg">{t(`start.${starter.id}.name`)}</span>
-          {/* al costado, en vez de la explicación, sus secciones en una línea */}
-          <span className={cn('mt-0.5 block text-xs leading-relaxed text-fg-muted', variant === 'aside' ? 'line-clamp-2' : 'line-clamp-3')}>
-            {variant === 'aside' && outline.length ? outline.join(' · ') : t(`start.${starter.id}.hint`)}
-          </span>
-        </span>
-        <Plus className="size-4 shrink-0 text-fg-subtle opacity-0 transition-opacity group-hover/tile:opacity-100 group-focus-visible/tile:opacity-100" aria-hidden />
-      </span>
-      {variant === 'aside' ? null : (
-        // la página en miniatura: sus títulos y unas líneas de texto (en blanco, solo líneas)
-        <span className="mt-3.5 flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-xl bg-canvas/70 px-3.5 py-3 ring-1 ring-line-soft [mask-image:linear-gradient(to_bottom,black_70%,transparent)]" aria-hidden>
-          {(outline.length ? outline : [null, null, null]).map((h, i) => (
-            <span key={i} className="flex flex-col gap-1.5">
-              {h ? <span className="text-[11px] font-semibold leading-none text-fg">{h}</span> : null}
-              <span className={cn('h-1.5 rounded-full bg-fg/[0.07]', i % 2 ? 'w-1/2' : 'w-3/4')} />
+      <span className="relative block h-20 overflow-hidden rounded-xl bg-panel px-3 pt-2.5 shadow-[0_1px_2px_oklch(0.243_0.088_312.7/0.06)] ring-1 ring-line-soft transition-[transform,box-shadow] duration-200 ease-out group-hover/tpl:-translate-y-0.5 group-hover/tpl:shadow-[0_12px_24px_-14px_oklch(0.3_0.09_312/0.4)] group-hover/tpl:ring-accent-mid/40 group-focus-visible/tpl:ring-2 group-focus-visible/tpl:ring-accent-mid/50">
+        {starter.id === 'blank' ? (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex size-9 items-center justify-center rounded-full bg-accent-soft text-accent-ink transition-transform duration-200 ease-out group-hover/tpl:scale-110">
+              {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-5" />}
             </span>
-          ))}
-        </span>
-      )}
+          </span>
+        ) : (
+          <>
+            <span className="flex flex-col gap-1.5 [mask-image:linear-gradient(to_bottom,black_60%,transparent)]" aria-hidden>
+              {outline.map((h, i) => (
+                <span key={h} className="flex flex-col gap-1">
+                  <span className="text-[9px] font-semibold leading-none text-fg">{h}</span>
+                  <span className={cn('h-1 rounded-full bg-fg/[0.08]', i % 2 ? 'w-1/2' : 'w-4/5')} />
+                </span>
+              ))}
+            </span>
+            <span className={cn('absolute bottom-2 right-2 flex size-6 items-center justify-center rounded-lg', starter.tone)}>
+              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Icon className="size-3.5" />}
+            </span>
+          </>
+        )}
+      </span>
+      <span className="mt-2 truncate px-0.5 text-[13px] font-medium text-fg">{t(`start.${starter.id}.name`)}</span>
     </>
   )
   if (newDoc.targets.length === 1) {
     return (
-      <button type="button" className={cls} disabled={newDoc.busy !== null} onClick={() => newDoc.start(newDoc.targets[0], starter.id, body)}>
+      <button type="button" className={cls} disabled={newDoc.busy !== null} onClick={() => newDoc.start(newDoc.targets[0], starter.id, body)} title={t(`start.${starter.id}.hint`)}>
         {inner}
       </button>
     )
   }
   return (
     <Menu>
-      <MenuTrigger render={<button type="button" className={cls} disabled={newDoc.busy !== null} />}>{inner}</MenuTrigger>
+      <MenuTrigger render={<button type="button" className={cls} disabled={newDoc.busy !== null} title={t(`start.${starter.id}.hint`)} />}>{inner}</MenuTrigger>
       <MenuContent align="start" className="w-60">
         <MenuLabel>{t('newIn')}</MenuLabel>
         {newDoc.targets.map((w) => (
@@ -431,31 +437,33 @@ function StarterTile({ starter, variant, newDoc }: { starter: Starter; variant: 
   )
 }
 
-/** "Seguir donde quedaste": el doc como una página (con el borde superior del color de su espacio). */
-function PaperCard({ doc, ws, className }: { doc: DocSummary; ws?: WorkspaceWithRole; className?: string }) {
+/** Un doc como página: su comienzo en miniatura y, debajo, el título y de dónde es. */
+function DocSheet({ doc, ws, className }: { doc: DocSummary; ws?: WorkspaceWithRole; className?: string }) {
   const td = useTranslations('docs')
   const locale = useDateLocale()
   const author = useMemberMap().get(doc.created_by ?? '')
+  const title = doc.title || td('untitled')
   return (
-    <Link
-      href={ws ? `/w/${ws.slug}/docs/${doc.id}` : '#'}
-      className={cn('ws-' + (ws?.color ?? 'violet'), 'group/paper flex flex-col rounded-2xl bg-canvas/70 p-2.5 ring-1 ring-line-soft transition-colors hover:bg-canvas', className)}
-    >
-      <span className="relative block h-36 overflow-hidden rounded-xl border-t-[3px] bg-panel px-3.5 pt-3 shadow-[0_1px_2px_oklch(0.243_0.088_312.7/0.06)] ring-1 ring-line-soft transition-transform duration-200 ease-out [border-top-color:var(--ws-color)] group-hover/paper:-translate-y-0.5">
-        <span className="flex items-center gap-1.5 text-2xs text-fg-subtle">
-          <DocMark source={doc.source} className="size-3" />
-          <span className="truncate">{td(`kicker.${doc.source}`)}</span>
-        </span>
-        <span className="mt-1.5 line-clamp-2 block text-[13px] font-semibold leading-snug text-fg">{doc.title || td('untitled')}</span>
-        <span className="mt-1 line-clamp-4 block text-[11px] leading-[1.55] text-fg-muted">{excerptOf(doc.excerpt) || td('library.emptyDoc')}</span>
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-panel" aria-hidden />
+    <Link href={ws ? `/w/${ws.slug}/docs/${doc.id}` : '#'} className={cn('group/sheet flex min-w-0 flex-col outline-none', className)}>
+      <span className="relative block aspect-[16/10] overflow-hidden rounded-xl bg-panel px-3.5 pt-3 shadow-[0_1px_2px_oklch(0.243_0.088_312.7/0.06)] ring-1 ring-line-soft transition-[transform,box-shadow] duration-200 ease-out group-hover/sheet:-translate-y-0.5 group-hover/sheet:shadow-[0_14px_28px_-16px_oklch(0.3_0.09_312/0.45)] group-focus-visible/sheet:ring-2 group-focus-visible/sheet:ring-accent-mid/50">
+        <span className="block truncate text-[11px] font-semibold text-fg">{title}</span>
+        <span className="mt-1 line-clamp-5 block text-[10px] leading-[1.55] text-fg-muted">{excerptOf(doc.excerpt) || td('library.emptyDoc')}</span>
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-panel" aria-hidden />
       </span>
-      <span className="flex items-center gap-1.5 px-1 pt-2.5">
+      <span className="mt-2.5 flex min-w-0 items-center gap-1.5 px-0.5">
+        <DocMark source={doc.source} className="size-3.5" />
+        <span className="truncate text-[13px] font-medium text-fg decoration-line-strong underline-offset-4 group-hover/sheet:underline">{title}</span>
+      </span>
+      <span className="mt-0.5 flex min-w-0 items-center gap-1.5 px-0.5 text-xs text-fg-subtle">
         {ws ? <WorkspaceMark ws={ws} size={14} /> : null}
-        <span className="min-w-0 flex-1 truncate text-xs text-fg-muted">
-          {formatDistanceToNowStrict(new Date(doc.updated_at), { addSuffix: true, locale })}
-        </span>
-        {author ? <Avatar name={author.full_name} src={author.avatar_url} seed={author.id} size={18} /> : null}
+        <span className="min-w-0 truncate">{ws?.name}</span>
+        <span aria-hidden>·</span>
+        <span className="shrink-0">{formatDistanceToNowStrict(new Date(doc.updated_at), { addSuffix: true, locale })}</span>
+        {author ? (
+          <span className="ml-auto shrink-0">
+            <Avatar name={author.full_name} src={author.avatar_url} seed={author.id} size={16} />
+          </span>
+        ) : null}
       </span>
     </Link>
   )

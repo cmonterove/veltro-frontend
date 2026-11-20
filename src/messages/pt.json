@@ -218,7 +218,8 @@
       "workspaceHint": "Um projeto ou uma área. Depois você adiciona mais.",
       "submit": "Criar conta",
       "cancel": "Cancelar"
-    }
+    },
+    "preferences": "Preferências"
   },
   "command": {
     "title": "Buscar e executar",
@@ -848,7 +849,8 @@
       "preferences": "Preferências",
       "newWorkspace": "Novo espaço",
       "teams": "Equipes",
-      "templates": "Modelos"
+      "templates": "Modelos",
+      "planRole": "Plano {plan} · {role}"
     },
     "profile": {
       "title": "Perfil",
@@ -893,7 +895,54 @@
       "emailHint": "Você entra no Veltro com este e-mail.",
       "preferencesDescription": "Como o Veltro aparece para você. Aplica na hora.",
       "languageHint": "Idioma de todo o app.",
-      "themeHint": "Sistema segue a configuração do seu dispositivo."
+      "themeHint": "Sistema segue a configuração do seu dispositivo.",
+      "dataTitle": "Seus dados",
+      "seenAs": "Como os outros te veem",
+      "noTitle": "Sem cargo ainda",
+      "roleLabel": "Papel",
+      "areaLabel": "Área",
+      "sinceLabel": "No Veltro desde",
+      "accountsLabel": "Suas contas",
+      "timezoneZone": "Seu fuso",
+      "nowThere": "Agora são {time}.",
+      "spacesLabel": "Espaços",
+      "spacesCount": "{count} espaços",
+      "seenSection": "Como te veem",
+      "seenSectionHint": "Seu nome aparece em tarefas, reuniões e no Corredor. A foto vem da sua conta Google ou Apple.",
+      "accountsHint": "As empresas onde você trabalha. Troque aqui ou pelo menu.",
+      "since": "No Veltro desde {date}",
+      "ownerHere": "Você é o dono",
+      "memberHere": "Você foi convidado",
+      "current": "Você está aqui",
+      "switchTo": "Trocar",
+      "seenHint": "Como você aparece em tarefas, reuniões e no Corredor. Muda enquanto você digita.",
+      "previewTask": "Revisar a proposta de campanha",
+      "previewWhen": "agora",
+      "previewMessage": "Pronto! Já subi no Cofre.",
+      "previewMention": "Ana te mencionou: <m>@{name}</m> consegue ver hoje?",
+      "securityTitle": "Segurança",
+      "changeShort": "Trocar",
+      "figureSpaces": "{count, plural, one {espaço} other {espaços}}",
+      "figureAccounts": "{count, plural, one {conta} other {contas}}",
+      "nameHint": "Como você aparece em tarefas, reuniões e no Corredor.",
+      "rule": {
+        "length": "8 ou mais",
+        "lower": "minúscula",
+        "upper": "maiúscula",
+        "digit": "número",
+        "symbol": "símbolo"
+      },
+      "strength": {
+        "1": "Curta",
+        "2": "Fraca",
+        "3": "Boa",
+        "4": "Forte"
+      },
+      "matches": "Coincidem",
+      "noMatchYet": "Ainda não coincidem",
+      "showPassword": "Mostrar senha",
+      "hidePassword": "Ocultar senha",
+      "cancel": "Cancelar"
     },
     "account": {
       "title": "Conta",
@@ -909,7 +958,27 @@
       "usage": "{used} de {max}",
       "unlimitedCount": "{used} · sem limite",
       "pageTitle": "Geral e plano",
-      "nameHint": "O nome da sua empresa no Veltro."
+      "nameHint": "O nome da sua empresa no Veltro.",
+      "colorTitle": "Cor da conta",
+      "colorHint": "O app assume esta cor enquanto você está nesta conta: assim você sabe onde está num relance.",
+      "colorHintMember": "O app assume esta cor enquanto você está nesta conta. Quem a administra pode mudá-la.",
+      "colorSaved": "Cor atualizada",
+      "colors": {
+        "plum": "Ameixa",
+        "indigo": "Índigo",
+        "blue": "Azul",
+        "teal": "Petróleo",
+        "green": "Floresta",
+        "terracotta": "Terracota",
+        "wine": "Vinho",
+        "graphite": "Grafite"
+      },
+      "customColor": "Sua cor",
+      "customTitle": "Sua cor",
+      "customHint": "Escolha uma ou digite o hexadecimal. Usamos o tom e a intensidade e ajustamos a luz para tudo ficar legível.",
+      "customPick": "Escolher cor",
+      "customHex": "Hexadecimal",
+      "customUse": "Usar esta cor"
     },
     "members": {
       "title": "Pessoas",
@@ -2310,12 +2379,13 @@
       "edited": "Editado"
     },
     "start": {
-      "title": "Começar com…",
+      "title": "Começar um documento",
       "hint": "Uma estrutura pronta que você muda como quiser.",
       "firstHint": "Comece o primeiro: em branco ou com uma estrutura pronta que você muda como quiser.",
       "blank": {
         "name": "Em branco",
-        "hint": "Uma página vazia. Digite / para inserir títulos, listas ou tabelas."
+        "hint": "Uma página vazia. Digite / para inserir títulos, listas ou tabelas.",
+        "short": "Digite / para inserir blocos"
       },
       "meeting": {
         "name": "Notas de reunião",
@@ -2332,7 +2402,8 @@
         "hint": "Os passos para fazer algo sempre igual, e quem cuida disso.",
         "body": "## Para que serve\n\n_Quando este processo é usado._\n\n## Passos\n\n1. Primeiro passo\n2. Segundo passo\n3. Terceiro passo\n\n## Responsável\n\n_Quem cuida disso._\n\n## Dúvidas frequentes\n\n_O que as pessoas costumam perguntar._"
       }
-    }
+    },
+    "yours": "Seus documentos"
   },
   "vault": {
     "ideas": {
