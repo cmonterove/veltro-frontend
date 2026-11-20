@@ -206,7 +206,19 @@
     "veltroHelp": "Ajuda do Veltro",
     "fullscreen": "Tela cheia",
     "exitFullscreen": "Sair da tela cheia",
-    "exitShort": "Sair"
+    "exitShort": "Sair",
+    "createAccount": "Criar outra conta",
+    "newAccount": {
+      "title": "Nova conta",
+      "description": "Uma conta por empresa ou cliente, cada uma com seus espaços e suas pessoas. Você troca entre elas aqui em cima.",
+      "accountName": "Nome da conta",
+      "accountPlaceholder": "Ex. Minha empresa",
+      "workspaceName": "Primeiro espaço",
+      "workspacePlaceholder": "Ex. Marketing",
+      "workspaceHint": "Um projeto ou uma área. Depois você adiciona mais.",
+      "submit": "Criar conta",
+      "cancel": "Cancelar"
+    }
   },
   "command": {
     "title": "Buscar e executar",
@@ -811,7 +823,8 @@
       "allDecisions": "Todas as decisões",
       "focusClear": "Tudo em ordem"
     },
-    "sections": "Seções do espaço"
+    "sections": "Seções do espaço",
+    "invite": "Convidar"
   },
   "roles": {
     "owner": "Proprietário",
@@ -819,7 +832,8 @@
     "member": "Membro",
     "ws_admin": "Admin",
     "ws_editor": "Editor",
-    "ws_viewer": "Leitor"
+    "ws_viewer": "Leitor",
+    "guest": "Convidado"
   },
   "settings": {
     "title": "Configurações",
@@ -927,7 +941,7 @@
         "email": "E-mail",
         "role": "Função",
         "adminHint": "Gerencia pessoas e espaços. Vê tudo.",
-        "memberHint": "Só vê os espaços que você atribuir.",
+        "memberHint": "Entra nos espaços que você marcar e vê a conta inteira.",
         "workspaces": "Espaços",
         "cancel": "Cancelar",
         "submit": "Enviar convite",
@@ -950,7 +964,12 @@
         "copyLink": "Copiar",
         "expiresHint": "O link funciona uma vez e vence em 7 dias.",
         "whatsapp": "Enviar pelo WhatsApp",
-        "shareMessage": "Convidei você para {account} no Veltro. Entre aqui: {link}"
+        "shareMessage": "Convidei você para {account} no Veltro. Entre aqui: {link}",
+        "guestHint": "Só vê o espaço que você escolher e as pessoas dele. Para clientes ou externos.",
+        "guestPick": "Espaço em que entra",
+        "allWorkspacesToday": "Marcar todos os atuais",
+        "noneWorkspaces": "Desmarcar todos",
+        "titleSpace": "Convidar para {space}"
       },
       "invites": {
         "title": "Convites pendentes",
@@ -968,7 +987,8 @@
         "revokeConfirm": "Anular o convite para {email}?",
         "revokeHint": "O link deixa de funcionar. Você pode convidar de novo quando quiser.",
         "revoked": "Convite anulado"
-      }
+      },
+      "guestHint": "Só vê os espaços para os quais foi convidado e as pessoas deles."
     },
     "workspaces": {
       "title": "Espaços",
@@ -1410,7 +1430,8 @@
     "dependency_other_account": "As duas tarefas precisam ser da mesma conta.",
     "request_locked": "A solicitação já está sendo atendida: escreva na conversa para mudar algo.",
     "assignee_not_in_department": "Essa pessoa não é desse departamento.",
-    "request_other_account": "A tarefa precisa ser de um espaço da mesma conta."
+    "request_other_account": "A tarefa precisa ser de um espaço da mesma conta.",
+    "account_limit": "Você chegou ao máximo de 10 contas próprias."
   },
   "suspension": {
     "signOut": "Sair",
@@ -2658,6 +2679,12 @@
       "rootNotLoaded": "A mensagem original é anterior ao que está carregado.",
       "replyInThread": "Responder na conversa…",
       "pinnedByMe": "Fixada por você"
+    },
+    "alone": {
+      "title": "Ainda não há com quem conversar",
+      "body": "Quando mais alguém entrar nos seus espaços, vocês poderão conversar aqui.",
+      "bodyAdmin": "Convide alguém para a sua conta ou para um espaço e vocês poderão conversar aqui, criar grupos e compartilhar tarefas.",
+      "invite": "Convidar pessoa"
     }
   },
   "confirm": {
@@ -2858,7 +2885,9 @@
     "side": {
       "spaces": "Por espaço",
       "meetings": "Reuniões que mais decidiram",
-      "total": "{count, plural, one {# decisão} other {# decisões}}"
+      "total": "{count, plural, one {# decisão} other {# decisões}}",
+      "next": "Próximas reuniões",
+      "nextHint": "Onde as próximas decisões serão tomadas."
     },
     "title": "Decisões",
     "subtitle": "Tudo o que foi decidido nas reuniões dos seus espaços.",

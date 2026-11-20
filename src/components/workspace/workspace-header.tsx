@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Settings } from 'lucide-react'
-import { useWorkspaceBySlug } from '@/components/app/app-context'
+import { Settings, UserPlus } from 'lucide-react'
+import { useApp, useIsAccountAdmin, useWorkspaceBySlug } from '@/components/app/app-context'
+import { InviteDialog } from '@/components/settings/members-settings'
 import { cn } from '@/lib/utils'
 import { WorkspaceMark } from '@/components/app/marks'
 
@@ -12,6 +14,9 @@ export function WorkspaceHeader({ slug }: { slug: string }) {
   const t = useTranslations('workspace')
   const pathname = usePathname()
   const ws = useWorkspaceBySlug(slug)
+  const { accountRole } = useApp()
+  const canInvite = useIsAccountAdmin()
+  const [inviting, setInviting] = useState(false)
   if (!ws) return null
 
   const base = `/w/${slug}`
@@ -32,16 +37,28 @@ export function WorkspaceHeader({ slug }: { slug: string }) {
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold tracking-tight">{ws.name}</h1>
         </div>
+        {/* invitar a este espacio: entra como invitado (solo este espacio y su gente) */}
+        {canInvite ? (
+          <button
+            type="button"
+            onClick={() => setInviting(true)}
+            className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-sm text-fg-muted hover:bg-hover hover:text-fg"
+          >
+            <UserPlus className="size-4" />
+            <span className="hidden sm:inline">{t('invite')}</span>
+          </button>
+        ) : null}
         {ws.my_role === 'admin' ? (
           <Link
             href={`/settings/workspaces/${ws.slug}`}
-            className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-sm text-fg-muted hover:bg-hover hover:text-fg"
+            className={cn('inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-sm text-fg-muted hover:bg-hover hover:text-fg', !canInvite && 'ml-auto')}
           >
             <Settings className="size-4" />
             <span className="hidden sm:inline">{t('settings')}</span>
           </Link>
         ) : null}
       </div>
+      {canInvite ? <InviteDialog open={inviting} onOpenChange={setInviting} canPromote={accountRole === 'owner'} initialWorkspaceId={ws.id} /> : null}
       <nav className="-mb-px mt-3 flex gap-1 overflow-x-auto scrollbar-none" aria-label={t('sections')}>
         {tabs.map((tab) => {
           const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href)

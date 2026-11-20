@@ -8,7 +8,7 @@ type Timestamps = { created_at: string; updated_at: string }
 
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'blocked' | 'done'
 export type TaskPriority = 'none' | 'low' | 'medium' | 'high' | 'urgent'
-export type AccountRole = 'owner' | 'admin' | 'member'
+export type AccountRole = 'owner' | 'admin' | 'member' | 'guest'
 export type WorkspaceRole = 'admin' | 'editor' | 'viewer'
 export type DocSource = 'manual' | 'meeting' | 'claude' | 'import'
 export type Locale = 'en' | 'es' | 'pt' | 'fr'

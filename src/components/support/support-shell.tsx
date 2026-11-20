@@ -23,7 +23,7 @@ type Active = { kind: 'ticket' | 'request'; id: string } | null
 /** ¿A esta persona le pueden llegar tickets? (los admins y el dueño, según el destino por rol). */
 export function useCanReceive() {
   const { accountRole, account, user } = useApp()
-  return accountRole !== 'member' || account.owner_id === user.id
+  return accountRole === 'owner' || accountRole === 'admin' || account.owner_id === user.id
 }
 
 /** Soporte: la lista queda fija a la izquierda y a la derecha va lo abierto. En el celular, una u otro. */

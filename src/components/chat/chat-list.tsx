@@ -11,7 +11,7 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useChats, type ChatSummary } from '@/lib/queries/chats'
 import { useDateLocale } from '@/lib/dates'
-import { useLocalStorage } from '@/lib/hooks'
+import { useHydrated, useLocalStorage } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { ChatAvatar, useChatName, useChatPreview } from './chat-bits'
 import { PeopleDialog } from './new-chat-dialog'
@@ -22,7 +22,13 @@ type Filter = (typeof FILTERS)[number]
 /** Columna de conversaciones de Pasillo: las más recientes arriba, con lo no leído resaltado. */
 export function ChatList({ activeId }: { activeId?: string }) {
   const t = useTranslations('pasillo')
-  const { data: chats, isLoading } = useChats({ fast: true })
+  // hasta hidratar, el esqueleto (como en el servidor): si la lista llega antes de que esta parte se
+  // hidrate, pintarla de una no coincidiría con el HTML del servidor
+  const hydrated = useHydrated()
+  const { data: chats, isPending } = useChats({ fast: true })
+  const isLoading = !hydrated || isPending
+  const { members, user } = useApp()
+  const alone = !members.some((m) => m.id !== user.id)
   const chatName = useChatName()
   const [q, setQ] = useState('')
   const [filter, setFilter] = useLocalStorage<Filter>('veltro:chat-filter', 'all')
@@ -107,7 +113,7 @@ export function ChatList({ activeId }: { activeId?: string }) {
         ) : (
           <div className="px-4 py-10 text-center">
             <p className="text-sm text-fg-muted">{chats?.length ? t('noMatches') : t('empty')}</p>
-            {chats?.length ? null : (
+            {chats?.length || alone ? null : (
               <Button size="sm" className="mt-3" onClick={() => setDialog('direct')}>
                 <MessageCirclePlus />
                 {t('newDirect')}

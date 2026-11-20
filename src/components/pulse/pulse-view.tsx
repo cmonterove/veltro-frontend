@@ -208,7 +208,7 @@ export function PulseView() {
   // dejaron las reuniones y las solicitudes entre departamentos.
   return (
     <div className="@container/pulse h-full">
-      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4 px-4 py-4 sm:px-6 @min-[1000px]/pulse:h-full">
+      <div className="flex w-full flex-col gap-4 px-4 py-4 sm:px-6 @min-[1000px]/pulse:h-full">
         {/* el día en ciruela de marca, con texto perla: la única superficie de color fuerte de Pulso */}
         <section
           data-tour="day"
@@ -243,8 +243,9 @@ export function PulseView() {
           </div>
         ) : null}
 
-        {/* la lista nunca baja de ~22rem: en pantallas bajas la página baja un poco en vez de aplastarla */}
-        <div className="grid grid-cols-1 gap-x-7 gap-y-5 @min-[1000px]/pulse:min-h-[22rem] @min-[1000px]/pulse:flex-1 @min-[1000px]/pulse:grid-cols-[minmax(0,1fr)_minmax(17rem,22rem)]">
+        {/* la lista nunca baja de ~22rem: en pantallas bajas la página baja un poco en vez de aplastarla.
+            Sin ancho máximo: en pantallas grandes la columna de la derecha crece con la pantalla */}
+        <div className="grid grid-cols-1 gap-x-7 gap-y-5 @min-[1000px]/pulse:min-h-[22rem] @min-[1000px]/pulse:flex-1 @min-[1000px]/pulse:grid-cols-[minmax(0,1fr)_minmax(17rem,22rem)] @min-[1500px]/pulse:grid-cols-[minmax(0,2.2fr)_minmax(22rem,1fr)]">
           <TasksPanel data={briefData} model={model} scope={scope} scopes={scopes} onScope={setScopeId} workspaces={workspaces} onFilter={setFilter} />
           {/* dos tarjetas apiladas; la de reuniones se estira para que el pie quede alineado con Tareas */}
           <aside className="flex min-h-0 flex-col gap-4">

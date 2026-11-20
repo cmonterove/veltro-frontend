@@ -8,6 +8,7 @@ const KNOWN = [
   'assignee_not_in_workspace',
   'too_many_assignees',
   'already_in_account',
+  'account_limit',
   'forbidden',
   'doc_parent_cycle',
   'not_authenticated',

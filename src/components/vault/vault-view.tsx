@@ -527,6 +527,41 @@ export function VaultView() {
                     })}
                   </ul>
                 )}
+                {/* con pocos archivos, qué más guardar aquí ocupa el resto: casillas para soltar, no una tarjeta vacía */}
+                {loaded && !filtering && total > 0 && total <= 4 ? (
+                  <section className="mt-6">
+                    <p className="flex items-center gap-2 px-1 text-sm font-semibold text-fg">
+                      <Shapes className="size-4 text-accent" aria-hidden />
+                      {t('ideas.title')}
+                    </p>
+                    <ul className="mt-2.5 grid grid-cols-1 gap-3 @2xl:grid-cols-2 @5xl:grid-cols-4">
+                      {(['pdf', 'image', 'sheet', 'link'] as const).map((k) => {
+                        const Icon = KIND_STYLE[k].icon
+                        return (
+                          <li key={k}>
+                            <button
+                              type="button"
+                              onClick={() => setUploading({ mode: k === 'link' ? 'link' : 'files' })}
+                              className="group/idea flex h-full min-h-36 w-full flex-col items-start gap-3 rounded-2xl border-2 border-dashed border-line-strong/60 bg-canvas/40 p-4 text-left outline-none transition-[border-color,background-color] duration-150 ease-out hover:border-accent-mid/60 hover:bg-accent-soft/25 focus-visible:border-accent-mid"
+                            >
+                              <span className="flex size-10 items-center justify-center rounded-xl bg-panel shadow-card ring-1 ring-line-soft">
+                                <Icon className={cn('size-5', KIND_STYLE[k].tone)} />
+                              </span>
+                              <span>
+                                <span className="block text-sm font-semibold text-fg">{t(`ideas.${k}`)}</span>
+                                <span className="block text-xs text-fg-muted">{t(`ideas.${k}Hint`)}</span>
+                              </span>
+                              <span className="mt-auto inline-flex items-center gap-1.5 text-xs font-medium text-accent-ink opacity-80 transition-opacity group-hover/idea:opacity-100">
+                                {k === 'link' ? <Link2 className="size-3.5" /> : <Upload className="size-3.5" />}
+                                {k === 'link' ? t('addLink') : t('upload')}
+                              </span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </section>
+                ) : null}
                 {/* al acercarse, se pide la página siguiente */}
                 {loaded && hasNextPage ? (
                   <div ref={more} className="flex justify-center py-6">

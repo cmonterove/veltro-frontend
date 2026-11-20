@@ -222,6 +222,7 @@ function Sources({
 }) {
   const t = useTranslations('decisions')
   const locale = useDateLocale()
+  const { upcoming } = useNearMeetings()
   const spaces = useMemo(() => {
     const m = new Map<string, { ws: Decision['workspace']; n: number }>()
     for (const d of items) m.set(d.workspace.id, { ws: d.workspace, n: (m.get(d.workspace.id)?.n ?? 0) + 1 })
@@ -282,6 +283,15 @@ function Sources({
           </li>
         ))}
       </ul>
+
+      {/* al pie, dónde se tomarán las próximas: las reuniones que vienen (la columna nunca queda vacía) */}
+      {upcoming.length ? (
+        <section className="mt-5 border-t border-line-soft pt-4">
+          <p className="text-xs font-semibold text-fg-muted">{t('side.next')}</p>
+          <p className="mb-1 text-2xs text-fg-subtle">{t('side.nextHint')}</p>
+          <MeetingLinks list={upcoming} />
+        </section>
+      ) : null}
     </aside>
   )
 }
@@ -407,21 +417,23 @@ function Highlight({ text, q }: { text: string; q: string }) {
  * Todavía sin decisiones: en vez de una tarjeta vacía, cómo se registra una (tres pasos, con la
  * notación de verdad) y las reuniones de estas dos semanas, que es donde se toman.
  */
-function EmptyDecisions() {
-  const t = useTranslations('decisions.empty')
-  const tf = useTranslations('decisions.flow')
-  const locale = useDateLocale()
+/** Las reuniones de dos semanas atrás a dos adelante: donde se toman (y se tomarán) las decisiones. */
+function useNearMeetings() {
   const { workspaces } = useApp()
-  const wsMap = useWorkspaceMap()
   const ids = useMemo(() => workspaces.map((w) => w.id), [workspaces])
   const [from, to] = useMemo(() => [subDays(startOfDay(new Date()), 14), addDays(startOfDay(new Date()), 15)], [])
   const { data: meetings } = useMeetingsInRange(ids, from, to)
   const now = Date.now()
   const upcoming = (meetings ?? []).filter((m) => Date.parse(m.starts_at) >= now).sort((a, b) => a.starts_at.localeCompare(b.starts_at)).slice(0, 4)
   const recent = (meetings ?? []).filter((m) => Date.parse(m.starts_at) < now).sort((a, b) => b.starts_at.localeCompare(a.starts_at)).slice(0, 4)
-  const step = 'flex size-7 shrink-0 items-center justify-center rounded-full bg-k-decision-soft text-xs font-semibold tabular-nums text-k-decision'
+  return { meetings, upcoming, recent }
+}
 
-  const meetingRows = (list: typeof upcoming) => (
+function MeetingLinks({ list }: { list: ReturnType<typeof useNearMeetings>['upcoming'] }) {
+  const tf = useTranslations('decisions.flow')
+  const locale = useDateLocale()
+  const wsMap = useWorkspaceMap()
+  return (
     <ul className="-mx-2 flex flex-col">
       {list.map((m) => {
         const ws = wsMap.get(m.workspace_id)
@@ -431,7 +443,7 @@ function EmptyDecisions() {
               {ws ? <WorkspaceMark ws={ws} size={20} /> : null}
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-fg">{m.title}</span>
-                <span className="block text-xs text-fg-subtle first-letter:uppercase">{format(new Date(m.starts_at), "EEE d MMM · HH:mm", { locale })}</span>
+                <span className="block text-xs text-fg-subtle first-letter:uppercase">{format(new Date(m.starts_at), 'EEE d MMM · HH:mm', { locale })}</span>
               </span>
               <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-medium text-accent-ink opacity-70 transition-opacity group-hover:opacity-100">
                 {tf('open')}
@@ -443,6 +455,13 @@ function EmptyDecisions() {
       })}
     </ul>
   )
+}
+
+function EmptyDecisions() {
+  const t = useTranslations('decisions.empty')
+  const tf = useTranslations('decisions.flow')
+  const { meetings, upcoming, recent } = useNearMeetings()
+  const step = 'flex size-7 shrink-0 items-center justify-center rounded-full bg-k-decision-soft text-xs font-semibold tabular-nums text-k-decision'
 
   return (
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(20rem,1fr)]">
@@ -450,7 +469,7 @@ function EmptyDecisions() {
         <h2 className="text-[20px] font-semibold leading-tight tracking-[-0.02em] text-fg">{t('title')}</h2>
         <p className="mt-1 max-w-[62ch] text-sm leading-relaxed text-fg-muted">{t('body')}</p>
         {/* los tres pasos, con la notación de verdad */}
-        <ol className="mt-5 grid flex-1 gap-3 md:grid-cols-3" aria-hidden>
+        <ol className="mt-5 grid flex-1 gap-3 md:max-h-[26rem] md:grid-cols-3" aria-hidden>
           <li className="flex flex-col gap-3 rounded-2xl bg-canvas/70 p-4 ring-1 ring-line-soft">
             <span className="flex items-center gap-2.5">
               <span className={step}>1</span>
@@ -508,13 +527,13 @@ function EmptyDecisions() {
             {upcoming.length ? (
               <>
                 <p className="mt-4 text-xs font-semibold text-fg-muted">{tf('upcoming')}</p>
-                {meetingRows(upcoming)}
+                <MeetingLinks list={upcoming} />
               </>
             ) : null}
             {recent.length ? (
               <>
                 <p className="mt-4 text-xs font-semibold text-fg-muted">{tf('recent')}</p>
-                {meetingRows(recent)}
+                <MeetingLinks list={recent} />
               </>
             ) : null}
           </>

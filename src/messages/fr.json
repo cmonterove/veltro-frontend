@@ -206,7 +206,19 @@
     "veltroHelp": "Aide Veltro",
     "fullscreen": "Plein écran",
     "exitFullscreen": "Quitter le plein écran",
-    "exitShort": "Quitter"
+    "exitShort": "Quitter",
+    "createAccount": "Créer un autre compte",
+    "newAccount": {
+      "title": "Nouveau compte",
+      "description": "Un compte par entreprise ou client, chacun avec ses espaces et ses membres. Vous passez de l’un à l’autre ici.",
+      "accountName": "Nom du compte",
+      "accountPlaceholder": "Ex. Mon entreprise",
+      "workspaceName": "Premier espace",
+      "workspacePlaceholder": "Ex. Marketing",
+      "workspaceHint": "Un projet ou un service. Vous en ajouterez d’autres ensuite.",
+      "submit": "Créer le compte",
+      "cancel": "Annuler"
+    }
   },
   "command": {
     "title": "Rechercher et exécuter",
@@ -811,7 +823,8 @@
       "allDecisions": "Toutes les décisions",
       "focusClear": "Tout est en ordre"
     },
-    "sections": "Sections de l'espace"
+    "sections": "Sections de l'espace",
+    "invite": "Inviter"
   },
   "roles": {
     "owner": "Propriétaire",
@@ -819,7 +832,8 @@
     "member": "Membre",
     "ws_admin": "Admin",
     "ws_editor": "Éditeur",
-    "ws_viewer": "Lecteur"
+    "ws_viewer": "Lecteur",
+    "guest": "Invité"
   },
   "settings": {
     "title": "Paramètres",
@@ -927,7 +941,7 @@
         "email": "E-mail",
         "role": "Rôle",
         "adminHint": "Gère les personnes et les espaces. Voit tout.",
-        "memberHint": "Ne voit que les espaces que vous lui attribuez.",
+        "memberHint": "Rejoint les espaces que vous cochez et voit tout le compte.",
         "workspaces": "Espaces",
         "cancel": "Annuler",
         "submit": "Envoyer l’invitation",
@@ -950,7 +964,12 @@
         "copyLink": "Copier",
         "expiresHint": "Le lien fonctionne une fois et expire dans 7 jours.",
         "whatsapp": "Envoyer sur WhatsApp",
-        "shareMessage": "Je vous ai invité à {account} sur Veltro. Rejoignez-nous ici : {link}"
+        "shareMessage": "Je vous ai invité à {account} sur Veltro. Rejoignez-nous ici : {link}",
+        "guestHint": "Ne voit que l’espace choisi et ses membres. Pour les clients ou les externes.",
+        "guestPick": "Espace qu’il rejoint",
+        "allWorkspacesToday": "Tout cocher (actuels)",
+        "noneWorkspaces": "Tout décocher",
+        "titleSpace": "Inviter dans {space}"
       },
       "invites": {
         "title": "Invitations en attente",
@@ -968,7 +987,8 @@
         "revokeConfirm": "Annuler l’invitation à {email} ?",
         "revokeHint": "Le lien ne fonctionnera plus. Vous pourrez réinviter la personne quand vous voulez.",
         "revoked": "Invitation annulée"
-      }
+      },
+      "guestHint": "Ne voit que les espaces où on l’a invité et leurs membres."
     },
     "workspaces": {
       "title": "Espaces",
@@ -1410,7 +1430,8 @@
     "dependency_other_account": "Les deux tâches doivent appartenir au même compte.",
     "request_locked": "La demande est déjà prise en charge : écrivez dans la conversation pour modifier quelque chose.",
     "assignee_not_in_department": "Cette personne ne fait pas partie de ce département.",
-    "request_other_account": "La tâche doit appartenir à un espace du même compte."
+    "request_other_account": "La tâche doit appartenir à un espace du même compte.",
+    "account_limit": "Vous avez atteint le maximum de 10 comptes à vous."
   },
   "suspension": {
     "signOut": "Se déconnecter",
@@ -2658,6 +2679,12 @@
       "rootNotLoaded": "Le message d’origine est plus ancien que ce qui est chargé.",
       "replyInThread": "Répondre dans le fil…",
       "pinnedByMe": "Épinglé par vous"
+    },
+    "alone": {
+      "title": "Personne à qui parler pour l’instant",
+      "body": "Quand quelqu’un d’autre rejoindra vos espaces, vous pourrez vous écrire ici.",
+      "bodyAdmin": "Invitez quelqu’un dans votre compte ou dans un espace et vous pourrez vous écrire ici, créer des groupes et partager des tâches.",
+      "invite": "Inviter quelqu’un"
     }
   },
   "confirm": {
@@ -2858,7 +2885,9 @@
     "side": {
       "spaces": "Par espace",
       "meetings": "Réunions qui ont le plus décidé",
-      "total": "{count, plural, one {# décision} other {# décisions}}"
+      "total": "{count, plural, one {# décision} other {# décisions}}",
+      "next": "Prochaines réunions",
+      "nextHint": "Là où se prendront les prochaines décisions."
     },
     "title": "Décisions",
     "subtitle": "Tout ce qui a été décidé dans les réunions de vos espaces.",

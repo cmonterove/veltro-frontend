@@ -391,7 +391,7 @@ function PeopleTab({ workspace, people }: { workspace: WorkspaceWithRole; people
   const accountAdmins = people.filter((p) => p.via_account)
   const inside = people.filter((p) => !p.via_account)
   const insideIds = new Set(inside.map((p) => p.id))
-  const outside = members.filter((m) => m.role === 'member' && !insideIds.has(m.id))
+  const outside = members.filter((m) => (m.role === 'member' || m.role === 'guest') && !insideIds.has(m.id))
   const titleOf = (id: string) => members.find((m) => m.id === id)?.title
 
   // dar o cambiar el rol; quitar pide confirmación (deja de ser responsable de sus tareas abiertas aquí)

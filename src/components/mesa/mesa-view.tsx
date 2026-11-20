@@ -120,7 +120,7 @@ export function MesaView() {
   // quién está cargado. Cada bloque en su tarjeta, de la misma familia que las de Pulso.
   return (
     <div className="@container/mesa h-full">
-    <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4 px-4 pb-4 pt-5 sm:px-6 @min-[980px]/mesa:h-full">
+    <div className="flex w-full flex-col gap-4 px-4 pb-4 pt-5 sm:px-6 @min-[980px]/mesa:h-full">
       <header className="shrink-0 px-1">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
           <h1 className="mr-auto text-[26px] font-semibold leading-tight tracking-[-0.025em] text-fg">{t('title')}</h1>

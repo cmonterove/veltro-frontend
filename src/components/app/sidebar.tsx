@@ -62,6 +62,7 @@ import { useHydrated } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { DEMO } from '@/lib/demo/config'
 import { DemoBadge } from './demo-badge'
+import { NewAccountDialog } from './new-account-dialog'
 import { Logo, LogoMark } from './logo'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { WorkspaceMark } from '@/components/app/marks'
@@ -444,8 +445,10 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
   const router = useRouter()
   const { account, accounts, workspaces } = useApp()
   const [pending, start] = useTransition()
+  const [creating, setCreating] = useState(false)
 
   return (
+    <>
     <Menu>
       {card ? (
         <MenuTrigger
@@ -491,6 +494,10 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
             {a.id === account.id ? <Check className="!text-fg" /> : null}
           </MenuItem>
         ))}
+        <MenuItem onClick={() => setCreating(true)}>
+          <Plus />
+          {t('createAccount')}
+        </MenuItem>
         <MenuSeparator />
         <MenuLinkItem render={<Link href="/settings/account" />}>
           <Settings />
@@ -498,6 +505,8 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
         </MenuLinkItem>
       </MenuContent>
     </Menu>
+    <NewAccountDialog open={creating} onOpenChange={setCreating} />
+    </>
   )
 }
 

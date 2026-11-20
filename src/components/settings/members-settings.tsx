@@ -169,7 +169,7 @@ function MemberRow({
             <ChevronDown className="size-3.5" />
           </MenuTrigger>
           <MenuContent align="end" className="w-64">
-            <MenuRadioGroup value={member.role} onValueChange={(v) => onRole(v as 'admin' | 'member')}>
+            <MenuRadioGroup value={member.role} onValueChange={(v) => onRole(v as Exclude<AccountRole, 'owner'>)}>
               {canPromote ? (
                 <MenuRadioItem value="admin" className="h-auto items-start py-2">
                   <span className="flex flex-col">
@@ -182,6 +182,12 @@ function MemberRow({
                 <span className="flex flex-col">
                   <span>{tRole('member')}</span>
                   <span className="text-xs text-fg-muted">{t('memberHint')}</span>
+                </span>
+              </MenuRadioItem>
+              <MenuRadioItem value="guest" className="h-auto items-start py-2">
+                <span className="flex flex-col">
+                  <span>{tRole('guest')}</span>
+                  <span className="text-xs text-fg-muted">{t('guestHint')}</span>
                 </span>
               </MenuRadioItem>
             </MenuRadioGroup>
@@ -378,16 +384,23 @@ function PendingInvites({ invitations, onChanged }: { invitations: Invitation[];
   )
 }
 
-function InviteDialog({
+/**
+ * Invitar: a la cuenta (miembro: los espacios de hoy marcados, ve a toda la cuenta), a un espacio
+ * (invitado: solo ese espacio y su gente, para clientes o externos) o como admin (solo el dueño).
+ * `initialWorkspaceId`: se abrió desde un espacio, así que arranca como invitado a ese espacio.
+ */
+export function InviteDialog({
   open,
   onOpenChange,
   canPromote,
   onDone,
+  initialWorkspaceId,
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
   canPromote: boolean
-  onDone: () => void
+  onDone?: () => void
+  initialWorkspaceId?: string
 }) {
   const copy = useCopy()
   const t = useTranslations('settings.members.addDialog')
@@ -397,18 +410,36 @@ function InviteDialog({
   const [error, setError] = useState<ErrorCode | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'admin' | 'member'>('member')
-  const [selected, setSelected] = useState<Map<string, WorkspaceRole>>(new Map())
+  const everyWorkspace = () => new Map(workspaces.map((w) => [w.id, 'editor' as WorkspaceRole]))
+  const onlyInitial = () => new Map<string, WorkspaceRole>(initialWorkspaceId ? [[initialWorkspaceId, 'editor']] : [])
+  const startRole = initialWorkspaceId ? 'guest' : 'member'
+  const [role, setRole] = useState<'admin' | 'member' | 'guest'>(startRole)
+  const [selected, setSelected] = useState<Map<string, WorkspaceRole>>(() => (initialWorkspaceId ? onlyInitial() : everyWorkspace()))
   const [pending, start] = useTransition()
   const [result, setResult] = useState<{ email: string; link: string; emailed: boolean } | null>(null)
+  const space = initialWorkspaceId ? workspaces.find((w) => w.id === initialWorkspaceId) : undefined
 
+  // miembro: entra a todos los espacios de hoy (se pueden desmarcar); invitado: solo al elegido
+  const pickRole = (r: 'admin' | 'member' | 'guest') => {
+    setRole(r)
+    if (r === 'member') setSelected(everyWorkspace())
+    if (r === 'guest') setSelected(onlyInitial())
+  }
   const reset = () => {
     setName('')
     setEmail('')
-    setRole('member')
-    setSelected(new Map())
+    pickRole(startRole)
     setResult(null)
     setError(null)
+  }
+  // cada vez que se abre arranca de cero (desde un espacio, como invitado a ese espacio)
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setRole(startRole)
+      setSelected(initialWorkspaceId ? onlyInitial() : everyWorkspace())
+    }
   }
   // los botones del pie cierran desde afuera (el Dialog no avisa): sin limpiar, al reabrir saldría el enlace anterior
   const close = () => {
@@ -430,7 +461,7 @@ function InviteDialog({
         return
       }
       setResult({ email: email.trim().toLowerCase(), link: res.link, emailed: res.emailed })
-      onDone()
+      onDone?.()
     })
 
   const message = result ? t('shareMessage', { account: account.name, link: result.link }) : ''
@@ -484,7 +515,7 @@ function InviteDialog({
               submit()
             }}
           >
-            <DialogHeader title={t('title')} description={t('description')} />
+            <DialogHeader title={space ? t('titleSpace', { space: space.name }) : t('title')} description={t('description')} />
             <DialogBody className="flex flex-col gap-4">
               <Field label={t('email')} htmlFor="m-email">
                 <Input id="m-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
@@ -492,15 +523,15 @@ function InviteDialog({
               <Field label={t('nameOptional')} htmlFor="m-name">
                 <Input id="m-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
               </Field>
-              {canPromote ? (
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">{t('role')}</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['member', 'admin'] as const).map((r) => (
+              {/* a qué entra: la cuenta, un espacio puntual o todo (admin, solo lo da el dueño) */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">{t('role')}</span>
+                <div className={cn('grid gap-2', canPromote ? 'sm:grid-cols-3' : 'grid-cols-2')}>
+                    {(canPromote ? (['member', 'guest', 'admin'] as const) : (['member', 'guest'] as const)).map((r) => (
                       <button
                         key={r}
                         type="button"
-                        onClick={() => setRole(r)}
+                        onClick={() => pickRole(r)}
                         aria-pressed={role === r}
                         className={cn(
                           'flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors',
@@ -511,12 +542,22 @@ function InviteDialog({
                         <span className="text-xs text-fg-muted">{t(`${r}Hint`)}</span>
                       </button>
                     ))}
-                  </div>
                 </div>
-              ) : null}
-              {role === 'member' ? (
+              </div>
+              {role !== 'admin' ? (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">{t('workspaces')}</span>
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="mr-auto">{role === 'guest' ? t('guestPick') : t('workspaces')}</span>
+                    {role === 'member' && workspaces.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelected(selected.size === workspaces.length ? new Map() : everyWorkspace())}
+                        className="text-xs font-medium text-accent-ink hover:underline"
+                      >
+                        {selected.size === workspaces.length ? t('noneWorkspaces') : t('allWorkspacesToday')}
+                      </button>
+                    ) : null}
+                  </span>
                   <div className="flex flex-col rounded-lg border border-line p-1">
                     {workspaces.map((w) => {
                       const r = selected.get(w.id)
@@ -559,7 +600,7 @@ function InviteDialog({
               <Button variant="ghost" onClick={close}>
                 {t('cancel')}
               </Button>
-              <Button type="submit" variant="primary" loading={pending} disabled={!email.trim()}>
+              <Button type="submit" variant="primary" loading={pending} disabled={!email.trim() || (role === 'guest' && selected.size === 0)}>
                 <Send />
                 {t('submit')}
               </Button>

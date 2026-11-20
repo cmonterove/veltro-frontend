@@ -378,7 +378,7 @@ function StarterTile({ starter, variant, newDoc }: { starter: Starter; variant: 
   const cls = cn(
     'group/tile flex flex-col rounded-2xl bg-panel text-left outline-none ring-1 ring-line-soft transition-[box-shadow,transform,--tw-ring-color] duration-200 ease-out',
     'hover:-translate-y-px hover:shadow-[0_10px_24px_-14px_oklch(0.3_0.09_312/0.35)] hover:ring-line focus-visible:ring-2 focus-visible:ring-accent-mid/40 disabled:pointer-events-none disabled:opacity-70',
-    variant === 'aside' ? 'max-h-32 min-h-[4.5rem] flex-1 justify-center px-3.5 py-3' : 'min-h-[8.5rem] p-4',
+    variant === 'aside' ? 'max-h-32 min-h-[4.5rem] flex-1 justify-center px-3.5 py-3' : 'max-h-72 min-h-[8.5rem] p-4',
   )
   const inner = (
     <>

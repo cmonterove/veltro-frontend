@@ -172,8 +172,9 @@ export function TasksDashboard({
       </>
   ) : null
 
+  // llena el alto: en pantallas altas crecen la fila de lo urgente (2 partes) y la de la carga (1)
   return (
-    <div className="flex flex-col gap-4 pb-2">
+    <div className="flex min-h-full flex-col gap-4 pb-2">
       {/* 1 · la respuesta corta, sobre la ciruela del marco: el estado de las tareas de un vistazo */}
       <section className="on-frame day-surface grid items-center gap-x-10 gap-y-4 rounded-[22px] px-6 py-5 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)] sm:px-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <div className="min-w-0">
@@ -198,7 +199,7 @@ export function TasksDashboard({
       </section>
 
       {/* 2 · qué urge y cómo viene el ritmo: misma altura */}
-      <div className="grid gap-4 lg:grid-cols-12">
+      <div className="grid gap-4 lg:flex-[2_1_auto] lg:grid-cols-12">
         <section className={cn(CARD, 'flex flex-col px-5 pb-4 pt-4 lg:col-span-7')}>
           <CardHead icon={urgent.length ? <OctagonPause className="text-danger" /> : <CheckCheck className="text-done" />} title={t('urgent.title')} count={urgent.length || undefined} />
           {urgent.length ? (
@@ -275,8 +276,8 @@ export function TasksDashboard({
               {t('pace.net', { net: net > 0 ? `+${net}` : String(net) })}
             </span>
           </div>
-          {/* el gráfico ocupa el alto que deja la lista de al lado (mínimo 7rem) */}
-          <div className="flex max-h-44 min-h-28 flex-1 items-stretch gap-1 pt-4">
+          {/* el gráfico ocupa el alto que deja la lista de al lado (mínimo 7rem; en pantallas altas, más) */}
+          <div className="flex min-h-28 flex-1 items-stretch gap-1 pt-4">
             {pace.map((p) => (
               <Tooltip key={p.d.toISOString()} content={t('pace.tip', { when: format(p.d, 'EEE d MMM', { locale }), closed: p.closed, created: p.created })}>
                 <span className="group/day flex min-w-0 flex-1 flex-col justify-end rounded-md transition-colors hover:bg-fg/[0.035]" tabIndex={0}>
@@ -334,7 +335,7 @@ export function TasksDashboard({
       </section>
 
       {/* 4 · dónde está la carga */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:flex-[1_1_auto] lg:grid-cols-2">
         <LoadList
           title={t('bySpace')}
           icon={<LayoutGrid className="text-accent" />}

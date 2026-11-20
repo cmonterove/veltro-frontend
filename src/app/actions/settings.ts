@@ -234,3 +234,16 @@ export async function changePassword(input: { currentPassword?: string; newPassw
   )
   return res.ok ? { ok: true as const } : res
 }
+
+/** Otra cuenta (otra empresa) con su primer espacio, sin contenido de ejemplo. Elegirla queda a cargo de quien llama. */
+export async function createAccount(input: { accountName: string; workspaceName: string; timezone?: string }): Promise<{ ok: true; accountId: string; slug: string } | Fail> {
+  const blocked = await demoBlocked()
+  if (blocked) return blocked
+  const res = await attempt(() =>
+    api<{ account: { id: string }; workspace: { slug: string } }>('/v1/me/onboarding', {
+      method: 'POST',
+      body: { accountName: input.accountName.trim(), workspaceName: input.workspaceName.trim(), timezone: input.timezone || undefined, seed: false },
+    }),
+  )
+  return res.ok ? { ok: true, accountId: res.data.account.id, slug: res.data.workspace.slug } : res
+}

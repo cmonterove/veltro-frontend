@@ -3,7 +3,9 @@
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-import { MessageSquare, Users } from 'lucide-react'
+import { MessageSquare, UserPlus, Users } from 'lucide-react'
+import { useApp, useIsAccountAdmin } from '@/components/app/app-context'
+import { InviteDialog } from '@/components/settings/members-settings'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChatList } from './chat-list'
@@ -33,10 +35,12 @@ export function PasilloShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** Sin chat abierto: una invitación a empezar. */
+/** Sin chat abierto: una invitación a empezar (o, si todavía no hay con quién, a sumar gente). */
 export function PasilloWelcome() {
   const t = useTranslations('pasillo')
   const [dialog, setDialog] = useState<'direct' | 'group' | null>(null)
+  const { members, user } = useApp()
+  if (!members.some((m) => m.id !== user.id)) return <PasilloAlone />
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
       <span className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent-ink">
@@ -57,6 +61,37 @@ export function PasilloWelcome() {
         </Button>
       </div>
       <PeopleDialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)} mode={dialog ?? 'direct'} />
+    </div>
+  )
+}
+
+/**
+ * Nadie más en tus espacios: el Pasillo se habilita cuando llega alguien. Quien administra la cuenta
+ * invita desde aquí (a la cuenta o a un espacio); los demás saben qué esperar.
+ */
+function PasilloAlone() {
+  const t = useTranslations('pasillo.alone')
+  const { accountRole } = useApp()
+  const admin = useIsAccountAdmin()
+  const [inviting, setInviting] = useState(false)
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent-ink">
+        <UserPlus className="size-7" />
+      </span>
+      <div>
+        <p className="text-base font-semibold text-fg">{t('title')}</p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-fg-muted">{admin ? t('bodyAdmin') : t('body')}</p>
+      </div>
+      {admin ? (
+        <>
+          <Button variant="primary" onClick={() => setInviting(true)}>
+            <UserPlus />
+            {t('invite')}
+          </Button>
+          <InviteDialog open={inviting} onOpenChange={setInviting} canPromote={accountRole === 'owner'} />
+        </>
+      ) : null}
     </div>
   )
 }

@@ -206,7 +206,19 @@
     "veltroHelp": "Veltro help",
     "fullscreen": "Full screen",
     "exitFullscreen": "Exit full screen",
-    "exitShort": "Exit"
+    "exitShort": "Exit",
+    "createAccount": "Create another account",
+    "newAccount": {
+      "title": "New account",
+      "description": "One account per company or client, each with its own spaces and people. Switch between them from up here.",
+      "accountName": "Account name",
+      "accountPlaceholder": "e.g. My company",
+      "workspaceName": "First space",
+      "workspacePlaceholder": "e.g. Marketing",
+      "workspaceHint": "A project or a team. You can add more later.",
+      "submit": "Create account",
+      "cancel": "Cancel"
+    }
   },
   "command": {
     "title": "Search and run",
@@ -811,7 +823,8 @@
       "allDecisions": "All decisions",
       "focusClear": "All clear"
     },
-    "sections": "Space sections"
+    "sections": "Space sections",
+    "invite": "Invite"
   },
   "roles": {
     "owner": "Owner",
@@ -819,7 +832,8 @@
     "member": "Member",
     "ws_admin": "Admin",
     "ws_editor": "Editor",
-    "ws_viewer": "Viewer"
+    "ws_viewer": "Viewer",
+    "guest": "Guest"
   },
   "settings": {
     "title": "Settings",
@@ -927,7 +941,7 @@
         "email": "Email",
         "role": "Role",
         "adminHint": "Manages people and workspaces. Sees everything.",
-        "memberHint": "Only sees the workspaces you assign.",
+        "memberHint": "Joins the spaces you check and sees the whole account.",
         "workspaces": "Workspaces",
         "cancel": "Cancel",
         "submit": "Send invitation",
@@ -950,7 +964,12 @@
         "copyLink": "Copy",
         "expiresHint": "The link works once and expires in 7 days.",
         "whatsapp": "Send on WhatsApp",
-        "shareMessage": "I invited you to {account} on Veltro. Join here: {link}"
+        "shareMessage": "I invited you to {account} on Veltro. Join here: {link}",
+        "guestHint": "Only sees the space you pick and its people. For clients or outsiders.",
+        "guestPick": "Space they join",
+        "allWorkspacesToday": "Check all current ones",
+        "noneWorkspaces": "Uncheck all",
+        "titleSpace": "Invite to {space}"
       },
       "invites": {
         "title": "Pending invitations",
@@ -968,7 +987,8 @@
         "revokeConfirm": "Revoke the invitation to {email}?",
         "revokeHint": "The link stops working. You can invite them again anytime.",
         "revoked": "Invitation revoked"
-      }
+      },
+      "guestHint": "Only sees the spaces they were invited to and the people in them."
     },
     "workspaces": {
       "title": "Workspaces",
@@ -1410,7 +1430,8 @@
     "dependency_other_account": "Both tasks must belong to the same account.",
     "request_locked": "This request is already being handled: write in the conversation to change something.",
     "assignee_not_in_department": "That person isn't in that department.",
-    "request_other_account": "The task must belong to a workspace in the same account."
+    "request_other_account": "The task must belong to a workspace in the same account.",
+    "account_limit": "You reached the limit of 10 accounts of your own."
   },
   "suspension": {
     "signOut": "Sign out",
@@ -2658,6 +2679,12 @@
       "rootNotLoaded": "The original message is older than what's loaded in the conversation.",
       "replyInThread": "Reply in thread…",
       "pinnedByMe": "Pinned by you"
+    },
+    "alone": {
+      "title": "No one to talk to yet",
+      "body": "When someone else joins your spaces, you can message each other here.",
+      "bodyAdmin": "Invite someone to your account or to a space and you can message each other here, start groups and share tasks.",
+      "invite": "Invite someone"
     }
   },
   "confirm": {
@@ -2858,7 +2885,9 @@
     "side": {
       "spaces": "By space",
       "meetings": "Meetings that decided most",
-      "total": "{count, plural, one {# decision} other {# decisions}}"
+      "total": "{count, plural, one {# decision} other {# decisions}}",
+      "next": "Upcoming meetings",
+      "nextHint": "Where the next decisions will be made."
     },
     "title": "Decisions",
     "subtitle": "Everything decided in your workspaces' meetings.",
