@@ -25,6 +25,7 @@ type SortKey = 'status' | 'due' | 'priority' | 'title'
 /** Vista tabla: todos los campos (incluidos los propios del espacio) como columnas editables. */
 export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceId: string }) {
   const t = useTranslations('tasks')
+  const tPriority = useTranslations('tasks.priority')
   const statusName = useStatusName()
   const ws = useWorkspaceMap().get(workspaceId)!
   const statusOptions = workspaceStatuses(ws)
@@ -56,8 +57,9 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
   const numberFields = fields.filter((f) => f.type === 'number')
   const sumOf = (id: string) => tasks.reduce((n, x) => n + (Number(x.custom?.[id]) || 0), 0)
   const fmt = (n: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(n)
-  const head = 'sticky top-0 z-10 h-9 border-b border-line bg-sidebar px-2 text-left text-xs font-medium text-fg-muted whitespace-nowrap'
-  const cell = 'h-10 border-b border-line-soft px-1.5 align-middle'
+  // sobre el blanco de la tarjeta: encabezado blanco y fijo, filas con aire y raya fina, la fila bajo el mouse en crema
+  const head = 'sticky top-0 z-10 h-10 border-b border-line-soft bg-panel px-2 text-left text-[11.5px] font-semibold text-fg-muted whitespace-nowrap'
+  const cell = 'h-11 border-b border-line-soft px-1.5 align-middle'
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -113,11 +115,11 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
               const patch = (p: Parameters<typeof update.mutate>[0]['patch']) => update.mutate({ id: task.id, patch: p })
               const n = counts.get(task.id) ?? 0
               return (
-                <tr key={task.id} className="group/tr hover:bg-hover/50">
-                  <td className={cn(cell, 'sticky left-0 z-[1] bg-canvas pl-4 group-hover/tr:bg-hover')}>
+                <tr key={task.id} className="group/tr transition-colors duration-100 hover:bg-canvas">
+                  <td className={cn(cell, 'sticky left-0 z-[1] bg-panel pl-4 transition-colors duration-100 group-hover/tr:bg-canvas')}>
                     <button type="button" onClick={() => open(task.id)} className="flex w-full min-w-0 items-center gap-2 text-left">
                       <span className="w-14 shrink-0 font-mono text-xs text-fg-subtle">{taskRef(ws.key, task.number)}</span>
-                      <span className={cn('truncate', task.status === 'done' ? 'text-fg-muted line-through decoration-fg-subtle/40' : 'text-fg')}>{task.title}</span>
+                      <span className={cn('truncate text-[14px]', task.status === 'done' ? 'text-fg-muted line-through decoration-fg-subtle/40' : 'text-fg')}>{task.title}</span>
                     </button>
                   </td>
                   <td className={cell}>
@@ -129,6 +131,7 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
                   <td className={cell}>
                     <PriorityMenu value={task.priority} onChange={(priority) => patch({ priority })} disabled={!editable} className="h-7 px-2">
                       <PriorityIcon priority={task.priority} />
+                      {task.priority !== 'none' ? <span className="truncate text-fg-muted">{tPriority(task.priority)}</span> : null}
                     </PriorityMenu>
                   </td>
                   <td className={cell}>
@@ -182,7 +185,7 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
           </tbody>
           <tfoot>
             <tr>
-              <td className="sticky left-0 bg-canvas px-4 py-2 text-xs text-fg-subtle">{t('rowsCount', { count: tasks.length })}</td>
+              <td className="sticky left-0 bg-panel px-4 py-2.5 text-xs text-fg-subtle">{t('rowsCount', { count: tasks.length })}</td>
               <td colSpan={5} />
               <td className="px-3 py-2 text-xs tabular-nums text-fg-muted">{totalEstimate ? `${fmt(totalEstimate)} ${t('hoursShort')}` : ''}</td>
               {fields.map((f) => (
@@ -196,7 +199,7 @@ export function TaskTable({ tasks, workspaceId }: { tasks: TaskRow[]; workspaceI
         </table>
       </div>
       {editable ? (
-        <div className="border-t border-line">
+        <div className="border-t border-line-soft">
           <TaskComposer defaults={{ workspace_id: workspaceId, status: 'todo' }} after={tasks.at(-1)?.position} autoFocus={false} />
         </div>
       ) : null}

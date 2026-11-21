@@ -91,8 +91,9 @@ export function TaskRow({
 
       {showIdle && idle >= IDLE_DAYS ? (
         <Tooltip content={t('idleHint', { count: idle })}>
-          <span className="hidden h-5 shrink-0 items-center gap-1 rounded-full bg-warning-soft px-1.5 text-2xs font-medium text-mandarina-ink @xl:inline-flex">
-            <Hourglass className="size-3" />
+          {/* una nota al margen, no una ficha: en una lista de seguimiento casi todas pueden estar quietas */}
+          <span className={cn('hidden h-5 shrink-0 items-center gap-1 text-2xs tabular-nums @xl:inline-flex', idle >= 14 ? 'font-medium text-mandarina-ink' : 'text-fg-subtle')}>
+            <Hourglass className="size-3 text-mandarina-ink/80" />
             {t('idle', { count: idle })}
           </span>
         </Tooltip>

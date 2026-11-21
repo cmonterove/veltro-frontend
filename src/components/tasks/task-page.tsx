@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { format, formatDistanceToNowStrict, parseISO } from 'date-fns'
 import { toast } from 'sonner'
@@ -29,6 +29,7 @@ import {
   Trash2,
   Video,
   MessageCircle,
+  MessagesSquare,
   LayoutTemplate,
 } from 'lucide-react'
 import { useApp, useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
@@ -39,7 +40,9 @@ import { Avatar, AvatarStack } from '@/components/ui/avatar'
 import { AutoTextarea } from '@/components/ui/auto-textarea'
 import { MentionTextarea, mentionIds, type MentionCandidate } from '@/components/mentions/mention-textarea'
 import { RichText } from '@/components/mentions/rich-text'
-import { TaskActivity } from './task-activity'
+import { EventText, useTaskActivity, type TaskEvent } from './task-activity'
+import { LogoMark } from '@/components/app/logo'
+import { CARD } from '@/components/ui/surface'
 import { FollowButton } from './follow-button'
 import { TaskDependencies } from './task-dependencies'
 import { SaveTaskTemplateDialog } from './task-templates'
@@ -134,13 +137,25 @@ export function TaskPage({ param }: { param: string }) {
     )
   }
   if (isLoading || isPlaceholderData || !task || !ws) {
+    // la misma forma que la página: barra arriba, la tarea a la izquierda y la conversación a la derecha
     return (
-      <div className="flex flex-col">
-        <div className="h-12 border-b border-line" />
-        <div className="mx-auto flex w-full max-w-[780px] flex-col gap-4 px-6 py-10">
-          <Skeleton className="h-9 w-2/3" />
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="mt-6 h-28 w-full" />
+      <div className="flex min-h-full flex-col lg:h-full lg:min-h-0">
+        <div className="flex h-14 shrink-0 items-center gap-3 px-3 sm:px-5">
+          <Skeleton className="size-7 rounded-lg" />
+          <Skeleton className="h-4 w-56" />
+        </div>
+        <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-4 px-3 pb-4 sm:px-5 lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]">
+          <div className={cn(CARD, 'flex flex-col gap-4 px-8 py-7')}>
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-8 w-2/3" />
+            <Skeleton className="mt-2 h-36 w-full rounded-2xl" />
+            <Skeleton className="mt-4 h-20 w-full" />
+          </div>
+          <div className={cn(CARD, 'hidden flex-col justify-end gap-3 p-5 lg:flex')}>
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-10 w-full rounded-2xl" />
+          </div>
         </div>
       </div>
     )
@@ -169,28 +184,25 @@ const toDraft = (t: TaskRow): Draft => ({
   description_text: t.description_text,
 })
 
-const TABS = ['subtasks', 'comments', 'attachments', 'activity'] as const
-type Tab = (typeof TABS)[number]
-
 /**
  * La tarea se lee tranquila y se edita a propósito: "Editar" convierte todo en formulario y los
- * cambios se aplican juntos con "Guardar" (o se descartan con "Cancelar"). La descripción se ve
- * siempre; las propiedades van juntas en un panel a la derecha; subtareas, comentarios y adjuntos
- * van en pestañas y se agregan sin entrar al modo edición.
+ * cambios se aplican juntos con "Guardar" (o se descartan con "Cancelar").
+ *
+ * Dos tarjetas, sin pestañas. A la izquierda la tarea misma: qué es, sus propiedades en una grilla de
+ * dos columnas y, debajo, la descripción, de qué depende, sus subtareas (con su avance) y adjuntos.
+ * A la derecha la conversación: comentarios y cambios en una sola línea de tiempo, con el campo para
+ * comentar siempre a mano. Subtareas, comentarios y adjuntos se agregan sin entrar al modo edición.
  */
 function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
   const copy = useCopy()
   const t = useTranslations('tasks')
   const tNav = useTranslations('nav')
   const router = useRouter()
-  const pathname = usePathname()
   const params = useSearchParams()
   const editable = canEdit(ws)
   const update = useUpdateTask()
   const removeWithUndo = useDeleteTaskWithUndo()
   const { data: parent } = useTask(task.parent_id)
-  const { data: subtasks } = useSubtasks(task.id)
-  const { data: comments } = useTaskComments(task.id)
   const { data: attachments } = useAttachments({ kind: 'task', taskId: task.id })
   const ref = taskRef(ws.key, task.number)
   const listHref = `/w/${ws.slug}/tasks`
@@ -205,16 +217,8 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
   const view: TaskRow = editing ? { ...task, ...draft } : task
   const dirty = editing && (descTouched || DRAFT_KEYS.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(task[k])))
   const canSave = editing && dirty && draft.title.trim().length > 0
-
-  // ?tab=detail de antes cae en la primera pestaña
-  const tab: Tab = TABS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'subtasks'
-  // la pestaña vive en la URL, pero cambiarla no necesita ir al servidor
-  const setTab = (next: Tab) => {
-    const q = new URLSearchParams(window.location.search)
-    if (next === 'subtasks') q.delete('tab')
-    else q.set('tab', next)
-    window.history.replaceState(null, '', q.toString() ? `${pathname}?${q}` : pathname)
-  }
+  // los enlaces de los avisos de comentarios (?tab=comments) dejan listo el campo para responder
+  const replying = params.get('tab') === 'comments'
 
   const edit = useCallback(() => {
     setDraft(toDraft(task))
@@ -299,17 +303,11 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
 
   const copyLink = () => copy(`${window.location.origin}${taskPath(ws.key, task.number)}`, t('linkCopied'))
 
-  const counts: Record<Tab, number | null> = {
-    subtasks: subtasks?.length ?? 0,
-    comments: comments?.length ?? 0,
-    attachments: attachments?.length ?? 0,
-    // el historial no lleva cuenta
-    activity: null,
-  }
-
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-1.5 border-b border-line bg-canvas/95 px-3 backdrop-blur-sm sm:px-4">
+    // en pantallas grandes cabe en la ventana: cada tarjeta se desplaza por dentro
+    <div className="flex min-h-full flex-col lg:h-full lg:min-h-0">
+      {/* volver, dónde está y lo que se hace con ella: sobre el fondo, sin raya */}
+      <header className="flex h-14 shrink-0 items-center gap-1.5 px-3 sm:px-5">
         <Tooltip content={t('back')} shortcut={['Esc']}>
           <Button variant="ghost" size="icon-sm" onClick={back} aria-label={t('back')}>
             <ArrowLeft />
@@ -333,10 +331,10 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
               <ChevronRight className="size-3.5 shrink-0 text-fg-subtle" />
             </>
           ) : null}
-          <span className="px-1.5 font-mono text-xs text-fg">{ref}</span>
+          <span className="whitespace-nowrap px-1.5 font-mono text-xs text-fg">{ref}</span>
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
           {editing ? (
             <>
               <span className="mr-1 hidden items-center gap-1.5 text-xs font-medium text-accent-ink sm:flex">
@@ -357,244 +355,230 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
             <>
               {editable ? (
                 <>
-                  <Button variant="secondary" size="sm" onClick={toggleDone} className="hidden sm:inline-flex">
+                  {/* lo que más se hace con una tarea es terminarla: va primero y en relieve */}
+                  <Button variant={isDone ? 'secondary' : 'primary'} size="sm" onClick={toggleDone}>
                     {isDone ? <RotateCcw /> : <CircleCheck />}
                     {isDone ? t('reopen') : t('markDone')}
                   </Button>
                   <Tooltip content={t('edit')} shortcut={['E']}>
-                    <Button variant="primary" size="sm" onClick={edit}>
+                    <Button variant="secondary" size="sm" onClick={edit}>
                       <Pencil />
-                      {t('edit')}
+                      <span className="hidden sm:inline">{t('edit')}</span>
                     </Button>
                   </Tooltip>
                 </>
               ) : (
                 <span className="rounded-full bg-hover px-2.5 py-1 text-xs text-fg-muted">{t('readOnly')}</span>
               )}
-              <FollowButton taskId={task.id} />
-              <Tooltip content={t('shareInPasillo')}>
-                <Button variant="ghost" size="icon-sm" onClick={() => setSharing(true)} aria-label={t('shareInPasillo')}>
-                  <MessageCircle />
-                </Button>
-              </Tooltip>
-              <Tooltip content={t('copyLink')}>
-                <Button variant="ghost" size="icon-sm" onClick={copyLink} aria-label={t('copyLink')}>
-                  <LinkIcon />
-                </Button>
-              </Tooltip>
-              {editable ? (
-                <Menu>
-                  <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('more')} />}>
-                    <MoreHorizontal />
-                  </MenuTrigger>
-                  <MenuContent align="end" className="w-56">
-                    <MenuItem onClick={() => setSavingTemplate(true)}>
-                      <LayoutTemplate />
-                      {t('saveAsTemplate')}
-                    </MenuItem>
-                    <MenuItem
-                      danger
-                      onClick={() => {
-                        removeWithUndo(task, ref)
-                        router.push(listHref)
-                      }}
-                    >
-                      <Trash2 />
-                      {t('delete')}
-                    </MenuItem>
-                  </MenuContent>
-                </Menu>
-              ) : null}
+              {/* en el celular quedan volver, terminar, editar y «más»: lo demás desde sm */}
+              <span className="hidden items-center gap-1.5 sm:flex">
+                <FollowButton taskId={task.id} />
+                <Tooltip content={t('shareInPasillo')}>
+                  <Button variant="ghost" size="icon-sm" onClick={() => setSharing(true)} aria-label={t('shareInPasillo')}>
+                    <MessageCircle />
+                  </Button>
+                </Tooltip>
+                <Tooltip content={t('copyLink')}>
+                  <Button variant="ghost" size="icon-sm" onClick={copyLink} aria-label={t('copyLink')}>
+                    <LinkIcon />
+                  </Button>
+                </Tooltip>
+              </span>
+              <Menu>
+                {/* sin permiso de edición, en pantallas medianas y grandes no queda nada adentro */}
+                <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('more')} className={cn(!editable && 'sm:hidden')} />}>
+                  <MoreHorizontal />
+                </MenuTrigger>
+                <MenuContent align="end" className="w-56">
+                  {/* en el celular, lo que no entra en la barra */}
+                  <MenuItem onClick={() => setSharing(true)} className="sm:hidden">
+                    <MessageCircle />
+                    {t('shareInPasillo')}
+                  </MenuItem>
+                  <MenuItem onClick={copyLink} className="sm:hidden">
+                    <LinkIcon />
+                    {t('copyLink')}
+                  </MenuItem>
+                  {editable ? (
+                    <>
+                      <MenuItem onClick={() => setSavingTemplate(true)}>
+                        <LayoutTemplate />
+                        {t('saveAsTemplate')}
+                      </MenuItem>
+                      <MenuItem
+                        danger
+                        onClick={() => {
+                          removeWithUndo(task, ref)
+                          router.push(listHref)
+                        }}
+                      >
+                        <Trash2 />
+                        {t('delete')}
+                      </MenuItem>
+                    </>
+                  ) : null}
+                </MenuContent>
+              </Menu>
             </>
           )}
         </div>
       </header>
 
-      {/* Columna principal (qué es, la descripción y lo que cuelga de la tarea) y, a la derecha, todas las
-          propiedades juntas. En pantallas chicas las propiedades quedan entre el título y la descripción. */}
-      <div className="mx-auto grid w-full max-w-[1200px] flex-1 lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[auto_1fr]">
-        <section className="px-5 pt-8 sm:px-10 lg:col-start-1 lg:row-start-1 lg:pr-12">
-          <p className="flex min-w-0 items-center gap-2 text-xs text-fg-subtle">
-            <span className="font-mono">{ref}</span>
-            {parent ? (
-              <>
-                <span aria-hidden>·</span>
-                <Link href={taskPath(ws.key, parent.number)} className="truncate hover:text-fg">
-                  {t('subtaskOf', { title: parent.title })}
-                </Link>
-              </>
-            ) : null}
-          </p>
-          {editing ? (
-            <AutoTextarea
-              autoFocus
-              value={draft.title}
-              onChange={(e) => set({ title: e.target.value })}
-              onKeyDown={(e) => e.key === 'Enter' && !e.metaKey && !e.ctrlKey && e.preventDefault()}
-              placeholder={t('titlePlaceholder')}
-              aria-label={t('title')}
-              className={cn(fieldClass, 'mt-2 px-3 py-2 text-[24px] font-semibold leading-tight tracking-[-0.02em]')}
-            />
-          ) : (
-            <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-[-0.02em] text-fg">{task.title}</h1>
-          )}
-        </section>
-
-        <aside className="mt-6 border-y border-line bg-sidebar/40 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:border-y-0 lg:border-l lg:bg-transparent">
-          <div className="px-5 py-5 sm:px-10 lg:sticky lg:top-12 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:px-6 lg:py-8 lg:scrollbar-thin">
-            <h2 className="mb-3 text-2xs font-medium uppercase tracking-wide text-fg-subtle">{t('properties')}</h2>
-            <dl className="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
-              <dt className="text-fg-muted">{t('statusLabel')}</dt>
-              <dd className="min-w-0">
-                <StatusValue task={view} ws={ws} editing={editing} onChange={(o) => set(statusPatch(o))} />
-              </dd>
-              <dt className="text-fg-muted">{t('priorityLabel')}</dt>
-              <dd className="min-w-0">
-                <PriorityValue value={view.priority} editing={editing} onChange={(priority) => set({ priority })} />
-              </dd>
-              <dt className="text-fg-muted">{t('assignees')}</dt>
-              <dd className="min-w-0">
-                <AssigneeValue task={view} editing={editing} onChange={(assignee_ids) => set({ assignee_ids })} />
-              </dd>
-              <dt className="text-fg-muted">{t('dueLabel')}</dt>
-              <dd className="min-w-0">
-                <DateValue value={view.due_date} done={view.status === 'done'} editing={editing} onChange={(due_date) => set({ due_date })} />
-              </dd>
-              <dt className="text-fg-muted">{t('startLabel')}</dt>
-              <dd className="min-w-0">
-                <DateValue value={view.start_date} editing={editing} onChange={(start_date) => set({ start_date })} start />
-              </dd>
-              <dt className="text-fg-muted">{t('recurrence.label')}</dt>
-              <dd className="min-w-0">
-                <RecurrenceValue
-                  task={view}
-                  editing={editing}
-                  onChange={(recurrence) =>
-                    // repetir sin fecha: vence hoy (la API hace lo mismo)
-                    set(recurrence && !view.due_date ? { recurrence, due_date: toDateKey(new Date()) } : { recurrence })
-                  }
-                />
-              </dd>
-              <dt className="text-fg-muted">{t('estimateLabel')}</dt>
-              <dd className="min-w-0">
+      {/* una columna que nunca pasa del ancho de la pantalla; en grandes, la conversación al lado */}
+      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-4 px-3 pb-4 sm:px-5 lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]">
+        {/* la tarea misma */}
+        <article className={cn(CARD, 'flex min-w-0 flex-col transition-shadow lg:min-h-0 lg:overflow-hidden', editing && 'ring-2 ring-accent/35')}>
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:scrollbar-thin">
+            <div className="mx-auto w-full max-w-[56rem] px-5 pb-12 pt-6 sm:px-8">
+              <p className="flex min-w-0 items-center gap-2 text-xs text-fg-subtle">
+                <span className="font-mono">{ref}</span>
+                {parent ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <Link href={taskPath(ws.key, parent.number)} className="truncate hover:text-fg">
+                      {t('subtaskOf', { title: parent.title })}
+                    </Link>
+                  </>
+                ) : null}
                 {editing ? (
-                  <EstimateInput value={view.estimate_hours} onChange={(estimate_hours) => set({ estimate_hours })} />
-                ) : (
-                  <ReadValue>
-                    {view.estimate_hours != null ? (
-                      <>
-                        <Timer className="size-3.5 text-fg-subtle" />
-                        {view.estimate_hours} {t('hoursShort')}
-                      </>
-                    ) : (
-                      <Empty />
-                    )}
-                  </ReadValue>
-                )}
-              </dd>
-              <dt className="self-start pt-2 text-fg-muted">{t('labels')}</dt>
-              <dd className="min-w-0">
-                <LabelsValue task={view} editing={editing} onChange={(labels) => set({ labels })} />
-              </dd>
-              <CustomFieldRows task={view} ws={ws} editable={editing} onChange={(custom) => set({ custom })} />
-              {editing && ws.my_role === 'admin' ? (
-                <>
-                  <dt />
-                  <dd>
-                    <AddFieldPopover ws={ws} />
-                  </dd>
-                </>
-              ) : null}
-              {task.doc_id || task.meeting_id ? (
-                <>
-                  <dt className="self-start pt-1.5 text-fg-muted">{t('origin')}</dt>
-                  <dd className="min-w-0">
+                  <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-ink">
+                    <span className="size-1.5 rounded-full bg-accent" />
+                    {dirty ? t('unsaved') : t('editing')}
+                  </span>
+                ) : null}
+              </p>
+              {editing ? (
+                <AutoTextarea
+                  autoFocus
+                  value={draft.title}
+                  onChange={(e) => set({ title: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.metaKey && !e.ctrlKey && e.preventDefault()}
+                  placeholder={t('titlePlaceholder')}
+                  aria-label={t('title')}
+                  className={cn(fieldClass, 'mt-2 px-3 py-2 text-[24px] font-semibold leading-tight tracking-[-0.02em]')}
+                />
+              ) : (
+                <h1 className={cn('mt-1.5 text-[26px] font-semibold leading-tight tracking-[-0.02em]', isDone ? 'text-fg-muted line-through decoration-fg-subtle/40' : 'text-fg')}>{task.title}</h1>
+              )}
+
+              {/* las propiedades juntas, en dos columnas: se leen de un vistazo y no se pierde una columna entera */}
+              <dl className="mt-5 grid gap-x-8 rounded-2xl bg-canvas/55 px-4 py-2 text-[13px] ring-1 ring-inset ring-line-soft sm:grid-cols-2">
+                <Prop label={t('statusLabel')}>
+                  <StatusValue task={view} ws={ws} editing={editing} onChange={(o) => set(statusPatch(o))} />
+                </Prop>
+                <Prop label={t('priorityLabel')}>
+                  <PriorityValue value={view.priority} editing={editing} onChange={(priority) => set({ priority })} />
+                </Prop>
+                <Prop label={t('assignees')}>
+                  <AssigneeValue task={view} editing={editing} onChange={(assignee_ids) => set({ assignee_ids })} />
+                </Prop>
+                <Prop label={t('dueLabel')}>
+                  <DateValue value={view.due_date} done={view.status === 'done'} editing={editing} onChange={(due_date) => set({ due_date })} />
+                </Prop>
+                <Prop label={t('startLabel')}>
+                  <DateValue value={view.start_date} editing={editing} onChange={(start_date) => set({ start_date })} start />
+                </Prop>
+                <Prop label={t('recurrence.label')}>
+                  <RecurrenceValue
+                    task={view}
+                    editing={editing}
+                    onChange={(recurrence) =>
+                      // repetir sin fecha: vence hoy (la API hace lo mismo)
+                      set(recurrence && !view.due_date ? { recurrence, due_date: toDateKey(new Date()) } : { recurrence })
+                    }
+                  />
+                </Prop>
+                <Prop label={t('estimateLabel')}>
+                  {editing ? (
+                    <EstimateInput value={view.estimate_hours} onChange={(estimate_hours) => set({ estimate_hours })} />
+                  ) : (
+                    <ReadValue>
+                      {view.estimate_hours != null ? (
+                        <>
+                          <Timer className="size-3.5 text-fg-subtle" />
+                          {view.estimate_hours} {t('hoursShort')}
+                        </>
+                      ) : (
+                        <Empty />
+                      )}
+                    </ReadValue>
+                  )}
+                </Prop>
+                <Prop label={t('labels')} top>
+                  <LabelsValue task={view} editing={editing} onChange={(labels) => set({ labels })} />
+                </Prop>
+                <CustomFieldRows task={view} ws={ws} editable={editing} onChange={(custom) => set({ custom })} rowClassName={PROP_ROW} />
+                {editing && ws.my_role === 'admin' ? (
+                  <div className={PROP_ROW}>
+                    <dt />
+                    <dd>
+                      <AddFieldPopover ws={ws} />
+                    </dd>
+                  </div>
+                ) : null}
+                {task.doc_id || task.meeting_id ? (
+                  <Prop label={t('origin')} top>
                     <Origin task={task} slug={ws.slug} />
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-            <div className="mt-5 border-t border-line pt-4">
-              <CreatedBy task={task} />
+                  </Prop>
+                ) : null}
+              </dl>
+              <div className="mt-2 px-1">
+                <CreatedBy task={task} />
+              </div>
+
+              <Block title={t('description')}>
+                {editing ? (
+                  <div className={cn(fieldClass, 'min-h-32 py-2')}>
+                    <BlockEditor
+                      key={`${task.id}-edit-${editorRev}`}
+                      workspaceId={task.workspace_id}
+                      initialContent={task.description}
+                      editable
+                      onChange={(c: EditorChange) => {
+                        setDescTouched(true)
+                        set({ description: c.content, description_text: c.text })
+                      }}
+                      placeholder={t('descriptionPlaceholder')}
+                      compact
+                    />
+                  </div>
+                ) : task.description_text?.trim() ? (
+                  <div className="-ml-[30px]">
+                    <BlockEditor key={`${task.id}-read-${editorRev}-${task.updated_at}-${task.description_text?.length}`} workspaceId={task.workspace_id} initialContent={task.description} editable={false} compact />
+                  </div>
+                ) : editable ? (
+                  <button
+                    type="button"
+                    onClick={edit}
+                    className="flex w-full items-center gap-2 rounded-xl border border-dashed border-line-strong/80 px-3.5 py-3.5 text-left text-sm text-fg-subtle transition-colors hover:border-accent-mid/60 hover:bg-accent-soft/30 hover:text-fg-muted"
+                  >
+                    <Pencil className="size-3.5 shrink-0" />
+                    {t('descriptionPlaceholder')}
+                  </button>
+                ) : (
+                  <p className="text-sm text-fg-subtle">{t('noDescription')}</p>
+                )}
+              </Block>
+
+              {/* bloqueada por / bloquea a: se agrega sin entrar al modo edición */}
+              <TaskDependencies task={task} editable={editable} />
+
+              <Subtasks task={task} ws={ws} editable={editable} />
+
+              <Block title={t('tabs.attachments')} aside={attachments?.length ? <Count n={attachments.length} /> : null}>
+                <AttachmentsSection
+                  scope={{ kind: 'task', taskId: task.id }}
+                  parent={{ workspaceId: task.workspace_id, taskId: task.id, meetingId: task.meeting_id }}
+                  editable={editable}
+                  hideTitle
+                />
+              </Block>
             </div>
           </div>
-        </aside>
+        </article>
 
-        <div className="px-5 pb-20 sm:px-10 lg:col-start-1 lg:row-start-2 lg:pr-12">
-          <section className="mt-8">
-            <SectionTitle>{t('description')}</SectionTitle>
-            {editing ? (
-              <div className={cn(fieldClass, 'min-h-32 py-2')}>
-                <BlockEditor
-                  key={`${task.id}-edit-${editorRev}`}
-                  workspaceId={task.workspace_id}
-                  initialContent={task.description}
-                  editable
-                  onChange={(c: EditorChange) => {
-                    setDescTouched(true)
-                    set({ description: c.content, description_text: c.text })
-                  }}
-                  placeholder={t('descriptionPlaceholder')}
-                  compact
-                />
-              </div>
-            ) : task.description_text?.trim() ? (
-              <div className="-ml-[30px]">
-                <BlockEditor key={`${task.id}-read-${editorRev}-${task.updated_at}-${task.description_text?.length}`} workspaceId={task.workspace_id} initialContent={task.description} editable={false} compact />
-              </div>
-            ) : editable ? (
-              <button
-                type="button"
-                onClick={edit}
-                className="flex w-full items-center rounded-lg border border-dashed border-line px-3 py-3 text-left text-sm text-fg-subtle transition-colors hover:border-line-strong hover:text-fg-muted"
-              >
-                {t('descriptionPlaceholder')}
-              </button>
-            ) : (
-              <p className="text-sm text-fg-subtle">{t('noDescription')}</p>
-            )}
-          </section>
-
-          {/* bloqueada por / bloquea a: se agrega sin entrar al modo edición */}
-          <TaskDependencies task={task} editable={editable} />
-
-          {/* lo que cuelga de la tarea: se agrega sin entrar al modo edición */}
-          <div role="tablist" aria-label={t('sections')} className="mt-10 flex gap-1 overflow-x-auto border-b border-line scrollbar-none">
-            {TABS.map((id) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={tab === id}
-                onClick={() => setTab(id)}
-                className={cn(
-                  '-mb-px inline-flex h-10 shrink-0 items-center gap-1.5 rounded-t-md border-b-2 px-3 text-sm outline-none transition-colors focus-visible:bg-hover focus-visible:text-fg',
-                  tab === id ? 'border-accent font-medium text-fg' : 'border-transparent text-fg-muted hover:text-fg',
-                )}
-              >
-                {t(`tabs.${id}`)}
-                {counts[id] ? <span className="rounded-full bg-hover px-1.5 text-2xs tabular-nums text-fg-muted">{counts[id]}</span> : null}
-              </button>
-            ))}
-          </div>
-
-          <div role="tabpanel" className="pt-5">
-            {tab === 'subtasks' ? (
-              <Subtasks task={task} ws={ws} editable={editable} />
-            ) : tab === 'comments' ? (
-              <Comments task={task} />
-            ) : tab === 'activity' ? (
-              <TaskActivity task={task} ws={ws} />
-            ) : (
-              <AttachmentsSection
-                scope={{ kind: 'task', taskId: task.id }}
-                parent={{ workspaceId: task.workspace_id, taskId: task.id, meetingId: task.meeting_id }}
-                editable={editable}
-                hideTitle
-              />
-            )}
-          </div>
-        </div>
+        {/* lo que se habla y lo que pasó con ella */}
+        <Conversation task={task} ws={ws} replying={replying} />
       </div>
       <ShareToChatDialog open={sharing} onOpenChange={setSharing} item={{ kind: 'task', refId: task.id, title: `${ref} ${task.title}` }} />
       {editable ? <SaveTaskTemplateDialog task={task} open={savingTemplate} onOpenChange={setSavingTemplate} /> : null}
@@ -602,13 +586,38 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
   )
 }
 
+/** Una fila de la grilla de propiedades: el nombre a la izquierda y el valor (o su selector, editando). */
+const PROP_ROW = 'grid min-w-0 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 py-0.5'
+
+function Prop({ label, top, children }: { label: string; top?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn(PROP_ROW, top && 'items-start')}>
+      <dt className={cn('truncate text-fg-muted', top && 'pt-2')}>{label}</dt>
+      <dd className="min-w-0">{children}</dd>
+    </div>
+  )
+}
+
+/** Un bloque de la tarea (descripción, subtareas, adjuntos): título chico y lo suyo debajo. */
+function Block({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="mt-9">
+      <div className="mb-3 flex min-h-6 items-center gap-3">
+        <h2 className="text-sm font-semibold text-fg">{title}</h2>
+        {aside ? <div className="ml-auto flex items-center gap-2">{aside}</div> : null}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Count({ n }: { n: number }) {
+  return <span className="rounded-full bg-fg/[0.06] px-1.5 text-[11px] font-semibold tabular-nums text-fg-muted">{n}</span>
+}
+
 /** Campo en modo edición: borde visible, para que se note que se puede cambiar. */
 const fieldClass = 'w-full rounded-lg border border-line bg-panel text-fg outline-none transition-colors hover:border-line-strong focus-within:border-accent focus:border-accent'
 const pickerField = 'h-9 w-full justify-start rounded-lg border border-line bg-panel px-2.5 text-sm hover:border-line-strong hover:bg-panel data-[popup-open]:border-accent data-[popup-open]:bg-panel'
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-3 text-sm font-semibold text-fg">{children}</h2>
-}
 
 function Empty() {
   return <span className="text-fg-subtle">—</span>
@@ -838,17 +847,29 @@ function Subtasks({ task, ws, editable }: { task: TaskRow; ws: WorkspaceWithRole
   const [draft, setDraft] = useState('')
   const list = subtasks ?? []
   const done = list.filter((s) => s.status === 'done').length
+  // un solo nivel de subtareas (la API no deja colgar subtareas de una subtarea)
+  const canAdd = editable && !task.parent_id
+  if (!list.length && !canAdd) return null
 
   return (
-    <section>
-      {list.length ? (
-        <p className="mb-3 text-xs text-fg-muted">{t('subtasksDone', { done, total: list.length })}</p>
-      ) : (
-        <p className="mb-3 text-sm text-fg-subtle">{t('noSubtasks')}</p>
-      )}
-      <div className="flex flex-col overflow-hidden rounded-lg border border-line">
+    <Block
+      title={t('tabs.subtasks')}
+      aside={
+        list.length ? (
+          // el avance, a la vista: cuántas van y una barra
+          <span className="flex items-center gap-2.5 text-xs tabular-nums text-fg-muted">
+            {t('subtasksDone', { done, total: list.length })}
+            <span className="relative h-1.5 w-24 overflow-hidden rounded-full bg-fg/[0.08]" aria-hidden>
+              <span className="absolute inset-y-0 left-0 rounded-full bg-done transition-[width] duration-300 ease-out" style={{ width: `${(done / list.length) * 100}%` }} />
+            </span>
+          </span>
+        ) : null
+      }
+    >
+      {list.length ? null : <p className="-mt-1 mb-2.5 text-xs text-fg-subtle">{t('noSubtasks')}</p>}
+      <div className="flex flex-col overflow-hidden rounded-xl ring-1 ring-inset ring-line-soft">
         {list.map((s) => (
-          <div key={s.id} className="flex h-11 items-center gap-2.5 border-b border-line-soft px-3 last:border-0 hover:bg-hover/50">
+          <div key={s.id} className="flex h-11 items-center gap-2.5 border-b border-line-soft px-3 last:border-0 hover:bg-canvas">
             <button
               type="button"
               onClick={() => update.mutate({ id: s.id, patch: { status: s.status === 'done' ? 'todo' : 'done' } })}
@@ -864,9 +885,8 @@ function Subtasks({ task, ws, editable }: { task: TaskRow; ws: WorkspaceWithRole
             {s.due_date ? <DueDate due={s.due_date} done={s.status === 'done'} withIcon={false} /> : null}
           </div>
         ))}
-        {/* un solo nivel de subtareas (la API no deja colgar subtareas de una subtarea) */}
-        {editable && !task.parent_id ? (
-          <label className="flex h-11 items-center gap-2.5 px-3 text-fg-subtle focus-within:text-fg">
+        {canAdd ? (
+          <label className="flex h-11 items-center gap-2.5 px-3 text-fg-subtle focus-within:bg-canvas/60 focus-within:text-fg">
             <Plus className="size-4 shrink-0" />
             <input
               value={draft}
@@ -890,28 +910,58 @@ function Subtasks({ task, ws, editable }: { task: TaskRow; ws: WorkspaceWithRole
           </label>
         ) : null}
       </div>
-    </section>
+    </Block>
   )
 }
 
-function Comments({ task }: { task: TaskRow }) {
+type Entry = { kind: 'comment'; at: string; id: string; c: NonNullable<ReturnType<typeof useTaskComments>['data']>[number] } | { kind: 'event'; at: string; id: string; e: TaskEvent }
+
+/**
+ * La conversación de la tarea: comentarios y cambios (quién hizo qué) en una sola línea de tiempo, del
+ * más viejo arriba al más nuevo abajo, como un chat. Los comentarios van en burbujas; los cambios, en
+ * líneas chicas. El campo para comentar queda fijo abajo (con @ se le avisa a alguien).
+ */
+function Conversation({ task, ws, replying }: { task: TaskRow; ws: WorkspaceWithRole; replying?: boolean }) {
   const t = useTranslations('tasks')
   const locale = useDateLocale()
   const { user, profile } = useApp()
   const memberMap = useMemberMap()
   const { data: comments } = useTaskComments(task.id)
+  const { data: events, isLoading } = useTaskActivity(task.id)
   const add = useAddComment(task.id)
   const del = useDeleteComment(task.id)
   const confirm = useConfirm()
   const tConfirm = useTranslations('confirm')
   const [body, setBody] = useState('')
   const [picked, setPicked] = useState<MentionCandidate[]>([])
+  const scroller = useRef<HTMLDivElement>(null)
+  const input = useRef<HTMLTextAreaElement>(null)
   // se menciona a quien tiene acceso al espacio de la tarea (cada mención le llega como aviso)
   const people = useWorkspaceMembers(task.workspace_id)
   const candidates = useMemo<MentionCandidate[]>(
     () => people.filter((p) => p.id !== user.id).map((p) => ({ id: p.id, name: p.full_name, avatarUrl: p.avatar_url, sub: p.title ?? undefined })),
     [people, user.id],
   )
+
+  const entries = useMemo<Entry[]>(
+    () =>
+      [
+        ...(comments ?? []).map((c) => ({ kind: 'comment' as const, at: c.created_at, id: `c-${c.id}`, c })),
+        ...(events ?? []).map((e) => ({ kind: 'event' as const, at: e.createdAt, id: `e-${e.id}`, e })),
+      ].sort((a, b) => a.at.localeCompare(b.at)),
+    [comments, events],
+  )
+  const commentCount = comments?.length ?? 0
+
+  // baja sola al final: al abrir y con cada comentario o cambio nuevo
+  useEffect(() => {
+    const el = scroller.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [entries.length])
+
+  useEffect(() => {
+    if (replying) input.current?.focus()
+  }, [replying])
 
   const submit = () => {
     const v = body.trim()
@@ -928,76 +978,139 @@ function Comments({ task }: { task: TaskRow }) {
   }
 
   return (
-    <section>
-      <div className="flex items-end gap-3">
-        <Avatar name={profile.full_name} src={profile.avatar_url} seed={profile.id} size={28} className="mb-2" />
-        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-xl border border-line bg-panel px-3 py-2 focus-within:border-accent">
-          <div className="min-w-0 flex-1">
-            <MentionTextarea
-              value={body}
-              onValueChange={setBody}
-              candidates={candidates}
-              picked={picked}
-              onPickedChange={setPicked}
-              placement="bottom"
-              aria-label={t('commentPlaceholder')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault()
-                  submit()
+    <aside className={cn(CARD, 'flex min-w-0 flex-col lg:min-h-0 lg:overflow-hidden')} aria-label={t('conversation')}>
+      <header className="flex shrink-0 items-center gap-2 border-b border-line-soft px-5 py-3.5">
+        <MessagesSquare className="size-4 text-fg-subtle" />
+        <h2 className="text-sm font-semibold text-fg">{t('conversation')}</h2>
+        {commentCount ? <Count n={commentCount} /> : null}
+      </header>
+
+      <div ref={scroller} className="px-5 py-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:scrollbar-thin">
+        {/* pegado abajo, junto al campo para comentar (con poco, lo de arriba queda libre) */}
+        <div className="flex min-h-full flex-col justify-end">
+          {!commentCount ? (
+            <p className="mb-4 flex items-start gap-2 text-xs leading-relaxed text-fg-subtle">
+              <MessagesSquare className="mt-0.5 size-3.5 shrink-0" />
+              {t('conversationHint')}
+            </p>
+          ) : null}
+          {isLoading && !entries.length ? (
+            <div className="flex flex-col gap-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-5 w-2/3" />
+              ))}
+            </div>
+          ) : (
+            <ol className="relative flex flex-col">
+              {/* la línea que une todo lo que pasó */}
+              <span aria-hidden className="absolute bottom-3 left-[13px] top-3 w-px bg-line-soft" />
+              {entries.map((it) => {
+                if (it.kind === 'event') {
+                  const e = it.e
+                  return (
+                    <li key={it.id} className="relative flex gap-3 py-1.5 pl-1">
+                      <span className="relative z-[1] mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-panel ring-4 ring-panel">
+                        {e.actor ? (
+                          <Avatar name={e.actor.fullName} src={e.actor.avatarUrl} seed={e.actor.id} size={20} />
+                        ) : (
+                          <span className="flex size-5 items-center justify-center rounded-full bg-highlight">
+                            <LogoMark className="size-3" />
+                          </span>
+                        )}
+                      </span>
+                      <p className="min-w-0 flex-1 text-[12.5px] leading-relaxed text-fg-muted">
+                        <EventText e={e} ws={ws} />
+                        <Tooltip content={format(parseISO(e.createdAt), 'd MMM yyyy, HH:mm', { locale })}>
+                          <span className="ml-1.5 whitespace-nowrap text-[11.5px] text-fg-subtle">
+                            {formatDistanceToNowStrict(parseISO(e.createdAt), { addSuffix: true, locale })}
+                          </span>
+                        </Tooltip>
+                      </p>
+                    </li>
+                  )
                 }
-              }}
-              placeholder={t('commentPlaceholder')}
-              className="max-h-48 bg-transparent py-1 text-sm outline-none placeholder:text-fg-subtle"
-            />
-          </div>
-          <Button variant="ghost" size="icon-xs" onClick={submit} disabled={!body.trim()} loading={add.isPending} aria-label={t('send')}>
-            {add.isPending ? null : <Send />}
-          </Button>
+                const c = it.c
+                const who = memberMap.get(c.user_id)
+                const mine = c.user_id === user.id
+                return (
+                  <li key={it.id} className="group/comment relative flex gap-3 py-2.5">
+                    <Avatar name={who?.full_name} src={who?.avatar_url} seed={c.user_id} size={28} className="relative z-[1] ring-4 ring-panel" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="truncate text-[13px] font-medium text-fg">{who?.full_name ?? t('someone')}</span>
+                        <Tooltip content={format(new Date(c.created_at), 'd MMM yyyy, HH:mm', { locale })}>
+                          <span className="shrink-0 text-[11.5px] text-fg-subtle">{formatDistanceToNowStrict(new Date(c.created_at), { addSuffix: true, locale })}</span>
+                        </Tooltip>
+                        {mine ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (await confirm({ title: t('deleteCommentConfirm'), danger: true, confirmLabel: tConfirm('delete') })) del.mutate(c.id)
+                            }}
+                            className="ml-auto text-xs text-fg-subtle opacity-0 hover:text-danger focus-visible:opacity-100 group-hover/comment:opacity-100"
+                          >
+                            {t('deleteComment')}
+                          </button>
+                        ) : null}
+                      </div>
+                      <div
+                        className={cn(
+                          'mt-1 whitespace-pre-wrap break-words rounded-2xl rounded-tl-md px-3.5 py-2.5 text-[13.5px] leading-relaxed text-fg ring-1 ring-inset',
+                          mine ? 'bg-accent-soft/45 ring-accent-mid/15' : 'bg-canvas ring-line-soft',
+                        )}
+                      >
+                        <RichText
+                          text={c.body}
+                          me={user.id}
+                          mentions={c.mentions.flatMap((id) => {
+                            const p = memberMap.get(id)
+                            return p ? [{ id, name: p.full_name }] : []
+                          })}
+                        />
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          )}
         </div>
       </div>
-      {comments?.length ? (
-        <div className="mt-6 flex flex-col gap-5">
-          {[...comments].reverse().map((c) => {
-            const who = memberMap.get(c.user_id)
-            return (
-              <div key={c.id} className="group/comment flex gap-3">
-                <Avatar name={who?.full_name} src={who?.avatar_url} seed={c.user_id} size={28} className="mt-0.5" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-sm font-medium">{who?.full_name ?? t('someone')}</span>
-                    <span className="text-xs text-fg-subtle">{formatDistanceToNowStrict(new Date(c.created_at), { addSuffix: true, locale })}</span>
-                    {c.user_id === user.id ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (await confirm({ title: t('deleteCommentConfirm'), danger: true, confirmLabel: tConfirm('delete') })) del.mutate(c.id)
-                        }}
-                        className="ml-auto text-xs text-fg-subtle opacity-0 hover:text-danger group-hover/comment:opacity-100 focus-visible:opacity-100"
-                      >
-                        {t('deleteComment')}
-                      </button>
-                    ) : null}
-                  </div>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-fg">
-                    <RichText
-                      text={c.body}
-                      me={user.id}
-                      mentions={c.mentions.flatMap((id) => {
-                        const p = memberMap.get(id)
-                        return p ? [{ id, name: p.full_name }] : []
-                      })}
-                    />
-                  </p>
-                </div>
-              </div>
-            )
-          })}
+
+      {/* comentar: siempre a mano, abajo */}
+      <footer className="shrink-0 border-t border-line-soft p-3">
+        <div className="flex items-end gap-2.5">
+          <Avatar name={profile.full_name} src={profile.avatar_url} seed={profile.id} size={28} className="mb-1" />
+          <div className="flex min-w-0 flex-1 items-end gap-1 rounded-2xl bg-canvas px-3 py-1.5 ring-1 ring-inset ring-line-soft transition-shadow focus-within:ring-accent-mid/60">
+            <div className="min-w-0 flex-1">
+              <MentionTextarea
+                ref={input}
+                value={body}
+                onValueChange={setBody}
+                candidates={candidates}
+                picked={picked}
+                onPickedChange={setPicked}
+                placement="top"
+                aria-label={t('commentPlaceholder')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault()
+                    submit()
+                  }
+                }}
+                placeholder={t('commentPlaceholder')}
+                className="max-h-40 bg-transparent py-1 text-sm outline-none placeholder:text-fg-subtle"
+              />
+            </div>
+            <Tooltip content={t('send')} shortcut={['⌘', '↵']}>
+              <Button variant={body.trim() ? 'primary' : 'ghost'} size="icon-xs" onClick={submit} disabled={!body.trim()} loading={add.isPending} aria-label={t('send')} className="mb-0.5">
+                {add.isPending ? null : <Send />}
+              </Button>
+            </Tooltip>
+          </div>
         </div>
-      ) : (
-        <p className="mt-6 text-sm text-fg-subtle">{t('noComments')}</p>
-      )}
-    </section>
+      </footer>
+    </aside>
   )
 }
 

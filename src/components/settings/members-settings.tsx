@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, ChevronDown, Copy, KeyRound, Link2, Mail, MailCheck, MoreHorizontal, Send, UserPlus, X } from 'lucide-react'
+import { Check, ChevronDown, Copy, DoorOpen, KeyRound, Layers, Link2, Mail, MailCheck, MoreHorizontal, Search, Send, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { useDateLocale } from '@/lib/dates'
 import { useApp } from '@/components/app/app-context'
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
 import type { AccountMember, Assignment, Invitation, Usage } from '@/lib/api/ajustes'
 import type { ErrorCode } from '@/lib/errors'
-import { SettingsHeader } from './ui'
+import { SettingsHeader, SplitPanel } from './ui'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Select } from '@/components/ui/select'
 import { useConfirm } from '@/components/ui/confirm'
@@ -75,11 +75,22 @@ export function MembersSettings({ members, usage, invitations = [] }: { members:
     })
   }
 
+  const [q, setQ] = useState('')
+  const [filter, setFilter] = useState<RoleFilter>('all')
+  const counts: Record<RoleFilter, number> = {
+    all: members.length,
+    admins: members.filter((m) => inFilter(m, 'admins')).length,
+    member: members.filter((m) => m.role === 'member').length,
+    guest: members.filter((m) => m.role === 'guest').length,
+  }
+  const needle = fold(q.trim())
+  const shown = members.filter((m) => inFilter(m, filter) && (!needle || fold(`${m.full_name} ${m.email} ${m.title ?? ''}`).includes(needle)))
+
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <SettingsHeader
         title={t('title')}
-        description={usage?.max_members != null ? t('descriptionLimit', { used: usage.members_count, max: usage.max_members }) : t('description')}
+        description={t('description')}
         actions={
           <Button variant="primary" size="sm" onClick={() => setAddOpen(true)} disabled={full}>
             <UserPlus />
@@ -87,28 +98,181 @@ export function MembersSettings({ members, usage, invitations = [] }: { members:
           </Button>
         }
       />
-      <div>
-        {full ? <p className="mb-4 rounded-md bg-warning-soft px-3 py-2 text-sm text-fg">{t('limitReached')}</p> : null}
-        <ul className="flex flex-col divide-y divide-line-soft rounded-xl border border-line bg-panel">
-          {members.map((m) => (
-            <MemberRow
-              key={m.id}
-              member={m}
-              isSelf={m.id === user.id}
-              canPromote={accountRole === 'owner'}
-              assignments={m.assignments}
-              workspaces={workspaces}
-              onRole={(role) => run(() => updateMemberRole(account.id, m.id, role), t('roleUpdated'))}
-              onRemove={() => remove(m)}
-              onWorkspaces={(rows) => run(() => setMemberWorkspaces(account.id, m.id, rows), t('workspacesUpdated'))}
-            />
-          ))}
-        </ul>
-        {invitations.length ? <PendingInvites invitations={invitations} onChanged={done} /> : null}
-      </div>
+
+      {full ? <p className="mb-4 rounded-lg bg-warning-soft px-3 py-2 text-sm text-fg">{t('limitReached')}</p> : null}
+
+      {/* la tabla y su columna llegan hasta abajo; con poca gente, el hueco de la tabla invita a sumar a alguien */}
+      <SplitPanel
+        main={
+        <div className="@container flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center gap-3 border-b border-line-soft px-4 py-3">
+            {/* por rol: quién ve qué es lo que más se mira aquí */}
+            <div className="flex gap-1 rounded-lg bg-hover/70 p-1" role="group" aria-label={t('filterLabel')}>
+              {ROLE_FILTERS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  aria-pressed={filter === f}
+                  onClick={() => setFilter(f)}
+                  disabled={f !== 'all' && !counts[f]}
+                  className={cn(
+                    'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid disabled:opacity-40',
+                    filter === f ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted enabled:hover:text-fg',
+                  )}
+                >
+                  {t(`filters.${f}`)}
+                  <span className="tabular-nums text-fg-subtle">{counts[f]}</span>
+                </button>
+              ))}
+            </div>
+            <label className="relative ml-auto w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" aria-hidden />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('search')} aria-label={t('search')} className="h-8 pl-8" />
+            </label>
+          </div>
+          <div className={cn(ROW_GRID, 'hidden border-b border-line-soft bg-sidebar/40 px-5 py-2 text-xs font-medium text-fg-subtle @xl:grid')} aria-hidden>
+            <span>{t('cols.person')}</span>
+            <span className="hidden @3xl:block">{t('cols.title')}</span>
+            <span>{t('cols.spaces')}</span>
+            <span>{t('cols.role')}</span>
+            <span />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
+          <ul className="divide-y divide-line-soft border-b border-line-soft">
+            {shown.map((m) => (
+              <MemberRow
+                key={m.id}
+                member={m}
+                isSelf={m.id === user.id}
+                canPromote={accountRole === 'owner'}
+                assignments={m.assignments}
+                workspaces={workspaces}
+                onRole={(role) => run(() => updateMemberRole(account.id, m.id, role), t('roleUpdated'))}
+                onRemove={() => remove(m)}
+                onWorkspaces={(rows) => run(() => setMemberWorkspaces(account.id, m.id, rows), t('workspacesUpdated'))}
+              />
+            ))}
+          </ul>
+          {!shown.length ? (
+            <p className="px-5 py-12 text-center text-sm text-fg-muted">{t('noMatches')}</p>
+          ) : members.length < 5 && filter === 'all' && !needle ? (
+            <InviteNudge onInvite={() => setAddOpen(true)} disabled={full} />
+          ) : null}
+          </div>
+        </div>
+        }
+        side={
+          <>
+            <Seats usage={usage} invites={openInvites} />
+            <PendingInvites invitations={invitations} onChanged={done} onInvite={() => setAddOpen(true)} disabled={full} />
+            <RolesGuide counts={counts} />
+          </>
+        }
+      />
 
       <InviteDialog open={addOpen} onOpenChange={setAddOpen} canPromote={accountRole === 'owner'} onDone={done} />
     </div>
+  )
+}
+
+/** Con poca gente, el resto de la tabla invita a sumar al equipo (en vez de quedar en blanco). */
+function InviteNudge({ onInvite, disabled }: { onInvite: () => void; disabled?: boolean }) {
+  const t = useTranslations('settings.members')
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+      <span className="flex -space-x-2" aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="flex size-10 items-center justify-center rounded-full border border-dashed border-line-strong bg-canvas text-fg-subtle ring-4 ring-panel">
+            {i === 1 ? <UserPlus className="size-4" /> : null}
+          </span>
+        ))}
+      </span>
+      <p className="mt-4 text-sm font-semibold text-fg">{t('nudge.title')}</p>
+      <p className="mt-1 max-w-sm text-xs leading-relaxed text-fg-muted">{t('nudge.hint')}</p>
+      <Button size="sm" variant="primary" className="mt-4" onClick={onInvite} disabled={disabled}>
+        <UserPlus />
+        {t('add')}
+      </Button>
+    </div>
+  )
+}
+
+type RoleFilter = 'all' | 'admins' | 'member' | 'guest'
+const ROLE_FILTERS: RoleFilter[] = ['all', 'admins', 'member', 'guest']
+const inFilter = (m: AccountMember, f: RoleFilter) => f === 'all' || (f === 'admins' ? m.role === 'owner' || m.role === 'admin' : m.role === f)
+const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+/** Persona · Cargo · Espacios · Rol · ⋯ (en pantallas chicas, las filas se acomodan solas) */
+const ROW_GRID = '@xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_7.5rem_2rem] @3xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.15fr)_7.5rem_2rem] @xl:gap-4'
+
+/** Los lugares del plan: personas, invitaciones que todavía ocupan lugar y los que quedan. */
+function Seats({ usage, invites, className }: { usage: Usage | null; invites: number; className?: string }) {
+  const t = useTranslations('settings.members.seats')
+  if (!usage) return null
+  const max = usage.max_members
+  const used = usage.members_count
+  const free = max == null ? null : Math.max(0, max - used - invites)
+  const pct = (n: number) => (max ? `${Math.min(100, (n / max) * 100)}%` : '0%')
+  return (
+    <section className={cn('border-b border-line-soft px-5 py-4 last:border-b-0', className)}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[13px] font-semibold text-fg">{t('title')}</h2>
+        <span className="text-sm tabular-nums text-fg-muted">{max == null ? t('unlimited') : t('count', { used: used + invites, max })}</span>
+      </div>
+      {max != null ? (
+        <>
+          <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-hover">
+            <span className="h-full bg-accent-mid transition-[width] duration-500 ease-out" style={{ width: pct(used) }} />
+            <span className="h-full bg-accent-mid/40 transition-[width] duration-500 ease-out" style={{ width: pct(invites) }} />
+          </div>
+          <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+            {[
+              { id: 'people', value: used, dot: 'bg-accent-mid' },
+              { id: 'invites', value: invites, dot: 'bg-accent-mid/40' },
+              { id: 'free', value: free ?? 0, dot: 'bg-hover ring-1 ring-line-strong' },
+            ].map((x) => (
+              <div key={x.id}>
+                <dt className="flex items-center gap-1.5 text-fg-subtle">
+                  <span className={cn('size-2 rounded-full', x.dot)} />
+                  {t(x.id)}
+                </dt>
+                <dd className="mt-0.5 pl-3.5 text-base font-semibold tabular-nums text-fg">{x.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+/** Qué ve cada rol (y cuántos hay de cada uno): el modelo de invitados en una mirada. */
+function RolesGuide({ counts, className }: { counts: Record<RoleFilter, number>; className?: string }) {
+  const t = useTranslations('settings.members')
+  const rows = [
+    { id: 'admins' as const, icon: ShieldCheck, label: t('roleGroups.admins'), hint: t('adminHint') },
+    { id: 'member' as const, icon: UserRound, label: t('roleGroups.member'), hint: t('memberHint') },
+    { id: 'guest' as const, icon: DoorOpen, label: t('roleGroups.guest'), hint: t('guestHint') },
+  ]
+  return (
+    <section className={cn('border-b border-line-soft px-5 py-4 last:border-b-0', className)}>
+      <h2 className="text-[13px] font-semibold text-fg">{t('rolesTitle')}</h2>
+      <ul className="mt-3 flex flex-col gap-3.5">
+        {rows.map((r) => (
+          <li key={r.id} className="flex gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-hover text-fg-muted">
+              <r.icon className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-baseline justify-between gap-2 text-sm font-medium text-fg">
+                {r.label}
+                <span className="text-xs font-normal tabular-nums text-fg-subtle">{counts[r.id]}</span>
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">{r.hint}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -138,29 +302,38 @@ function MemberRow({
   const editableRole = !isOwner && !isSelf && (canPromote || member.role !== 'admin')
 
   return (
-    <li className="flex flex-wrap items-center gap-3 px-5 py-3">
-      <Avatar name={member.full_name} src={member.avatar_url} seed={member.id} size={28} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-fg">
-          {member.full_name}
-          {isSelf ? <span className="ml-1.5 text-xs font-normal text-fg-subtle">{t('you')}</span> : null}
-        </p>
-        <p className="flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
-          <span className="truncate">{member.email}</span>
-          {member.must_change_password ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-soft px-1.5 py-px text-2xs font-medium text-warning" title={t('tempPasswordHint')}>
-              <KeyRound className="size-2.5" />
-              {t('tempPassword')}
-            </span>
-          ) : null}
-        </p>
+    <li className={cn(ROW_GRID, 'flex flex-wrap items-center gap-3 px-5 py-3 transition-colors hover:bg-hover/40 @xl:grid')}>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Avatar name={member.full_name} src={member.avatar_url} seed={member.id} size={32} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-fg">
+            {member.full_name}
+            {isSelf ? <span className="ml-1.5 text-xs font-normal text-fg-subtle">{t('you')}</span> : null}
+          </p>
+          <p className="flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
+            <span className="truncate">{member.email}</span>
+            {member.must_change_password ? (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-soft px-1.5 py-px text-2xs font-medium text-warning" title={t('tempPasswordHint')}>
+                <KeyRound className="size-2.5" />
+                {t('tempPassword')}
+              </span>
+            ) : null}
+          </p>
+        </div>
       </div>
 
-      {isAdmin ? (
-        <span className="text-xs text-fg-subtle">{t('allWorkspaces')}</span>
-      ) : (
-        <WorkspaceAssignments assignments={assignments} workspaces={workspaces} onSave={onWorkspaces} />
-      )}
+      <p className={cn('hidden truncate text-sm @3xl:block', member.title ? 'text-fg' : 'text-fg-subtle')}>{member.title || t('noTitle')}</p>
+
+      <div className="min-w-0">
+        {isAdmin ? (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-fg-muted">
+            <Layers className="size-3.5 text-fg-subtle" aria-hidden />
+            {t('allWorkspaces')}
+          </span>
+        ) : (
+          <WorkspaceAssignments assignments={assignments} workspaces={workspaces} onSave={onWorkspaces} />
+        )}
+      </div>
 
       {editableRole ? (
         <Menu>
@@ -290,8 +463,9 @@ function WorkspaceAssignments({
 }
 
 /** Invitaciones que todavía no se aceptaron: copiar un enlace nuevo, reenviar el correo o anular. */
-function PendingInvites({ invitations, onChanged }: { invitations: Invitation[]; onChanged: () => void }) {
+function PendingInvites({ invitations, onChanged, onInvite, disabled }: { invitations: Invitation[]; onChanged: () => void; onInvite: () => void; disabled?: boolean }) {
   const t = useTranslations('settings.members.invites')
+  const tm = useTranslations('settings.members')
   const te = useTranslations('errors')
   const tRole = useTranslations('roles')
   const tConfirm = useTranslations('confirm')
@@ -301,14 +475,23 @@ function PendingInvites({ invitations, onChanged }: { invitations: Invitation[];
   const [, start] = useTransition()
 
   return (
-    <section className="mt-8">
-      <h2 className="mb-2.5 flex items-center gap-1.5 text-[13.5px] font-semibold text-fg">
+    <section className="border-b border-line-soft last:border-b-0">
+      <h2 className="flex items-center gap-1.5 px-5 pb-1 pt-4 text-[13px] font-semibold text-fg">
         {t('title')}
         <span className="rounded-full bg-hover px-1.5 text-[11px] font-medium leading-[18px] tabular-nums text-fg-muted">{invitations.length}</span>
       </h2>
-      <ul className="flex flex-col divide-y divide-line-soft rounded-xl border border-line bg-panel">
+      {!invitations.length ? (
+        <div className="px-5 pb-4">
+          <p className="text-xs leading-relaxed text-fg-muted">{t('none')}</p>
+          <Button size="sm" variant="secondary" className="mt-3" onClick={onInvite} disabled={disabled}>
+            <UserPlus />
+            {tm('add')}
+          </Button>
+        </div>
+      ) : null}
+      <ul className="flex flex-col divide-y divide-line-soft px-2 pb-2">
         {invitations.map((i) => (
-          <li key={i.id} className="flex items-center gap-3 px-4 py-3">
+          <li key={i.id} className="flex items-center gap-3 px-3 py-3">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-hover text-fg-muted">
               <Mail className="size-4" />
             </span>

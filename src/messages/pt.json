@@ -219,7 +219,21 @@
       "submit": "Criar conta",
       "cancel": "Cancelar"
     },
-    "preferences": "Preferências"
+    "preferences": "Preferências",
+    "switching": {
+      "label": "Trocando de conta…",
+      "failed": "Não foi possível trocar de conta. Tente de novo."
+    },
+    "groups": {
+      "work": "Trabalho",
+      "team": "Equipe",
+      "memory": "Memória",
+      "account": "Conta",
+      "accountSettings": "Configurações da conta"
+    },
+    "backToApp": "Voltar",
+    "backTo": "Voltar para {place}",
+    "dashboards": "Dashboards"
   },
   "command": {
     "title": "Buscar e executar",
@@ -460,7 +474,7 @@
     "deleteCommentConfirm": "Excluir este comentário?",
     "openTask": "Abrir «{title}»",
     "noMatches": "Nenhuma tarefa corresponde",
-    "noMatchesHint": "Tente outras palavras ou desative \"Só as minhas\".",
+    "noMatchesHint": "Tente outras palavras ou remova algum filtro.",
     "recurrence": {
       "label": "Repetir",
       "never": "Não se repete",
@@ -545,6 +559,22 @@
     "calendarTray": {
       "title": "Sem data",
       "hint": "Arraste-as para um dia para dar uma data. Para tirá-la, traga-as de volta aqui."
+    },
+    "viewsLabel": "Visualizações das tarefas",
+    "conversation": "Conversa",
+    "conversationHint": "Aqui fica tudo o que acontece com a tarefa: os comentários e cada mudança. Com @ você avisa alguém.",
+    "emptyStatuses": "Sem tarefas:",
+    "newStatus": {
+      "title": "Novo status",
+      "name": "Nome",
+      "placeholder": "Ex.: Revisão do cliente",
+      "category": "Conta como",
+      "hint": "A categoria define como ele conta nos resumos e contadores.",
+      "duplicate": "Já existe um status com esse nome.",
+      "create": "Criar",
+      "cancel": "Cancelar",
+      "created": "Status “{name}” criado",
+      "error": "Não foi possível criar o status"
     }
   },
   "docs": {
@@ -646,7 +676,18 @@
       },
       "workspaceLevel": "Espaço",
       "link": "Link",
-      "remove": "Remover"
+      "remove": "Remover",
+      "latest": "Última alteração",
+      "inParent": "em {title}",
+      "newCardTitle": "Novo doc",
+      "newCardHint": "Escreva do zero ou importe um Markdown.",
+      "sourcesLabel": "Tipo de documento",
+      "views": "Documentos e arquivos",
+      "search": "Buscar docs…",
+      "searchFiles": "Buscar arquivos…",
+      "tasksCount": "{count, plural, one {# tarefa saiu deste doc} other {# tarefas saíram deste doc}}",
+      "filesCount": "{count, plural, one {# arquivo} other {# arquivos}}",
+      "pick": "ou escolha arquivos"
     },
     "extractCount": "{count, plural, one {Converter # item em tarefa} other {Converter # itens em tarefas}}",
     "shareInPasillo": "Compartilhar no Corredor",
@@ -822,7 +863,18 @@
       "allFiles": "Ver arquivos",
       "noFiles": "Ainda não há arquivos. Envie-os de uma tarefa, uma reunião ou da biblioteca.",
       "allDecisions": "Todas as decisões",
-      "focusClear": "Tudo em ordem"
+      "focusClear": "Tudo em ordem",
+      "upNext": "Para adiantar",
+      "tabMeetings": "Reuniões",
+      "tabDocs": "Docs",
+      "tabFiles": "Arquivos",
+      "seeAll": "Ver tudo",
+      "recentLabel": "O mais recente do espaço",
+      "noTasksShort": "Ainda sem tarefas",
+      "noTasksTitle": "Este espaço ainda não tem tarefas",
+      "noTasksHint": "Crie em Tarefas ou elas saem das reuniões: cada acordo vira uma tarefa com responsável e data.",
+      "goToTasks": "Ir para Tarefas",
+      "allShort": "Ver todas"
     },
     "sections": "Seções do espaço",
     "invite": "Convidar"
@@ -840,7 +892,7 @@
     "title": "Configurações",
     "nav": {
       "profile": "Perfil",
-      "account": "Geral e plano",
+      "account": "Geral",
       "members": "Pessoas",
       "workspaces": "Espaços",
       "support": "Suporte",
@@ -957,7 +1009,7 @@
       "members": "Pessoas",
       "usage": "{used} de {max}",
       "unlimitedCount": "{used} · sem limite",
-      "pageTitle": "Geral e plano",
+      "pageTitle": "Geral",
       "nameHint": "O nome da sua empresa no Veltro.",
       "colorTitle": "Cor da conta",
       "colorHint": "O app assume esta cor enquanto você está nesta conta: assim você sabe onde está num relance.",
@@ -978,7 +1030,16 @@
       "customHint": "Escolha uma ou digite o hexadecimal. Usamos o tom e a intensidade e ajustamos a luz para tudo ficar legível.",
       "customPick": "Escolher cor",
       "customHex": "Hexadecimal",
-      "customUse": "Usar esta cor"
+      "customUse": "Usar esta cor",
+      "spacesCount": "{count, plural, one {# espaço} other {# espaços}}",
+      "peopleCount": "{count, plural, one {# pessoa} other {# pessoas}}",
+      "ownedBy": "Dono: {name}",
+      "spacesTitle": "Espaços da conta",
+      "spacesHint": "Cada espaço é um projeto com sua equipe, suas tarefas e suas reuniões.",
+      "newSpace": "Novo espaço",
+      "noDescription": "Sem descrição",
+      "openSpace": "Abrir espaço",
+      "spaceSettings": "Ajustes"
     },
     "members": {
       "title": "Pessoas",
@@ -1055,9 +1116,44 @@
         "revoke": "Anular convite",
         "revokeConfirm": "Anular o convite para {email}?",
         "revokeHint": "O link deixa de funcionar. Você pode convidar de novo quando quiser.",
-        "revoked": "Convite anulado"
+        "revoked": "Convite anulado",
+        "none": "Não há convites pendentes."
       },
-      "guestHint": "Só vê os espaços para os quais foi convidado e as pessoas deles."
+      "guestHint": "Só vê os espaços para os quais foi convidado e as pessoas deles.",
+      "filterLabel": "Filtrar por papel",
+      "filters": {
+        "all": "Todos",
+        "admins": "Admins",
+        "member": "Membros",
+        "guest": "Convidados"
+      },
+      "search": "Buscar por nome, e-mail ou cargo",
+      "cols": {
+        "person": "Pessoa",
+        "title": "Cargo",
+        "spaces": "Espaços",
+        "role": "Papel"
+      },
+      "noTitle": "Sem cargo",
+      "noMatches": "Ninguém corresponde a essa busca.",
+      "seats": {
+        "title": "Vagas do plano",
+        "count": "{used} de {max}",
+        "unlimited": "Sem limite",
+        "people": "Pessoas",
+        "invites": "Convites",
+        "free": "Livres"
+      },
+      "rolesTitle": "O que cada papel vê",
+      "roleGroups": {
+        "admins": "Dono e admins",
+        "member": "Membros",
+        "guest": "Convidados"
+      },
+      "nudge": {
+        "title": "Sua equipe vai aparecer aqui",
+        "hint": "Convide quem trabalha com você. Cada pessoa entra só nos espaços que você escolher."
+      }
     },
     "workspaces": {
       "title": "Espaços",
@@ -1102,7 +1198,30 @@
         "resetConfirm": "Voltar aos status padrão? As tarefas mantêm sua categoria.",
         "save": "Salvar status",
         "saved": "Status salvos",
-        "error": "Não foi possível salvar os status"
+        "error": "Não foi possível salvar os status",
+        "categoryHints": {
+          "backlog": "Ideias e pendências sem data",
+          "todo": "Pronto para começar",
+          "in_progress": "Em andamento",
+          "blocked": "Esperando algo ou alguém",
+          "done": "Concluído"
+        },
+        "howTitle": "Como funcionam",
+        "menuPreview": "Como são escolhidos numa tarefa",
+        "customNote": "Este espaço usa status próprios.",
+        "standardNote": "Usa os status padrão. Mude ou adicione qualquer um para personalizar.",
+        "moveLeft": "Mover para antes",
+        "moveRight": "Mover para depois",
+        "renameHint": "Digite para renomear (salva sozinho)",
+        "duplicate": "Já existe um status chamado “{name}”.",
+        "emptyName": "O status precisa de um nome.",
+        "added": "Status “{name}” criado",
+        "renamed": "Status renomeado para “{name}”",
+        "removed": "Status “{name}” removido",
+        "removeConfirm": "Remover o status “{name}”?",
+        "removeHint": "As tarefas dele passam para “{to}”.",
+        "saving": "Salvando…",
+        "autosave": "As mudanças são salvas sozinhas."
       },
       "fields": {
         "title": "Campos das tarefas",
@@ -1119,7 +1238,35 @@
         "save": "Salvar campos",
         "saved": "Campos salvos",
         "error": "Não foi possível salvar os campos",
-        "removeHint": "Ao remover um campo ele deixa de aparecer nas tarefas; se você o criar de novo, começa vazio."
+        "removeHint": "Ao remover um campo ele deixa de aparecer nas tarefas; se você o criar de novo, começa vazio.",
+        "short": "Dados próprios das tarefas deste espaço.",
+        "emptyTitle": "Ainda sem campos próprios",
+        "addBlank": "Campo em branco",
+        "previewTitle": "Como ficam numa tarefa",
+        "previewTask": "Lançar a campanha de verão",
+        "previewEmpty": "Seus campos aparecem aqui",
+        "statusLabel": "Status",
+        "tableTitle": "E como colunas na Tabela",
+        "tableTask": "Tarefa",
+        "samples": {
+          "text": "Texto livre",
+          "number": "1.250",
+          "date": "28 nov",
+          "select": "Opção",
+          "url": "link.com"
+        },
+        "suggestions": {
+          "chain": "Rede",
+          "store": "Loja",
+          "sprint": "Sprint",
+          "budget": "Orçamento",
+          "delivery": "Data de entrega",
+          "brief": "Link do briefing"
+        },
+        "suggestionOptions": {
+          "chain": "Rede A, Rede B, Rede C",
+          "sprint": "Sprint 1, Sprint 2, Sprint 3"
+        }
       },
       "summary": "{statuses} status · {fields, plural, =0 {sem campos} one {# campo} other {# campos}}",
       "newTitle": "Novo espaço",
@@ -1247,7 +1394,20 @@
           "f2": "Data de publicação",
           "t1": "Montar o calendário de conteúdo do mês"
         }
-      }
+      },
+      "eyebrow": "Ajustes do espaço",
+      "peopleCount": "{count, plural, =0 {sem pessoas} one {# pessoa} other {# pessoas}}",
+      "identityTitle": "Identidade",
+      "previewTitle": "Como fica",
+      "previewSidebar": "Na barra lateral",
+      "previewTask": "Em cada tarefa",
+      "previewTaskSample": "Revisar a proposta",
+      "dataTitle": "Dados do espaço",
+      "noPeopleTitle": "Só os admins da conta veem",
+      "noPeopleHint": "Adicione quem trabalha neste espaço: cada um com seu papel, sem ver os outros espaços.",
+      "rolesTitle": "O que cada papel pode fazer",
+      "mark": "Logo",
+      "monogramOr": "ou monograma"
     },
     "integrations": {
       "googleDescription": "Mostra sua agenda no Veltro, abre notas por reunião e cria reuniões com Google Meet.",
@@ -1331,7 +1491,10 @@
       "suggestions": "Vendas,Tecnologia,Operações,Finanças,Recursos Humanos,Marketing,Compras",
       "suggestionsTitle": "Comece pelas áreas da sua empresa",
       "suggestionsMore": "Outras áreas comuns",
-      "departmentOf": "Departamento de {name}"
+      "departmentOf": "Departamento de {name}",
+      "growTitle": "Traga sua equipe",
+      "growHint": "Quando houver mais gente, aqui você verá quem se reporta a quem e cada departamento com seu chefe.",
+      "growAction": "Convidar pessoas"
     },
     "common": {
       "unsaved": "Você tem alterações não salvas",
@@ -1389,6 +1552,21 @@
         "open": "Abertas",
         "overdue": "Atrasadas",
         "progress": "Em andamento"
+      },
+      "loose": {
+        "title": "Sem equipe",
+        "hint": "Pessoas da conta que ainda não estão em nenhuma equipe.",
+        "create": "Montar uma equipe",
+        "none": "Todas as pessoas já estão em alguma equipe."
+      },
+      "where": {
+        "title": "Onde são usadas",
+        "tasks": "Tarefas",
+        "tasksHint": "Filtre a lista por equipe e veja as tarefas juntas.",
+        "pulse": "Pulso",
+        "pulseHint": "Acompanhe como cada equipe avança durante o dia.",
+        "mesa": "Mesa de controle",
+        "mesaHint": "Compare a carga e o avanço entre equipes."
       }
     },
     "templates": {
@@ -1405,7 +1583,38 @@
       "agendaDetail": "{count, plural, one {# ponto} other {# pontos}}",
       "rename": "Renomear",
       "delete": "Apagar",
-      "deleteConfirm": "Apagar o modelo “{name}”?"
+      "deleteConfirm": "Apagar o modelo “{name}”?",
+      "moreItems": "{count, plural, one {e mais #} other {e mais #}}",
+      "dueIn": "{count, plural, =0 {Vence no mesmo dia} one {Vence em # dia} other {Vence em # dias}}",
+      "createAnother": "Criar outro",
+      "createAgenda": "Na sala de uma reunião, em Preparar, monte a pauta e escolha “Salvar esta pauta…”.",
+      "new": "Novo",
+      "newTaskTitle": "Novo modelo de tarefa",
+      "newAgendaTitle": "Novo modelo de pauta",
+      "newTaskHint": "O que você colocar aqui é copiado sempre que alguém usar a partir de Tarefas.",
+      "newAgendaHint": "Os pontos entram na pauta da reunião onde você usar.",
+      "editTitle": "Editar modelo",
+      "namePlaceholderTask": "Onboarding de cliente",
+      "namePlaceholderAgenda": "Reunião semanal",
+      "scope": "Disponível em",
+      "taskTitle": "Título da tarefa",
+      "taskTitlePlaceholder": "Igual ao nome",
+      "priority": "Prioridade",
+      "dueInLabel": "Vence em (dias)",
+      "dueInHint": "A partir da criação. Vazio: sem data.",
+      "noDue": "Sem data",
+      "subtasks": "Subtarefas",
+      "points": "Pontos da pauta",
+      "addSubtask": "Adicionar subtarefa",
+      "addPoint": "Adicionar ponto",
+      "removeItem": "Remover",
+      "cancel": "Cancelar",
+      "save": "Salvar",
+      "create": "Criar modelo",
+      "created": "Modelo criado",
+      "saved": "Modelo salvo",
+      "edit": "Editar",
+      "orElse": "Ou também:"
     }
   },
   "errors": {
@@ -1619,7 +1828,20 @@
       "error": "Não foi possível mudar. Tente de novo.",
       "pageTitle": "Suporte",
       "pageBody": "Quando alguém reporta um problema, o ticket chega a quem for escolhido aqui segundo o papel. Toda a conta vê; só o dono muda.",
-      "yours": "Como {role}, seus tickets chegam a: {to}."
+      "yours": "Como {role}, seus tickets chegam a: {to}.",
+      "from": "Quem cria",
+      "via": "Chega a",
+      "reaches": "Quem recebe",
+      "nobody": "Ninguém com esse papel ainda",
+      "people": "{count, plural, one {# pessoa} other {# pessoas}}",
+      "yoursTitle": "Seus tickets",
+      "openSupport": "Ir para Suporte",
+      "destinationsTitle": "Os destinos",
+      "destHint": {
+        "account_admins": "Os admins da conta veem e respondem.",
+        "account_owner": "Só o dono da conta vê e responde.",
+        "veltro": "A equipe da Veltro atende diretamente."
+      }
     },
     "new": "Novo",
     "filterLabel": "Filtrar por status",
@@ -2244,7 +2466,8 @@
     "goPasillo": "Corredor",
     "goDecisions": "Ir para Decisões",
     "goRequests": "Ir para Solicitações",
-    "fullscreen": "Tela cheia (Esc para voltar)"
+    "fullscreen": "Tela cheia (Esc para voltar)",
+    "goDashboards": "Dashboards"
   },
   "scope": {
     "me": "Minhas",
@@ -3310,6 +3533,119 @@
       "saveButton": "Salvar",
       "saved": "Pauta “{name}” salva",
       "applied": "A pauta “{name}” foi carregada"
+    }
+  },
+  "logo": {
+    "upload": "Enviar logo",
+    "change": "Trocar logo",
+    "remove": "Remover",
+    "saved": "Logo salvo",
+    "removed": "Logo removido",
+    "error": "Não foi possível salvar o logo. Tente de novo.",
+    "invalid": "Esse arquivo não é uma imagem que possamos ler.",
+    "tooBig": "A imagem é pesada demais. Tente uma mais simples.",
+    "hint": "PNG, JPG, WebP ou SVG. Aparece na barra lateral e no cabeçalho."
+  },
+  "dashboards": {
+    "title": "Dashboards",
+    "subtitle": "{open, plural, one {# tarefa aberta} other {# tarefas abertas}} · {overdue, plural, one {# atrasada} other {# atrasadas}} · {done, plural, one {# concluída} other {# concluídas}} no período",
+    "subtitleLoading": "Como andam as tarefas, em números.",
+    "empty": "Ainda não há tarefas neste escopo. Quando houver, você verá aqui como estão.",
+    "allSpaces": "Todos os espaços",
+    "goMesa": "Quem e qual espaço pedem atenção: em {mesa}",
+    "rowTip": "{name}: {count, plural, one {# tarefa} other {# tarefas}} ({pct}%)",
+    "tasks": "{count, plural, one {# tarefa} other {# tarefas}}",
+    "kpi": {
+      "open": "Abertas",
+      "openHint": "{inProgress} em andamento · {blocked, plural, one {# bloqueada} other {# bloqueadas}}",
+      "overdue": "Atrasadas",
+      "overdueHint": "{pct}% do que está aberto",
+      "nothingOpen": "Nada aberto",
+      "done": "Concluídas",
+      "onTime": "No prazo",
+      "onTimeNone": "Sem prazos para medir",
+      "onTimeHint": "De {count, plural, one {# tarefa concluída com prazo} other {# tarefas concluídas com prazo}}",
+      "cycle": "Tempo para concluir",
+      "cycleNone": "Nada concluído ainda",
+      "cycleHint": "Mediana de {count, plural, one {# tarefa} other {# tarefas}}",
+      "lessThanDay": "Menos de 1 dia",
+      "daysValue": "{n, plural, one {# dia} other {# dias}}",
+      "noPrev": "Sem período anterior para comparar",
+      "same": "Igual ao período anterior",
+      "pts": "{n} pts",
+      "days": "{n, plural, one {# dia} other {# dias}}",
+      "vsPrev": "vs. anterior",
+      "onTimeNoneShort": "Sem prazos",
+      "cycleNoneShort": "Nada concluído ainda",
+      "inMotion": "Em andamento",
+      "blockedCount": "{count, plural, =0 {nenhuma bloqueada} one {# bloqueada} other {# bloqueadas}}",
+      "noPrevShort": "Sem período anterior",
+      "newInPeriod": "Novo no período",
+      "sameShort": "Igual a antes",
+      "lessThanDayShort": "< 1 d",
+      "daysShort": "{n} d",
+      "cycleShort": "Para concluir",
+      "before": "antes {n}",
+      "vsPrevLong": "Contra o período anterior, do mesmo tamanho"
+    },
+    "backlog": {
+      "title": "O pendente ao longo do tempo",
+      "hint": "Tarefas abertas a cada dia e, delas, quantas já estavam atrasadas.",
+      "open": "Abertas",
+      "overdue": "Atrasadas",
+      "flat": "O pendente terminou o período igual a como começou.",
+      "grew": "O pendente cresceu {n, plural, one {# tarefa} other {# tarefas}} no período.",
+      "shrank": "O pendente caiu {n, plural, one {# tarefa} other {# tarefas}} no período.",
+      "aria": "Tendência do pendente: hoje {open} abertas e {overdue} atrasadas.",
+      "tableCaption": "Tarefas abertas e atrasadas por dia",
+      "day": "Dia"
+    },
+    "status": {
+      "title": "O aberto, por status",
+      "hint": "Onde está o trabalho que falta ({count, plural, one {# tarefa} other {# tarefas}}).",
+      "none": "Nada aberto: tudo concluído.",
+      "hintShort": "Onde está o que falta.",
+      "figure": "abertas",
+      "titleShort": "Por status"
+    },
+    "priority": {
+      "title": "O aberto, por prioridade",
+      "hint": "Quão urgente é o que falta.",
+      "none": "Nada aberto.",
+      "figure": "urgentes ou altas",
+      "titleShort": "Por prioridade"
+    },
+    "due": {
+      "title": "O que vence",
+      "hint": "O atrasado e os próximos 14 dias{noDate, plural, =0 {} other { · # sem data}}.",
+      "late": "Atrasadas",
+      "lateTip": "{count, plural, one {# tarefa atrasada} other {# tarefas atrasadas}}",
+      "today": "Hoje",
+      "none": "Nada vence nos próximos 14 dias.",
+      "hintShort": "O atrasado e os próximos 14 dias.",
+      "figure": "em 14 dias",
+      "fixDates": "Coloque data {count, plural, one {na tarefa} other {nas # tarefas}} sem data"
+    },
+    "cycle": {
+      "title": "Quanto demoram para concluir",
+      "hint": "{count, plural, =0 {Tarefas concluídas no período} one {# tarefa concluída no período} other {# tarefas concluídas no período}}, por dias desde que foram criadas.",
+      "none": "Nada concluído no período.",
+      "buckets": {
+        "sameDay": "Mesmo dia",
+        "d3": "1–3 dias",
+        "d7": "4–7 dias",
+        "d14": "1–2 sem.",
+        "more": "+2 sem."
+      },
+      "hintShort": "{count, plural, =0 {Da criação à conclusão.} one {# concluída no período.} other {# concluídas no período.}}",
+      "figure": "mediana",
+      "titleShort": "Quanto demoram"
+    },
+    "hero": {
+      "openOverdue": "<b>{open, plural, one {# tarefa aberta} other {# tarefas abertas}}</b> e <l>{overdue, plural, one {# atrasada} other {# atrasadas}}</l>.",
+      "openClear": "<b>{open, plural, one {# tarefa aberta} other {# tarefas abertas}}</b> e nenhuma atrasada.",
+      "nothingOpen": "<b>Nada aberto:</b> tudo concluído.",
+      "subline": "{done, plural, one {# concluída} other {# concluídas}} e {created, plural, one {# nova} other {# novas}}."
     }
   }
 }

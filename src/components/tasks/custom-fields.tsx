@@ -134,7 +134,20 @@ export function FieldValue({
 }
 
 /** Filas de campos propios del espacio en la página de la tarea (texto al leer, campos al editar). */
-export function CustomFieldRows({ task, ws, editable, onChange }: { task: TaskRow; ws: WorkspaceWithRole; editable: boolean; onChange: (custom: TaskRow['custom']) => void }) {
+export function CustomFieldRows({
+  task,
+  ws,
+  editable,
+  onChange,
+  rowClassName,
+}: {
+  task: TaskRow
+  ws: WorkspaceWithRole
+  editable: boolean
+  onChange: (custom: TaskRow['custom']) => void
+  /** cada campo en su propia fila (nombre y valor); sin esto, los dos van sueltos en la grilla de afuera */
+  rowClassName?: string
+}) {
   const fields = ws.task_fields ?? []
   if (!fields.length) return null
   return (
@@ -142,7 +155,7 @@ export function CustomFieldRows({ task, ws, editable, onChange }: { task: TaskRo
       {fields.map((f) => {
         const Icon = FIELD_ICONS[f.type]
         return (
-          <div key={f.id} className="contents">
+          <div key={f.id} className={rowClassName ?? 'contents'}>
             {/* el tipo va después del nombre para que los nombres queden alineados con los campos fijos */}
             <dt className="flex min-w-0 items-center gap-1.5 text-fg-muted" title={f.name}>
               <span className="line-clamp-2 leading-tight">{f.name}</span>

@@ -7,7 +7,9 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MeasuringStrategy,
+  MouseSensor,
+  TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
@@ -15,7 +17,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Ban, Paperclip, Plus, ArrowUpRight } from 'lucide-react'
 import { useMemberMap, useWorkspaceMap, canEdit } from '@/components/app/app-context'
@@ -30,6 +32,7 @@ import { PriorityIcon, StatusIcon } from './status-icon'
 import { DueDate } from './due-date'
 import { LabelChip } from './pickers'
 import { TaskComposer } from './task-list'
+import { NewStatus, canCreateStatus } from './new-status'
 import { useOpenTask } from '@/lib/use-open-task'
 import { TASK_STATUSES } from '@/lib/constants'
 import { WorkspaceMark } from '@/components/app/marks'
@@ -54,7 +57,7 @@ function toColumns(tasks: Task[], options: StatusOption[], ws?: WorkspaceRow): C
  * Tablero por estado. Con `workspaceId`, una columna por estado del espacio; sin él (tareas de varios
  * espacios), una por categoría, y al soltar una tarjeta se usa el estado equivalente de su espacio.
  */
-export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?: string }) {
+export function TaskBoard({ tasks, workspaceId, inset = true }: { tasks: Task[]; workspaceId?: string; /** con aire alrededor (dentro de una tarjeta); suelto, sin él */ inset?: boolean }) {
   const statusName = useStatusName()
   const wsMap = useWorkspaceMap()
   const cross = !workspaceId
@@ -72,9 +75,14 @@ export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?:
   useEffect(() => {
     if (!activeId) setColumns(toColumns(tasks, options, ws))
   }, [tasks, activeId, options, ws])
+  // cuántas tiene cada estado según los datos (no según lo que se arrastra): el carril vacío se pliega,
+  // y no se abre ni se cierra a mitad de un arrastre
+  const own = useMemo(() => toColumns(tasks, options, ws), [tasks, options, ws])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // con el mouse, arrastrar desde 5 px; en el celular, mantener apretado (deslizar sigue desplazando)
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -134,6 +142,7 @@ export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?:
   return (
     <DndContext
       sensors={sensors}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       collisionDetection={closestCorners}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -143,14 +152,35 @@ export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?:
         setColumns(toColumns(tasks, options, ws))
       }}
     >
-      {/* solo scroll horizontal aquí; cada columna scrollea por dentro y su encabezado queda a la vista */}
-      <div className="flex h-full min-h-0 gap-3 overflow-x-auto overflow-y-hidden px-4 pb-4 pt-4 scrollbar-thin">
+      {/* solo scroll horizontal aquí; cada carril se desplaza por dentro y su encabezado queda a la vista */}
+      <div className={cn('flex h-full min-h-0 gap-3 overflow-x-auto overflow-y-hidden scrollbar-thin', inset ? 'px-4 pb-4 pt-4' : 'pb-1')}>
         {options.map((o) => {
           const key = statusKey(o)
           const ids = columns[key] ?? []
+          const adding = composer === key
           return (
-          <Column key={key} id={key} status={o.category} label={statusName(o)} count={ids.length} onAdd={editable && !cross ? () => setComposer(key) : undefined}>
-            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          <Column
+            key={key}
+            id={key}
+            status={o.category}
+            label={statusName(o)}
+            count={ids.length}
+            collapsed={(own[key]?.length ?? 0) === 0 && !adding}
+            onAdd={editable && !cross ? () => setComposer(key) : undefined}
+            footer={
+              adding ? (
+                <div className="mt-2 overflow-hidden rounded-2xl bg-panel shadow-card ring-1 ring-line-soft">
+                  <TaskComposer
+                    defaults={{ workspace_id: workspaceId!, ...statusPatch(o) }}
+                    after={byId.get(ids.at(-1) ?? '')?.position}
+                    onDone={() => setComposer(null)}
+                    compact
+                  />
+                </div>
+              ) : null
+            }
+          >
+            <SortableContext items={ids} strategy={rectSortingStrategy}>
               {ids.map((id) => {
                 const task = byId.get(id)
                 return task ? (
@@ -158,19 +188,11 @@ export function TaskBoard({ tasks, workspaceId }: { tasks: Task[]; workspaceId?:
                 ) : null
               })}
             </SortableContext>
-            {composer === key ? (
-              <div className="overflow-hidden rounded-xl bg-panel shadow-card ring-1 ring-line-soft">
-                <TaskComposer
-                  defaults={{ workspace_id: workspaceId!, ...statusPatch(o) }}
-                  after={byId.get(ids.at(-1) ?? '')?.position}
-                  onDone={() => setComposer(null)}
-                  compact
-                />
-              </div>
-            ) : null}
           </Column>
           )
         })}
+        {/* crear un estado sin ir a Ajustes (admins del espacio) */}
+        {!cross && ws && canCreateStatus(ws) ? <NewStatus ws={ws} variant="lane" /> : null}
       </div>
       <DragOverlay dropAnimation={{ duration: 160, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' }}>
         {active ? <Card task={active} dragging showWorkspace={cross} /> : null}
@@ -193,52 +215,81 @@ function Column({
   status,
   label,
   count,
+  collapsed,
   onAdd,
+  footer,
   children,
 }: {
   id: string
   status: TaskStatus
   label: string
   count: number
+  /** sin tareas: una tira angosta con su nombre (se puede soltar ahí); el ancho queda para los que tienen */
+  collapsed: boolean
   onAdd?: () => void
+  footer?: React.ReactNode
   children: React.ReactNode
 }) {
   const t = useTranslations('tasks')
   const { setNodeRef, isOver } = useDroppable({ id })
-  return (
-    // cada estado es un carril: crema sobre el blanco de la tarjeta, con su encabezado adentro
-    <div className="flex min-h-0 w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl bg-canvas/80 ring-1 ring-line-soft">
-      <div className="group/col flex h-11 shrink-0 items-center gap-2 px-3" style={{ background: `color-mix(in oklch, ${LANE_COLOR[status]} 11%, transparent)` }}>
+  const color = LANE_COLOR[status]
+  // cada carril lleva un velo de su estado (sin franja de encabezado): las tarjetas blancas resaltan encima
+  const lane = {
+    background: `color-mix(in oklch, ${color} ${isOver ? 14 : 7}%, var(--canvas))`,
+    boxShadow: `inset 0 0 0 1px color-mix(in oklch, ${color} ${isOver ? 40 : 14}%, transparent)`,
+  }
+
+  if (collapsed) {
+    return (
+      <div ref={setNodeRef} className="group/col flex w-12 flex-none flex-col items-center gap-2.5 rounded-[22px] py-3.5 transition-[background-color,box-shadow] duration-150" style={lane} title={label}>
         <StatusIcon status={status} />
-        <span className="text-sm font-semibold">{label}</span>
-        <span
-          className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums text-fg"
-          style={{ background: `color-mix(in oklch, ${LANE_COLOR[status]} 22%, transparent)` }}
-        >
-          {count}
-        </span>
+        <span className="text-[12px] font-semibold tabular-nums text-fg-subtle">{count}</span>
+        <span className="rotate-180 whitespace-nowrap text-[13px] font-medium text-fg-muted [writing-mode:vertical-rl]">{label}</span>
         {onAdd ? (
           <button
             type="button"
             onClick={onAdd}
-            className="ml-auto inline-flex size-6 items-center justify-center rounded-md text-fg-subtle hover:bg-hover hover:text-fg"
+            className="mt-auto inline-flex size-7 items-center justify-center rounded-lg text-fg-subtle outline-none transition-colors hover:bg-panel hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40"
             aria-label={t('addTo', { group: label })}
           >
             <Plus className="size-4" />
           </button>
         ) : null}
       </div>
-      <div
-        ref={setNodeRef}
-        className={cn(
-          'flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 pt-2 transition-colors duration-150 scrollbar-thin',
-          isOver && 'bg-accent-soft/50',
-        )}
-      >
-        {children}
-        {/* vacío no es un hueco: es donde se suelta */}
-        {count === 0 ? (
-          <div className="flex h-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-line-strong/70 text-xs text-fg-subtle">{t('dropHere')}</div>
+    )
+  }
+
+  return (
+    // los carriles reparten el ancho; si son muchos, desde 13rem se desliza
+    <div ref={setNodeRef} className="group/col flex min-h-0 min-w-[13rem] flex-1 basis-0 flex-col rounded-[22px] transition-[background-color,box-shadow] duration-150" style={lane}>
+      <div className="flex h-12 shrink-0 items-center gap-2 pl-4 pr-2.5">
+        <StatusIcon status={status} />
+        <span className="truncate text-[14px] font-semibold text-fg">{label}</span>
+        <span className="text-[12.5px] font-medium tabular-nums text-fg-subtle">{count}</span>
+        {onAdd ? (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="ml-auto inline-flex size-7 items-center justify-center rounded-lg text-fg-subtle opacity-0 outline-none transition-[opacity,background-color,color] hover:bg-panel hover:text-fg focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent-mid/40 group-hover/col:opacity-100"
+            aria-label={t('addTo', { group: label })}
+          >
+            <Plus className="size-4" />
+          </button>
+        ) : null}
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2.5 scrollbar-thin">
+        {/* angosto, una columna de tarjetas; ancho (pocos estados con tareas), se acomodan en rejilla */}
+        <div className="grid content-start gap-2 [grid-template-columns:repeat(auto-fill,minmax(min(13.5rem,100%),1fr))]">{children}</div>
+        {footer}
+        {onAdd && !footer ? (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="mt-1.5 flex h-9 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm text-fg-muted outline-none transition-colors hover:bg-panel/80 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+          >
+            <Plus className="size-4" />
+            {t('newTask')}
+          </button>
         ) : null}
       </div>
     </div>
@@ -252,7 +303,9 @@ function SortableCard({ task, onOpen, disabled, showWorkspace }: { task: Task; o
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn('group/card relative', isDragging && 'opacity-40')}
+      // se nota que se arrastra (mano), y apretar sobre el texto no lo selecciona: si no, el navegador
+      // empieza a arrastrar el texto y corta el arrastre de la tarjeta
+      className={cn('group/card relative select-none', !disabled && 'cursor-grab active:cursor-grabbing', isDragging && 'opacity-40')}
       {...attributes}
       {...listeners}
       onClick={() => onOpen(task.id)}
@@ -288,8 +341,8 @@ function Card({ task, dragging, showWorkspace }: { task: Task; dragging?: boolea
   return (
     <div
       className={cn(
-        'flex flex-col gap-2.5 rounded-xl bg-panel p-3 text-sm shadow-card ring-1 ring-line-soft transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:shadow-[0_8px_20px_-12px_oklch(0.3_0.09_312/0.35)] hover:ring-line',
-        dragging && 'rotate-[1.5deg] shadow-lift',
+        'flex h-full flex-col gap-2.5 rounded-2xl bg-panel p-3.5 text-sm shadow-[0_1px_2px_oklch(0.243_0.088_312.7/0.06)] ring-1 ring-line-soft transition-[box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:shadow-[0_10px_24px_-14px_oklch(0.3_0.09_312/0.4)] hover:ring-line',
+        dragging && 'rotate-[1.5deg] cursor-grabbing shadow-lift',
       )}
     >
       <div className="flex items-center gap-2">
@@ -299,7 +352,7 @@ function Card({ task, dragging, showWorkspace }: { task: Task; dragging?: boolea
           <AvatarStack people={people} size={18} ring="panel" />
         </span>
       </div>
-      <p className={cn('line-clamp-3 font-medium leading-snug', done ? 'text-fg-muted line-through decoration-fg-subtle/50' : 'text-fg')}>
+      <p className={cn('line-clamp-3 text-[14px] font-medium leading-snug', done ? 'text-fg-muted line-through decoration-fg-subtle/50' : 'text-fg')}>
         {task.title}
       </p>
       {task.priority !== 'none' || task.due_date || task.labels.length || attachments || (!done && task.blocked_by_open) ? (

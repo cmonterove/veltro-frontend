@@ -83,7 +83,8 @@ export const getAppContext = cache(async (): Promise<
 
 export async function requireAppContext() {
   const res = await getAppContext()
-  if (res.status === 'anonymous') redirect('/login')
+  // sin sesión válida: /auth/expired borra las cookies antes del login (si no, el middleware devolvería a /home)
+  if (res.status === 'anonymous') redirect('/auth/expired')
   if (res.status === 'onboarding') redirect('/onboarding')
   return res.ctx
 }

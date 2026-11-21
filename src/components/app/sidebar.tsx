@@ -1,14 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
-import { useId, useState, useTransition } from 'react'
-import { motion } from 'motion/react'
+import { useEffect, useId, useState, useTransition } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   CalendarDays,
   Columns3,
+  ChartColumnBig,
   Keyboard,
   Building2,
   Check,
@@ -16,6 +17,7 @@ import {
   ChevronsUpDown,
   CircleCheck,
   FileText,
+  LayoutDashboard,
   ListTodo,
   LogOut,
   Monitor,
@@ -38,6 +40,7 @@ import {
   Diamond,
   SlidersHorizontal,
   UserRound,
+  ArrowLeft,
 } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from './app-context'
 import { DemoDataMenuItem } from './demo-data'
@@ -58,18 +61,20 @@ import {
 import { Avatar } from '@/components/ui/avatar'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip } from '@/components/ui/tooltip'
-import { setCurrentAccount, setLocale } from '@/app/actions/preferences'
+import { setLocale } from '@/app/actions/preferences'
 import { isLocale, localeNames, locales } from '@/i18n/config'
-import { useHydrated } from '@/lib/hooks'
+import { useHydrated, useLocalStorage } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import { DEMO } from '@/lib/demo/config'
 import { DemoBadge } from './demo-badge'
-import { isPersonalSettings } from '@/lib/routes'
+import { isAccountSettings, isPersonalSettings } from '@/lib/routes'
+import { useSettingsGroups, type Group as SettingsGroup } from '@/components/settings/settings-nav'
 import { NewAccountDialog } from './new-account-dialog'
 import { brandAttrs, brandOf } from '@/lib/brand'
+import { useAccountSwitch } from './account-switch'
 import { Logo, LogoMark } from './logo'
 import type { WorkspaceWithRole } from '@/lib/types'
-import { WorkspaceMark } from '@/components/app/marks'
+import { WorkspaceMark, AccountLogo } from '@/components/app/marks'
 import { NavPeekBody, PeekHead, RailPeek, WorkspacePeek } from './rail-peek'
 import { useTour } from '@/components/tour/tour'
 import { RequestsIcon } from '@/components/requests/request-bits'
@@ -101,6 +106,120 @@ function NavPill({ id }: { id: string }) {
   )
 }
 
+/** El menú de la app y el de Ajustes se reemplazan deslizándose (a Ajustes, hacia la izquierda; de vuelta, al revés). */
+const SLIDE = {
+  enter: (d: number) => ({ x: d * 24, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (d: number) => ({ x: d * -24, opacity: 0 }),
+}
+
+type NavLinkItem = { href: string; label: string; icon: typeof Activity; badge?: number }
+
+/** Una opción del menú; la activa lleva la pastilla que se desliza. `tour`: false en la copia escondida de un grupo plegado. */
+function NavLink({ item, current, onClick, pillId, tour = true }: { item: NavLinkItem; current: boolean; onClick?: (e: React.MouseEvent) => void; pillId: string; tour?: boolean }) {
+  const Icon = item.icon
+  return (
+    <Link
+      href={item.href}
+      prefetch
+      onClick={onClick}
+      data-tour={tour ? `nav-${item.href.slice(1)}` : undefined}
+      aria-current={current ? 'page' : undefined}
+      className={cn(navItemClass, current && navCurrentClass)}
+    >
+      {current ? <NavPill id={`nav-${pillId}`} /> : null}
+      <Icon />
+      <span className="relative truncate">{item.label}</span>
+      {item.badge ? (
+        <span className="relative ml-auto mr-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-count px-1.5 text-[11px] font-semibold tabular-nums text-count-fg">
+          {item.badge > 99 ? '99+' : item.badge}
+        </span>
+      ) : null}
+    </Link>
+  )
+}
+
+/**
+ * El título de un grupo: su nombre y una línea fina hasta el borde. Un clic lo pliega o despliega; plegado,
+ * en lugar de la línea van los atajos de lo que tiene adentro (sus íconos o las fichas de los espacios).
+ */
+function NavGroupHead({ label, open, onToggle, peek, action }: { label: string; open?: boolean; onToggle?: () => void; peek?: React.ReactNode; action?: React.ReactNode }) {
+  const name = (
+    <>
+      <span className="truncate">{label}</span>
+      {onToggle ? <ChevronRight className={cn('size-3 shrink-0 opacity-60 transition-transform duration-200 ease-out group-hover/section:opacity-100', open && 'rotate-90')} /> : null}
+    </>
+  )
+  return (
+    <div className="group/section flex h-7 items-center gap-2 pl-1.5 pr-1">
+      {onToggle ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex min-w-0 shrink-0 items-center gap-1 rounded-sm text-[12px] font-medium text-fg-subtle outline-none transition-colors hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/35"
+        >
+          {name}
+        </button>
+      ) : (
+        <span className="flex min-w-0 shrink-0 items-center gap-1 text-[12px] font-medium text-fg-subtle">{name}</span>
+      )}
+      {!open && peek ? <span className="ml-auto flex min-w-0 items-center gap-0.5 overflow-hidden">{peek}</span> : <span className="h-px min-w-4 flex-1 bg-line/70" aria-hidden />}
+      {action}
+    </div>
+  )
+}
+
+/** Un atajo dentro de un grupo plegado: el ícono, su nombre al pasar el mouse y un punto si hay algo pendiente. */
+function PeekLink({ href, label, children, dot }: { href: string; label: string; children: React.ReactNode; dot?: boolean }) {
+  return (
+    <Tooltip content={label} side="right">
+      <Link
+        href={href}
+        aria-label={label}
+        className="relative inline-flex size-6 shrink-0 items-center justify-center rounded-md text-fg-muted outline-none transition-colors hover:bg-hover hover:text-accent focus-visible:ring-2 focus-visible:ring-accent-mid/35 [&>svg]:size-3.5"
+      >
+        {children}
+        {dot ? <span className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-count" aria-hidden /> : null}
+      </Link>
+    </Tooltip>
+  )
+}
+
+/**
+ * En los ajustes de la cuenta, la barra se vuelve el menú de Ajustes (en vez de un segundo menú al lado),
+ * con el mismo lenguaje que el de la app: primero «Volver a …» como una opción más (dice adónde vuelves),
+ * y los grupos con su título fino. La opción elegida lleva la misma pastilla que se desliza.
+ */
+function SettingsSideNav({ groups, pathname, backHref, backLabel, pillId }: { groups: SettingsGroup[]; pathname: string; backHref: string; backLabel: string | null; pillId: string }) {
+  const t = useTranslations('nav')
+  return (
+    <div className="px-2.5">
+      <Link href={backHref} className={cn(navItemClass, 'group/back')}>
+        <ArrowLeft className="transition-transform duration-200 ease-out group-hover/back:-translate-x-0.5" />
+        <span className="relative truncate">{backLabel ? t('backTo', { place: backLabel }) : t('backToApp')}</span>
+      </Link>
+      {groups.map((g) => (
+        <div key={g.id} className="mt-3.5">
+          <NavGroupHead label={g.id === 'account' ? t('groups.accountSettings') : g.label} />
+          <div className="flex flex-col gap-0.5">
+            {g.items.map((i) => {
+              const current = i.active(pathname)
+              return (
+                <Link key={i.href} href={i.href} aria-current={current ? 'page' : undefined} className={cn(navItemClass, current && navCurrentClass)}>
+                  {current ? <NavPill id={`set-${pillId}`} /> : null}
+                  {i.icon}
+                  <span className="relative truncate">{i.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 type SidebarProps = {
   onSearch: () => void
   onNewTask: () => void
@@ -123,18 +242,47 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
   // cada barra (escritorio y celular) con su propia pastilla: con el mismo id, Motion deja visible solo una
   const pillId = useId()
 
-  const top: { href: string; label: string; icon: typeof Activity; keys: string[]; badge?: number }[] = [
-    { href: '/home', label: t('today'), icon: Activity, keys: ['G', 'H'] },
-    // Veltro IA, oculta por ahora (lib/features)
-    ...(AI_ENABLED ? [{ href: '/veltro', label: t('veltro'), icon: Sparkles, keys: ['G', 'V'] }] : []),
-    { href: '/mesa', label: t('mesa'), icon: Columns3, keys: ['G', 'M'] },
-    { href: '/calendar', label: t('calendar'), icon: CalendarDays, keys: ['G', 'C'] },
-    { href: '/tasks', label: t('myTasks'), icon: CircleCheck, keys: ['G', 'T'] },
-    { href: '/requests', label: t('requests'), icon: RequestsIcon, keys: ['G', 'S'], badge: requestsPending },
-    { href: '/decisions', label: t('decisions'), icon: Diamond, keys: ['G', 'D'] },
-    { href: '/vault', label: t('vault'), icon: Vault, keys: ['G', 'B'] },
-    { href: '/chat', label: t('pasillo'), icon: MessagesSquare, keys: ['G', 'P'], badge: unread },
+  type NavItem = { href: string; label: string; icon: typeof Activity; keys: string[]; badge?: number }
+  const item = {
+    home: { href: '/home', label: t('today'), icon: Activity, keys: ['G', 'H'] },
+    veltro: { href: '/veltro', label: t('veltro'), icon: Sparkles, keys: ['G', 'V'] },
+    mesa: { href: '/mesa', label: t('mesa'), icon: Columns3, keys: ['G', 'M'] },
+    calendar: { href: '/calendar', label: t('calendar'), icon: CalendarDays, keys: ['G', 'C'] },
+    tasks: { href: '/tasks', label: t('myTasks'), icon: CircleCheck, keys: ['G', 'T'] },
+    dashboards: { href: '/dashboards', label: t('dashboards'), icon: ChartColumnBig, keys: ['G', 'A'] },
+    requests: { href: '/requests', label: t('requests'), icon: RequestsIcon, keys: ['G', 'S'], badge: requestsPending },
+    decisions: { href: '/decisions', label: t('decisions'), icon: Diamond, keys: ['G', 'D'] },
+    vault: { href: '/vault', label: t('vault'), icon: Vault, keys: ['G', 'B'] },
+    chat: { href: '/chat', label: t('pasillo'), icon: MessagesSquare, keys: ['G', 'P'], badge: unread },
+  } satisfies Record<string, NavItem>
+  // Pulso arriba, solo; el resto en grupos que se pliegan (Veltro IA, oculta por ahora: lib/features)
+  const homeItems: NavItem[] = [item.home, ...(AI_ENABLED ? [item.veltro] : [])]
+  const groups: { id: string; label: string; items: NavItem[] }[] = [
+    { id: 'work', label: t('groups.work'), items: [item.tasks, item.dashboards, item.calendar, item.requests] },
+    { id: 'team', label: t('groups.team'), items: [item.chat, item.mesa] },
+    { id: 'memory', label: t('groups.memory'), items: [item.decisions, item.vault] },
   ]
+  const top: NavItem[] = [...homeItems, ...groups.flatMap((g) => g.items)]
+  const [folded, setFolded] = useLocalStorage<string[]>('veltro:nav-folded', [])
+  const toggleGroup = (id: string) => setFolded((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
+  // en los ajustes de la cuenta la barra se transforma en el menú de Ajustes (un solo menú)
+  const settingsMode = isAccountSettings(pathname)
+  const settingsGroups = useSettingsGroups(isAdmin)
+  // «← Volver»: a la última pantalla de la app antes de entrar a Ajustes
+  const [backHref, setBackHref] = useState('/home')
+  const backPath = backHref.split('?')[0]
+  const backLabel =
+    top.find((it) => backPath === it.href || backPath.startsWith(`${it.href}/`))?.label ??
+    workspaces.find((ws) => backPath === `/w/${ws.slug}` || backPath.startsWith(`/w/${ws.slug}/`))?.name ??
+    null
+  useEffect(() => {
+    try {
+      if (!pathname.startsWith('/settings')) sessionStorage.setItem('veltro:before-settings', pathname + window.location.search)
+      else setBackHref(sessionStorage.getItem('veltro:before-settings') || '/home')
+    } catch {
+      /* sin almacenamiento: vuelve a Pulso */
+    }
+  }, [pathname])
   // al hacer clic, la opción se marca en el acto (sin esperar a que llegue la página); al cambiar la
   // ruta manda la URL de nuevo
   const [pendingNav, setPendingNav] = useState<{ href: string; from: string } | null>(null)
@@ -169,7 +317,25 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
         </div>
 
         <nav className="flex flex-col items-center gap-0.5 border-t border-line/70 pt-2">
-          {top.map(({ href, label, icon: Icon, keys, badge }) => (
+          {settingsMode ? (
+            <>
+              <Tooltip content={t('backToApp')} side="right">
+                <Link href={backHref} aria-label={t('backToApp')} className={railItemClass}>
+                  <ArrowLeft />
+                </Link>
+              </Tooltip>
+              {settingsGroups
+                .flatMap((g) => g.items)
+                .map((i) => (
+                  <Tooltip key={i.href} content={i.label} side="right">
+                    <Link href={i.href} aria-label={i.label} aria-current={i.active(pathname) ? 'page' : undefined} className={cn(railItemClass, i.active(pathname) && navActiveClass)}>
+                      {i.icon}
+                    </Link>
+                  </Tooltip>
+                ))}
+            </>
+          ) : null}
+          {settingsMode ? null : top.map(({ href, label, icon: Icon, keys, badge }) => (
             <RailPeek
               key={href}
               trigger={
@@ -266,68 +432,114 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
           </button>
         </div>
 
-        <nav className="flex flex-col gap-0.5 px-2.5">
-          {top.map(({ href, label, icon: Icon, badge }) => {
-            const current = isActive(href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                prefetch
-                onClick={navClick(href)}
-                data-tour={`nav-${href.slice(1)}`}
-                aria-current={current ? 'page' : undefined}
-                className={cn(navItemClass, current && navCurrentClass)}
-              >
-                {current ? <NavPill id={`nav-${pillId}`} /> : null}
-                <Icon />
-                <span className="relative truncate">{label}</span>
-                {badge ? (
-                  <span className="relative ml-auto mr-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-count px-1.5 text-[11px] font-semibold tabular-nums text-count-fg">{badge > 99 ? '99+' : badge}</span>
-                ) : null}
-              </Link>
-            )
-          })}
-        </nav>
+        <AnimatePresence mode="wait" initial={false} custom={settingsMode ? 1 : -1}>
+          {settingsMode ? (
+            <motion.div key="settings" custom={1} variants={SLIDE} initial="enter" animate="center" exit="exit" transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+              <SettingsSideNav groups={settingsGroups} pathname={pathname} backHref={backHref} backLabel={backLabel} pillId={pillId} />
+            </motion.div>
+          ) : (
+            <motion.div key="app" custom={-1} variants={SLIDE} initial="enter" animate="center" exit="exit" transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+              <nav className="flex flex-col gap-0.5 px-2.5">
+                {homeItems.map((it) => (
+                  <NavLink key={it.href} item={it} current={isActive(it.href)} onClick={navClick(it.href)} pillId={pillId} />
+                ))}
+              </nav>
+              {/* los grupos: se pliegan desde su título y se recuerda; plegado, lo que estás viendo sigue a la vista */}
+              {groups.map((g) => {
+                const open = !folded.includes(g.id)
+                const here = g.items.find((it) => isActive(it.href))
+                return (
+                  <div key={g.id} className="mt-3.5 px-2.5">
+                    <NavGroupHead
+                      label={g.label}
+                      open={open}
+                      onToggle={() => toggleGroup(g.id)}
+                      peek={g.items.map((it) => (
+                        <PeekLink key={it.href} href={it.href} label={it.label} dot={Boolean(it.badge)}>
+                          <it.icon />
+                        </PeekLink>
+                      ))}
+                    />
+                    <div className="disclosure" data-open={open ? '' : undefined} inert={!open}>
+                      <div>
+                        <div className="flex flex-col gap-0.5 pt-0.5">
+                          {g.items.map((it) => (
+                            <NavLink key={it.href} item={it} current={open && isActive(it.href)} onClick={navClick(it.href)} pillId={pillId} tour={open} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {!open && here ? <NavLink item={here} current onClick={navClick(here.href)} pillId={pillId} /> : null}
+                  </div>
+                )
+              })}
 
-        <div className="mt-5 flex flex-col" data-tour="spaces">
-          <div className="group/section flex h-6 items-center justify-between pl-4 pr-3">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-subtle">{t('workspaces')}</span>
-            {isAdmin ? (
-              <Tooltip content={t('newWorkspace')}>
-                <Link
-                  href="/settings/workspaces/new"
-                  className="inline-flex size-5 items-center justify-center rounded-sm text-fg-subtle opacity-0 transition-opacity hover:bg-hover hover:text-fg group-hover/section:opacity-100 focus-visible:opacity-100"
-                  aria-label={t('newWorkspace')}
-                >
-                  <Plus className="size-3.5" />
-                </Link>
-              </Tooltip>
-            ) : null}
-          </div>
-          <div className="px-2.5 pb-3 pt-1">
-            {workspaces.length === 0 ? (
-              <p className="px-2.5 py-1 text-xs text-fg-subtle">{t('noWorkspaces')}</p>
-            ) : (
-              workspaces.map((ws) => <WorkspaceNav key={ws.id} ws={ws} pathname={pathname} />)
-            )}
-          </div>
-        </div>
-
+            <div className="mt-3.5 flex flex-col px-2.5" data-tour="spaces">
+              <NavGroupHead
+                label={t('workspaces')}
+                open={!folded.includes('spaces')}
+                onToggle={() => toggleGroup('spaces')}
+                peek={
+                  <>
+                    {workspaces.slice(0, 5).map((ws) => (
+                      <PeekLink key={ws.id} href={`/w/${ws.slug}`} label={ws.name}>
+                        <WorkspaceMark ws={ws} size={16} />
+                      </PeekLink>
+                    ))}
+                    {workspaces.length > 5 ? <span className="px-1 text-[11px] tabular-nums text-fg-subtle">+{workspaces.length - 5}</span> : null}
+                  </>
+                }
+                action={
+                  isAdmin ? (
+                    <Tooltip content={t('newWorkspace')}>
+                      <Link
+                        href="/settings/workspaces/new"
+                        className="inline-flex size-5 items-center justify-center rounded-sm text-fg-subtle opacity-0 transition-opacity hover:bg-hover hover:text-fg group-hover/section:opacity-100 focus-visible:opacity-100"
+                        aria-label={t('newWorkspace')}
+                      >
+                        <Plus className="size-3.5" />
+                      </Link>
+                    </Tooltip>
+                  ) : null
+                }
+              />
+              <div className="disclosure" data-open={!folded.includes('spaces') ? '' : undefined} inert={folded.includes('spaces')}>
+                <div>
+                  <div className="pb-3 pt-1">
+                    {workspaces.length === 0 ? (
+                      <p className="px-2.5 py-1 text-xs text-fg-subtle">{t('noWorkspaces')}</p>
+                    ) : (
+                      workspaces.map((ws) => <WorkspaceNav key={ws.id} ws={ws} pathname={pathname} />)
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* plegado: el espacio donde estás sigue a la vista */}
+              {folded.includes('spaces')
+                ? workspaces.filter((ws) => pathname === `/w/${ws.slug}` || pathname.startsWith(`/w/${ws.slug}/`)).map((ws) => <WorkspaceNav key={ws.id} ws={ws} pathname={pathname} />)
+                : null}
+            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="flex shrink-0 flex-col gap-0.5 border-t border-line/60 px-2.5 pb-2.5 pt-1.5">
         {DEMO ? <DemoBadge /> : null}
-        {isAdmin ? (
-          <Link href="/settings/members" className={cn(navItemClass, pathname === '/settings/members' && navActiveClass)}>
-            <UserPlus />
-            <span>{t('invite')}</span>
-          </Link>
-        ) : null}
-        <Link href="/settings" className={cn(navItemClass, settingsActive && navActiveClass)}>
-          <Settings />
-          <span>{t('settings')}</span>
-        </Link>
+        {settingsMode ? null : (
+          <>
+            {isAdmin ? (
+              <Link href="/settings/members" className={cn(navItemClass, pathname === '/settings/members' && navActiveClass)}>
+                <UserPlus />
+                <span>{t('invite')}</span>
+              </Link>
+            ) : null}
+            <Link href="/settings" className={cn(navItemClass, settingsActive && navActiveClass)}>
+              <Settings />
+              <span>{t('settings')}</span>
+            </Link>
+          </>
+        )}
         <div className="md:hidden">
           <AccountSwitcher />
         </div>
@@ -365,16 +577,21 @@ function WorkspaceNav({ ws, pathname }: { ws: WorkspaceWithRole; pathname: strin
   // Lo elegido a mano vale hasta que entras o sales del espacio.
   const [manual, setManual] = useState<{ inWs: boolean; open: boolean } | null>(null)
   const open = manual && manual.inWs === inWs ? manual.open : inWs
+  const tWs = useTranslations('workspace')
 
+  // la navegación completa del espacio: Resumen · Tareas · Docs · Reuniones (las páginas no llevan pestañas)
   const links = [
+    { href: base, label: tWs('summary'), icon: LayoutDashboard },
     { href: `${base}/tasks`, label: t('tasks'), icon: ListTodo },
     { href: `${base}/docs`, label: t('docs'), icon: FileText },
     { href: `${base}/meetings`, label: t('meetings'), icon: Video },
   ]
+  const isActive = (href: string) => (href === base ? pathname === base : pathname.startsWith(href))
 
   return (
     <div className="group/ws relative mb-px">
-      <Link href={base} className={cn(navItemClass, 'pr-7', pathname === base && navActiveClass, inWs && pathname !== base && 'text-fg')}>
+      {/* abierto, lo activo es la sección de abajo; plegado, el espacio mismo marca dónde estás */}
+      <Link href={base} className={cn(navItemClass, 'pr-7', inWs && !open && navActiveClass, inWs && open && 'text-fg')}>
         <WorkspaceMark ws={ws} size={22} />
         <span className="truncate">{ws.name}</span>
       </Link>
@@ -394,7 +611,7 @@ function WorkspaceNav({ ws, pathname }: { ws: WorkspaceWithRole; pathname: strin
         <div>
           <div className="ml-[15px] mt-0.5 flex flex-col gap-px border-l border-line pl-2">
             {links.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href} className={cn(navItemClass, 'h-7 px-2 text-[13px] [&>svg]:p-0', pathname.startsWith(href) && navActiveClass, '[&>svg]:bg-transparent')}>
+              <Link key={href} href={href} aria-current={isActive(href) ? 'page' : undefined} className={cn(navItemClass, 'h-7 px-2 text-[13px] [&>svg]:p-0', isActive(href) && navActiveClass, '[&>svg]:bg-transparent')}>
                 <Icon className="!size-3.5" />
                 <span className="truncate">{label}</span>
               </Link>
@@ -406,21 +623,24 @@ function WorkspaceNav({ ws, pathname }: { ws: WorkspaceWithRole; pathname: strin
   )
 }
 
-/** Espacio en el riel: su marca; si estás dentro, debajo aparecen Tareas, Docs y Reuniones. */
+/** Espacio en el riel: su marca; si estás dentro, debajo aparecen Resumen, Tareas, Docs y Reuniones. */
 function RailWorkspace({ ws, pathname }: { ws: WorkspaceWithRole; pathname: string }) {
   const t = useTranslations('nav')
   const base = `/w/${ws.slug}`
   const inWs = pathname === base || pathname.startsWith(`${base}/`)
+  const tWs = useTranslations('workspace')
   const links = [
+    { href: base, label: tWs('summary'), icon: LayoutDashboard },
     { href: `${base}/tasks`, label: t('tasks'), icon: ListTodo },
     { href: `${base}/docs`, label: t('docs'), icon: FileText },
     { href: `${base}/meetings`, label: t('meetings'), icon: Video },
   ]
+  const isActive = (href: string) => (href === base ? pathname === base : pathname.startsWith(href))
   return (
     <>
       <RailPeek
         trigger={
-          <Link href={base} aria-label={ws.name} className={cn(railItemClass, inWs && 'bg-hover', pathname === base && navActiveClass)}>
+          <Link href={base} aria-label={ws.name} className={cn(railItemClass, inWs && 'bg-hover')}>
             <WorkspaceMark ws={ws} size={18} />
           </Link>
         }
@@ -432,7 +652,7 @@ function RailWorkspace({ ws, pathname }: { ws: WorkspaceWithRole; pathname: stri
           <div className="mb-1 flex flex-col items-center gap-0.5 rounded-lg bg-hover/50 py-0.5">
             {links.map(({ href, label, icon: Icon }) => (
               <Tooltip key={href} content={`${ws.name} · ${label}`} side="right">
-                <Link href={href} aria-label={label} className={cn(railItemClass, 'size-7 [&>svg]:size-3.5', pathname.startsWith(href) && navActiveClass)}>
+                <Link href={href} aria-label={label} aria-current={isActive(href) ? 'page' : undefined} className={cn(railItemClass, 'size-7 [&>svg]:size-3.5', isActive(href) && navActiveClass)}>
                   <Icon />
                 </Link>
               </Tooltip>
@@ -446,9 +666,8 @@ function RailWorkspace({ ws, pathname }: { ws: WorkspaceWithRole; pathname: stri
 
 function AccountSwitcher({ compact = false, card = false }: { compact?: boolean; card?: boolean }) {
   const t = useTranslations('nav')
-  const router = useRouter()
   const { account, accounts, workspaces } = useApp()
-  const [pending, start] = useTransition()
+  const { switchTo } = useAccountSwitch()
   const [creating, setCreating] = useState(false)
 
   return (
@@ -456,10 +675,14 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
     <Menu>
       {card ? (
         <MenuTrigger
-          disabled={pending}
+          
           className="flex h-[52px] w-full items-center gap-2.5 rounded-[15px] bg-hover pl-2 pr-2.5 text-left shadow-card outline-none transition-colors hover:bg-active focus-visible:ring-2 focus-visible:ring-accent-mid/35 data-[popup-open]:bg-active"
         >
-          <span className="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] bg-accent text-[13px] font-bold text-accent-fg">{account.name.trim().charAt(0).toUpperCase()}</span>
+          <AccountLogo
+            account={account}
+            size={30}
+            fallback={<span className="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] bg-accent text-[13px] font-bold text-accent-fg">{account.name.trim().charAt(0).toUpperCase()}</span>}
+          />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13.5px] font-semibold text-fg">{account.name}</span>
             <span className="block truncate text-[11.5px] text-fg-subtle">{t('workspacesCount', { count: workspaces.length })}</span>
@@ -468,12 +691,12 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
         </MenuTrigger>
       ) : compact ? (
         <Tooltip content={account.name} side="right">
-          <MenuTrigger className={cn(railItemClass, 'data-[popup-open]:bg-hover')} disabled={pending} aria-label={t('accounts')}>
+          <MenuTrigger className={cn(railItemClass, 'data-[popup-open]:bg-hover')} aria-label={t('accounts')}>
             <Building2 />
           </MenuTrigger>
         </Tooltip>
       ) : (
-        <MenuTrigger className={cn(navItemClass, 'data-[popup-open]:bg-hover')} disabled={pending}>
+        <MenuTrigger className={cn(navItemClass, 'data-[popup-open]:bg-hover')}>
           <Building2 />
           <span className="min-w-0 flex-1 truncate text-left">{account.name}</span>
           <ChevronsUpDown className="!size-3.5 text-fg-subtle" />
@@ -484,19 +707,22 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
         {accounts.map((a) => (
           <MenuItem
             key={a.id}
-            onClick={() => {
+            onClick={(e) => {
               if (a.id === account.id) return
-              start(async () => {
-                await setCurrentAccount(a.id)
-                router.push('/home')
-                router.refresh()
-              })
+              // con su animación y quedándote en la misma vista (account-switch)
+              switchTo({ id: a.id, name: a.name, color: a.color, logo_updated_at: a.logo_updated_at }, { origin: { x: e.clientX, y: e.clientY } })
             }}
           >
             {/* la ficha de cada cuenta, en su color */}
-            <span {...brandAttrs(brandOf(a.color))} className="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] bg-accent text-[10px] font-bold text-accent-fg">
-              {a.name.trim().charAt(0).toUpperCase()}
-            </span>
+            <AccountLogo
+              account={a}
+              size={18}
+              fallback={
+                <span {...brandAttrs(brandOf(a.color))} className="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] bg-accent text-[10px] font-bold text-accent-fg">
+                  {a.name.trim().charAt(0).toUpperCase()}
+                </span>
+              }
+            />
             <span className="flex-1 truncate">{a.name}</span>
             {a.id === account.id ? <Check className="!text-fg" /> : null}
           </MenuItem>

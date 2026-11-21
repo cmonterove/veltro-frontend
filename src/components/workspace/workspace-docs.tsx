@@ -22,7 +22,6 @@ import { cn, taskRef, excerptOf } from '@/lib/utils'
 import type { AttachmentRow, DocSource } from '@/lib/database.types'
 import type { DocSummary, WorkspaceWithRole } from '@/lib/types'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SourceBadge } from '@/components/docs/source-badge'
 import { useNewDoc } from '@/components/docs/doc-tree'
 import { ImportMarkdownDialog } from '@/components/docs/import-markdown-dialog'
 import { AttachmentIcon, formatBytes } from '@/components/attachments/attachments'
@@ -30,6 +29,9 @@ import { useOpenTask } from '@/lib/use-open-task'
 import { useConfirm } from '@/components/ui/confirm'
 import { previewOrOpen } from '@/components/vault/file-viewer'
 import { AI_ENABLED } from '@/lib/features'
+import { CARD } from '@/components/ui/surface'
+import { useMediaQuery } from '@/lib/hooks'
+import { SpaceHeader } from './workspace-header'
 
 type Tab = 'docs' | 'files'
 type FileFilter = 'all' | 'docs' | 'images' | 'sheets' | 'links'
@@ -64,78 +66,133 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
   const { upload } = useAttachmentMutations()
   const fileInput = useRef<HTMLInputElement>(null)
 
+  const [source, setSource] = useState<string>('all')
+  // los tipos que hay (solo se ofrecen si hay más de uno)
+  const sourceCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const d of docs) {
+      const g = GROUPS.find((x) => x.sources.includes(d.source))
+      if (g) m.set(g.id, (m.get(g.id) ?? 0) + 1)
+    }
+    return m
+  }, [docs])
+  const sourceChips = sourceCounts.size > 1
+
+  const actions = editable ? (
+    tab === 'docs' ? (
+      <>
+        <Button onClick={() => setImportOpen(true)}>
+          <FileUp />
+          <span className="hidden lg:inline">{t('importMarkdown')}</span>
+        </Button>
+        <Button variant="primary" onClick={() => newDoc.create()} loading={newDoc.pending}>
+          <FilePlus2 />
+          {t('newDoc')}
+        </Button>
+      </>
+    ) : (
+      <>
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            upload.mutate({ parent: { workspaceId }, files: Array.from(e.target.files ?? []) })
+            e.target.value = ''
+          }}
+        />
+        <Button variant="primary" onClick={() => fileInput.current?.click()} loading={upload.isPending}>
+          {upload.isPending ? null : <Upload />}
+          {t('library.upload')}
+        </Button>
+      </>
+    )
+  ) : undefined
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-4 py-2 sm:px-6">
-        <div className="flex items-center rounded-lg bg-sidebar p-1">
-          {(['docs', 'files'] as const).map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              aria-pressed={tab === id}
-              className={cn(
-                'inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-sm transition-colors',
-                tab === id ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
-              )}
-            >
-              {id === 'docs' ? <FileText className="size-3.5" /> : <Paperclip className="size-3.5" />}
-              {t(`library.${id}`)}
-              <span className="text-xs tabular-nums text-fg-subtle">{id === 'docs' ? docs.length : (files?.length ?? 0)}</span>
-            </button>
-          ))}
-        </div>
-        <div className="relative ml-auto flex items-center">
-          <Search className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('filterPlaceholder')}
-            className="h-8 w-44 rounded-lg border border-line bg-panel pl-8 pr-2 text-sm outline-none transition-[width] duration-200 placeholder:text-fg-subtle focus:w-60 focus:border-accent"
-          />
-        </div>
-        {editable ? (
-          tab === 'docs' ? (
-            <>
-              <Button size="sm" onClick={() => setImportOpen(true)}>
-                <FileUp />
-                {t('importMarkdown')}
-              </Button>
-              <Button variant="primary" size="sm" onClick={() => newDoc.create()} loading={newDoc.pending}>
-                <FilePlus2 />
-                {t('newDoc')}
-              </Button>
-            </>
-          ) : (
-            <>
-              <input
-                ref={fileInput}
-                type="file"
-                multiple
-                hidden
-                onChange={(e) => {
-                  upload.mutate({ parent: { workspaceId }, files: Array.from(e.target.files ?? []) })
-                  e.target.value = ''
-                }}
-              />
-              <Button variant="primary" size="sm" onClick={() => fileInput.current?.click()} loading={upload.isPending}>
-                {upload.isPending ? null : <Upload />}
-                {t('library.upload')}
-              </Button>
-            </>
-          )
+    <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
+      <SpaceHeader ws={ws} section="docs" actions={actions} />
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2">
+        {/* documentos o archivos: el mismo control segmentado de las vistas de Tareas */}
+        <nav className="flex items-center gap-0.5 rounded-2xl bg-fg/[0.05] p-1" aria-label={t('library.views')}>
+          {(['docs', 'files'] as const).map((id) => {
+            const Icon = id === 'docs' ? FileText : Paperclip
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                aria-pressed={tab === id}
+                className={cn(
+                  'inline-flex h-8 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-medium outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40',
+                  tab === id ? 'bg-panel text-fg shadow-card' : 'text-fg-muted hover:text-fg',
+                )}
+              >
+                <Icon className={cn('size-4', tab === id ? 'text-accent' : 'text-fg-subtle')} />
+                {t(`library.${id}`)}
+                <span className="text-xs font-normal tabular-nums text-fg-subtle">{id === 'docs' ? docs.length : (files?.length ?? 0)}</span>
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* qué tipo de doc: notas de reuniones o documentos escritos */}
+        {tab === 'docs' && sourceChips ? (
+          <div className="flex items-center gap-1" role="group" aria-label={t('library.sourcesLabel')}>
+            {[{ id: 'all', n: docs.length }, ...GROUPS.filter((g) => sourceCounts.get(g.id)).map((g) => ({ id: g.id, n: sourceCounts.get(g.id) ?? 0 }))].map(({ id, n }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setSource(id)}
+                aria-pressed={source === id}
+                className={cn(
+                  'inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40',
+                  source === id ? 'bg-fg/[0.07] font-medium text-fg' : 'text-fg-muted hover:bg-hover hover:text-fg',
+                )}
+              >
+                {id === 'all' ? t('library.fileFilters.all') : t(`library.groups.${id}`)}
+                <span className="text-xs tabular-nums text-fg-subtle">{n}</span>
+              </button>
+            ))}
+          </div>
         ) : null}
+
+        <div className="ml-auto flex items-center gap-2">
+          <div className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setQuery('')
+              }}
+              placeholder={tab === 'docs' ? t('library.search') : t('library.searchFiles')}
+              aria-label={tab === 'docs' ? t('library.search') : t('library.searchFiles')}
+              className="h-8 w-44 rounded-lg border border-line bg-panel pl-8 pr-2 text-sm outline-none transition-[width,border-color] duration-200 placeholder:text-fg-subtle hover:border-line-strong focus:w-60 focus:border-accent-mid"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
+      <div className="min-h-0 flex-1">
         {!data ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-9" />
-            <Skeleton className="h-9" />
-            <Skeleton className="h-9" />
+          <div className="grid h-full grid-cols-2 gap-4 lg:grid-cols-4">
+            <Skeleton className="h-56 rounded-[20px] lg:col-span-2" />
+            <Skeleton className="h-56 rounded-[20px]" />
+            <Skeleton className="h-56 rounded-[20px]" />
           </div>
         ) : tab === 'docs' ? (
-          <DocsLibrary ws={ws} docs={docs} files={files ?? []} query={query} editable={editable} onNew={() => newDoc.create()} onImport={() => setImportOpen(true)} />
+          <DocsShelf
+            ws={ws}
+            docs={source === 'all' ? docs : docs.filter((d) => GROUPS.find((g) => g.id === source)?.sources.includes(d.source))}
+            total={docs.length}
+            files={files ?? []}
+            query={query}
+            editable={editable}
+            onNew={() => newDoc.create()}
+            onImport={() => setImportOpen(true)}
+          />
         ) : (
           <FilesLibrary ws={ws} files={files ?? []} docs={docs} query={query} editable={editable} />
         )}
@@ -165,9 +222,15 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
 
 // ---------------- documentos ----------------
 
-function DocsLibrary({
+/**
+ * Los docs como hojas en un estante que llena la pantalla: cada hoja muestra el comienzo del texto
+ * (más alta, más texto) y la del último cambio va al frente, más ancha. Al final, la hoja en blanco
+ * para escribir otro.
+ */
+function DocsShelf({
   ws,
   docs,
+  total,
   files,
   query,
   editable,
@@ -176,6 +239,7 @@ function DocsLibrary({
 }: {
   ws: WorkspaceWithRole
   docs: DocSummary[]
+  total: number
   files: AttachmentRow[]
   query: string
   editable: boolean
@@ -200,130 +264,135 @@ function DocsLibrary({
     return m
   }, [files])
 
+  const sm = useMediaQuery('(min-width: 640px)')
+  const lg = useMediaQuery('(min-width: 1024px)')
+  const xl = useMediaQuery('(min-width: 1280px)')
+
   const q = query.trim().toLowerCase()
   const list = docs
     .filter((d) => !q || d.title.toLowerCase().includes(q) || (d.excerpt ?? '').toLowerCase().includes(q))
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
 
-  if (docs.length === 0) {
+  if (total === 0) {
     return (
-      <EmptyState
-        icon={<FileText />}
-        title={t('empty.title')}
-        description={t('empty.description')}
-        action={
-          editable ? (
-            <div className="flex gap-2">
-              <Button variant="primary" size="sm" onClick={onNew}>
-                <FilePlus2 />
-                {t('newDoc')}
-              </Button>
-              <Button size="sm" onClick={onImport}>
-                <FileUp />
-                {t('importMarkdown')}
-              </Button>
-            </div>
-          ) : null
-        }
-      />
+      <div className={cn(CARD, 'flex h-full items-center justify-center px-6')}>
+        <EmptyState
+          icon={<FileText />}
+          title={t('empty.title')}
+          description={t('empty.description')}
+          action={
+            editable ? (
+              <div className="flex gap-2">
+                <Button variant="primary" size="sm" onClick={onNew}>
+                  <FilePlus2 />
+                  {t('newDoc')}
+                </Button>
+                <Button size="sm" onClick={onImport}>
+                  <FileUp />
+                  {t('importMarkdown')}
+                </Button>
+              </div>
+            ) : null
+          }
+        />
+      </div>
     )
   }
-  if (list.length === 0) return <p className="py-10 text-sm text-fg-muted">{t('noMatches')}</p>
-
-  const recent = q ? [] : list.slice(0, 4)
-  const rest = q ? list : list.slice(4)
-
-  const meta = (d: DocSummary) => {
-    const nt = taskCount.get(d.id) ?? 0
-    const nf = fileCount.get(d.id) ?? 0
+  if (list.length === 0) {
     return (
-      <span className="flex items-center gap-2.5 text-xs text-fg-subtle">
-        {nt ? (
-          <span className="inline-flex items-center gap-1">
-            <ListTodo className="size-3.5" />
-            {nt}
-          </span>
-        ) : null}
-        {nf ? (
-          <span className="inline-flex items-center gap-1">
-            <Paperclip className="size-3.5" />
-            {nf}
-          </span>
-        ) : null}
-      </span>
+      <div className={cn(CARD, 'flex h-full items-center justify-center px-6')}>
+        <p className="text-sm text-fg-muted">{t('noMatches')}</p>
+      </div>
     )
   }
+
+  // la del último cambio, al frente (sin búsqueda: buscando, todas iguales)
+  const featured = q ? null : list[0]
+  // la hoja en blanco solo si completa la última fila (si no, quedaría sola en una fila nueva)
+  const cols = xl ? 4 : lg ? 3 : sm ? 2 : 1
+  const cells = list.length + (featured && cols > 1 ? 1 : 0)
+  const blank = editable && !q && cells % cols !== 0
 
   return (
-    <div className="flex flex-col gap-10">
-      {recent.length ? (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold">{t('library.recent')}</h2>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {recent.map((d) => {
-              const author = d.created_by ? memberMap.get(d.created_by) : undefined
-              return (
-                <Link
-                  key={d.id}
-                  href={`/w/${ws.slug}/docs/${d.id}`}
-                  className="group/card flex h-48 flex-col rounded-xl border border-line bg-panel p-4 transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-card"
+    // las filas se estiran hasta abajo; si no caben, el estante se desplaza (con aire para las sombras)
+    <div className="-m-2 h-[calc(100%+1rem)] overflow-y-auto p-2 scrollbar-thin">
+      <div className="grid min-h-full grid-cols-1 gap-4 [grid-auto-rows:minmax(15rem,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {list.map((d) => {
+          const author = d.created_by ? memberMap.get(d.created_by) : undefined
+          const parent = d.parent_id ? byId.get(d.parent_id) : undefined
+          const big = d.id === featured?.id
+          const nt = taskCount.get(d.id) ?? 0
+          const nf = fileCount.get(d.id) ?? 0
+          const kicker = d.source === 'meeting' && d.meeting_id ? (meetingTitle.get(d.meeting_id) ?? t(`kicker.${d.source}`)) : t(`kicker.${d.source}`)
+          return (
+            <Link
+              key={d.id}
+              href={`/w/${ws.slug}/docs/${d.id}`}
+              className={cn(
+                'group/doc relative flex min-h-0 flex-col overflow-hidden rounded-[20px] bg-panel p-5 outline-none ring-1 ring-line-soft transition-[box-shadow,transform] duration-200 ease-out',
+                'shadow-[0_1px_2px_oklch(0.243_0.088_312.7/0.05),0_10px_26px_-20px_oklch(0.3_0.09_312/0.3)] hover:-translate-y-0.5 hover:shadow-[0_2px_4px_oklch(0.243_0.088_312.7/0.05),0_18px_36px_-20px_oklch(0.3_0.09_312/0.42)] focus-visible:ring-2 focus-visible:ring-accent-mid/50',
+                big && 'sm:col-span-2',
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2 text-[11.5px] font-medium text-fg-subtle">
+                <DocMark source={d.source} className="size-3.5" />
+                <span className="truncate">{kicker}</span>
+                {big ? <span className="ml-auto shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-semibold text-accent-ink">{t('library.latest')}</span> : null}
+              </span>
+              <span className={cn('mt-3 line-clamp-2 font-semibold leading-snug tracking-[-0.015em] text-fg', big ? 'text-[20px]' : 'text-[16px]')}>{d.title || t('untitled')}</span>
+              {parent ? <span className="mt-1 truncate text-xs text-fg-subtle">{t('library.inParent', { title: parent.title || t('untitled') })}</span> : null}
+              {/* el comienzo del texto, como en la hoja: llena lo que haya y se desvanece al pie. Va
+                  posicionado para no empujar el alto de la fila (la fila la decide la pantalla, no el texto) */}
+              <span className="relative mt-2.5 min-h-12 flex-1">
+                <span
+                  className={cn(
+                    'absolute inset-0 overflow-hidden whitespace-pre-line text-fg-muted [mask-image:linear-gradient(to_bottom,black_55%,transparent)]',
+                    big ? 'text-[13.5px] leading-[1.65] sm:columns-2 sm:gap-6' : 'text-[12.5px] leading-[1.6]',
+                  )}
                 >
-                  <span className="flex min-w-0 items-center gap-1.5 text-2xs font-medium text-fg-subtle">
-                    <DocMark source={d.source} className="size-3.5" />
-                    <span className="truncate">{d.source === 'meeting' && d.meeting_id ? (meetingTitle.get(d.meeting_id) ?? t(`kicker.${d.source}`)) : t(`kicker.${d.source}`)}</span>
-                  </span>
-                  <span className="mt-2 line-clamp-2 text-[15px] font-semibold leading-snug text-fg group-hover/card:underline group-hover/card:decoration-line-strong group-hover/card:underline-offset-4">
-                    {d.title || t('untitled')}
-                  </span>
-                  <span className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-fg-muted">{excerptOf(d.excerpt) || t('library.emptyDoc')}</span>
-                  <span className="mt-auto flex items-center gap-2 pt-3">
-                    {author ? <Avatar name={author.full_name} src={author.avatar_url} seed={author.id} size={18} /> : null}
-                    <span className="text-xs text-fg-subtle">{formatDistanceToNowStrict(new Date(d.updated_at), { addSuffix: true, locale })}</span>
-                    <span className="ml-auto">{meta(d)}</span>
-                  </span>
-                </Link>
-              )
-            })}
+                  {(big ? d.excerpt : excerptOf(d.excerpt, 400)) || t('library.emptyDoc')}
+                </span>
+              </span>
+              <span className="mt-3 flex items-center gap-2 border-t border-line-soft pt-3 text-xs text-fg-subtle">
+                {author ? <Avatar name={author.full_name} src={author.avatar_url} seed={author.id} size={20} /> : null}
+                <span className="truncate">{formatDistanceToNowStrict(new Date(d.updated_at), { addSuffix: true, locale })}</span>
+                <span className="ml-auto flex items-center gap-2.5">
+                  {nt ? (
+                    <span className="inline-flex items-center gap-1" title={t('library.tasksCount', { count: nt })}>
+                      <ListTodo className="size-3.5" />
+                      {nt}
+                    </span>
+                  ) : null}
+                  {nf ? (
+                    <span className="inline-flex items-center gap-1" title={t('library.filesCount', { count: nf })}>
+                      <Paperclip className="size-3.5" />
+                      {nf}
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+            </Link>
+          )
+        })}
+        {/* la hoja en blanco: escribir otro doc o traerlo de Markdown */}
+        {blank ? (
+          <div className="flex min-h-0 flex-col items-center justify-center gap-3 rounded-[20px] border border-dashed border-line-strong/80 p-5 text-center">
+            <button
+              type="button"
+              onClick={onNew}
+              className="flex flex-col items-center gap-2 rounded-xl px-4 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+            >
+              <span className="flex size-11 items-center justify-center rounded-2xl bg-panel text-fg-muted shadow-card transition-transform duration-200 ease-out group-hover:scale-105">
+                <FilePlus2 className="size-5" />
+              </span>
+              <span className="text-sm font-semibold text-fg">{t('library.newCardTitle')}</span>
+            </button>
+            <button type="button" onClick={onImport} className="text-xs text-fg-muted underline-offset-4 hover:text-fg hover:underline">
+              {t('library.newCardHint')}
+            </button>
           </div>
-        </section>
-      ) : null}
-
-      {GROUPS.map((g) => {
-        const items = rest.filter((d) => g.sources.includes(d.source))
-        if (!items.length) return null
-        return (
-          <section key={g.id}>
-            <h2 className="mb-1 flex items-baseline gap-2 text-sm font-semibold">
-              {t(`library.groups.${g.id}`)}
-              <span className="text-xs font-normal tabular-nums text-fg-subtle">{items.length}</span>
-            </h2>
-            <ul className="flex flex-col divide-y divide-line-soft">
-              {items.map((d) => {
-                const parent = d.parent_id ? byId.get(d.parent_id) : undefined
-                const author = d.created_by ? memberMap.get(d.created_by) : undefined
-                const sub = d.meeting_id && meetingTitle.get(d.meeting_id) ? meetingTitle.get(d.meeting_id) : parent ? parent.title || t('untitled') : excerptOf(d.excerpt, 90)
-                return (
-                  <li key={d.id}>
-                    <Link href={`/w/${ws.slug}/docs/${d.id}`} className="-mx-3 flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-hover/70">
-                      <DocMark source={d.source} />
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="truncate text-sm font-medium text-fg">{d.title || t('untitled')}</span>
-                        {sub ? <span className="truncate text-xs text-fg-subtle">{sub}</span> : null}
-                      </span>
-                      {meta(d)}
-                      {d.source === 'import' ? <SourceBadge source={d.source} className="hidden md:inline-flex" /> : null}
-                      <span className="hidden w-24 shrink-0 text-right text-xs text-fg-subtle sm:block">
-                        {formatDistanceToNowStrict(new Date(d.updated_at), { addSuffix: true, locale })}
-                      </span>
-                      {author ? <Avatar name={author.full_name} src={author.avatar_url} seed={author.id} size={20} /> : <span className="size-5" />}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        )
-      })}
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -352,6 +421,7 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
   const tAtt = useTranslations('attachments')
   const [filter, setFilter] = useState<FileFilter>('all')
   const [dragging, setDragging] = useState(false)
+  const picker = useRef<HTMLInputElement>(null)
   const taskById = useMemo(() => new Map((tasks ?? []).map((x) => [x.id, x])), [tasks])
   const meetingById = useMemo(() => new Map((meetings ?? []).map((m) => [m.id, m])), [meetings])
   const docById = useMemo(() => new Map(docs.map((d) => [d.id, d])), [docs])
@@ -366,7 +436,8 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
 
   return (
     <div
-      className={cn('flex flex-col gap-4 rounded-2xl transition-colors', dragging && 'bg-highlight ring-2 ring-accent/40')}
+      // una tarjeta hasta abajo: los tipos arriba, la tabla se desplaza por dentro; soltar archivos la marca entera
+      className={cn(CARD, 'flex h-full min-h-0 flex-col overflow-hidden transition-shadow', dragging && 'ring-2 ring-accent/50')}
       onDragOver={(e) => {
         if (!editable) return
         e.preventDefault()
@@ -382,7 +453,7 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
         upload.mutate({ parent: { workspaceId: ws.id }, files: Array.from(e.dataTransfer.files) })
       }}
     >
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-line-soft px-4 py-2.5">
         {(['all', 'docs', 'images', 'sheets', 'links'] as const).map((f) =>
           f === 'all' || counts[f] ? (
             <button
@@ -390,30 +461,33 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
               type="button"
               onClick={() => setFilter(f)}
               aria-pressed={filter === f}
-              className={cn('inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors', filter === f ? 'bg-active font-medium text-fg' : 'text-fg-muted hover:bg-hover hover:text-fg')}
+              className={cn('inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm transition-colors', filter === f ? 'bg-fg/[0.07] font-medium text-fg' : 'text-fg-muted hover:bg-hover hover:text-fg')}
             >
               {t(`fileFilters.${f}`)}
               <span className="text-xs tabular-nums text-fg-subtle">{f === 'all' ? files.length : counts[f]}</span>
             </button>
           ) : null,
         )}
-        {editable ? <span className="ml-auto text-xs text-fg-subtle">{t('dropHint')}</span> : null}
       </div>
 
       {files.length === 0 ? (
-        <EmptyState icon={<Paperclip />} title={t('noFilesTitle')} description={t('noFilesBody')} />
+        <div className="flex flex-1 items-center justify-center px-6">
+          <EmptyState icon={<Paperclip />} title={t('noFilesTitle')} description={t('noFilesBody')} />
+        </div>
       ) : list.length === 0 ? (
-        <p className="py-8 text-sm text-fg-muted">{t('noFileMatches')}</p>
+        <div className="flex flex-1 items-center justify-center px-6">
+          <p className="text-sm text-fg-muted">{t('noFileMatches')}</p>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-line">
-          <table className="w-full text-sm">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
+          <table className="w-full border-separate border-spacing-0 text-sm">
             <thead>
-              <tr className="border-b border-line bg-sidebar text-left text-xs text-fg-muted">
-                <th className="px-4 py-2 font-medium">{t('cols.name')}</th>
-                <th className="hidden px-3 py-2 font-medium md:table-cell">{t('cols.origin')}</th>
-                <th className="hidden px-3 py-2 font-medium lg:table-cell">{t('cols.by')}</th>
-                <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">{t('cols.size')}</th>
-                <th className="w-16" />
+              <tr className="text-left text-[11.5px] text-fg-muted">
+                <th className="sticky top-0 z-10 border-b border-line-soft bg-panel px-4 py-2.5 font-semibold">{t('cols.name')}</th>
+                <th className="sticky top-0 z-10 hidden border-b border-line-soft bg-panel px-3 py-2.5 font-semibold md:table-cell">{t('cols.origin')}</th>
+                <th className="sticky top-0 z-10 hidden border-b border-line-soft bg-panel px-3 py-2.5 font-semibold lg:table-cell">{t('cols.by')}</th>
+                <th className="sticky top-0 z-10 hidden border-b border-line-soft bg-panel px-3 py-2.5 text-right font-semibold sm:table-cell">{t('cols.size')}</th>
+                <th className="sticky top-0 z-10 w-16 border-b border-line-soft bg-panel" />
               </tr>
             </thead>
             <tbody>
@@ -423,10 +497,10 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
                 const doc = f.doc_id ? docById.get(f.doc_id) : undefined
                 const who = f.uploaded_by ? memberMap.get(f.uploaded_by) : undefined
                 return (
-                  <tr key={f.id} className="group/f border-b border-line-soft last:border-0 hover:bg-hover/50">
+                  <tr key={f.id} className="group/f transition-colors duration-100 hover:bg-canvas [&>td]:border-b [&>td]:border-line-soft">
                     <td className="px-4 py-2.5">
                       <button type="button" onClick={() => previewOrOpen(f)} className="flex min-w-0 items-center gap-3 text-left">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-canvas ring-1 ring-inset ring-line-soft">
                           <AttachmentIcon a={f} />
                         </span>
                         <span className="min-w-0">
@@ -485,6 +559,28 @@ function FilesLibrary({ ws, files, docs, query, editable }: { ws: WorkspaceWithR
               })}
             </tbody>
           </table>
+          {/* lo que queda de la tarjeta es donde se sueltan archivos (o se eligen) */}
+          {editable ? (
+            <div className="m-4 flex min-h-28 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong/80 px-6 text-center">
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-canvas text-fg-muted ring-1 ring-inset ring-line-soft">
+                <Upload className="size-[18px]" />
+              </span>
+              <p className="text-sm text-fg-muted">{t('dropHint')}</p>
+              <button type="button" onClick={() => picker.current?.click()} className="text-xs font-medium text-accent-ink underline-offset-4 hover:underline">
+                {t('pick')}
+              </button>
+              <input
+                ref={picker}
+                type="file"
+                multiple
+                hidden
+                onChange={(e) => {
+                  upload.mutate({ parent: { workspaceId: ws.id }, files: Array.from(e.target.files ?? []) })
+                  e.target.value = ''
+                }}
+              />
+            </div>
+          ) : null}
         </div>
       )}
     </div>

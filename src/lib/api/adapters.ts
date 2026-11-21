@@ -32,6 +32,7 @@ export function toAccount(a: ApiAccount | ApiAccountBrief): AccountRow {
     owner_id: 'ownerId' in a ? a.ownerId : '',
     ...('role' in a && a.role ? { my_role: a.role } : {}),
     ...(a.color ? { color: a.color } : {}),
+    logo_updated_at: a.logoUpdatedAt ?? null,
     status: a.status,
     suspended_at: null,
     suspended_reason: null,
@@ -57,6 +58,7 @@ export function toWorkspace(w: ApiWorkspace, role?: WorkspaceRole): WorkspaceWit
     archived_at: w.archivedAt,
     created_at: w.createdAt,
     updated_at: w.updatedAt,
+    logo_updated_at: w.logoUpdatedAt ?? null,
     my_role: role ?? w.role,
   }
 }

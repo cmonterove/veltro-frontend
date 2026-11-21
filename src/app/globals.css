@@ -234,6 +234,16 @@
  * Donde va el atributo se recalculan los colores (y sus copias --sheet-*), porque los de :root ya vienen
  * calculados con el tono de la raíz.
  */
+/* la barrita de «Cambiando de cuenta» (account-switch) */
+@keyframes switch-bar {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
 /* registradas: así el tono se anima (al cambiar de cuenta o de color, la app pasa de un color al otro) */
 @property --bh {
   syntax: '<number>';
@@ -426,6 +436,15 @@
 }
 
 /* el marco: ciruela empolvado con una luz arriba a la izquierda y una sombra abajo a la derecha */
+/*
+ * La baldosa de un logo subido (cuentas y espacios): siempre clara, también en modo oscuro (un logo
+ * oscuro y transparente no se pierde), con un filo apenas marcado para que no se funda con el fondo.
+ */
+@utility logo-tile {
+  background: oklch(0.992 0.004 80);
+  box-shadow: inset 0 0 0 1px oklch(0.2 0.02 300 / 0.09);
+}
+
 @utility frame-bg {
   background:
     radial-gradient(1100px 760px at -6% -12%, var(--frame-hi), transparent 62%),

@@ -1,11 +1,23 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Building2, LayoutTemplate, LifeBuoy, Network, Users, UsersRound, type LucideIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
-/** Encabezado de cada página de Ajustes: qué es y, opcionalmente, acciones y pestañas. */
+/** El ícono de cada página de la cuenta, el mismo que tiene en el menú: la cabecera no queda en solo texto. */
+const PAGE_ICON: Record<string, LucideIcon> = {
+  '/settings/account': Building2,
+  '/settings/members': Users,
+  '/settings/org': Network,
+  '/settings/teams': UsersRound,
+  '/settings/templates': LayoutTemplate,
+  '/settings/support': LifeBuoy,
+}
+
+/** Encabezado de cada página de Ajustes: su ícono, qué es y, opcionalmente, acciones y pestañas. */
 export function SettingsHeader({
   title,
   description,
@@ -15,19 +27,27 @@ export function SettingsHeader({
 }: {
   title: React.ReactNode
   description?: React.ReactNode
-  /** marca o ícono a la izquierda del título (p. ej. el de un espacio) */
+  /** marca o ícono a la izquierda del título (p. ej. el de un espacio); si falta, el de la página */
   leading?: React.ReactNode
   actions?: React.ReactNode
   /** pestañas u otra fila debajo del título */
   children?: React.ReactNode
 }) {
+  const pathname = usePathname()
+  const Icon = PAGE_ICON[pathname]
   return (
-    <header className="mb-8">
-      <div className="flex items-start gap-4">
-        {leading ? <div className="shrink-0 pt-0.5">{leading}</div> : null}
+    <header className="mb-7">
+      <div className="flex items-center gap-4">
+        {leading ? (
+          <div className="shrink-0">{leading}</div>
+        ) : Icon ? (
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-accent-soft text-accent-ink">
+            <Icon className="size-5" />
+          </span>
+        ) : null}
         <div className="min-w-0 flex-1">
-          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.015em] text-fg">{title}</h1>
-          {description ? <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-fg-muted">{description}</p> : null}
+          <h1 className="text-xl font-semibold leading-tight tracking-[-0.015em] text-fg">{title}</h1>
+          {description ? <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-fg-muted">{description}</p> : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
@@ -124,12 +144,35 @@ export function SettingsRow({
   )
 }
 
-/** Aparece al cambiar algo: un solo guardar por página o pestaña, siempre a la vista. */
-export function SaveBar({ dirty, pending, onSave, onDiscard, disabled }: { dirty: boolean; pending?: boolean; onSave: () => void; onDiscard: () => void; disabled?: boolean }) {
+/**
+ * Aparece al cambiar algo: un solo guardar por página o pestaña, siempre a la vista. `floating`: flota
+ * sobre el panel (abajo al centro) sin empujar nada; en las páginas que caben en la pantalla, empujar
+ * haría aparecer el scroll.
+ */
+export function SaveBar({
+  dirty,
+  pending,
+  onSave,
+  onDiscard,
+  disabled,
+  floating,
+}: {
+  dirty: boolean
+  pending?: boolean
+  onSave: () => void
+  onDiscard: () => void
+  disabled?: boolean
+  floating?: boolean
+}) {
   const t = useTranslations('settings.common')
   if (!dirty) return null
   return (
-    <div className="popup-motion sticky bottom-4 z-10 mt-2 flex items-center gap-3 rounded-xl border border-line bg-panel/95 px-4 py-2.5 shadow-lift backdrop-blur-sm">
+    <div
+      className={cn(
+        'popup-motion z-20 flex items-center gap-3 rounded-xl border border-line bg-panel/95 px-4 py-2.5 shadow-lift backdrop-blur-sm',
+        floating ? 'absolute bottom-4 left-1/2 w-[min(34rem,calc(100%-2rem))] -translate-x-1/2' : 'sticky bottom-4 mt-2',
+      )}
+    >
       <span className="size-1.5 shrink-0 rounded-full bg-accent" />
       <span className="min-w-0 flex-1 truncate text-sm text-fg">{t('unsaved')}</span>
       <Button variant="ghost" size="sm" onClick={onDiscard} disabled={pending}>
@@ -139,5 +182,34 @@ export function SaveBar({ dirty, pending, onSave, onDiscard, disabled }: { dirty
         {t('save')}
       </Button>
     </div>
+  )
+}
+
+/**
+ * Una sola superficie partida en dos: lo que se edita a la izquierda y, a la derecha, una columna teñida
+ * con la vista previa y lo que ayuda a entender. Llena el alto que le queda a la página (sin scroll de
+ * página: si algo crece, se desplaza adentro de su lado). En pantallas angostas, la columna va debajo.
+ */
+export function SplitPanel({ main, side, className }: { main: React.ReactNode; side: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-card xl:grid xl:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]',
+        className,
+      )}
+    >
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">{main}</div>
+      <aside className="flex min-h-0 min-w-0 flex-col overflow-y-auto border-t border-line-soft bg-sidebar/45 scrollbar-thin xl:border-l xl:border-t-0">{side}</aside>
+    </div>
+  )
+}
+
+/** Un bloque de la columna de la derecha de un SplitPanel: título chico y su contenido, separados por una línea. */
+export function SideSection({ title, children, className }: { title?: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={cn('border-b border-line-soft px-5 py-4 last:border-b-0', className)}>
+      {title ? <h2 className="mb-3 text-[13px] font-semibold text-fg">{title}</h2> : null}
+      {children}
+    </section>
   )
 }

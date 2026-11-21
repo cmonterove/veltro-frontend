@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { SearchX } from 'lucide-react'
@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api/client'
 import type { ApiWorkspace } from '@/lib/api/types'
-import { WorkspaceHeader } from './workspace-header'
+import { cn } from '@/lib/utils'
 import { WorkspaceOverview } from './workspace-overview'
 import { WorkspaceTasks } from './workspace-tasks'
 import { WorkspaceDocs } from './workspace-docs'
@@ -25,10 +25,15 @@ import { WorkspaceMeetings } from './workspace-meetings'
  */
 export function WorkspaceGate({ slug, children }: { slug: string; children: React.ReactNode }) {
   const ws = useWorkspaceBySlug(slug)
+  const pathname = usePathname()
   if (!ws) return <WorkspaceMissing slug={slug} />
+  // cada pestaña cabe en la pantalla y sus tarjetas se desplazan por dentro: la página no se desplaza.
+  // El Resumen apila sus paneles en pantallas chicas (ahí sí crece); el doc abierto es una página aparte.
+  const overview = pathname === `/w/${slug}`
+  const doc = pathname.startsWith(`/w/${slug}/docs/`)
   return (
-    <div className="flex min-h-full flex-col">
-      <WorkspaceHeader slug={slug} />
+    <div className={cn('flex flex-col', doc ? 'min-h-full' : overview ? 'min-h-full xl:h-full xl:min-h-0' : 'h-full min-h-0')}>
+      {/* cada sección arma su cabecera (logo, título y lo suyo): sin franja ni pestañas */}
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   )

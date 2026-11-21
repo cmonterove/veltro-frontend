@@ -50,6 +50,8 @@ export type AccountRow = Timestamps & {
   my_role?: AccountRole
   /** el color de la cuenta (lib/brand): la app lo toma mientras estás en ella */
   color?: string
+  /** cuándo cambió su logo (sin logo: null); la imagen sale de /v1/accounts/{id}/logo?v=… */
+  logo_updated_at?: string | null
   status: 'active' | 'suspended'
   suspended_at: string | null
   suspended_reason: string | null
@@ -89,6 +91,8 @@ export type WorkspaceRow = Timestamps & {
   task_statuses: TaskStatusDef[]
   created_by: string | null
   archived_at: string | null
+  /** cuándo cambió su logo (sin logo: null); la imagen sale de /v1/workspaces/{id}/logo?v=… */
+  logo_updated_at?: string | null
 }
 
 /** Estado propio de un espacio; `category` es una de las 5 categorías fijas y vive en tasks.status. */

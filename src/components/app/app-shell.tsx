@@ -31,6 +31,7 @@ import { flushEvents, ping, setTelemetryAccount, track, viewEvent } from '@/lib/
 import { AI_ENABLED } from '@/lib/features'
 import { brandAttrs, brandOf, type Brand } from '@/lib/brand'
 import { BrandContext } from './brand'
+import { AccountSwitchHost } from './account-switch'
 
 
 export function AppShell({ children, sidebarCollapsed = false }: { children: React.ReactNode; sidebarCollapsed?: boolean }) {
@@ -154,7 +155,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [quickTaskOpen])
 
   useEffect(() => {
-    const routes: Record<string, string> = { h: '/home', ...(AI_ENABLED ? { v: '/veltro' } : {}), m: '/mesa', c: '/calendar', t: '/tasks', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
+    const routes: Record<string, string> = { h: '/home', ...(AI_ENABLED ? { v: '/veltro' } : {}), m: '/mesa', c: '/calendar', t: '/tasks', a: '/dashboards', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -209,6 +210,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
 
   return (
     <BrandContext.Provider value={brandValue}>
+    <AccountSwitchHost>
     <FullscreenContext.Provider value={fullscreen}>
     <ConfirmProvider>
       <TourProvider>
@@ -335,6 +337,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
       </TourProvider>
     </ConfirmProvider>
     </FullscreenContext.Provider>
+    </AccountSwitchHost>
     </BrandContext.Provider>
   )
 }

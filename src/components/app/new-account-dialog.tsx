@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from '@/components/ui/dialog'
 import { createAccount } from '@/app/actions/settings'
-import { setCurrentAccount } from '@/app/actions/preferences'
+import { useAccountSwitch } from './account-switch'
 import type { ErrorCode } from '@/lib/errors'
 
 /**
@@ -18,7 +17,7 @@ import type { ErrorCode } from '@/lib/errors'
 export function NewAccountDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations('nav.newAccount')
   const te = useTranslations('errors')
-  const router = useRouter()
+  const { switchTo } = useAccountSwitch()
   const [accountName, setAccountName] = useState('')
   const [workspaceName, setWorkspaceName] = useState('')
   const [error, setError] = useState<ErrorCode | null>(null)
@@ -41,10 +40,9 @@ export function NewAccountDialog({ open, onOpenChange }: { open: boolean; onOpen
         setError(res.error)
         return
       }
-      await setCurrentAccount(res.accountId)
       close(false)
-      router.push(`/w/${res.slug}`)
-      router.refresh()
+      // a la cuenta nueva con la animación de cambio, directo a su primer espacio
+      switchTo({ id: res.accountId, name: accountName.trim(), color: 'plum' }, { path: `/w/${res.slug}` })
     })
 
   return (

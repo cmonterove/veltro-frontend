@@ -2,9 +2,27 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { CalendarClock, CalendarDays, CalendarOff, CalendarRange, ChevronRight, ChevronsDownUp, ChevronsUpDown, CircleAlert, CircleCheck, Plus } from 'lucide-react'
-import { useCreateTask, type NewTask } from '@/lib/queries/tasks'
-import { cn } from '@/lib/utils'
+import {
+  closestCorners,
+  DndContext,
+  DragOverlay,
+  MeasuringStrategy,
+  MouseSensor,
+  pointerWithin,
+  TouchSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type CollisionDetection,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { CalendarClock, CalendarDays, CalendarOff, CalendarRange, ChevronRight, ChevronsDownUp, ChevronsUpDown, CircleAlert, CircleCheck, GripVertical, Plus } from 'lucide-react'
+import { useCreateTask, useUpdateTask, type NewTask } from '@/lib/queries/tasks'
+import { cn, positionBetween } from '@/lib/utils'
 import type { TaskRow as Task, TaskStatus, WorkspaceRow } from '@/lib/database.types'
 import { useWorkspaceMap } from '@/components/app/app-context'
 import { statusKey, statusPatch, taskStatusOf, workspaceStatuses, type StatusOption } from '@/lib/statuses'
@@ -90,10 +108,31 @@ export function groupByStatus(
   })
 }
 
+type Order = Record<string, string[]>
+
+const GROUP = 'group:'
+const DOCK = 'dock:'
+
+/** Dónde se suelta: una fila o el pie de estados vacíos bajo el puntero; si no, lo más cercano. */
+const collision: CollisionDetection = (args) => {
+  const within = pointerWithin(args)
+  if (within.length) {
+    const dock = within.filter((c) => String(c.id).startsWith(DOCK))
+    const rows = within.filter((c) => !String(c.id).startsWith(GROUP) && !String(c.id).startsWith(DOCK))
+    return dock.length ? dock : rows.length ? rows : within
+  }
+  return closestCorners(args)
+}
+
+const findGroup = (id: string, order: Order) =>
+  id.startsWith(GROUP) ? id.slice(GROUP.length) : id.startsWith(DOCK) ? id.slice(DOCK.length) : (Object.keys(order).find((k) => order[k].includes(id)) ?? null)
+
 export function TaskGroupList({
   groups,
   showWorkspace,
   hideEmpty,
+  emptyDock,
+  statusCreator,
   emptyState,
   className,
   collapsed,
@@ -104,6 +143,13 @@ export function TaskGroupList({
   groups: TaskGroup[]
   showWorkspace?: boolean
   hideEmpty?: boolean
+  /**
+   * con `hideEmpty`, los estados sin tareas quedan en un renglón al pie: ahí se suelta una tarea
+   * (o se agrega una con su +). Solo tiene sentido en los grupos por estado de un espacio.
+   */
+  emptyDock?: boolean
+  /** al final del renglón de vacíos: crear un estado ahí mismo (admins del espacio) */
+  statusCreator?: React.ReactNode
   emptyState?: React.ReactNode
   className?: string
   /** controlado desde afuera (para recordarlo o para "abrir y cerrar todo"); si no, cada lista lleva el suyo */
@@ -113,21 +159,102 @@ export function TaskGroupList({
   selectedId?: string | null
   onSelect?: (id: string) => void
 }) {
+  const t = useTranslations('tasks')
   const { open } = useOpenTask()
+  const update = useUpdateTask()
   const [own, setOwn] = useState<CollapsedGroups>({})
   const state = collapsed ?? own
   const setState = onCollapsedChange ?? setOwn
-  const visible = hideEmpty ? groups.filter((g) => g.tasks.length > 0) : groups
+  // un estado vacío que se abrió con su + (para escribir la primera tarea ahí)
+  const [forced, setForced] = useState<string | null>(null)
+  const visible = hideEmpty ? groups.filter((g) => g.tasks.length > 0 || g.id === forced) : groups
+  const docked = hideEmpty && emptyDock ? groups.filter((g) => g.tasks.length === 0 && g.id !== forced && g.defaults?.status) : []
   const total = groups.reduce((n, g) => n + g.tasks.length, 0)
+
+  // arrastrar de un estado a otro: solo cuando cada grupo es un estado (y se puede editar)
+  const dnd = groups.length > 0 && groups.every((g) => Boolean(g.defaults?.status))
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    // en el celular, mantener apretado para arrastrar (deslizar sigue desplazando la lista)
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
+  )
+  const base = useMemo<Order>(() => Object.fromEntries(groups.map((g) => [g.id, g.tasks.map((x) => x.id)])), [groups])
+  const byId = useMemo(() => new Map(groups.flatMap((g) => g.tasks).map((x) => [x.id, x])), [groups])
+  const [order, setOrder] = useState<Order | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const current = order ?? base
 
   if (total === 0 && emptyState) return <>{emptyState}</>
 
-  return (
+  const onDragStart = (e: DragStartEvent) => {
+    setActiveId(String(e.active.id))
+    setOrder(base)
+  }
+
+  const onDragOver = ({ active, over }: DragOverEvent) => {
+    if (!over) return
+    const overId = String(over.id)
+    // el pie de vacíos no se arma como lista mientras se arrastra: se resuelve al soltar
+    if (overId.startsWith(DOCK)) return
+    setOrder((prev) => {
+      const p = prev ?? base
+      const from = findGroup(String(active.id), p)
+      const to = findGroup(overId, p)
+      if (!from || !to || from === to) return p
+      const fromItems = p[from].filter((id) => id !== active.id)
+      const overIndex = p[to].indexOf(overId)
+      const toItems = [...p[to]]
+      toItems.splice(overIndex >= 0 ? overIndex : toItems.length, 0, String(active.id))
+      return { ...p, [from]: fromItems, [to]: toItems }
+    })
+  }
+
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    const id = String(active.id)
+    const now = order ?? base
+    setActiveId(null)
+    setOrder(null)
+    const task = byId.get(id)
+    if (!over || !task) return
+    const overId = String(over.id)
+    const origin = groups.find((g) => g.tasks.some((x) => x.id === id))
+
+    // soltada en un estado vacío del pie: va a ese estado, al final
+    if (overId.startsWith(DOCK)) {
+      const g = groups.find((x) => x.id === overId.slice(DOCK.length))
+      if (!g?.defaults?.status || g.id === origin?.id) return
+      update.mutate({ id, patch: { status: g.defaults.status, status_id: g.defaults.status_id ?? null, position: positionBetween(g.tasks.at(-1)?.position, null) } })
+      return
+    }
+
+    const col = findGroup(id, now)
+    const g = groups.find((x) => x.id === col)
+    if (!col || !g?.defaults?.status) return
+    let items = now[col]
+    const oldIndex = items.indexOf(id)
+    const overIndex = items.indexOf(overId)
+    if (overIndex >= 0 && overIndex !== oldIndex) items = arrayMove(items, oldIndex, overIndex)
+    const index = items.indexOf(id)
+    const before = items[index - 1] ? byId.get(items[index - 1])?.position : null
+    const after = items[index + 1] ? byId.get(items[index + 1])?.position : null
+    const position = positionBetween(before, after)
+    if (origin?.id === col) {
+      if (task.position !== position) update.mutate({ id, patch: { position } })
+    } else {
+      update.mutate({ id, patch: { status: g.defaults.status, status_id: g.defaults.status_id ?? null, position } })
+    }
+  }
+
+  const active = activeId ? byId.get(activeId) : null
+
+  const list = (
     <div className={cn('@container pb-24 pt-1', className)}>
       {visible.map((g) => (
         <Group
           key={g.id}
           group={g}
+          ids={dnd ? (current[g.id] ?? []) : undefined}
+          byId={byId}
           collapsed={isGroupCollapsed(g, state)}
           // Alt + clic abre o cierra todos, como en el Finder
           onCollapse={(value, all) =>
@@ -136,32 +263,129 @@ export function TaskGroupList({
           onOpen={onSelect ?? open}
           showWorkspace={showWorkspace}
           selectedId={selectedId}
+          startComposing={g.id === forced}
+          onComposeEnd={() => setForced((f) => (f === g.id ? null : f))}
         />
       ))}
+      {docked.length || (emptyDock && statusCreator) ? (
+        // los estados sin tareas, juntos en un renglón: se suelta ahí o se agrega con su +; y crear otro estado
+        <div className="mx-2 mt-2 flex flex-wrap items-center gap-1.5 border-t border-line-soft px-2 pt-3">
+          {docked.length ? <span className="mr-1 text-xs text-fg-subtle">{t('emptyStatuses')}</span> : null}
+          {docked.map((g) => (
+            <DockPill key={g.id} group={g} dragging={Boolean(activeId)} onAdd={() => setForced(g.id)} />
+          ))}
+          {emptyDock ? statusCreator : null}
+        </div>
+      ) : null}
+    </div>
+  )
+
+  if (!dnd) return list
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collision}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      onDragCancel={() => {
+        setActiveId(null)
+        setOrder(null)
+      }}
+    >
+      {list}
+      <DragOverlay dropAnimation={{ duration: 160, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' }}>
+        {active ? (
+          <div className="cursor-grabbing rounded-xl bg-panel shadow-lift ring-1 ring-line [&>div]:mx-0">
+            <TaskRow task={active} onOpen={() => {}} showWorkspace={showWorkspace} />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  )
+}
+
+/** Un estado vacío en el pie de la lista: se suelta una tarea ahí, o se agrega con +. */
+function DockPill({ group, dragging, onAdd }: { group: TaskGroup; dragging: boolean; onAdd: () => void }) {
+  const t = useTranslations('tasks')
+  const { setNodeRef, isOver } = useDroppable({ id: DOCK + group.id })
+  return (
+    <span
+      ref={setNodeRef}
+      className={cn(
+        'inline-flex h-8 items-center gap-1.5 rounded-xl border pl-2 pr-1 text-[13px] transition-[background-color,border-color,color] duration-150',
+        isOver ? 'border-accent bg-accent-soft text-accent-ink' : dragging ? 'border-dashed border-accent-mid/60 text-fg' : 'border-dashed border-line-strong text-fg-muted',
+      )}
+    >
+      {group.icon}
+      <span>{group.label}</span>
+      <button
+        type="button"
+        onClick={onAdd}
+        aria-label={t('addTo', { group: group.label })}
+        className="inline-flex size-6 items-center justify-center rounded-lg text-fg-subtle outline-none transition-colors hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+      >
+        <Plus className="size-3.5" />
+      </button>
+    </span>
+  )
+}
+
+/** Una fila que se arrastra a otro estado (o a otro lugar del suyo). El agarre aparece al pasar el mouse. */
+function SortableRow({ task, onOpen, showWorkspace, active }: { task: Task; onOpen: (id: string) => void; showWorkspace?: boolean; active?: boolean }) {
+  const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn('group/drag relative select-none', isDragging && 'opacity-40')}
+      {...listeners}
+    >
+      <GripVertical
+        aria-hidden
+        className="pointer-events-none absolute left-0.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-subtle opacity-0 transition-opacity group-hover/drag:opacity-100"
+      />
+      <TaskRow task={task} onOpen={onOpen} showWorkspace={showWorkspace} active={active} />
     </div>
   )
 }
 
 function Group({
   group,
+  ids,
+  byId,
   collapsed,
   onCollapse,
   onOpen,
   showWorkspace,
   selectedId,
+  startComposing,
+  onComposeEnd,
 }: {
   group: TaskGroup
+  /** con arrastre: el orden de este momento (mientras se arrastra, ya con la tarea que entra o sale) */
+  ids?: string[]
+  byId: Map<string, Task>
   collapsed: boolean
   onCollapse: (collapsed: boolean, all: boolean) => void
   onOpen: (id: string) => void
   showWorkspace?: boolean
   selectedId?: string | null
+  startComposing?: boolean
+  onComposeEnd?: () => void
 }) {
   const t = useTranslations('tasks')
-  const [composing, setComposing] = useState(false)
+  const [composing, setComposing] = useState(Boolean(startComposing))
+  const { setNodeRef, isOver } = useDroppable({ id: GROUP + group.id, disabled: !ids })
+  const stopComposing = () => {
+    setComposing(false)
+    onComposeEnd?.()
+  }
 
   return (
-    <section>
+    <section ref={setNodeRef} className={cn('rounded-2xl transition-colors duration-150', isOver && ids && 'bg-accent-soft/40')}>
       {/* el encabezado del grupo queda pegado arriba al desplazarse, sobre el blanco de la tarjeta */}
       <div className="group/header sticky top-0 z-10 flex h-10 items-center gap-2 bg-panel/95 px-4 pt-1 backdrop-blur-[2px]">
         <button
@@ -200,15 +424,18 @@ function Group({
       </div>
       {collapsed ? null : (
         <>
-          {group.tasks.map((task) => (
-            <TaskRow key={task.id} task={task} onOpen={onOpen} showWorkspace={showWorkspace} active={selectedId === task.id} />
-          ))}
+          {ids ? (
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+              {ids.map((id) => {
+                const task = byId.get(id)
+                return task ? <SortableRow key={id} task={task} onOpen={onOpen} showWorkspace={showWorkspace} active={selectedId === id} /> : null
+              })}
+            </SortableContext>
+          ) : (
+            group.tasks.map((task) => <TaskRow key={task.id} task={task} onOpen={onOpen} showWorkspace={showWorkspace} active={selectedId === task.id} />)
+          )}
           {group.defaults && composing ? (
-            <TaskComposer
-              defaults={group.defaults}
-              after={group.tasks.at(-1)?.position}
-              onDone={() => setComposing(false)}
-            />
+            <TaskComposer defaults={group.defaults} after={group.tasks.at(-1)?.position} onDone={stopComposing} />
           ) : group.defaults ? (
             // agregar al pie del grupo, a la vista (no solo en el + que aparece al pasar el mouse)
             <button

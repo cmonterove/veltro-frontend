@@ -4,8 +4,10 @@
 export const PERSONAL_SETTINGS = ['/settings/profile', '/settings/preferences']
 export const isPersonalSettings = (pathname: string) => PERSONAL_SETTINGS.includes(pathname)
 
+/** Los ajustes de la cuenta: ahí la barra principal se transforma en el menú de Ajustes. */
+export const isAccountSettings = (pathname: string) => (pathname === '/settings' || pathname.startsWith('/settings/')) && !isPersonalSettings(pathname)
+
 /** Rutas que arman sus propias hojas (su lista vive sobre el marco): la carga también debe hacerlo (app/loading). */
 export function isBareRoute(pathname: string) {
-  const settings = (pathname === '/settings' || pathname.startsWith('/settings/')) && !isPersonalSettings(pathname)
-  return pathname === '/chat' || pathname.startsWith('/chat/') || settings
+  return pathname === '/chat' || pathname.startsWith('/chat/')
 }

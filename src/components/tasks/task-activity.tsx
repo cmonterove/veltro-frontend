@@ -25,7 +25,7 @@ import type { WorkspaceWithRole } from '@/lib/types'
  * asistente. Los cambios seguidos de una misma persona ya vienen juntos.
  */
 
-type TaskEvent = {
+export type TaskEvent = {
   id: string
   kind: 'created' | 'title' | 'status' | 'priority' | 'assignees' | 'due_date' | 'start_date' | 'description' | 'labels' | 'parent' | 'recurrence' | 'blocked_by'
   actor: { id: string; fullName: string; avatarUrl: string | null } | null
@@ -91,7 +91,7 @@ export function TaskActivity({ task, ws }: { task: TaskRow; ws: WorkspaceWithRol
 const str = (v: unknown) => (typeof v === 'string' ? v : null)
 const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
 
-function EventText({ e, ws }: { e: TaskEvent; ws: WorkspaceWithRole }) {
+export function EventText({ e, ws }: { e: TaskEvent; ws: WorkspaceWithRole }) {
   const t = useTranslations('tasks.activity')
   const tp = useTranslations('tasks.priority')
   const tr = useTranslations('tasks.recurrence')

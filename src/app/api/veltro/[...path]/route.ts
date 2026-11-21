@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic'
 
 // lo que se reenvía tal cual en cada sentido
 const REQUEST_HEADERS = ['content-type', 'accept', 'accept-language', 'idempotency-key', 'if-match', 'user-agent']
-const RESPONSE_HEADERS = ['content-type', 'etag', 'location', 'retry-after', 'x-ratelimit-limit', 'x-ratelimit-remaining']
+// cache-control: los logos (y lo que la API marque) quedan guardados en el navegador
+const RESPONSE_HEADERS = ['content-type', 'cache-control', 'etag', 'location', 'retry-after', 'x-ratelimit-limit', 'x-ratelimit-remaining']
 
 async function handle(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params

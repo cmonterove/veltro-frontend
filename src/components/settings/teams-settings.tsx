@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { ArrowUpRight, MoreHorizontal, Pencil, Plus, Search, Trash2, UserPlus, UsersRound } from 'lucide-react'
+import { Activity, ArrowUpRight, LayoutDashboard, ListChecks, MoreHorizontal, Pencil, Plus, Search, Trash2, UserPlus, UsersRound } from 'lucide-react'
 import { useApp, useMemberMap } from '@/components/app/app-context'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -85,7 +85,7 @@ export function TeamsSettings({ admin }: { admin: boolean }) {
   }
 
   return (
-    <div>
+    <div className="flex flex-1 flex-col">
       <SettingsHeader
         title={t('title')}
         description={t('description')}
@@ -98,9 +98,10 @@ export function TeamsSettings({ admin }: { admin: boolean }) {
           ) : null
         }
       />
-      {teams.length || admin ? (
+      <div className="grid flex-1 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">
+      {teams.length ? (
         // una tarjeta por equipo: su color, su gente y cómo van sus tareas (y una más para crear otro)
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ul className="grid auto-rows-[minmax(16rem,1fr)] grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
           {teams.map((team) => (
             <TeamCard key={team.id} team={team} admin={admin && !team.id.startsWith('tmp-')} onEdit={() => setEditing(team)} onRemove={() => remove(team)} />
           ))}
@@ -115,18 +116,15 @@ export function TeamsSettings({ admin }: { admin: boolean }) {
                   <Plus className="size-5" />
                 </span>
                 <span className="font-medium">{t('new')}</span>
-                {!teams.length ? <span className="max-w-60 text-center text-xs leading-relaxed text-fg-subtle">{t('emptyHint')}</span> : null}
               </button>
             </li>
           ) : null}
         </ul>
       ) : (
-        <div className="flex flex-col items-center rounded-xl border border-dashed border-line px-6 py-12 text-center">
-          <TeamMark color="violet" size={40} />
-          <p className="mt-4 text-sm font-medium text-fg">{t('emptyTitle')}</p>
-          <p className="mt-1 max-w-sm text-sm leading-relaxed text-fg-muted">{t('emptyHintMember')}</p>
-        </div>
+        <EmptyTeams admin={admin} onCreate={() => setEditing('new')} />
       )}
+        <Unteamed teams={teams} admin={admin} onCreate={() => setEditing('new')} />
+      </div>
 
       {editing ? (
         <TeamDialog
@@ -137,6 +135,118 @@ export function TeamsSettings({ admin }: { admin: boolean }) {
         />
       ) : null}
     </div>
+  )
+}
+
+/**
+ * Sin equipos: cómo se ve uno (una tarjeta fantasma con su color, su gente y sus cifras) y el botón para
+ * armar el primero. Ocupa toda la zona en vez de una franja angosta con media pantalla en blanco.
+ */
+function EmptyTeams({ admin, onCreate }: { admin: boolean; onCreate: () => void }) {
+  const t = useTranslations('settings.teams')
+  const ghost = (color: string) => (
+    <div className={cn(`ws-${color}`, 'flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-card')}>
+      <div className="flex items-center gap-2.5 px-3.5 py-3" style={{ background: 'color-mix(in oklch, var(--ws-color) 10%, var(--panel))' }}>
+        <TeamMark color={color} size={30} />
+        <span className="flex flex-col gap-1.5">
+          <span className="h-2 w-20 rounded-full bg-fg/15" />
+          <span className="h-1.5 w-12 rounded-full bg-fg/10" />
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-3 px-3.5 py-3">
+        <span className="flex -space-x-1.5">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="size-5 rounded-full bg-fg/10 ring-2 ring-panel" />
+          ))}
+        </span>
+        <span className="mt-auto grid grid-cols-3 gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="h-8 rounded-md bg-sidebar/70" />
+          ))}
+        </span>
+      </div>
+    </div>
+  )
+  return (
+    <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong px-6 py-10 text-center">
+      <div className="relative h-40 w-56" aria-hidden>
+        <div className="absolute inset-0 translate-x-5 translate-y-2 rotate-[5deg] opacity-50">{ghost('teal')}</div>
+        <div className="absolute inset-0 -rotate-[2deg]">{ghost('violet')}</div>
+      </div>
+      <p className="mt-7 text-sm font-semibold text-fg">{t('emptyTitle')}</p>
+      <p className="mt-1 max-w-sm text-xs leading-relaxed text-fg-muted">{admin ? t('emptyHint') : t('emptyHintMember')}</p>
+      {admin ? (
+        <Button size="sm" variant="primary" className="mt-4" onClick={onCreate}>
+          <Plus />
+          {t('new')}
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * Quiénes no están en ningún equipo: lo siguiente útil al lado de las tarjetas (y dónde se usan los
+ * equipos, para quien llega por primera vez).
+ */
+function Unteamed({ teams, admin, onCreate }: { teams: WorkTeam[]; admin: boolean; onCreate: () => void }) {
+  const t = useTranslations('settings.teams')
+  const { members } = useApp()
+  const inTeam = new Set(teams.flatMap((x) => x.memberIds))
+  const loose = members.filter((m) => m.role !== 'guest' && !inTeam.has(m.id))
+  return (
+    <aside className="grid min-w-0 gap-6 md:grid-cols-2 xl:flex xl:flex-col">
+      <section className="rounded-2xl border border-line bg-panel">
+        <div className="flex items-baseline justify-between gap-3 px-5 pb-1 pt-4">
+          <h2 className="text-sm font-semibold text-fg">{t('loose.title')}</h2>
+          <span className="text-xs tabular-nums text-fg-subtle">{loose.length}</span>
+        </div>
+        {loose.length ? (
+          <>
+            <p className="px-5 text-xs leading-relaxed text-fg-muted">{t('loose.hint')}</p>
+            <ul className="flex flex-col px-2 pb-2 pt-2">
+              {loose.slice(0, 12).map((m) => (
+                <li key={m.id} className="flex items-center gap-2.5 rounded-lg px-3 py-1.5">
+                  <Avatar name={m.full_name} src={m.avatar_url} seed={m.id} size={26} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-fg">{m.full_name}</span>
+                    {m.title ? <span className="block truncate text-xs text-fg-subtle">{m.title}</span> : null}
+                  </span>
+                </li>
+              ))}
+              {loose.length > 12 ? <li className="px-3 py-1.5 text-xs text-fg-subtle">{t('more', { count: loose.length - 12 })}</li> : null}
+            </ul>
+            {admin ? (
+              <div className="border-t border-line-soft px-5 py-3">
+                <Button size="sm" variant="secondary" onClick={onCreate}>
+                  <Plus />
+                  {t('loose.create')}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="px-5 pb-4 text-xs leading-relaxed text-fg-muted">{t('loose.none')}</p>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-line bg-panel px-5 py-4 xl:flex-1">
+        <h2 className="text-sm font-semibold text-fg">{t('where.title')}</h2>
+        <ul className="mt-3 flex flex-col gap-3">
+          {(['tasks', 'pulse', 'mesa'] as const).map((k) => (
+            <li key={k} className="flex gap-3">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-hover text-fg-muted">
+                {k === 'tasks' ? <ListChecks className="size-3.5" /> : k === 'pulse' ? <Activity className="size-3.5" /> : <LayoutDashboard className="size-3.5" />}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-fg">{t(`where.${k}`)}</p>
+                <p className="text-xs leading-relaxed text-fg-muted">{t(`where.${k}Hint`)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </aside>
   )
 }
 

@@ -68,6 +68,7 @@ export function TaskFilterBar({
   onQuery,
   showPeople,
   brand = false,
+  bare = false,
   children,
 }: {
   /** las tareas del alcance que pasan la búsqueda: sobre ellas se cuentan las opciones */
@@ -83,6 +84,8 @@ export function TaskFilterBar({
   showPeople: boolean
   /** sobre la ciruela del marco (la franja de arriba de la tarjeta de Tareas) */
   brand?: boolean
+  /** suelta sobre el fondo de la página, sin franja ni raya (en los espacios) */
+  bare?: boolean
   /** lo que va a la derecha (agrupar, total) */
   children?: React.ReactNode
 }) {
@@ -158,7 +161,11 @@ export function TaskFilterBar({
     <div
       role="search"
       aria-label={t('label')}
-      className={cn('@container flex shrink-0 flex-wrap items-start gap-2 px-4 py-3 sm:flex-nowrap sm:px-5', brand ? 'on-frame day-surface' : 'border-b border-line-soft')}
+      className={cn(
+        '@container flex shrink-0 flex-wrap items-start gap-2 sm:flex-nowrap',
+        bare ? 'min-w-0 flex-1 items-center' : 'px-4 py-3 sm:px-5',
+        !bare && (brand ? 'on-frame day-surface' : 'border-b border-line-soft'),
+      )}
     >
       {/* En el celular: buscador y agrupar arriba, filtros debajo en una fila que se desliza.
           En pantallas anchas: todo en una línea; si no caben, los filtros se deslizan (la barra no crece). */}

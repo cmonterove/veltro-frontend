@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { ChevronDown, CircleCheck, CornerLeftUp, MessageSquare, Network, Plus, Rows3, Search, Trash2, X } from 'lucide-react'
+import { ChevronDown, CircleCheck, CornerLeftUp, MessageSquare, Network, Plus, Rows3, Search, Trash2, UserPlus, X } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -121,7 +121,7 @@ export function OrgSettings({ members, departments: serverDepartments }: { membe
       <SettingsHeader title={t('pageTitle')} description={t('chartHint')} />
 
       {/* los departamentos al lado (primer paso y siempre a mano), el organigrama con todo el ancho */}
-      <div className="grid flex-1 grid-cols-1 gap-6 lg:min-h-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
+      <div className="grid flex-1 grid-cols-1 gap-6 lg:min-h-0 lg:grid-cols-[17rem_minmax(0,1fr)] 2xl:grid-cols-[20rem_minmax(0,1fr)]">
         <DepartmentsPanel />
         <div className="flex min-w-0 flex-col lg:min-h-0">
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -227,6 +227,26 @@ function OrgChart({ tree }: { tree: OrgNode<Member>[] }) {
               ))}
             </ul>
           </div>
+          {/* con poca gente el lienzo queda vacío: invita a sumar al equipo para armar el árbol */}
+          {members.length < 4 ? (
+            <div className="mx-auto mt-10 flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-line-strong bg-panel/70 px-6 py-6 text-center">
+              <span className="flex -space-x-2" aria-hidden>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="flex size-9 items-center justify-center rounded-full border border-dashed border-line-strong bg-canvas text-fg-subtle ring-4 ring-panel">
+                    {i === 1 ? <UserPlus className="size-4" /> : null}
+                  </span>
+                ))}
+              </span>
+              <p className="mt-3 text-sm font-semibold text-fg">{t('growTitle')}</p>
+              <p className="mt-1 text-xs leading-relaxed text-fg-muted">{t('growHint')}</p>
+              {admin ? (
+                <Link href="/settings/members" className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'mt-4')}>
+                  <UserPlus />
+                  {t('growAction')}
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {admin ? (
           <p className="flex items-center gap-1.5 border-t border-line bg-panel px-4 py-2 text-xs text-fg-muted">

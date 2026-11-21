@@ -219,7 +219,21 @@
       "submit": "Create account",
       "cancel": "Cancel"
     },
-    "preferences": "Preferences"
+    "preferences": "Preferences",
+    "switching": {
+      "label": "Switching accounts…",
+      "failed": "Couldn’t switch accounts. Try again."
+    },
+    "groups": {
+      "work": "Work",
+      "team": "Team",
+      "memory": "Memory",
+      "account": "Account",
+      "accountSettings": "Account settings"
+    },
+    "backToApp": "Back",
+    "backTo": "Back to {place}",
+    "dashboards": "Dashboards"
   },
   "command": {
     "title": "Search and run",
@@ -460,7 +474,7 @@
     "deleteCommentConfirm": "Delete this comment?",
     "openTask": "Open “{title}”",
     "noMatches": "No tasks match",
-    "noMatchesHint": "Try other words or turn off \"Only mine\".",
+    "noMatchesHint": "Try other words or remove a filter.",
     "recurrence": {
       "label": "Repeat",
       "never": "Doesn’t repeat",
@@ -545,6 +559,22 @@
     "calendarTray": {
       "title": "No date",
       "hint": "Drag them onto a day to give them a date. To remove it, bring them back here."
+    },
+    "viewsLabel": "Task views",
+    "conversation": "Conversation",
+    "conversationHint": "Everything that happens with the task lives here: comments and every change. Use @ to notify someone.",
+    "emptyStatuses": "No tasks:",
+    "newStatus": {
+      "title": "New status",
+      "name": "Name",
+      "placeholder": "E.g. Client review",
+      "category": "Counts as",
+      "hint": "The category decides how it counts in summaries and counters.",
+      "duplicate": "There is already a status with that name.",
+      "create": "Create",
+      "cancel": "Cancel",
+      "created": "Status “{name}” created",
+      "error": "Couldn’t create the status"
     }
   },
   "docs": {
@@ -646,7 +676,18 @@
       },
       "workspaceLevel": "Workspace",
       "link": "Link",
-      "remove": "Remove"
+      "remove": "Remove",
+      "latest": "Latest change",
+      "inParent": "in {title}",
+      "newCardTitle": "New doc",
+      "newCardHint": "Start from scratch or import Markdown.",
+      "sourcesLabel": "Document type",
+      "views": "Docs and files",
+      "search": "Search docs…",
+      "searchFiles": "Search files…",
+      "tasksCount": "{count, plural, one {# task came from this doc} other {# tasks came from this doc}}",
+      "filesCount": "{count, plural, one {# file} other {# files}}",
+      "pick": "or choose files"
     },
     "extractCount": "{count, plural, one {Turn # item into a task} other {Turn # items into tasks}}",
     "shareInPasillo": "Share in Hallway",
@@ -822,7 +863,18 @@
       "allFiles": "All files",
       "noFiles": "No files yet. Upload them from a task, a meeting or the library.",
       "allDecisions": "All decisions",
-      "focusClear": "All clear"
+      "focusClear": "All clear",
+      "upNext": "Up next",
+      "tabMeetings": "Meetings",
+      "tabDocs": "Docs",
+      "tabFiles": "Files",
+      "seeAll": "See all",
+      "recentLabel": "Latest in this space",
+      "noTasksShort": "No tasks yet",
+      "noTasksTitle": "This space has no tasks yet",
+      "noTasksHint": "Create them in Tasks, or they come from meetings: every agreement becomes a task with an owner and a date.",
+      "goToTasks": "Go to Tasks",
+      "allShort": "See all"
     },
     "sections": "Space sections",
     "invite": "Invite"
@@ -840,7 +892,7 @@
     "title": "Settings",
     "nav": {
       "profile": "Profile",
-      "account": "General & plan",
+      "account": "General",
       "members": "People",
       "workspaces": "Workspaces",
       "support": "Support",
@@ -957,7 +1009,7 @@
       "members": "People",
       "usage": "{used} of {max}",
       "unlimitedCount": "{used} · unlimited",
-      "pageTitle": "General & plan",
+      "pageTitle": "General",
       "nameHint": "Your company's name in Veltro.",
       "colorTitle": "Account color",
       "colorHint": "The app takes this color while you’re in this account, so you can tell at a glance where you are.",
@@ -978,7 +1030,16 @@
       "customHint": "Pick one or type its hex. We take its hue and intensity and adjust the light so everything stays readable.",
       "customPick": "Pick a color",
       "customHex": "Hex",
-      "customUse": "Use this color"
+      "customUse": "Use this color",
+      "spacesCount": "{count, plural, one {# space} other {# spaces}}",
+      "peopleCount": "{count, plural, one {# person} other {# people}}",
+      "ownedBy": "Owner: {name}",
+      "spacesTitle": "Account spaces",
+      "spacesHint": "Each space is a project with its people, tasks and meetings.",
+      "newSpace": "New space",
+      "noDescription": "No description",
+      "openSpace": "Open space",
+      "spaceSettings": "Settings"
     },
     "members": {
       "title": "People",
@@ -1055,9 +1116,44 @@
         "revoke": "Revoke invitation",
         "revokeConfirm": "Revoke the invitation to {email}?",
         "revokeHint": "The link stops working. You can invite them again anytime.",
-        "revoked": "Invitation revoked"
+        "revoked": "Invitation revoked",
+        "none": "No pending invites."
       },
-      "guestHint": "Only sees the spaces they were invited to and the people in them."
+      "guestHint": "Only sees the spaces they were invited to and the people in them.",
+      "filterLabel": "Filter by role",
+      "filters": {
+        "all": "All",
+        "admins": "Admins",
+        "member": "Members",
+        "guest": "Guests"
+      },
+      "search": "Search by name, email or title",
+      "cols": {
+        "person": "Person",
+        "title": "Title",
+        "spaces": "Spaces",
+        "role": "Role"
+      },
+      "noTitle": "No title",
+      "noMatches": "Nobody matches that search.",
+      "seats": {
+        "title": "Plan seats",
+        "count": "{used} of {max}",
+        "unlimited": "Unlimited",
+        "people": "People",
+        "invites": "Invites",
+        "free": "Free"
+      },
+      "rolesTitle": "What each role sees",
+      "roleGroups": {
+        "admins": "Owner and admins",
+        "member": "Members",
+        "guest": "Guests"
+      },
+      "nudge": {
+        "title": "Your team will show up here",
+        "hint": "Invite the people you work with. Each person only gets the spaces you choose."
+      }
     },
     "workspaces": {
       "title": "Workspaces",
@@ -1102,7 +1198,30 @@
         "resetConfirm": "Go back to the standard statuses? Tasks keep their category.",
         "save": "Save statuses",
         "saved": "Statuses saved",
-        "error": "Could not save the statuses"
+        "error": "Could not save the statuses",
+        "categoryHints": {
+          "backlog": "Ideas and undated items",
+          "todo": "Ready to start",
+          "in_progress": "Underway",
+          "blocked": "Waiting on something or someone",
+          "done": "Finished"
+        },
+        "howTitle": "How they work",
+        "menuPreview": "How they’re picked on a task",
+        "customNote": "This space uses its own statuses.",
+        "standardNote": "Uses the standard statuses. Change or add any to customize them.",
+        "moveLeft": "Move earlier",
+        "moveRight": "Move later",
+        "renameHint": "Type to rename it (saves automatically)",
+        "duplicate": "There is already a status called “{name}”.",
+        "emptyName": "The status needs a name.",
+        "added": "Status “{name}” created",
+        "renamed": "Status renamed to “{name}”",
+        "removed": "Status “{name}” removed",
+        "removeConfirm": "Remove the status “{name}”?",
+        "removeHint": "Its tasks move to “{to}”.",
+        "saving": "Saving…",
+        "autosave": "Changes save automatically."
       },
       "fields": {
         "title": "Task fields",
@@ -1119,7 +1238,35 @@
         "save": "Save fields",
         "saved": "Fields saved",
         "error": "Couldn't save the fields",
-        "removeHint": "A removed field stops showing on tasks; if you create it again it starts empty."
+        "removeHint": "A removed field stops showing on tasks; if you create it again it starts empty.",
+        "short": "Custom data for the tasks in this space.",
+        "emptyTitle": "No custom fields yet",
+        "addBlank": "Blank field",
+        "previewTitle": "How they look on a task",
+        "previewTask": "Launch the summer campaign",
+        "previewEmpty": "Your fields show up here",
+        "statusLabel": "Status",
+        "tableTitle": "And as columns in Table",
+        "tableTask": "Task",
+        "samples": {
+          "text": "Free text",
+          "number": "1,250",
+          "date": "Nov 28",
+          "select": "Option",
+          "url": "link.com"
+        },
+        "suggestions": {
+          "chain": "Chain",
+          "store": "Store",
+          "sprint": "Sprint",
+          "budget": "Budget",
+          "delivery": "Delivery date",
+          "brief": "Brief link"
+        },
+        "suggestionOptions": {
+          "chain": "Chain A, Chain B, Chain C",
+          "sprint": "Sprint 1, Sprint 2, Sprint 3"
+        }
       },
       "summary": "{statuses} statuses · {fields, plural, =0 {no fields} one {# field} other {# fields}}",
       "newTitle": "New space",
@@ -1247,7 +1394,20 @@
           "f2": "Publish date",
           "t1": "Plan this month's content calendar"
         }
-      }
+      },
+      "eyebrow": "Space settings",
+      "peopleCount": "{count, plural, =0 {no people} one {# person} other {# people}}",
+      "identityTitle": "Identity",
+      "previewTitle": "How it looks",
+      "previewSidebar": "In the sidebar",
+      "previewTask": "On each task",
+      "previewTaskSample": "Review the proposal",
+      "dataTitle": "Space details",
+      "noPeopleTitle": "Only account admins see it",
+      "noPeopleHint": "Add the people who work in this space: each with their role, without seeing the other spaces.",
+      "rolesTitle": "What each role can do",
+      "mark": "Logo",
+      "monogramOr": "or monogram"
     },
     "integrations": {
       "googleDescription": "Show your schedule in Veltro, open notes for each meeting and create meetings with Google Meet.",
@@ -1331,7 +1491,10 @@
       "suggestions": "Sales,Technology,Operations,Finance,Human Resources,Marketing,Purchasing",
       "suggestionsTitle": "Start with your company's areas",
       "suggestionsMore": "Other common areas",
-      "departmentOf": "{name}'s department"
+      "departmentOf": "{name}'s department",
+      "growTitle": "Add your team",
+      "growHint": "Once more people join, you’ll see who reports to whom and each department with its lead.",
+      "growAction": "Invite people"
     },
     "common": {
       "unsaved": "You have unsaved changes",
@@ -1389,6 +1552,21 @@
         "open": "Open",
         "overdue": "Overdue",
         "progress": "In progress"
+      },
+      "loose": {
+        "title": "Not in a team",
+        "hint": "People in the account who aren’t in any team yet.",
+        "create": "Build a team",
+        "none": "Everyone is already in a team."
+      },
+      "where": {
+        "title": "Where teams show up",
+        "tasks": "Tasks",
+        "tasksHint": "Filter the list by team and see its tasks together.",
+        "pulse": "Pulse",
+        "pulseHint": "Follow how each team moves through the day.",
+        "mesa": "Control desk",
+        "mesaHint": "Compare workload and progress across teams."
       }
     },
     "templates": {
@@ -1405,7 +1583,38 @@
       "agendaDetail": "{count, plural, one {# item} other {# items}}",
       "rename": "Rename",
       "delete": "Delete",
-      "deleteConfirm": "Delete the template “{name}”?"
+      "deleteConfirm": "Delete the template “{name}”?",
+      "moreItems": "{count, plural, one {and # more} other {and # more}}",
+      "dueIn": "{count, plural, =0 {Due the same day} one {Due in # day} other {Due in # days}}",
+      "createAnother": "Create another",
+      "createAgenda": "In a meeting room, under Prepare, build the agenda and choose “Save this agenda…”.",
+      "new": "New",
+      "newTaskTitle": "New task template",
+      "newAgendaTitle": "New agenda template",
+      "newTaskHint": "Whatever you put here is copied every time someone uses it from Tasks.",
+      "newAgendaHint": "The points load into the agenda of the meeting where you use it.",
+      "editTitle": "Edit template",
+      "namePlaceholderTask": "Client onboarding",
+      "namePlaceholderAgenda": "Weekly meeting",
+      "scope": "Available in",
+      "taskTitle": "Task title",
+      "taskTitlePlaceholder": "Same as the name",
+      "priority": "Priority",
+      "dueInLabel": "Due after (days)",
+      "dueInHint": "From creation. Empty: no date.",
+      "noDue": "No date",
+      "subtasks": "Subtasks",
+      "points": "Agenda points",
+      "addSubtask": "Add subtask",
+      "addPoint": "Add point",
+      "removeItem": "Remove",
+      "cancel": "Cancel",
+      "save": "Save",
+      "create": "Create template",
+      "created": "Template created",
+      "saved": "Template saved",
+      "edit": "Edit",
+      "orElse": "Or:"
     }
   },
   "errors": {
@@ -1619,7 +1828,20 @@
       "error": "Couldn’t change it. Try again.",
       "pageTitle": "Support",
       "pageBody": "When someone reports a problem, the ticket goes to whoever is chosen here for their role. The whole account can see it; only the owner can change it.",
-      "yours": "As {role}, your tickets go to: {to}."
+      "yours": "As {role}, your tickets go to: {to}.",
+      "from": "Created by",
+      "via": "Goes to",
+      "reaches": "Who gets it",
+      "nobody": "Nobody with this role yet",
+      "people": "{count, plural, one {# person} other {# people}}",
+      "yoursTitle": "Your tickets",
+      "openSupport": "Go to Support",
+      "destinationsTitle": "Destinations",
+      "destHint": {
+        "account_admins": "The account admins see and answer it.",
+        "account_owner": "Only the account owner sees and answers it.",
+        "veltro": "The Veltro team handles it directly."
+      }
     },
     "new": "New",
     "filterLabel": "Filter by status",
@@ -2244,7 +2466,8 @@
     "goPasillo": "Hallway",
     "goDecisions": "Go to Decisions",
     "goRequests": "Go to Requests",
-    "fullscreen": "Full screen (Esc to go back)"
+    "fullscreen": "Full screen (Esc to go back)",
+    "goDashboards": "Dashboards"
   },
   "scope": {
     "me": "Mine",
@@ -3310,6 +3533,119 @@
       "saveButton": "Save",
       "saved": "Agenda “{name}” saved",
       "applied": "Loaded the agenda “{name}”"
+    }
+  },
+  "logo": {
+    "upload": "Upload logo",
+    "change": "Change logo",
+    "remove": "Remove",
+    "saved": "Logo saved",
+    "removed": "Logo removed",
+    "error": "Couldn’t save the logo. Try again.",
+    "invalid": "That file isn’t an image we can read.",
+    "tooBig": "The image is too heavy. Try a simpler one.",
+    "hint": "PNG, JPG, WebP or SVG. Shows in the sidebar and the header."
+  },
+  "dashboards": {
+    "title": "Dashboards",
+    "subtitle": "{open, plural, one {# open task} other {# open tasks}} · {overdue} overdue · {done} done in the period",
+    "subtitleLoading": "How tasks are doing, in numbers.",
+    "empty": "No tasks in this scope yet. Once there are, you’ll see how they’re doing here.",
+    "allSpaces": "All spaces",
+    "goMesa": "Who and which space needs attention: in {mesa}",
+    "rowTip": "{name}: {count, plural, one {# task} other {# tasks}} ({pct}%)",
+    "tasks": "{count, plural, one {# task} other {# tasks}}",
+    "kpi": {
+      "open": "Open",
+      "openHint": "{inProgress} in progress · {blocked} blocked",
+      "overdue": "Overdue",
+      "overdueHint": "{pct}% of what’s open",
+      "nothingOpen": "Nothing open",
+      "done": "Done",
+      "onTime": "On time",
+      "onTimeNone": "No due dates to measure",
+      "onTimeHint": "Of {count, plural, one {# finished task with a due date} other {# finished tasks with a due date}}",
+      "cycle": "Time to finish",
+      "cycleNone": "Nothing finished yet",
+      "cycleHint": "Median of {count, plural, one {# task} other {# tasks}}",
+      "lessThanDay": "Under 1 day",
+      "daysValue": "{n, plural, one {# day} other {# days}}",
+      "noPrev": "No previous period to compare",
+      "same": "Same as the previous period",
+      "pts": "{n} pts",
+      "days": "{n, plural, one {# day} other {# days}}",
+      "vsPrev": "vs. previous",
+      "onTimeNoneShort": "No due dates",
+      "cycleNoneShort": "Nothing finished yet",
+      "inMotion": "In progress",
+      "blockedCount": "{count, plural, =0 {none blocked} other {# blocked}}",
+      "noPrevShort": "No previous period",
+      "newInPeriod": "New this period",
+      "sameShort": "Same as before",
+      "lessThanDayShort": "< 1 d",
+      "daysShort": "{n} d",
+      "cycleShort": "To finish",
+      "before": "before {n}",
+      "vsPrevLong": "Against the previous period of the same length"
+    },
+    "backlog": {
+      "title": "Open work over time",
+      "hint": "Open tasks each day and, of those, how many were already overdue.",
+      "open": "Open",
+      "overdue": "Overdue",
+      "flat": "Open work ended the period where it started.",
+      "grew": "Open work grew by {n, plural, one {# task} other {# tasks}} in the period.",
+      "shrank": "Open work dropped by {n, plural, one {# task} other {# tasks}} in the period.",
+      "aria": "Open work trend: today {open} open and {overdue} overdue.",
+      "tableCaption": "Open and overdue tasks per day",
+      "day": "Day"
+    },
+    "status": {
+      "title": "Open work by status",
+      "hint": "Where the remaining work is ({count, plural, one {# task} other {# tasks}}).",
+      "none": "Nothing open: everything is done.",
+      "hintShort": "Where the remaining work is.",
+      "figure": "open",
+      "titleShort": "By status"
+    },
+    "priority": {
+      "title": "Open work by priority",
+      "hint": "How urgent the remaining work is.",
+      "none": "Nothing open.",
+      "figure": "urgent or high",
+      "titleShort": "By priority"
+    },
+    "due": {
+      "title": "What’s due",
+      "hint": "Overdue and the next 14 days{noDate, plural, =0 {} other { · # without a date}}.",
+      "late": "Overdue",
+      "lateTip": "{count, plural, one {# overdue task} other {# overdue tasks}}",
+      "today": "Today",
+      "none": "Nothing is due in the next 14 days.",
+      "hintShort": "Overdue and the next 14 days.",
+      "figure": "in 14 days",
+      "fixDates": "Add a date to {count, plural, one {the task} other {the # tasks}} without one"
+    },
+    "cycle": {
+      "title": "How long tasks take",
+      "hint": "{count, plural, =0 {Tasks finished in the period} one {# task finished in the period} other {# tasks finished in the period}}, by days since they were created.",
+      "none": "Nothing finished in the period.",
+      "buckets": {
+        "sameDay": "Same day",
+        "d3": "1–3 days",
+        "d7": "4–7 days",
+        "d14": "1–2 wks",
+        "more": "2+ wks"
+      },
+      "hintShort": "{count, plural, =0 {From creation to done.} one {# finished in the period.} other {# finished in the period.}}",
+      "figure": "median",
+      "titleShort": "How long they take"
+    },
+    "hero": {
+      "openOverdue": "<b>{open, plural, one {# open task} other {# open tasks}}</b> and <l>{overdue} overdue</l>.",
+      "openClear": "<b>{open, plural, one {# open task} other {# open tasks}}</b> and none overdue.",
+      "nothingOpen": "<b>Nothing open:</b> everything is done.",
+      "subline": "{done} finished and {created} new."
     }
   }
 }

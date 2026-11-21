@@ -30,6 +30,7 @@ export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenC
         { keys: ['G', 'M'], label: t('goMesa'), then: true },
         { keys: ['G', 'C'], label: t('goCalendar'), then: true },
         { keys: ['G', 'T'], label: t('goMyTasks'), then: true },
+        { keys: ['G', 'A'], label: t('goDashboards'), then: true },
         { keys: ['G', 'S'], label: t('goRequests'), then: true },
         { keys: ['G', 'D'], label: t('goDecisions'), then: true },
         { keys: ['G', 'B'], label: t('goVault'), then: true },
