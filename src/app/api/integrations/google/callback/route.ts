@@ -1,16 +1,30 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { googleReason } from '@/lib/api/integraciones'
+import { API_URL } from '@/lib/api/session-cookies'
 import { apiWithSession, BINDING_COOKIE, BINDING_PATH, safeReturn, withSession } from '../_shared'
 
 /**
  * Vuelta de Google. La web pone la sesión y el secreto del navegador; la API verifica el estado
  * (firma, vencimiento, persona, navegador y un solo uso), canjea el código y guarda la conexión.
  * La web nunca ve los tokens de Google.
+ *
+ * Las conexiones que empiezan en la app móvil (cuentas de correo) traen un estado «app.»: Google
+ * vuelve aquí igual (es la única vuelta registrada), y se reenvían tal cual a la API, que las
+ * manda a la app; la app termina la conexión con su sesión y su secreto.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const binding = request.cookies.get(BINDING_COOKIE)?.value
   const state = params.get('state')
+
+  if (state?.startsWith('app.')) {
+    const target = new URL(`${API_URL}/v1/integrations/mail/google/return`)
+    for (const k of ['code', 'state', 'error', 'scope']) {
+      const v = params.get(k)
+      if (v) target.searchParams.set(k, v)
+    }
+    return NextResponse.redirect(target)
+  }
 
   const finish = (path: string, status: string, renewed: Parameters<typeof withSession>[1] = null) => {
     const target = new URL(path, request.url)
