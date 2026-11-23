@@ -1,23 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns'
-import { ArrowDownRight, ArrowUpRight, CheckCheck, ChevronDown, CircleAlert, CircleCheck, Info, LayoutGrid, Minus, OctagonAlert, Users } from 'lucide-react'
-import { useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
+import { addDays, differenceInCalendarDays, format, formatDistanceToNowStrict, parseISO } from 'date-fns'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowDownRight, ArrowUpRight, CheckCheck, ChevronDown, CircleAlert, CircleCheck, DoorOpen, Info, LayoutGrid, Mail, Minus, OctagonAlert, Plus, ShieldCheck, UserPlus, UserRound, Users } from 'lucide-react'
+import { useApp, useIsAccountAdmin, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { ScopeMenu, ScopePeople } from '@/components/app/scope-menu'
 import { FullscreenExitButton } from '@/components/app/fullscreen'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { DateRangePicker, formatRange, rangeBuckets, resolveRange, type DateRangeValue } from '@/components/ui/date-range-picker'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/ui/error-state'
 import { CARD } from '@/components/ui/surface'
 import { Tooltip } from '@/components/ui/tooltip'
 import { StatusIcon } from '@/components/tasks/status-icon'
+import { InviteDialog } from '@/components/settings/members-settings'
+import { WORKSPACE_TEMPLATES } from '@/lib/workspace-templates'
 import { useTaskStats, useTasks } from '@/lib/queries/tasks'
 import type { ApiTaskStats } from '@/lib/api/tareas'
+import type { Invitation } from '@/lib/api/ajustes'
+import { api } from '@/lib/api/client'
 import { useLocalStorage, useNow } from '@/lib/hooks'
 import { useScopes, type ScopeOption } from '@/lib/scope'
 import { assigneesOf } from '@/lib/assignees'
@@ -150,7 +156,7 @@ export function MesaView() {
           <Rhythm daily={data.daily} buckets={range.buckets} now={now} totals={totals} open={data.counters.open} />
           <Attention stats={stats} people={peopleAll} />
           <SpacesTable stats={stats} scope={scope} range={range} now={now} />
-          <TeamLoad people={data.people} />
+          <TeamLoad people={data.people} scope={scope} />
         </div>
       )}
     </div>
@@ -167,6 +173,29 @@ const GRID =
   'grid grid-cols-1 gap-4 @min-[980px]/mesa:min-h-0 @min-[980px]/mesa:flex-1 @min-[980px]/mesa:grid-cols-[minmax(0,1.6fr)_minmax(19rem,1fr)] @min-[980px]/mesa:grid-rows-[auto_minmax(16rem,1fr)]'
 
 // ---------------- piezas comunes ----------------
+
+/**
+ * Cuánto aire queda en una lista que se desplaza: su alto visible menos lo que ocupan las filas.
+ * Se mide sin contar lo que se agrega abajo, así que mostrarlo no cambia la cuenta. Si la tarjeta
+ * crece con su contenido (pantallas angostas, una columna), el aire es cero y no se agrega nada.
+ */
+function useSpare<A extends HTMLElement, B extends HTMLElement>() {
+  const box = useRef<A>(null)
+  const content = useRef<B>(null)
+  const [spare, setSpare] = useState(0)
+  useLayoutEffect(() => {
+    const a = box.current
+    const b = content.current
+    if (!a || !b) return
+    const measure = () => setSpare(Math.max(0, a.clientHeight - b.offsetHeight))
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(a)
+    ro.observe(b)
+    return () => ro.disconnect()
+  }, [])
+  return { box, content, spare }
+}
 
 /** Encabezado dentro de una tarjeta: título con su cuenta, una línea que explica y algo a la derecha. */
 function CardHead({ icon, title, count, hint, aside }: { icon?: React.ReactNode; title: string; count?: number; hint?: React.ReactNode; aside?: React.ReactNode }) {
@@ -499,33 +528,39 @@ const HEAD = 'text-[11.5px] font-medium text-fg-subtle'
 function SpacesTable({ stats, scope, range, now }: { stats: SpaceStat[]; scope: ScopeOption; range: { from: Date; end: Date; buckets: Bucket[] }; now: Date }) {
   const t = useTranslations('mesa')
   const [openId, setOpenId] = useState<string | null>(null)
+  const { workspaces } = useApp()
+  const { box, content, spare } = useSpare<HTMLDivElement, HTMLDivElement>()
+  // con pocos espacios queda aire debajo: ahí va lo que sigue, abrir otro (crear es de admins).
+  // Con mucho aire, las plantillas con su descripción; con poco, sus nombres; sin aire, nada.
+  const suggest = useIsAccountAdmin() && workspaces.length <= 3
+  const nudge = !suggest ? null : spare >= 300 ? 'roomy' : spare >= 104 ? 'compact' : null
 
   return (
     <section className={cn(CARD, '@container/spaces flex min-h-0 flex-col overflow-hidden')}>
       <div className="shrink-0 px-5 pb-3 pt-4">
         <CardHead icon={<LayoutGrid className="text-accent" />} title={t('spaces.title')} count={stats.length} />
       </div>
-      {stats.length === 0 ? (
-        <p className="px-5 pb-5 text-sm text-fg-muted">{t('spaces.empty')}</p>
-      ) : (
-        <>
-          <div className={cn('grid shrink-0 items-center gap-x-3 border-y border-line-soft bg-canvas/70 px-5 py-2', HEAD, COLS)}>
-            <span>{t('spaces.space')}</span>
-            <span className="flex items-center gap-1">
-              {t('spaces.health')}
-              <Tooltip content={<span className="block max-w-64 whitespace-normal font-normal leading-snug">{t('spaces.healthHelp', { days: RISK_DAYS, count: RISK_COUNT })}</span>}>
-                <button type="button" className="rounded-sm text-fg-subtle outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/35" aria-label={t('spaces.healthHelpLabel')}>
-                  <Info className="size-3" />
-                </button>
-              </Tooltip>
-            </span>
-            <span className="hidden @min-[38rem]/spaces:block">{t('spaces.progress')}</span>
-            <span className="text-right">{t('spaces.open')}</span>
-            <span className="hidden text-right @md/spaces:block">{t('spaces.overdue')}</span>
-            <span className="hidden text-right @md/spaces:block">{t('spaces.blocked')}</span>
-            <span className="hidden @md/spaces:block" />
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+      {stats.length ? (
+        <div className={cn('grid shrink-0 items-center gap-x-3 border-y border-line-soft bg-canvas/70 px-5 py-2', HEAD, COLS)}>
+          <span>{t('spaces.space')}</span>
+          <span className="flex items-center gap-1">
+            {t('spaces.health')}
+            <Tooltip content={<span className="block max-w-64 whitespace-normal font-normal leading-snug">{t('spaces.healthHelp', { days: RISK_DAYS, count: RISK_COUNT })}</span>}>
+              <button type="button" className="rounded-sm text-fg-subtle outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/35" aria-label={t('spaces.healthHelpLabel')}>
+                <Info className="size-3" />
+              </button>
+            </Tooltip>
+          </span>
+          <span className="hidden @min-[38rem]/spaces:block">{t('spaces.progress')}</span>
+          <span className="text-right">{t('spaces.open')}</span>
+          <span className="hidden text-right @md/spaces:block">{t('spaces.overdue')}</span>
+          <span className="hidden text-right @md/spaces:block">{t('spaces.blocked')}</span>
+          <span className="hidden @md/spaces:block" />
+        </div>
+      ) : null}
+      <div ref={box} className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
+        <div ref={content} className="flex flex-col">
+          {stats.length === 0 ? <p className="px-5 pb-5 text-sm text-fg-muted">{t('spaces.empty')}</p> : null}
           {stats.map((s) => {
             const expanded = openId === s.ws.id
             return (
@@ -563,10 +598,65 @@ function SpacesTable({ stats, scope, range, now }: { stats: SpaceStat[]; scope: 
               </Fragment>
             )
           })}
-          </div>
-        </>
-      )}
+        </div>
+        {nudge ? <NewSpaceNudge roomy={nudge === 'roomy'} /> : null}
+      </div>
     </section>
+  )
+}
+
+/**
+ * Lo que sigue cuando hay pocos espacios: un renglón más de la tabla, todavía vacío (el cuadro
+ * punteado ocupa el lugar del logo), con las plantillas a un toque. Con aire, cada plantilla con
+ * lo que es y su recorrido de estados; con poco, solo sus nombres.
+ */
+function NewSpaceNudge({ roomy }: { roomy: boolean }) {
+  const t = useTranslations('mesa.spaces')
+  const tt = useTranslations('settings.workspaces.templates')
+  const href = (key: string) => (key === 'blank' ? '/settings/workspaces/new' : `/settings/workspaces/new?template=${key}`)
+  const focus = 'outline-none focus-visible:ring-2 focus-visible:ring-accent-mid/35'
+  return (
+    <div className="flex gap-3 border-t border-line-soft px-5 pb-4 pt-3.5">
+      <span aria-hidden className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] border border-dashed border-line-strong text-fg-subtle">
+        <Plus className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-fg">{t('newTitle')}</p>
+        <p className="text-xs leading-relaxed text-fg-muted">{t('newHint')}</p>
+        {roomy ? (
+          <div className="mt-3 grid grid-cols-1 gap-2 @min-[34rem]/spaces:grid-cols-2 @min-[56rem]/spaces:grid-cols-3">
+            {WORKSPACE_TEMPLATES.map((x) => (
+              <Link key={x.key} href={href(x.key)} className={cn('group/tpl flex flex-col gap-1 rounded-xl bg-fg/[0.035] px-3.5 py-3 transition-colors duration-150 hover:bg-accent-soft/70', focus)}>
+                <span className="flex items-center justify-between gap-2 text-[13px] font-semibold text-fg">
+                  {tt(`${x.key}.name`)}
+                  <ArrowUpRight className="size-3.5 shrink-0 text-fg-subtle opacity-0 transition-opacity duration-150 group-hover/tpl:opacity-100" />
+                </span>
+                <span className="line-clamp-2 text-xs leading-snug text-fg-muted">{tt(`${x.key}.description`)}</span>
+                {x.statuses.length ? (
+                  <span className="mt-auto flex items-center gap-1 pt-1.5" title={x.statuses.map((st) => tt(`${x.key}.${st.key}`)).join(' → ')}>
+                    {x.statuses.map((st) => (
+                      <StatusIcon key={st.key} status={st.category} className="size-3" />
+                    ))}
+                  </span>
+                ) : null}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {WORKSPACE_TEMPLATES.filter((x) => x.key !== 'blank').map((x) => (
+              <Link key={x.key} href={href(x.key)} className={cn('inline-flex h-7 items-center rounded-full bg-fg/[0.05] px-3 text-xs font-medium text-fg transition-colors duration-150 hover:bg-accent-soft hover:text-accent-ink', focus)}>
+                {tt(`${x.key}.name`)}
+              </Link>
+            ))}
+            <Link href={href('blank')} className={cn('inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium text-fg-muted transition-colors duration-150 hover:text-fg', focus)}>
+              {tt('blank.name')}
+              <ArrowUpRight className="size-3" />
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -742,9 +832,12 @@ function SpaceDetail({ stat, scope, now }: { stat: SpaceStat; scope: ScopeOption
 
 // ---------------- carga del equipo ----------------
 
-function TeamLoad({ people }: { people: ApiTaskStats['people'] }) {
+function TeamLoad({ people, scope }: { people: ApiTaskStats['people']; scope: ScopeOption }) {
   const t = useTranslations('mesa')
   const memberMap = useMemberMap()
+  const { members, account } = useApp()
+  const admin = useIsAccountAdmin()
+  const { box, content, spare } = useSpare<HTMLDivElement, HTMLDivElement>()
 
   // la API ya trae a quienes tienen abiertas o cerradas en el período, de más a menos en riesgo
   const rows = useMemo(
@@ -757,6 +850,25 @@ function TeamLoad({ people }: { people: ApiTaskStats['people'] }) {
     [people, memberMap],
   )
   const max = Math.max(1, ...rows.map((r) => r.open))
+  // quienes entran en el alcance y no tienen nada: ahí hay a quién darle trabajo. En Delegadas y
+  // Siguiendo la API arma la población, así que no se sabe quién falta.
+  const free = useMemo(() => {
+    if (scope.kind === 'delegated' || scope.kind === 'following') return []
+    const listed = new Set(rows.map((r) => r.member.id))
+    const pool = scope.kind === 'all' ? members.filter((m) => m.role !== 'guest') : members.filter((m) => scope.userIds.has(m.id))
+    return pool.filter((m) => !listed.has(m.id))
+  }, [scope, rows, members])
+  // un equipo de una a tres personas: lo que sigue es traer al resto (invitar es de admins).
+  // Con aire, también qué ve cada tipo de invitado; sin aire, nada.
+  const small = admin && members.filter((m) => m.role !== 'guest').length <= 3
+  const invite = !small ? null : spare >= 200 ? 'roomy' : spare >= 84 ? 'compact' : null
+  // y quienes ya fueron invitados y no han entrado: así se ve que invitar sirvió (misma caché que Ajustes)
+  const invitations = useQuery({
+    queryKey: ['settings', account.id, 'invitations'],
+    queryFn: () => api<{ items: Invitation[] }>(`/v1/accounts/${account.id}/invitations`),
+    enabled: small,
+  })
+  const pending = small ? (invitations.data?.items ?? []) : []
 
   return (
     <section className={cn(CARD, '@container/team flex min-h-0 flex-col overflow-hidden')}>
@@ -764,10 +876,9 @@ function TeamLoad({ people }: { people: ApiTaskStats['people'] }) {
         {/* leyenda: siempre visible, la identidad nunca depende solo del color */}
         <CardHead icon={<Users className="text-accent" />} title={t('team.title')} count={rows.length} hint={<LoadLegend className="mt-1.5" />} />
       </div>
-      {rows.length === 0 ? (
-        <p className="px-5 pb-5 text-sm text-fg-muted">{t('team.empty')}</p>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto pb-2 scrollbar-thin">
+      <div ref={box} className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
+        <div ref={content} className="flex flex-col pb-2">
+          {rows.length === 0 ? <p className="px-5 pb-3 text-sm text-fg-muted">{t('team.empty')}</p> : null}
           {rows.map((r) => (
             <Link
               key={r.member.id}
@@ -793,8 +904,128 @@ function TeamLoad({ people }: { people: ApiTaskStats['people'] }) {
               </span>
             </Link>
           ))}
+          {free.length ? <FreePeople people={free} /> : null}
+          {pending.length ? <PendingInvites items={pending} /> : null}
         </div>
-      )}
+        {invite ? <InviteNudge roomy={invite === 'roomy'} /> : null}
+      </div>
     </section>
+  )
+}
+
+/** Quienes no tienen tareas abiertas en el alcance, en una fila de nombres: pueden recibir trabajo. */
+function FreePeople({ people }: { people: Member[] }) {
+  const t = useTranslations('mesa.team')
+  const shown = people.slice(0, 10)
+  return (
+    <div className="mx-2 mt-1 px-3 py-2.5">
+      <p className="text-xs text-fg-muted">
+        <span className="font-semibold text-fg">{t('free')}</span> · {t('freeHint')}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {shown.map((m) => (
+          <span key={m.id} className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-fg/[0.05] py-0.5 pl-0.5 pr-2.5 text-xs font-medium text-fg">
+            <Avatar name={m.full_name} src={m.avatar_url} seed={m.id} size={20} />
+            <span className="truncate">{m.full_name}</span>
+          </span>
+        ))}
+        {people.length > shown.length ? <span className="inline-flex h-6 items-center px-1 text-xs text-fg-subtle">+{people.length - shown.length}</span> : null}
+      </div>
+    </div>
+  )
+}
+
+/** Invitaciones sin aceptar: quién viene en camino y cuándo vence su enlace. Se gestionan en Ajustes > Personas. */
+function PendingInvites({ items }: { items: Invitation[] }) {
+  const t = useTranslations('settings.members.invites')
+  const tr = useTranslations('roles')
+  const locale = useDateLocale()
+  const shown = items.slice(0, 4)
+  return (
+    <div className="mx-2 mt-1 px-3 py-2.5">
+      <p className="text-xs font-semibold text-fg">
+        {t('title')} <span className="font-normal tabular-nums text-fg-subtle">· {items.length}</span>
+      </p>
+      <ul className="mt-1.5 flex flex-col">
+        {shown.map((i) => {
+          const who = i.fullName?.trim() || i.email
+          return (
+            <li key={i.id}>
+              <Link href="/settings/members" className="-mx-2 flex items-center gap-2.5 rounded-lg px-2 py-1.5 outline-none transition-colors duration-150 hover:bg-hover/60 focus-visible:bg-hover/60">
+                <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-hover text-fg-muted">
+                  <Mail className="size-3.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium text-fg">{who}</span>
+                  {i.fullName ? <span className="block truncate text-[11px] text-fg-subtle">{i.email}</span> : null}
+                </span>
+                <span className="shrink-0 text-right text-[11px] leading-tight">
+                  <span className="block font-medium text-fg-muted">{tr(i.role)}</span>
+                  <span className={cn('block', i.expired ? 'text-danger' : 'text-fg-subtle')}>
+                    {i.expired ? t('expired') : t('pending', { when: formatDistanceToNowStrict(new Date(i.expiresAt), { locale }) })}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+      {items.length > shown.length ? <p className="pt-1 text-[11px] text-fg-subtle">+{items.length - shown.length}</p> : null}
+    </div>
+  )
+}
+
+/**
+ * Con un equipo chico, la persona que falta: un renglón más de la lista (el círculo punteado en el
+ * lugar de la foto) con el botón para invitar. Con aire, también qué ve cada tipo de invitado.
+ */
+function InviteNudge({ roomy }: { roomy: boolean }) {
+  const t = useTranslations('mesa.team')
+  const ta = useTranslations('settings.members.addDialog')
+  const tr = useTranslations('roles')
+  const { accountRole, account } = useApp()
+  const qc = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const kinds = [
+    { id: 'member', icon: UserRound },
+    { id: 'guest', icon: DoorOpen },
+    // a admin solo puede invitar el dueño
+    ...(accountRole === 'owner' ? [{ id: 'admin', icon: ShieldCheck }] : []),
+  ] as const
+  return (
+    <div className="border-t border-line-soft px-5 pb-4 pt-3.5">
+      <div className="flex items-center gap-3">
+        <span aria-hidden className="flex size-[34px] shrink-0 items-center justify-center rounded-full border border-dashed border-line-strong text-fg-subtle">
+          <UserPlus className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-fg">{t('inviteTitle')}</p>
+          <p className="text-xs leading-relaxed text-fg-muted">{t('inviteHint')}</p>
+        </div>
+        <Button size="sm" variant="primary" onClick={() => setOpen(true)} className="shrink-0">
+          <UserPlus />
+          {t('invite')}
+        </Button>
+      </div>
+      {roomy ? (
+        <ul className="mt-3 flex flex-col gap-2 pl-[46px]">
+          {kinds.map(({ id, icon: Icon }) => (
+            <li key={id} className="flex items-start gap-2 text-xs leading-snug">
+              <Icon aria-hidden className="mt-px size-3.5 shrink-0 text-fg-subtle" />
+              <span className="min-w-0">
+                <span className="font-semibold text-fg">{tr(id)}</span>
+                <span className="text-fg-muted"> · {ta(`${id}Hint`)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <InviteDialog
+        open={open}
+        onOpenChange={setOpen}
+        canPromote={accountRole === 'owner'}
+        onDone={() => qc.invalidateQueries({ queryKey: ['settings', account.id, 'invitations'] })}
+      />
+    </div>
   )
 }

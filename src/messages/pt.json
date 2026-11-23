@@ -2382,7 +2382,9 @@
       "progress": "Avanço no período",
       "open": "Abertas",
       "overdue": "Atrasadas",
-      "blocked": "Bloq."
+      "blocked": "Bloq.",
+      "newTitle": "Abra outro espaço",
+      "newHint": "Um por cliente, projeto ou área, cada um com sua equipe. Comece com um modelo:"
     },
     "health": {
       "ok": "Em dia",
@@ -2409,7 +2411,12 @@
       "open": "{count, plural, one {# aberta} other {# abertas}}",
       "atRisk": "{count} em risco",
       "closed": "{count, plural, =0 {nenhuma concluída} one {# concluída} other {# concluídas}}",
-      "empty": "Ninguém tem tarefas neste escopo."
+      "empty": "Ninguém tem tarefas neste escopo.",
+      "free": "Sem tarefas abertas",
+      "freeHint": "podem receber trabalho",
+      "inviteTitle": "Traga sua equipe",
+      "inviteHint": "Distribua o trabalho e veja aqui a carga de cada pessoa.",
+      "invite": "Convidar"
     },
     "attention": {
       "title": "Pede atenção",

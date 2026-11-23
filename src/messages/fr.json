@@ -2382,7 +2382,9 @@
       "progress": "Avancement sur la période",
       "open": "Ouvertes",
       "overdue": "En retard",
-      "blocked": "Bloq."
+      "blocked": "Bloq.",
+      "newTitle": "Ouvrez un autre espace",
+      "newHint": "Un par client, projet ou service, chacun avec son équipe. Partez d'un modèle :"
     },
     "health": {
       "ok": "En ordre",
@@ -2409,7 +2411,12 @@
       "open": "{count, plural, one {# ouverte} other {# ouvertes}}",
       "atRisk": "{count} à risque",
       "closed": "{count, plural, =0 {aucune terminée} one {# terminée} other {# terminées}}",
-      "empty": "Personne n’a de tâches dans ce périmètre."
+      "empty": "Personne n’a de tâches dans ce périmètre.",
+      "free": "Aucune tâche ouverte",
+      "freeHint": "disponibles pour du travail",
+      "inviteTitle": "Faites venir votre équipe",
+      "inviteHint": "Répartissez le travail et voyez ici la charge de chacun.",
+      "invite": "Inviter"
     },
     "attention": {
       "title": "À surveiller",

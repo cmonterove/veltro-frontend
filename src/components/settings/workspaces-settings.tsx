@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -123,7 +123,9 @@ export function NewWorkspace({ usage }: { usage: Usage | null }) {
   const { account } = useApp()
   const tt = useTranslations('settings.workspaces.templates')
   const [form, setForm] = useState({ name: '', icon: '', color: 'violet', description: '' })
-  const [template, setTemplate] = useState('blank')
+  // ?template=client: llega desde la Mesa con la plantilla ya elegida
+  const asked = useSearchParams().get('template')
+  const [template, setTemplate] = useState(() => (WORKSPACE_TEMPLATES.some((x) => x.key === asked) ? (asked as string) : 'blank'))
   const [pending, start] = useTransition()
   const full = usage?.max_workspaces != null && usage.workspaces_count >= usage.max_workspaces
 

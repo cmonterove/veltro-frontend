@@ -52,7 +52,8 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { fetchTaskByRef, useCreateTask, useDeleteTaskWithUndo, useSubtasks, useTask, useTaskOrigin, useUpdateTask, useWorkspaceLabels } from '@/lib/queries/tasks'
 import { useAddComment, useDeleteComment, useTaskComments } from '@/lib/queries/comments'
 import { useAttachments } from '@/lib/queries/attachments'
-import { ApiError } from '@/lib/api/client'
+import { ApiError, api } from '@/lib/api/client'
+import { goToAccount } from '@/lib/switch-account'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { isTypingTarget } from '@/lib/hooks'
 import { TASK_BACK_KEY, taskPath, taskRefKey, useOpenTask } from '@/lib/use-open-task'
@@ -85,7 +86,7 @@ export function TaskPage({ param }: { param: string }) {
   const t = useTranslations('tasks')
   const router = useRouter()
   const qc = useQueryClient()
-  const { account } = useApp()
+  const { account, accounts } = useApp()
   const wsMap = useWorkspaceMap()
   const isId = UUID.test(param)
 
@@ -125,7 +126,41 @@ export function TaskPage({ param }: { param: string }) {
     router.replace(`${taskPath(ws.key, task.number)}${window.location.search}`, { scroll: false })
   }, [isId, task, ws, router, qc])
 
-  const notFound = (!isId && !byRef) || (!isId && resolved.isSuccess && !resolved.data) || resolved.isError || isError
+  // De otra de mis cuentas (un enlace, un aviso): por la referencia, se busca en mis otras cuentas; por
+  // id, la tarea llega pero su espacio no está en esta cuenta. En los dos casos se cambia de cuenta.
+  const refText = decodeURIComponent(param)
+  const missingHere = !isId && (!byRef || (resolved.isSuccess && !resolved.data))
+  const byRefElsewhere = useQuery({
+    queryKey: ['task-ref-elsewhere', refText.toUpperCase()],
+    enabled: missingHere && /^[A-Za-z0-9]{2,5}-\d{1,10}$/.test(refText) && accounts.length > 1,
+    staleTime: 60_000,
+    queryFn: async () => {
+      for (const a of accounts) {
+        if (a.id === account.id) continue
+        try {
+          await api(`/v1/tasks/ref/${encodeURIComponent(refText)}`, { query: { accountId: a.id } })
+          return a.id
+        } catch {
+          // no está en esa cuenta
+        }
+      }
+      return null
+    },
+  })
+  const byIdElsewhere = useQuery({
+    queryKey: ['task-ws-elsewhere', task?.workspace_id ?? 'none'],
+    enabled: Boolean(task && !ws),
+    staleTime: 60_000,
+    queryFn: () => api<{ accountId: string }>(`/v1/workspaces/${task!.workspace_id}`).then((w) => w.accountId).catch(() => null),
+  })
+  const otherAccount = [byRefElsewhere.data, byIdElsewhere.data].find((a) => a && a !== account.id) ?? null
+  useEffect(() => {
+    if (otherAccount) goToAccount(otherAccount)
+  }, [otherAccount])
+  const searching = byRefElsewhere.isLoading || byIdElsewhere.isLoading || Boolean(otherAccount)
+
+  const notFound =
+    !searching && ((missingHere && !byRefElsewhere.data) || resolved.isError || isError || (Boolean(task && !ws) && byIdElsewhere.isSuccess && !otherAccount))
   if (notFound) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-start gap-3 px-6 py-16">

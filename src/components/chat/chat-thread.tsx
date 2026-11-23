@@ -31,6 +31,9 @@ import {
   X,
 } from 'lucide-react'
 import { useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api/client'
+import { goToAccount } from '@/lib/switch-account'
 import { DocMark } from '@/components/app/marks'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
 import { MentionTextarea, mentionIds, type MentionCandidate } from '@/components/mentions/mention-textarea'
@@ -70,9 +73,20 @@ const GROUP_MINUTES = 7
 export function ChatThread({ chatId }: { chatId: string }) {
   const t = useTranslations('pasillo')
   const router = useRouter()
-  const { user } = useApp()
+  const { user, account } = useApp()
   const { data: chats, isLoading: loadingChats } = useChats({ fast: true })
   const chat = chats?.find((c) => c.id === chatId)
+  // no está entre los chats de esta cuenta: puede ser de otra de mis cuentas (un enlace, un aviso)
+  const elsewhere = useQuery({
+    queryKey: ['chat-elsewhere', chatId],
+    enabled: !loadingChats && !!chats && !chat,
+    staleTime: 30_000,
+    queryFn: () => api<{ accountId: string }>(`/v1/chats/${chatId}`).catch(() => null),
+  })
+  const otherAccount = elsewhere.data && elsewhere.data.accountId !== account.id ? elsewhere.data.accountId : null
+  useEffect(() => {
+    if (otherAccount) goToAccount(otherAccount, `/chat/${chatId}`)
+  }, [otherAccount, chatId])
   const { data: messages, isLoading, hasOlder, loadOlder, loadingOlder } = useChatMessages(chatId)
   const { markRead } = useChatMutations()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -140,7 +154,7 @@ export function ChatThread({ chatId }: { chatId: string }) {
   }, [chat?.id, isLoading])
 
   if (!chat) {
-    return loadingChats ? (
+    return loadingChats || elsewhere.isLoading || otherAccount ? (
       <div className="flex flex-1 flex-col gap-3 p-6">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-16" />

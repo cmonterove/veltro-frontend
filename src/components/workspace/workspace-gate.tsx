@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api/client'
 import type { ApiWorkspace } from '@/lib/api/types'
 import { cn } from '@/lib/utils'
+import { goToAccount } from '@/lib/switch-account'
 import { WorkspaceOverview } from './workspace-overview'
 import { WorkspaceTasks } from './workspace-tasks'
 import { WorkspaceDocs } from './workspace-docs'
@@ -67,7 +68,8 @@ function WorkspaceMissing({ slug }: { slug: string }) {
   useEffect(() => {
     if (!found) return
     if (found.accountId !== account.id) {
-      router.replace(`/auth/switch?account=${found.accountId}&next=${encodeURIComponent(`/w/${slug}`)}`)
+      // de otra de mis cuentas: se cambia con una carga completa (y se vuelve a esta misma dirección)
+      goToAccount(found.accountId)
     } else if (!refreshed.current) {
       refreshed.current = true
       router.refresh()

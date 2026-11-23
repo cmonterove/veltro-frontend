@@ -2382,7 +2382,9 @@
       "progress": "Progress in period",
       "open": "Open",
       "overdue": "Overdue",
-      "blocked": "Blocked"
+      "blocked": "Blocked",
+      "newTitle": "Open another space",
+      "newHint": "One per client, project or area, each with its own people. Start from a template:"
     },
     "health": {
       "ok": "On track",
@@ -2409,7 +2411,12 @@
       "open": "{count} open",
       "atRisk": "{count} at risk",
       "closed": "{count, plural, =0 {none closed} one {# closed} other {# closed}}",
-      "empty": "Nobody has tasks in this scope."
+      "empty": "Nobody has tasks in this scope.",
+      "free": "No open tasks",
+      "freeHint": "free to take on work",
+      "inviteTitle": "Bring your team",
+      "inviteHint": "Share the work and see everyone's load here.",
+      "invite": "Invite"
     },
     "attention": {
       "title": "Needs attention",

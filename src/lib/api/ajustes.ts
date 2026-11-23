@@ -41,7 +41,7 @@ export type Invitation = {
   id: string
   email: string
   fullName: string | null
-  role: 'admin' | 'member'
+  role: 'admin' | 'member' | 'guest'
   workspaces: { id: string; role: WorkspaceRole }[]
   invitedBy: { id: string; fullName: string } | null
   createdAt: string
