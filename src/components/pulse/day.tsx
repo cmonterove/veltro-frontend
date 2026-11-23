@@ -260,7 +260,7 @@ export function DayRuler({ data, model, className }: { data: BriefData; model: B
           <ConnectCalendar reason="google_auth_revoked" returnTo="/home" compact />
         </div>
       ) : calendarOff ? (
-        <ConnectCalendarHint returnTo="/home" className="mt-2 bg-transparent px-0 py-0" />
+        <ConnectCalendarHint returnTo="/home" className="mt-3" />
       ) : null}
     </div>
   )

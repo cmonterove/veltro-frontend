@@ -54,6 +54,7 @@ import { useAddComment, useDeleteComment, useTaskComments } from '@/lib/queries/
 import { useAttachments } from '@/lib/queries/attachments'
 import { ApiError, api } from '@/lib/api/client'
 import { goToAccount } from '@/lib/switch-account'
+import { TaskStarterAction } from './task-starter'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import { isTypingTarget } from '@/lib/hooks'
 import { TASK_BACK_KEY, taskPath, taskRefKey, useOpenTask } from '@/lib/use-open-task'
@@ -560,6 +561,9 @@ function TaskView({ task, ws }: { task: TaskRow; ws: WorkspaceWithRole }) {
               <div className="mt-2 px-1">
                 <CreatedBy task={task} />
               </div>
+
+              {/* en las tareas de inicio (p. ej. «Conectar Google Calendar»), hacerlo desde aquí */}
+              <TaskStarterAction title={task.title} isDone={isDone} onDone={toggleDone} />
 
               <Block title={t('description')}>
                 {editing ? (

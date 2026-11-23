@@ -6,11 +6,11 @@ import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Check } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarError, disconnectGoogle, saveSelectedCalendars, useCalendars, useInvalidateCalendar } from '@/lib/queries/calendar'
 import { toErrorCode } from '@/lib/errors'
-import { GoogleG } from '@/components/calendar/connect-calendar'
+import { CalendarGlyph, GoogleConnectButton } from '@/components/calendar/connect-calendar'
 import { cn } from '@/lib/utils'
 import { SettingsSection } from './section'
 
@@ -51,9 +51,7 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
     <SettingsSection id="integrations" title={t('pageTitle')} description={t('pageDescription')} className="mt-10 scroll-mt-6">
       <div className="overflow-hidden rounded-xl border border-line bg-panel">
         <div className="flex items-center gap-3 px-4 py-3.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-line bg-canvas">
-            <GoogleG />
-          </span>
+          <CalendarGlyph />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-fg">Google Calendar</p>
             <p className="text-xs leading-relaxed text-fg-muted">{t('googleDescription')}</p>
@@ -63,9 +61,7 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
               {t('disconnect')}
             </Button>
           ) : googleConfigured ? (
-            <a href="/api/integrations/google/connect?returnTo=/settings/preferences" className={buttonVariants({ variant: 'primary', size: 'sm' })}>
-              {t('connect')}
-            </a>
+            <GoogleConnectButton returnTo="/settings/preferences" size="sm" />
           ) : null}
         </div>
         <div className="border-t border-line px-4 py-4">

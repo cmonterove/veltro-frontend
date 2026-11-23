@@ -13,8 +13,15 @@ export function isGoogleConfigured() {
   return DEMO || Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
 }
 
+/**
+ * La dirección pública de la web (a ella vuelven Google y Supabase). Sin NEXT_PUBLIC_APP_URL, en
+ * Vercel vale su dominio de producción (VERCEL_PROJECT_PRODUCTION_URL lo pone Vercel solo).
+ */
 export function appUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  const explicit = process.env.NEXT_PUBLIC_APP_URL
+  if (explicit) return explicit.replace(/\/$/, '')
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  return vercel ? `https://${vercel}` : 'http://localhost:3000'
 }
 
 /** A dónde vuelve Google (la API usa esta misma por defecto: PUBLIC_WEB_URL + esta ruta). */

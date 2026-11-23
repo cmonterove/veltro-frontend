@@ -575,6 +575,15 @@
       "cancel": "Cancel",
       "created": "Status “{name}” created",
       "error": "Couldn’t create the status"
+    },
+    "starter": {
+      "calendarTitle": "Connect your calendar without leaving this task",
+      "calendarBody": "Your Google meetings show up in Veltro next to your tasks, and the ones you schedule here land on your calendar with their Meet link.",
+      "calendarAfter": "When you come back, mark it done in one tap. Veltro only reads your events and creates the ones you ask for.",
+      "connectedTitle": "Google Calendar connected",
+      "connectedBody": "As {email}. Your events now show up in Calendar and Pulse.",
+      "openCalendar": "Open my calendar",
+      "doneNote": "Task done"
     }
   },
   "docs": {
@@ -748,8 +757,9 @@
       "revokedBody": "Access to your calendar expired or was revoked.",
       "reconnect": "Reconnect",
       "notConfigured": "The Google integration isn't set up on this server yet. Go to Settings, Integrations, to see how to enable it.",
-      "hint": "Add your Google Calendar events.",
-      "hintCta": "Connect"
+      "hint": "Add your Google Calendar events",
+      "button": "Connect Google Calendar",
+      "hintBody": "Your Google meetings show up here, next to your tasks."
     },
     "meetingDialog": {
       "title": "New meeting",

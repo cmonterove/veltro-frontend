@@ -575,6 +575,15 @@
       "cancel": "Cancelar",
       "created": "Status “{name}” criado",
       "error": "Não foi possível criar o status"
+    },
+    "starter": {
+      "calendarTitle": "Conecte sua agenda sem sair desta tarefa",
+      "calendarBody": "Suas reuniões do Google aparecem no Veltro junto com suas tarefas, e as que você agenda aqui chegam à sua agenda com o link do Meet.",
+      "calendarAfter": "Ao voltar, marque como feita com um toque. O Veltro só lê seus eventos e cria os que você pedir.",
+      "connectedTitle": "Google Calendar conectado",
+      "connectedBody": "Como {email}. Seus eventos já aparecem em Calendário e em Pulso.",
+      "openCalendar": "Ver minha agenda",
+      "doneNote": "Tarefa feita"
     }
   },
   "docs": {
@@ -748,8 +757,9 @@
       "revokedBody": "O acesso ao seu calendário expirou ou foi revogado.",
       "reconnect": "Reconectar",
       "notConfigured": "A integração com o Google ainda não está configurada neste servidor. Vá em Configurações, Integrações, para ver como ativá-la.",
-      "hint": "Some seus eventos do Google Agenda.",
-      "hintCta": "Conectar"
+      "hint": "Some seus eventos do Google Agenda",
+      "button": "Conectar o Google Calendar",
+      "hintBody": "Suas reuniões do Google aparecem aqui, junto com suas tarefas."
     },
     "meetingDialog": {
       "title": "Nova reunião",
