@@ -1164,16 +1164,14 @@
         "spacesSearch": "Rechercher un espace",
         "spacesNoMatch": "Aucun espace avec ce nom.",
         "spacesEmpty": "Aucun espace dans le compte pour l’instant.",
-        "summaryAdmin": "Rejoint en tant qu’admin : voit tous les espaces.",
-        "summaryMember": "Rejoint en tant que membre {count, plural, =0 {sans espace} one {dans # espace} other {dans # espaces}}.",
-        "summaryGuest": "Rejoint en tant qu’invité {count, plural, one {dans # espace} other {dans # espaces}}.",
         "summaryGuestNone": "Cochez au moins un espace pour l’invité.",
         "accessNone": "Aucun accès",
         "accessHint": {
           "viewer": "Voit tout, sans rien modifier.",
           "editor": "Crée et modifie tâches, docs et réunions.",
           "admin": "Gère aussi l’espace et ses membres."
-        }
+        },
+        "spacesCount": "{count} sur {total}"
       },
       "invites": {
         "title": "Invitations en attente",

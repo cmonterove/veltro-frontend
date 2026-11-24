@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, ChevronDown, Copy, DoorOpen, Eye, KeyRound, Layers, Link2, Mail, MailCheck, MoreHorizontal, Search, Send, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react'
+import { Check, ChevronDown, Copy, DoorOpen, Eye, KeyRound, Layers, Link2, Mail, MailCheck, Maximize2, MoreHorizontal, Search, Send, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { useDateLocale } from '@/lib/dates'
 import { useApp } from '@/components/app/app-context'
@@ -631,12 +631,20 @@ export function InviteDialog({
   const thumbData = thumb.data?.ok ? thumb.data : null
   // sin vista previa (p. ej. una API que todavía no la tiene): no se muestra
   const thumbFailed = !thumbData && (thumb.isError || thumb.data?.ok === false)
-  const summary =
-    role === 'admin'
-      ? t('summaryAdmin')
-      : role === 'guest' && selected.size === 0
-        ? t('summaryGuestNone')
-        : t(role === 'guest' ? 'summaryGuest' : 'summaryMember', { count: selected.size })
+  const [previewing, startPreview] = useTransition()
+  const openPreview = () => {
+    if (thumbData) return setPreview({ subject: thumbData.subject, html: thumbData.html })
+    startPreview(async () => {
+      const res = await previewInvitation(account.id, {
+        fullName: name,
+        email,
+        role,
+        workspaces: role === 'admin' ? [] : [...selected].map(([id, r]) => ({ id, role: r })),
+      })
+      if (!res.ok) return void toast.error(te(res.error))
+      setPreview({ subject: res.subject, html: res.html })
+    })
+  }
 
   // miembro: entra a todos los espacios de hoy (se pueden desmarcar); invitado: solo al elegido
   const pickRole = (r: 'admin' | 'member' | 'guest') => {
@@ -794,13 +802,25 @@ export function InviteDialog({
               </div>
 
               {/* a qué espacios entra, al lado (en el teléfono, debajo), y lo que le llega. En pantallas
-                  anchas no estira el diálogo: las fichas se desplazan dentro de la altura de la izquierda. */}
+                  anchas no estira el diálogo: los espacios se desplazan dentro de la altura de la izquierda. */}
               <div className="relative min-h-72 border-t border-line-soft md:border-l md:border-t-0">
                 <div className="flex h-full flex-col md:absolute md:inset-0">
                   <div className="flex items-start gap-3 px-6 pt-5">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-fg">{role === 'guest' ? t('guestPick') : t('workspaces')}</p>
-                      <p className="mt-0.5 text-xs text-fg-muted">{t(role === 'admin' ? 'spacesHintAdmin' : role === 'guest' ? 'spacesHintGuest' : 'spacesHintMember')}</p>
+                      <p className="flex items-baseline gap-2 text-sm font-medium text-fg">
+                        {role === 'guest' ? t('guestPick') : t('workspaces')}
+                        {workspaces.length ? (
+                          <span className="text-xs font-normal tabular-nums text-fg-subtle">
+                            {t('spacesCount', { count: role === 'admin' ? workspaces.length : selected.size, total: workspaces.length })}
+                          </span>
+                        ) : null}
+                      </p>
+                      {/* invitado sin espacio: aquí se dice por qué todavía no se puede enviar */}
+                      <p className={cn('mt-0.5 text-xs', role === 'guest' && selected.size === 0 ? 'font-medium text-fg' : 'text-fg-muted')}>
+                        {role === 'guest' && selected.size === 0
+                          ? t('summaryGuestNone')
+                          : t(role === 'admin' ? 'spacesHintAdmin' : role === 'guest' ? 'spacesHintGuest' : 'spacesHintMember')}
+                      </p>
                     </div>
                     {role === 'member' && workspaces.length > 1 ? (
                       <button
@@ -818,8 +838,8 @@ export function InviteDialog({
                       <Input value={spaceQuery} onChange={(e) => setSpaceQuery(e.target.value)} placeholder={t('spacesSearch')} aria-label={t('spacesSearch')} className="h-8 pl-8 text-sm" />
                     </div>
                   ) : null}
-                  {/* una ficha por espacio: se marca con un clic; el permiso, abajo de cada una */}
-                  <ul className={cn('mt-3.5 grid min-h-0 grid-cols-2 content-start gap-2.5 overflow-y-auto px-6 pb-5', thumbFailed ? 'flex-1' : 'shrink')}>
+                  {/* cada espacio en una franja: su logo, el nombre y el permiso; un clic lo marca o lo quita */}
+                  <ul className={cn('mt-3 grid min-h-0 grid-cols-2 content-start gap-2 overflow-y-auto px-6 pb-4', thumbFailed ? 'flex-1' : 'shrink')}>
                     {shownSpaces.map((w) => {
                       const admin = role === 'admin'
                       const r = admin ? undefined : selected.get(w.id)
@@ -832,29 +852,30 @@ export function InviteDialog({
                             aria-pressed={on}
                             aria-disabled={admin || undefined}
                             className={cn(
-                              'flex h-full w-full flex-col items-start rounded-xl p-3.5 pb-10 text-left outline-none transition-[background-color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-accent-mid',
-                              on ? 'bg-accent-soft/50 ring-[1.5px] ring-inset ring-accent-mid' : 'ring-1 ring-inset ring-line hover:bg-hover',
-                              on && !admin && 'hover:bg-accent-soft/80',
+                              'flex w-full items-center gap-2.5 rounded-lg py-2 pl-2.5 pr-8 text-left outline-none ring-inset transition-[background-color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-accent-mid',
+                              on ? 'bg-accent-soft/40 ring-1 ring-accent-mid' : 'ring-1 ring-line hover:bg-hover',
                               admin && 'cursor-default',
                             )}
                           >
-                            <span className="flex w-full items-start justify-between gap-2">
-                              <WorkspaceMark ws={w} size={32} className={cn('transition-opacity duration-150', !on && 'opacity-50')} />
-                              <span
-                                className={cn(
-                                  'flex size-[18px] shrink-0 items-center justify-center rounded-full transition-colors duration-150',
-                                  on ? 'bg-accent text-accent-fg' : 'bg-panel ring-1 ring-inset ring-line-control',
-                                )}
-                              >
-                                {on ? <Check className="size-3" strokeWidth={3} /> : null}
-                              </span>
+                            <WorkspaceMark ws={w} size={28} className={cn('transition-opacity duration-150', !on && 'opacity-45')} />
+                            <span className="min-w-0 flex-1">
+                              <span className={cn('block truncate text-[13px] font-medium leading-5', on ? 'text-fg' : 'text-fg-muted')}>{w.name}</span>
+                              {/* el lugar del permiso: el menú va encima, fuera del botón (no se anidan botones) */}
+                              <span className="block h-5" aria-hidden />
                             </span>
-                            <span className={cn('mt-3 block w-full truncate text-sm font-medium', on ? 'text-fg' : 'text-fg-muted')}>{w.name}</span>
                           </button>
-                          {/* el permiso: dentro de la ficha pero fuera de su botón (no se anidan botones) */}
-                          <div className="pointer-events-none absolute inset-x-3.5 bottom-2.5 flex h-6 items-center">
+                          <span
+                            aria-hidden
+                            className={cn(
+                              'pointer-events-none absolute right-2.5 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-full transition-colors duration-150',
+                              on ? 'bg-accent text-accent-fg' : 'bg-panel ring-1 ring-inset ring-line-control',
+                            )}
+                          >
+                            {on ? <Check className="size-2.5" strokeWidth={3.5} /> : null}
+                          </span>
+                          <div className="pointer-events-none absolute bottom-2 left-12 right-8 flex h-5 items-center">
                             {admin ? (
-                              <span className="text-xs font-medium text-accent-ink">{tRole('ws_admin')}</span>
+                              <span className="text-xs text-accent-ink">{tRole('ws_admin')}</span>
                             ) : r ? (
                               <AccessMenu value={r} onChange={(v) => setSelected(new Map(selected).set(w.id, v))} />
                             ) : (
@@ -868,23 +889,25 @@ export function InviteDialog({
                       <li className="col-span-2 px-2 py-6 text-center text-xs text-fg-muted">{workspaces.length ? t('spacesNoMatch') : t('spacesEmpty')}</li>
                     ) : null}
                   </ul>
-                  {/* lo que le llega: el correo de verdad (el mismo HTML que se envía), en chico y al día con lo
-                      elegido. Si la API no tiene vista previa, no se ofrece (mejor nada que un botón que falla). */}
+                  {/* lo que le llega: el correo de verdad (el mismo HTML que se envía), en chico y al día con lo elegido */}
                   {thumbFailed ? null : (
                     <div className="flex min-h-40 flex-1 flex-col gap-2 border-t border-line-soft px-6 pb-5 pt-3.5">
                       <p className="flex items-center gap-2 text-[13px] font-medium text-fg">
                         <Mail className="size-3.5 text-fg-muted" />
                         {t('previewTitle')}
                       </p>
-                      <EmailThumb html={thumbData?.html ?? null} onOpen={() => (thumbData ? setPreview({ subject: thumbData.subject, html: thumbData.html }) : undefined)} />
+                      <EmailThumb html={thumbData?.html ?? null} onOpen={openPreview} />
                     </div>
                   )}
                 </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4">
-              {/* lo que va a pasar al enviar */}
-              <p className={cn('mr-auto min-w-0 text-xs', role === 'guest' && selected.size === 0 ? 'font-medium text-fg' : 'text-fg-muted')}>{summary}</p>
+              {/* el correo tal cual le llega, siempre a mano */}
+              <Button variant="ghost" className="-ml-2 mr-auto" onClick={openPreview} loading={previewing}>
+                <Eye />
+                {t('preview')}
+              </Button>
               <Button variant="ghost" onClick={close}>
                 {t('cancel')}
               </Button>
@@ -971,11 +994,11 @@ function EmailThumb({ html, onOpen }: { html: string | null; onOpen: () => void 
       <button
         type="button"
         onClick={onOpen}
-        className="absolute inset-0 flex items-end justify-end p-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-mid"
+        aria-label={t('preview')}
+        className="absolute inset-0 flex items-start justify-end p-2 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-mid"
       >
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-panel px-2.5 py-1 text-xs font-medium text-fg shadow-card ring-1 ring-line-soft transition-colors group-hover:bg-hover">
-          <Eye className="size-3.5" />
-          {t('preview')}
+        <span className="flex size-7 items-center justify-center rounded-md bg-panel/90 text-fg-muted opacity-0 shadow-card ring-1 ring-line-soft transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+          <Maximize2 className="size-3.5" />
         </span>
       </button>
     </div>

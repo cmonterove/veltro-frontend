@@ -1164,16 +1164,14 @@
         "spacesSearch": "Search spaces",
         "spacesNoMatch": "No space with that name.",
         "spacesEmpty": "There are no spaces in the account yet.",
-        "summaryAdmin": "Joins as an admin: sees every space.",
-        "summaryMember": "Joins as a member in {count, plural, =0 {no spaces} one {# space} other {# spaces}}.",
-        "summaryGuest": "Joins as a guest in {count, plural, one {# space} other {# spaces}}.",
         "summaryGuestNone": "Pick at least one space for the guest.",
         "accessNone": "No access",
         "accessHint": {
           "viewer": "Sees everything, changes nothing.",
           "editor": "Creates and edits tasks, docs and meetings.",
           "admin": "Also manages the space and its people."
-        }
+        },
+        "spacesCount": "{count} of {total}"
       },
       "invites": {
         "title": "Pending invitations",
