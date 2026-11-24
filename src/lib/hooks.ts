@@ -30,6 +30,16 @@ export function useMediaQuery(query: string) {
   )
 }
 
+/** El valor, pero recién cuando deja de cambiar por `ms` (para no pedir algo en cada tecla). */
+export function useDebounced<T>(value: T, ms = 400) {
+  const [settled, setSettled] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setSettled(value), ms)
+    return () => clearTimeout(id)
+  }, [value, ms])
+  return settled
+}
+
 /** Hora actual que se refresca cada `ms`. */
 export function useNow(ms = 60_000) {
   const [now, setNow] = useState(() => new Date())

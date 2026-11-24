@@ -171,7 +171,7 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
           actions={
             <>
               {/* exportar lo que se ve e importar de Excel, CSV o Trello */}
-              <TasksMoreMenu tasks={shown} />
+              <TasksMoreMenu tasks={shown} workspaceId={workspaceId} />
               {editable ? (
                 <Button variant="primary" onClick={() => setQuickOpen(true)}>
                   <Plus />

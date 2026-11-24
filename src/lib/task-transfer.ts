@@ -2,9 +2,9 @@
  * Importar tareas: de una hoja (Excel o CSV) o de un tablero de Trello (su JSON exportado) a filas
  * listas para crear. Sin React: lo usa el diálogo de importar y se puede probar aparte.
  *
- * Las columnas se reconocen por el nombre del encabezado en español, inglés o portugués (Título,
- * Title, Nombre…). Estados y prioridades se traducen a las categorías de Veltro; los responsables se
- * buscan por email o por nombre entre la gente del espacio.
+ * Las columnas se reconocen por el nombre del encabezado en español, inglés, portugués o francés
+ * (Título, Title, Titre…), los mismos con que exporta Veltro. Estados y prioridades se traducen a las
+ * categorías de Veltro; los responsables se buscan por email o por nombre entre la gente del espacio.
  */
 
 import type { TaskPriority, TaskStatus } from './database.types'
@@ -13,6 +13,8 @@ export type ImportRow = {
   title: string
   description: string
   status: TaskStatus
+  /** el estado tal como venía (la celda o la lista de Trello), para mostrar y cambiar cómo se tradujo */
+  statusRaw: string
   priority: TaskPriority
   /** lo que venía escrito (nombres o emails), para buscarlos en el espacio */
   assigneeNames: string[]
@@ -23,7 +25,11 @@ export type ImportRow = {
 
 export type ImportPerson = { id: string; email: string; full_name: string }
 
-type Field = 'title' | 'description' | 'status' | 'priority' | 'assignees' | 'due' | 'start' | 'labels'
+export type ImportField = 'title' | 'description' | 'status' | 'priority' | 'assignees' | 'due' | 'start' | 'labels'
+type Field = ImportField
+
+/** Las columnas que se leen, en el orden de la plantilla. */
+export const IMPORT_FIELDS: ImportField[] = ['title', 'status', 'assignees', 'due', 'start', 'priority', 'labels', 'description']
 
 /** Sin acentos, minúsculas y sin espacios de más. */
 export const fold = (s: string) =>
@@ -35,14 +41,14 @@ export const fold = (s: string) =>
     .trim()
 
 const HEADERS: Record<Field, string[]> = {
-  title: ['titulo', 'title', 'nombre', 'name', 'tarea', 'task', 'card name', 'asunto', 'summary', 'resumen'],
-  description: ['descripcion', 'description', 'desc', 'notas', 'notes', 'detalle', 'detalles', 'details', 'card description'],
-  status: ['estado', 'status', 'lista', 'list', 'list name', 'columna', 'column', 'etapa', 'stage', 'situacao'],
-  priority: ['prioridad', 'priority', 'prioridade'],
-  assignees: ['responsable', 'responsables', 'asignado', 'asignada', 'asignados', 'assignee', 'assignees', 'owner', 'members', 'miembros', 'responsavel', 'responsaveis'],
-  due: ['entrega', 'fecha de entrega', 'vence', 'vencimiento', 'fecha limite', 'due', 'due date', 'deadline', 'fecha', 'date', 'prazo'],
-  start: ['inicio', 'fecha de inicio', 'start', 'start date', 'comienzo'],
-  labels: ['etiquetas', 'etiqueta', 'labels', 'label', 'tags', 'tag'],
+  title: ['titulo', 'title', 'nombre', 'name', 'tarea', 'task', 'card name', 'asunto', 'summary', 'resumen', 'titre', 'tache', 'nom'],
+  description: ['descripcion', 'description', 'desc', 'notas', 'notes', 'detalle', 'detalles', 'details', 'card description', 'descricao'],
+  status: ['estado', 'status', 'lista', 'list', 'list name', 'columna', 'column', 'etapa', 'stage', 'situacao', 'statut', 'liste', 'colonne'],
+  priority: ['prioridad', 'priority', 'prioridade', 'priorite'],
+  assignees: ['responsable', 'responsables', 'asignado', 'asignada', 'asignados', 'assignee', 'assignees', 'owner', 'members', 'miembros', 'responsavel', 'responsaveis', 'membres'],
+  due: ['entrega', 'fecha de entrega', 'vence', 'vencimiento', 'fecha limite', 'due', 'due date', 'deadline', 'fecha', 'date', 'prazo', 'echeance', "date d'echeance", 'date limite'],
+  start: ['inicio', 'fecha de inicio', 'start', 'start date', 'comienzo', 'debut', 'date de debut'],
+  labels: ['etiquetas', 'etiqueta', 'labels', 'label', 'tags', 'tag', 'etiquettes', 'etiquette'],
 }
 
 /** Qué columna es cada dato (por su encabezado). La primera que coincide gana. */
@@ -59,11 +65,11 @@ export function detectColumns(header: unknown[]): Partial<Record<Field, number>>
 }
 
 const STATUS_WORDS: [TaskStatus, string[]][] = [
-  ['done', ['hecho', 'hecha', 'hechas', 'terminado', 'terminada', 'completado', 'completada', 'cerrado', 'cerrada', 'finalizado', 'listo', 'done', 'complete', 'completed', 'closed', 'resolved', 'concluido', 'feito']],
-  ['in_progress', ['en curso', 'en progreso', 'en proceso', 'haciendo', 'doing', 'in progress', 'wip', 'working', 'em andamento', 'fazendo']],
-  ['blocked', ['bloqueado', 'bloqueada', 'blocked', 'en espera', 'on hold', 'esperando']],
+  ['done', ['hecho', 'hecha', 'hechas', 'terminado', 'terminada', 'completado', 'completada', 'cerrado', 'cerrada', 'finalizado', 'finalizada', 'listo', 'entregado', 'entregada', 'delivered', 'done', 'complete', 'completed', 'closed', 'resolved', 'concluido', 'concluida', 'feito', 'feita', 'termine', 'terminee', 'fait', 'faite', 'fini', 'finie']],
+  ['in_progress', ['en curso', 'en progreso', 'en proceso', 'haciendo', 'doing', 'in progress', 'wip', 'working', 'em andamento', 'fazendo', 'en cours', 'revision', 'en revision', 'review', 'in review', 'qa', 'testing', 'pruebas', 'revisao', 'em revisao']],
+  ['blocked', ['bloqueado', 'bloqueada', 'blocked', 'en espera', 'on hold', 'esperando', 'bloquee', 'en attente']],
   ['backlog', ['backlog', 'ideas', 'algun dia', 'someday']],
-  ['todo', ['por hacer', 'pendiente', 'to do', 'todo', 'abierto', 'abierta', 'nuevo', 'nueva', 'open', 'new', 'a fazer']],
+  ['todo', ['por hacer', 'pendiente', 'to do', 'todo', 'abierto', 'abierta', 'nuevo', 'nueva', 'open', 'new', 'a fazer', 'a faire']],
 ]
 
 /** Estado escrito a mano → categoría de Veltro. «Hecho», «Done», «En curso»… Lo que no se reconoce queda por hacer. */
@@ -77,10 +83,10 @@ export function statusFrom(v: unknown): TaskStatus {
 
 export function priorityFrom(v: unknown): TaskPriority {
   const s = fold(String(v ?? ''))
-  if (/urgen/.test(s) || s === 'p0' || s === 'critica' || s === 'critical') return 'urgent'
-  if (/^(alta|high|alto|p1)$/.test(s)) return 'high'
-  if (/^(media|medio|medium|normal|p2)$/.test(s)) return 'medium'
-  if (/^(baja|bajo|low|p3)$/.test(s)) return 'low'
+  if (/urgen/.test(s) || s === 'p0' || s === 'critica' || s === 'critical' || s === 'critique') return 'urgent'
+  if (/^(alta|high|alto|haute|p1)$/.test(s)) return 'high'
+  if (/^(media|medio|medium|normal|moyenne|p2)$/.test(s)) return 'medium'
+  if (/^(baja|bajo|low|baixa|basse|p3)$/.test(s)) return 'low'
   return 'none'
 }
 
@@ -119,13 +125,30 @@ const splitList = (v: unknown) =>
 
 const text = (v: unknown) => (v instanceof Date ? (dateFrom(v) ?? '') : v == null ? '' : String(v)).trim()
 
+export type SheetResult = {
+  rows: ImportRow[]
+  missingTitle: boolean
+  skipped: number
+  /** las columnas que se usan, en el orden de la hoja */
+  columns: ImportField[]
+  /** los encabezados que no se reconocieron (esas columnas no se importan) */
+  ignored: string[]
+  /** sin encabezados reconocibles: la primera fila ya es una tarea y la primera columna, el título */
+  headerless: boolean
+}
+
 /** Filas de una hoja (la primera es el encabezado) → tareas. Sin columna de título no hay nada que importar. */
-export function rowsFromSheet(sheet: unknown[][]): { rows: ImportRow[]; missingTitle: boolean; skipped: number } {
-  const [header = [], ...data] = sheet
+export function rowsFromSheet(sheet: unknown[][]): SheetResult {
+  const [header = []] = sheet
   const col = detectColumns(header)
-  // sin encabezado reconocible, la primera columna es el título
-  const titleCol = col.title ?? (Object.keys(col).length === 0 ? 0 : undefined)
-  if (titleCol === undefined) return { rows: [], missingTitle: true, skipped: 0 }
+  const headerless = Object.keys(col).length === 0
+  // sin encabezado reconocible, la primera columna es el título y la primera fila, una tarea más
+  const titleCol = col.title ?? (headerless ? 0 : undefined)
+  const used = new Set(Object.values(col))
+  const columns = (Object.entries(col) as [Field, number][]).sort((a, b) => a[1] - b[1]).map(([f]) => f)
+  const ignored = headerless ? [] : header.flatMap((h, i) => (used.has(i) || !text(h) ? [] : [text(h)]))
+  if (titleCol === undefined) return { rows: [], missingTitle: true, skipped: 0, columns, ignored, headerless }
+  const data = headerless ? sheet : sheet.slice(1)
   const at = (r: unknown[], f: Field) => (col[f] === undefined ? undefined : r[col[f]!])
   let skipped = 0
   const rows: ImportRow[] = []
@@ -135,10 +158,12 @@ export function rowsFromSheet(sheet: unknown[][]): { rows: ImportRow[]; missingT
       if (r.some((c) => text(c))) skipped++
       continue
     }
+    const statusRaw = text(at(r, 'status')).slice(0, 60)
     rows.push({
       title,
       description: text(at(r, 'description')).slice(0, 20_000),
-      status: statusFrom(at(r, 'status')),
+      status: statusFrom(statusRaw),
+      statusRaw,
       priority: priorityFrom(at(r, 'priority')),
       assigneeNames: splitList(at(r, 'assignees')),
       dueDate: dateFrom(at(r, 'due')),
@@ -148,7 +173,7 @@ export function rowsFromSheet(sheet: unknown[][]): { rows: ImportRow[]; missingT
         .slice(0, 20),
     })
   }
-  return { rows, missingTitle: false, skipped }
+  return { rows, missingTitle: false, skipped, columns: headerless ? ['title'] : columns, ignored, headerless }
 }
 
 /** CSV (coma o punto y coma, con comillas) → filas de celdas. */
@@ -207,10 +232,13 @@ export function rowsFromTrello(board: TrelloBoard): { rows: ImportRow[]; board: 
   for (const c of board.cards ?? []) {
     const list = lists.get(c.idList)
     if (c.closed || list?.closed || !c.name?.trim()) continue
+    // la lista da el estado; una tarjeta marcada como completa es «hecha» esté donde esté
+    const statusRaw = c.dueComplete ? '' : (list?.name ?? '').trim().slice(0, 60)
     rows.push({
       title: c.name.trim().slice(0, 500),
       description: (c.desc ?? '').trim().slice(0, 20_000),
-      status: c.dueComplete ? 'done' : statusFrom(list?.name),
+      status: c.dueComplete ? 'done' : statusFrom(statusRaw),
+      statusRaw,
       priority: 'none',
       assigneeNames: (c.idMembers ?? []).map((id) => members.get(id) ?? '').filter(Boolean),
       dueDate: dateFrom(c.due),

@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { Providers } from '@/components/app/providers'
+import { appUrl } from '@/lib/google/config'
 import './globals.css'
 
 const geistSans = localFont({
@@ -22,6 +23,8 @@ const geistMono = localFont({
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('meta')
   return {
+    // las imágenes para compartir (opengraph-image) necesitan la dirección pública completa
+    metadataBase: new URL(appUrl()),
     title: { default: 'Veltro', template: '%s · Veltro' },
     description: t('description'),
     applicationName: 'Veltro',

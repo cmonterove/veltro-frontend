@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -13,9 +13,7 @@ import { Field, Input, Textarea } from '@/components/ui/input'
 import { Avatar } from '@/components/ui/avatar'
 import { Select } from '@/components/ui/select'
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger } from '@/components/ui/menu'
-import { applyWorkspaceTemplate, createWorkspace, updateWorkspace, archiveWorkspace, unarchiveWorkspace, setWorkspaceAccess } from '@/app/actions/settings'
-import { WORKSPACE_TEMPLATES } from '@/lib/workspace-templates'
-import { StatusIcon } from '@/components/tasks/status-icon'
+import { updateWorkspace, archiveWorkspace, unarchiveWorkspace, setWorkspaceAccess } from '@/app/actions/settings'
 import { WORKSPACE_COLORS } from '@/lib/constants'
 import { WorkspaceMark, monogramOf } from '@/components/app/marks'
 import { LogoField } from '@/components/app/logo-picker'
@@ -23,7 +21,7 @@ import { cn } from '@/lib/utils'
 import { shortDate, useDateLocale } from '@/lib/dates'
 import type { WorkspaceRole } from '@/lib/database.types'
 import type { WorkspaceWithRole } from '@/lib/types'
-import { SaveBar, SettingsCard, SettingsHeader, SettingsRow, SideSection, SplitPanel } from './ui'
+import { SaveBar, SettingsCard, SettingsHeader, SideSection, SplitPanel } from './ui'
 import { StatusEditor } from './status-editor'
 import { FieldsEditor } from './fields-editor'
 import { useConfirm } from '@/components/ui/confirm'
@@ -114,121 +112,6 @@ export function WorkspacesOverview({
   )
 }
 
-// ---------------- nuevo espacio ----------------
-
-export function NewWorkspace({ usage }: { usage: Usage | null }) {
-  const t = useTranslations('settings.workspaces')
-  const te = useTranslations('errors')
-  const router = useRouter()
-  const { account } = useApp()
-  const tt = useTranslations('settings.workspaces.templates')
-  const [form, setForm] = useState({ name: '', icon: '', color: 'violet', description: '' })
-  // ?template=client: llega desde la Mesa con la plantilla ya elegida
-  const asked = useSearchParams().get('template')
-  const [template, setTemplate] = useState(() => (WORKSPACE_TEMPLATES.some((x) => x.key === asked) ? (asked as string) : 'blank'))
-  const [pending, start] = useTransition()
-  const full = usage?.max_workspaces != null && usage.workspaces_count >= usage.max_workspaces
-
-  const create = () =>
-    start(async () => {
-      const res = await createWorkspace(account.id, { ...form, icon: form.icon.trim() || monogramOf({ name: form.name || 'V' }) })
-      if (!res.ok) {
-        toast.error(te(res.error))
-        return
-      }
-      // la plantilla: estados, campos y primeras tareas, en el idioma de quien lo crea
-      const tpl = WORKSPACE_TEMPLATES.find((x) => x.key === template)
-      if (tpl && tpl.key !== 'blank' && 'id' in res) {
-        const applied = await applyWorkspaceTemplate(res.id, {
-          statuses: tpl.statuses.map((x) => ({ name: tt(`${tpl.key}.${x.key}`), category: x.category })),
-          fields: tpl.fields.map((f) => ({
-            name: tt(`${tpl.key}.${f.key}`),
-            type: f.type,
-            ...(f.options ? { options: f.options.map((o) => tt(`${tpl.key}.${f.key}${o}`)) } : {}),
-          })),
-          tasks: tpl.tasks.map((x) => ({ title: tt(`${tpl.key}.${x.key}`), status: x.status })),
-        })
-        if (!applied.ok) toast.error(t('templateFailed'))
-      }
-      toast.success(t('created'))
-      if ('slug' in res) router.push(tpl && tpl.key !== 'blank' ? `/w/${res.slug}` : `/settings/workspaces/${res.slug}?tab=statuses`)
-      router.refresh()
-    })
-
-  return (
-    <div>
-      <SettingsHeader title={t('newTitle')} description={t('newDescription')} />
-      {full ? <p className="mb-6 rounded-lg bg-warning-soft px-3 py-2 text-sm text-fg">{t('limitReached')}</p> : null}
-      <IdentityCard form={form} onChange={(p) => setForm((f) => ({ ...f, ...p }))} autoFocus />
-      <TemplatePicker value={template} onChange={setTemplate} />
-      <div className="flex justify-end gap-2">
-        <Link href="/settings/workspaces" className={buttonVariants({ variant: 'ghost' })}>
-          {t('cancel')}
-        </Link>
-        <Button variant="primary" onClick={create} loading={pending} disabled={full || !form.name.trim()}>
-          {t('create')}
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-/** Con qué arranca el espacio: en blanco o una plantilla con sus estados, campos y primeras tareas. */
-function TemplatePicker({ value, onChange }: { value: string; onChange: (key: string) => void }) {
-  const t = useTranslations('settings.workspaces')
-  const tt = useTranslations('settings.workspaces.templates')
-  const ts = useTranslations('tasks.status')
-  return (
-    <section className="mb-6 rounded-xl border border-line bg-panel p-5">
-      <h2 className="text-sm font-semibold text-fg">{t('templateTitle')}</h2>
-      <p className="mt-0.5 text-sm text-fg-muted">{t('templateHint')}</p>
-      <div className="mt-4 flex flex-col gap-1.5" role="radiogroup" aria-label={t('templateTitle')}>
-        {WORKSPACE_TEMPLATES.map((tpl) => {
-          const on = value === tpl.key
-          return (
-            <button
-              key={tpl.key}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => onChange(tpl.key)}
-              className={cn(
-                'flex items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition-colors',
-                on ? 'border-accent-mid bg-accent-soft/60' : 'border-line hover:border-line-strong hover:bg-hover/40',
-              )}
-            >
-              <span className={cn('mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border', on ? 'border-accent bg-accent' : 'border-line-strong')}>
-                {on ? <span className="size-1.5 rounded-full bg-accent-fg" /> : null}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-fg">{tt(`${tpl.key}.name`)}</span>
-                <span className="block text-xs leading-relaxed text-fg-muted">{tt(`${tpl.key}.description`)}</span>
-                {tpl.statuses.length ? (
-                  <span className="mt-2 flex flex-wrap gap-1">
-                    {tpl.statuses.map((x) => (
-                      <span key={x.key} className="inline-flex items-center gap-1 rounded-md bg-hover px-1.5 py-0.5 text-2xs text-fg-muted">
-                        <StatusIcon status={x.category} className="size-3" />
-                        {tt(`${tpl.key}.${x.key}`)}
-                      </span>
-                    ))}
-                    {tpl.fields.map((f) => (
-                      <span key={f.key} className="inline-flex items-center rounded-md border border-dashed border-line px-1.5 py-0.5 text-2xs text-fg-subtle">
-                        {tt(`${tpl.key}.${f.key}`)}
-                      </span>
-                    ))}
-                  </span>
-                ) : (
-                  <span className="mt-2 block text-2xs text-fg-subtle">{(['backlog', 'todo', 'in_progress', 'blocked', 'done'] as const).map((c) => ts(c)).join(' · ')}</span>
-                )}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
 // ---------------- un espacio ----------------
 
 const TABS = ['general', 'statuses', 'fields', 'people'] as const
@@ -299,51 +182,6 @@ export function WorkspaceSettings({ workspace, people, tab }: { workspace: Works
 }
 
 type Identity = { name: string; icon: string; color: string; description: string }
-
-/** Nombre, monograma, color y descripción: lo mismo al crear y al editar. */
-function IdentityCard({ form, onChange, autoFocus }: { form: Identity; onChange: (p: Partial<Identity>) => void; autoFocus?: boolean }) {
-  const t = useTranslations('settings.workspaces')
-  const monogram = form.icon.trim() || monogramOf({ name: form.name || 'V' })
-  return (
-    <SettingsCard>
-      <SettingsRow label={t('name')} description={t('nameHint')} htmlFor="ws-name">
-        <Input id="ws-name" value={form.name} onChange={(e) => onChange({ name: e.target.value })} maxLength={80} autoFocus={autoFocus} className="sm:w-72" />
-      </SettingsRow>
-      <SettingsRow label={t('icon')} description={t('iconHint')} htmlFor="ws-mono">
-        <div className="flex items-center gap-3">
-          <WorkspaceMark ws={{ icon: monogram, name: form.name || 'V', color: form.color }} size={36} />
-          <Input
-            id="ws-mono"
-            value={form.icon}
-            onChange={(e) => onChange({ icon: e.target.value.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 2).toUpperCase() })}
-            placeholder={monogramOf({ name: form.name || 'V' })}
-            maxLength={2}
-            className="w-20 text-center font-semibold uppercase"
-          />
-        </div>
-      </SettingsRow>
-      <SettingsRow label={t('color')} description={t('colorHint')}>
-        <div className="flex flex-wrap gap-1.5 sm:justify-end">
-          {WORKSPACE_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => onChange({ color: c })}
-              aria-label={c}
-              aria-pressed={form.color === c}
-              className={cn('rounded-[9px] p-0.5 ring-offset-2 ring-offset-panel transition-shadow', form.color === c && 'ring-2 ring-accent')}
-            >
-              <WorkspaceMark ws={{ icon: monogram, name: form.name || 'V', color: c }} size={26} />
-            </button>
-          ))}
-        </div>
-      </SettingsRow>
-      <SettingsRow label={t('descriptionLabel')} description={t('descriptionHint')} htmlFor="ws-desc" align="start">
-        <Textarea id="ws-desc" value={form.description} onChange={(e) => onChange({ description: e.target.value })} maxLength={300} className="min-h-20 sm:w-72" />
-      </SettingsRow>
-    </SettingsCard>
-  )
-}
 
 function GeneralTab({ workspace }: { workspace: WorkspaceWithRole }) {
   const t = useTranslations('settings.workspaces')

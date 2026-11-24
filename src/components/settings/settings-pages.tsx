@@ -24,7 +24,8 @@ import { MembersSettings } from './members-settings'
 import { OrgSettings } from './org-settings'
 import { TeamsSettings } from './teams-settings'
 import { TemplatesSettings } from './templates-settings'
-import { NewWorkspace, WorkspaceSettings, WorkspacesOverview } from './workspaces-settings'
+import { NewWorkspace } from './new-workspace'
+import { WorkspaceSettings, WorkspacesOverview } from './workspaces-settings'
 
 /*
  * Ajustes sin esperar al servidor: cada pantalla toma la cuenta del contexto que ya tiene el

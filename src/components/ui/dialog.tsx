@@ -14,15 +14,20 @@ export const DialogDescription = D.Description
 
 export function DialogContent({
   className,
+  viewportClassName,
   children,
   hideClose,
   ...props
-}: React.ComponentProps<typeof D.Popup> & { hideClose?: boolean }) {
+}: React.ComponentProps<typeof D.Popup> & {
+  hideClose?: boolean
+  /** p. ej. para un diálogo casi a pantalla completa: menos margen arriba */
+  viewportClassName?: string
+}) {
   const t = useTranslations('nav')
   return (
     <D.Portal>
       <D.Backdrop className="backdrop-motion fixed inset-0 z-50 bg-[oklch(0.2_0.04_311/0.32)] dark:bg-[oklch(0_0_0/0.55)]" />
-      <D.Viewport className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-[12vh]">
+      <D.Viewport className={cn('fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-[12vh]', viewportClassName)}>
         <D.Popup
           className={cn(
             'popup-motion relative w-full max-w-lg rounded-xl border border-line bg-panel shadow-lift outline-none',

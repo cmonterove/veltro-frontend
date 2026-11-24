@@ -2,7 +2,7 @@
 
 import { Switch as S } from '@base-ui/react/switch'
 import { Checkbox as C } from '@base-ui/react/checkbox'
-import { Check } from 'lucide-react'
+import { Check, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /** Interruptor para opciones de sí o no (en lugar de la casilla nativa). */
@@ -20,18 +20,19 @@ export function Switch({ className, ...props }: React.ComponentProps<typeof S.Ro
   )
 }
 
-/** Casilla para marcar varias cosas de una lista. */
-export function Checkbox({ className, ...props }: React.ComponentProps<typeof C.Root>) {
+/** Casilla para marcar varias cosas de una lista. `indeterminate`: algunas sí y otras no (se ve un guion). */
+export function Checkbox({ className, indeterminate, ...props }: React.ComponentProps<typeof C.Root>) {
   return (
     <C.Root
+      indeterminate={indeterminate}
       className={cn(
-        'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-line-control bg-panel outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[checked]:border-accent data-[checked]:bg-accent data-[disabled]:cursor-default data-[disabled]:opacity-50',
+        'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-line-control bg-panel outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[checked]:border-accent data-[checked]:bg-accent data-[indeterminate]:border-accent data-[indeterminate]:bg-accent data-[disabled]:cursor-default data-[disabled]:opacity-50',
         className,
       )}
       {...props}
     >
       <C.Indicator className="flex text-accent-fg">
-        <Check className="size-3" strokeWidth={3} />
+        {indeterminate ? <Minus className="size-3" strokeWidth={3} /> : <Check className="size-3" strokeWidth={3} />}
       </C.Indicator>
     </C.Root>
   )

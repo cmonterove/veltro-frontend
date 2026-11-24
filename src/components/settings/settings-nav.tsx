@@ -93,9 +93,10 @@ const FULL_HEIGHT = ['/settings/org', '/settings/members', '/settings/support']
 
 export function SettingsContainer({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  // los ajustes de un espacio también (su banda, su identidad y su vista previa); crear uno sigue angosto
-  const wide = WIDE.some((p) => pathname === p) || (pathname.startsWith('/settings/workspaces/') && pathname !== '/settings/workspaces/new')
-  const isWorkspacePage = pathname.startsWith('/settings/workspaces/') && pathname !== '/settings/workspaces/new'
+  // los ajustes de un espacio también (su banda, su identidad y su vista previa), y crear uno (su
+  // identidad arriba y, abajo, las plantillas con el tablero que va a quedar)
+  const isWorkspacePage = pathname.startsWith('/settings/workspaces/')
+  const wide = WIDE.some((p) => pathname === p) || isWorkspacePage
   // los de un espacio también: su panel llena la pantalla y nada se desplaza afuera
   const fullHeight = FULL_HEIGHT.some((p) => pathname === p) || isWorkspacePage
   return (

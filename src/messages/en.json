@@ -859,7 +859,6 @@
       "prepare": "Prepare",
       "join": "Join",
       "doneOf": "{done} of {total} done",
-      "blocked": "{count} blocked",
       "overdue": "{count} overdue",
       "hoursLeft": "{hours} h to go",
       "agreements": "Live agreements",
@@ -884,7 +883,49 @@
       "noTasksTitle": "This space has no tasks yet",
       "noTasksHint": "Create them in Tasks, or they come from meetings: every agreement becomes a task with an owner and a date.",
       "goToTasks": "Go to Tasks",
-      "allShort": "See all"
+      "allShort": "See all",
+      "peek": {
+        "backlog": "Ideas and things for later",
+        "todo": "Not started yet",
+        "in_progress": "Underway",
+        "blocked": "Stopped: waiting on something to move",
+        "done": "Finished",
+        "share": "{pct}% of the {total}",
+        "none": "No tasks in this status for now.",
+        "more": "And {count} more: see them in Tasks",
+        "seeAll": "See in Tasks"
+      }
+    },
+    "starter": {
+      "title": "Get it going",
+      "progress": "{done} of {total} done",
+      "hide": "Hide",
+      "invite": {
+        "title": "Bring in your team",
+        "hint": "For now it's just you in this space.",
+        "cta": "Invite",
+        "done": "{count, plural, one {# person} other {# people}} in the space."
+      },
+      "tasks": {
+        "title": "Bring in your tasks",
+        "hint": "From Excel, CSV or Trello, or create them in Tasks.",
+        "cta": "Import",
+        "done": "It has its own tasks."
+      },
+      "logo": {
+        "title": "Give it a logo",
+        "hint": "The client's or the project's: it shows in the sidebar and on every task.",
+        "cta": "Upload logo",
+        "done": "It has its logo."
+      },
+      "calendar": {
+        "title": "Connect your Google Calendar",
+        "hint": "To see your meetings and schedule from Veltro.",
+        "cta": "Connect",
+        "done": "Connected as {email}."
+      },
+      "stepDone": "Done",
+      "stepPending": "To do"
     },
     "sections": "Space sections",
     "invite": "Invite"
@@ -1104,12 +1145,35 @@
         "copyLink": "Copy",
         "expiresHint": "The link works once and expires in 7 days.",
         "whatsapp": "Send on WhatsApp",
-        "shareMessage": "I invited you to {account} on Veltro. Join here: {link}",
+        "shareMessage": "I invited you to {account} on Veltro, where the team keeps its meetings, decisions and tasks. Join here: {link}",
         "guestHint": "Only sees the space you pick and its people. For clients or outsiders.",
         "guestPick": "Space they join",
         "allWorkspacesToday": "Check all current ones",
         "noneWorkspaces": "Uncheck all",
-        "titleSpace": "Invite to {space}"
+        "titleSpace": "Invite to {space}",
+        "preview": "See the email",
+        "previewTitle": "The email they’ll get",
+        "previewNote": "This is a preview: the button and the link don’t work here. The real link is created when you invite.",
+        "previewFrom": "From",
+        "previewTo": "To",
+        "previewSubject": "Subject",
+        "previewSomeone": "the person you invite",
+        "spacesHintMember": "Pick which ones they join and with what access.",
+        "spacesHintGuest": "They'll only see the spaces you pick and their people.",
+        "spacesHintAdmin": "As an admin they join all of them, including new ones.",
+        "spacesSearch": "Search spaces",
+        "spacesNoMatch": "No space with that name.",
+        "spacesEmpty": "There are no spaces in the account yet.",
+        "summaryAdmin": "Joins as an admin: sees every space.",
+        "summaryMember": "Joins as a member in {count, plural, =0 {no spaces} one {# space} other {# spaces}}.",
+        "summaryGuest": "Joins as a guest in {count, plural, one {# space} other {# spaces}}.",
+        "summaryGuestNone": "Pick at least one space for the guest.",
+        "accessNone": "No access",
+        "accessHint": {
+          "viewer": "Sees everything, changes nothing.",
+          "editor": "Creates and edits tasks, docs and meetings.",
+          "admin": "Also manages the space and its people."
+        }
       },
       "invites": {
         "title": "Pending invitations",
@@ -1280,7 +1344,23 @@
       },
       "summary": "{statuses} statuses · {fields, plural, =0 {no fields} one {# field} other {# fields}}",
       "newTitle": "New space",
-      "newDescription": "A space groups the tasks, docs and meetings of a project or company. Then you set its statuses, fields and people.",
+      "namePlaceholder": "Space name",
+      "descriptionPlaceholder": "What it's for (optional)",
+      "keyHintNew": "Its tasks are numbered {key}-1, {key}-2…",
+      "templatesHeading": "What does it start with?",
+      "changeLater": "You can change everything later.",
+      "previewBoard": "How “{name}” starts",
+      "previewBoardNoName": "How your space starts",
+      "templateMeta": "{statuses, plural, one {# status} other {# statuses}}, {fields, plural, =0 {no extra fields} one {# field} other {# fields}} and {tasks, plural, =0 {no tasks} one {# task to start} other {# tasks to start}}",
+      "fieldsHeading": "Fields on every task",
+      "noFields": "No extra fields: add them when you need them.",
+      "needName": "Give the space a name to create it.",
+      "newSummary": "“{name}” is created with the {template} template.",
+      "newSummaryBlank": "“{name}” is created blank, with the usual statuses.",
+      "afterTitle": "After you create it",
+      "after1": "Add the people who will work in it.",
+      "after2": "Create its tasks, docs and meetings inside.",
+      "after3": "Change statuses and fields whenever you want, from its settings.",
       "noDescription": "No description.",
       "open": "Open space",
       "tabs": {
@@ -1318,7 +1398,6 @@
       "adminsTitle": "Account admins",
       "adminsHint": "They see and edit every space; no need to give them access.",
       "templateTitle": "Template",
-      "templateHint": "Start with statuses, fields and first tasks made for the kind of work. Everything can be changed later.",
       "templateFailed": "The workspace was created, but we couldn't apply the whole template. Adjust it in Settings › Workspaces.",
       "templates": {
         "blank": {
@@ -3017,10 +3096,25 @@
     "done": "Done",
     "progress": "Step {n} of {total}",
     "replayHint": "You can take this tour again anytime from your menu or with ⌘K.",
+    "hello": "Hi, {name}",
+    "flow": {
+      "meetings": {
+        "title": "Meetings",
+        "body": "With an agenda and live notes"
+      },
+      "decisions": {
+        "title": "Decisions",
+        "body": "Written down, in plain sight"
+      },
+      "tasks": {
+        "title": "Tasks",
+        "body": "With an owner and a date"
+      }
+    },
     "steps": {
       "welcome": {
-        "title": "Welcome to Veltro",
-        "body": "Veltro brings together your meetings, what gets decided in them and your team's tasks, so every meeting turns into work done. In one minute we'll show you where everything is."
+        "title": "Welcome to {account}",
+        "body": "Here every meeting ends in work done: what gets decided is written down and becomes tasks with an owner. In a minute we’ll show you where everything is."
       },
       "ask": {
         "title": "Ask Veltro",
@@ -3135,6 +3229,13 @@
   },
   "invite": {
     "metaTitle": "Invitation",
+    "ogTitle": "{inviter} invited you to {account}",
+    "ogTitleAnon": "You're invited to {account}",
+    "ogDescription": "Join on Veltro: the team’s meetings, decisions and tasks, all in one place.",
+    "ogInvitedYou": "invited you to",
+    "ogJoin": "Join the team",
+    "ogTagline": "Meetings, decisions and tasks in one place",
+    "ogGeneric": "Your team is waiting on Veltro",
     "someone": "Someone",
     "invitedBy": "{inviter} invited you to work in",
     "asAdmin": "You’ll join as an admin: you’ll see and manage every space.",
@@ -3488,28 +3589,60 @@
     },
     "importDialog": {
       "title": "Import tasks",
-      "description": "From Excel, CSV or a Trello board. Before creating anything we show you what we understood.",
+      "description": "From an Excel or CSV sheet, or a Trello board. Before creating anything, we show you what we understood.",
+      "into": "Created in",
       "workspace": "Into which workspace?",
-      "drop": "Drop the file here",
-      "formats": "Excel (.xlsx) or CSV with headers like Title, Status, Assignee, Due, Priority and Labels. From Trello: Board menu › Print, export and share › Export as JSON.",
+      "pickWorkspace": "Pick the workspace",
+      "drop": "Drop your file here",
+      "dropNow": "Drop it to read it",
+      "accepts": "Excel, CSV or a Trello board's JSON",
       "choose": "Choose file",
       "notTrello": "That JSON isn't a Trello board.",
       "noTitle": "We couldn't find a title column (Title, Name or Task).",
       "unreadable": "We couldn't read the file. Try .xlsx, .csv or Trello's JSON.",
-      "found": "{count, plural, =0 {No tasks in {name}} one {# task in {name}} other {# tasks in {name}}}",
-      "other": "Choose another file",
+      "sheetTitle": "From Excel or CSV",
+      "sheetBody": "One row per task and, in the first row, each column's name. We read these:",
+      "sheetNote": "Only the title is required. Dates like 2026-11-28; several people or labels, separated by commas.",
+      "template": "Download the template",
+      "templateFile": "tasks-template",
+      "example1": "Prepare the client proposal",
+      "example1Labels": "sales, client",
+      "example1Notes": "Include prices and timelines.",
+      "example2": "Review the contract with legal",
+      "example2Labels": "legal",
+      "example3": "Send the monthly report",
+      "trelloTitle": "From Trello",
+      "trelloStep1": "On the board, open the menu (the three dots)",
+      "trelloStep2": "Print, export, and share",
+      "trelloStep3": "Export as JSON and drop the file here",
+      "trelloNote": "Each list becomes a status, and you can change it before importing. Members, labels and dates come over as they are; archived items don't.",
+      "found": "{count, plural, =0 {No tasks} one {# task to import} other {# tasks to import}}",
+      "other": "Change file",
+      "columnsTitle": "Columns we use",
+      "fromBoard": "What we bring from the board",
+      "ignoredNote": "Crossed-out columns aren't imported.",
+      "headerless": "We didn't see column names: each row is a task and the first column is its title.",
+      "statusesTitle": "How statuses map",
+      "listsTitle": "How lists map",
+      "statusFor": "Status for “{value}”",
+      "noStatus": "There is no status column: they all come in as “{status}”.",
+      "empty": "We didn't find tasks in this file. Check that every row has a title.",
       "colTitle": "Title",
       "colStatus": "Status",
       "colPeople": "Assignees",
       "colDue": "Due",
+      "selectAll": "Select all",
+      "include": "Import “{title}”",
+      "includeGroup": "Import the “{value}” ones",
+      "colLabels": "Labels",
+      "selected": "{count} of {total} selected",
       "andMore": "and {count} more",
       "unknownPeople": "{count, plural, one {We couldn't find {names} in this workspace: left unassigned.} other {We couldn't find {names} in this workspace: those tasks won't have that assignee.}}",
       "skipped": "{count, plural, one {# row without a title was left out.} other {# rows without a title were left out.}}",
       "cancel": "Cancel",
       "submit": "{count, plural, one {Import # task} other {Import # tasks}}",
       "submitEmpty": "Import",
-      "done": "{count, plural, one {# task imported into {workspace}} other {# tasks imported into {workspace}}}",
-      "pickWorkspace": "Pick the workspace"
+      "done": "{count, plural, one {# task imported into {workspace}} other {# tasks imported into {workspace}}}"
     },
     "fromTemplate": "New from template…"
   },

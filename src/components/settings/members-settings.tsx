@@ -1,22 +1,21 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, ChevronDown, Copy, DoorOpen, KeyRound, Layers, Link2, Mail, MailCheck, MoreHorizontal, Search, Send, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react'
+import { Check, ChevronDown, Copy, DoorOpen, Eye, KeyRound, Layers, Link2, Mail, MailCheck, MoreHorizontal, Search, Send, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { useDateLocale } from '@/lib/dates'
 import { useApp } from '@/components/app/app-context'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/switch'
 import { Avatar } from '@/components/ui/avatar'
 import { Field, Input } from '@/components/ui/input'
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from '@/components/ui/dialog'
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/components/ui/menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { inviteMember, removeMember, resendInvite, revokeInvite, setMemberWorkspaces, updateMemberRole } from '@/app/actions/settings'
+import { inviteMember, previewInvitation, removeMember, resendInvite, revokeInvite, setMemberWorkspaces, updateMemberRole } from '@/app/actions/settings'
 import { cn } from '@/lib/utils'
 import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
 import type { AccountMember, Assignment, Invitation, Usage } from '@/lib/api/ajustes'
@@ -26,6 +25,7 @@ import { WorkspaceMark } from '@/components/app/marks'
 import { Select } from '@/components/ui/select'
 import { useConfirm } from '@/components/ui/confirm'
 import { useCopy } from '@/lib/clipboard'
+import { useDebounced } from '@/lib/hooks'
 
 type Result = { ok: true } | { ok: false; error: ErrorCode }
 
@@ -572,6 +572,8 @@ function PendingInvites({ invitations, onChanged, onInvite, disabled }: { invita
  * (invitado: solo ese espacio y su gente, para clientes o externos) o como admin (solo el dueño).
  * `initialWorkspaceId`: se abrió desde un espacio, así que arranca como invitado a ese espacio.
  */
+const INVITE_ROLE_ICON = { member: UserRound, guest: DoorOpen, admin: ShieldCheck } as const
+
 export function InviteDialog({
   open,
   onOpenChange,
@@ -600,7 +602,41 @@ export function InviteDialog({
   const [selected, setSelected] = useState<Map<string, WorkspaceRole>>(() => (initialWorkspaceId ? onlyInitial() : everyWorkspace()))
   const [pending, start] = useTransition()
   const [result, setResult] = useState<{ email: string; link: string; emailed: boolean } | null>(null)
+  // el correo tal como le llegaría, con lo que ya se eligió (nombre, rol y espacios)
+  const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null)
   const space = initialWorkspaceId ? workspaces.find((w) => w.id === initialWorkspaceId) : undefined
+  const roles = canPromote ? (['member', 'guest', 'admin'] as const) : (['member', 'guest'] as const)
+  // con muchos espacios, un buscador arriba de la lista
+  const [spaceQuery, setSpaceQuery] = useState('')
+  const shownSpaces = spaceQuery.trim() ? workspaces.filter((w) => fold(w.name).includes(fold(spaceQuery.trim()))) : workspaces
+  const toggleSpace = (id: string, on: boolean) => {
+    const next = new Map(selected)
+    if (on) next.set(id, 'editor')
+    else next.delete(id)
+    setSelected(next)
+  }
+  // el correo en chico, al día con lo elegido: el mismo HTML que se envía (sin el correo de la persona, que no cambia nada)
+  const thumbInput = useDebounced(
+    JSON.stringify({ fullName: name.trim(), role, workspaces: role === 'admin' ? [] : [...selected].map(([id, r]) => ({ id, role: r })) }),
+    450,
+  )
+  const thumb = useQuery({
+    queryKey: ['invite-preview', account.id, thumbInput],
+    queryFn: () => previewInvitation(account.id, { email: '', ...JSON.parse(thumbInput) }),
+    enabled: open && !result,
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
+    retry: false,
+  })
+  const thumbData = thumb.data?.ok ? thumb.data : null
+  // sin vista previa (p. ej. una API que todavía no la tiene): no se muestra
+  const thumbFailed = !thumbData && (thumb.isError || thumb.data?.ok === false)
+  const summary =
+    role === 'admin'
+      ? t('summaryAdmin')
+      : role === 'guest' && selected.size === 0
+        ? t('summaryGuestNone')
+        : t(role === 'guest' ? 'summaryGuest' : 'summaryMember', { count: selected.size })
 
   // miembro: entra a todos los espacios de hoy (se pueden desmarcar); invitado: solo al elegido
   const pickRole = (r: 'admin' | 'member' | 'guest') => {
@@ -611,6 +647,7 @@ export function InviteDialog({
   const reset = () => {
     setName('')
     setEmail('')
+    setSpaceQuery('')
     pickRole(startRole)
     setResult(null)
     setError(null)
@@ -657,7 +694,7 @@ export function InviteDialog({
         if (!o) reset()
       }}
     >
-      <DialogContent>
+      <DialogContent viewportClassName={result ? undefined : 'pt-[8vh]'} className={result ? undefined : 'max-w-[880px]'}>
         {result ? (
           <>
             <DialogHeader
@@ -698,88 +735,156 @@ export function InviteDialog({
               submit()
             }}
           >
-            <DialogHeader title={space ? t('titleSpace', { space: space.name }) : t('title')} description={t('description')} />
-            <DialogBody className="flex flex-col gap-4">
-              <Field label={t('email')} htmlFor="m-email">
-                <Input id="m-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
-              </Field>
-              <Field label={t('nameOptional')} htmlFor="m-name">
-                <Input id="m-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
-              </Field>
-              {/* a qué entra: la cuenta, un espacio puntual o todo (admin, solo lo da el dueño) */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">{t('role')}</span>
-                <div className={cn('grid gap-2', canPromote ? 'sm:grid-cols-3' : 'grid-cols-2')}>
-                    {(canPromote ? (['member', 'guest', 'admin'] as const) : (['member', 'guest'] as const)).map((r) => (
+            <div className="flex items-start gap-3.5 px-6 pb-5 pr-14 pt-6">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-ink">
+                <UserPlus className="size-5" />
+              </span>
+              <div className="min-w-0">
+                <DialogTitle className="text-md font-semibold text-fg">{space ? t('titleSpace', { space: space.name }) : t('title')}</DialogTitle>
+                <DialogDescription className="mt-0.5 text-sm text-fg-muted">{t('description')}</DialogDescription>
+              </div>
+            </div>
+            <div className="grid border-y border-line-soft md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+              {/* quién es y con qué rol entra */}
+              <div className="flex flex-col gap-4 px-6 py-5">
+                <Field label={t('email')} htmlFor="m-email">
+                  <Input id="m-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+                </Field>
+                <Field label={t('nameOptional')} htmlFor="m-name">
+                  <Input id="m-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
+                </Field>
+                {/* a qué entra: la cuenta, un espacio puntual o todo (admin, solo lo da el dueño) */}
+                <div role="group" aria-labelledby="m-role" className="flex flex-col gap-1.5">
+                  <span id="m-role" className="text-sm font-medium text-fg">
+                    {t('role')}
+                  </span>
+                  {roles.map((r) => {
+                    const Icon = INVITE_ROLE_ICON[r]
+                    const on = role === r
+                    return (
                       <button
                         key={r}
                         type="button"
                         onClick={() => pickRole(r)}
-                        aria-pressed={role === r}
+                        aria-pressed={on}
                         className={cn(
-                          'flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors',
-                          role === r ? 'border-accent-mid bg-accent-soft' : 'border-line hover:bg-hover',
+                          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-left outline-none ring-1 ring-inset transition-[background-color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-accent-mid',
+                          on ? 'bg-accent-soft ring-accent-mid' : 'ring-line hover:bg-hover',
                         )}
                       >
-                        <span className="text-sm font-medium">{tRole(r)}</span>
-                        <span className="text-xs text-fg-muted">{t(`${r}Hint`)}</span>
+                        <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors', on ? 'bg-panel text-accent-ink shadow-card' : 'bg-hover text-fg-muted')}>
+                          <Icon className="size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-fg">{tRole(r)}</span>
+                          <span className="block text-xs leading-snug text-fg-muted">{t(`${r}Hint`)}</span>
+                        </span>
+                        <span className={cn('flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors', on ? 'border-accent bg-accent' : 'border-line-control bg-panel')}>
+                          {on ? <span className="size-1.5 rounded-full bg-accent-fg" /> : null}
+                        </span>
                       </button>
-                    ))}
+                    )
+                  })}
                 </div>
+                {error ? (
+                  <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-fg">
+                    {te(error)}
+                  </p>
+                ) : null}
               </div>
-              {role !== 'admin' ? (
-                <div className="flex flex-col gap-1.5">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <span className="mr-auto">{role === 'guest' ? t('guestPick') : t('workspaces')}</span>
+
+              {/* a qué espacios entra, al lado (en el teléfono, debajo), y lo que le llega. En pantallas
+                  anchas no estira el diálogo: las fichas se desplazan dentro de la altura de la izquierda. */}
+              <div className="relative min-h-72 border-t border-line-soft md:border-l md:border-t-0">
+                <div className="flex h-full flex-col md:absolute md:inset-0">
+                  <div className="flex items-start gap-3 px-6 pt-5">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-fg">{role === 'guest' ? t('guestPick') : t('workspaces')}</p>
+                      <p className="mt-0.5 text-xs text-fg-muted">{t(role === 'admin' ? 'spacesHintAdmin' : role === 'guest' ? 'spacesHintGuest' : 'spacesHintMember')}</p>
+                    </div>
                     {role === 'member' && workspaces.length > 1 ? (
                       <button
                         type="button"
                         onClick={() => setSelected(selected.size === workspaces.length ? new Map() : everyWorkspace())}
-                        className="text-xs font-medium text-accent-ink hover:underline"
+                        className="-mr-1.5 shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-accent-ink outline-none transition-colors hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent-mid"
                       >
                         {selected.size === workspaces.length ? t('noneWorkspaces') : t('allWorkspacesToday')}
                       </button>
                     ) : null}
-                  </span>
-                  <div className="flex flex-col rounded-lg border border-line p-1">
-                    {workspaces.map((w) => {
-                      const r = selected.get(w.id)
+                  </div>
+                  {workspaces.length > 7 ? (
+                    <div className="relative mx-6 mt-3">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-subtle" />
+                      <Input value={spaceQuery} onChange={(e) => setSpaceQuery(e.target.value)} placeholder={t('spacesSearch')} aria-label={t('spacesSearch')} className="h-8 pl-8 text-sm" />
+                    </div>
+                  ) : null}
+                  {/* una ficha por espacio: se marca con un clic; el permiso, abajo de cada una */}
+                  <ul className={cn('mt-3.5 grid min-h-0 grid-cols-2 content-start gap-2.5 overflow-y-auto px-6 pb-5', thumbFailed ? 'flex-1' : 'shrink')}>
+                    {shownSpaces.map((w) => {
+                      const admin = role === 'admin'
+                      const r = admin ? undefined : selected.get(w.id)
+                      const on = admin || Boolean(r)
                       return (
-                        <div key={w.id} className="flex h-9 items-center gap-2 rounded-sm px-2 hover:bg-hover">
-                          <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                            <Checkbox
-                              checked={Boolean(r)}
-                              onCheckedChange={(on) => {
-                                const next = new Map(selected)
-                                if (on) next.set(w.id, 'editor')
-                                else next.delete(w.id)
-                                setSelected(next)
-                              }}
-                            />
-                            <WorkspaceMark ws={w} size={16} />
-                            <span className="truncate">{w.name}</span>
-                          </label>
-                          {r ? (
-                            <Select<WorkspaceRole>
-                              value={r}
-                              onChange={(v) => setSelected(new Map(selected).set(w.id, v))}
-                              options={(['admin', 'editor', 'viewer'] as const).map((x) => ({ value: x, label: tRole(`ws_${x}`) }))}
-                              className="h-7 w-28 px-2 text-xs"
-                            />
-                          ) : null}
-                        </div>
+                        <li key={w.id} className="relative">
+                          <button
+                            type="button"
+                            onClick={admin ? undefined : () => toggleSpace(w.id, !on)}
+                            aria-pressed={on}
+                            aria-disabled={admin || undefined}
+                            className={cn(
+                              'flex h-full w-full flex-col items-start rounded-xl p-3.5 pb-10 text-left outline-none transition-[background-color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-accent-mid',
+                              on ? 'bg-accent-soft/50 ring-[1.5px] ring-inset ring-accent-mid' : 'ring-1 ring-inset ring-line hover:bg-hover',
+                              on && !admin && 'hover:bg-accent-soft/80',
+                              admin && 'cursor-default',
+                            )}
+                          >
+                            <span className="flex w-full items-start justify-between gap-2">
+                              <WorkspaceMark ws={w} size={32} className={cn('transition-opacity duration-150', !on && 'opacity-50')} />
+                              <span
+                                className={cn(
+                                  'flex size-[18px] shrink-0 items-center justify-center rounded-full transition-colors duration-150',
+                                  on ? 'bg-accent text-accent-fg' : 'bg-panel ring-1 ring-inset ring-line-control',
+                                )}
+                              >
+                                {on ? <Check className="size-3" strokeWidth={3} /> : null}
+                              </span>
+                            </span>
+                            <span className={cn('mt-3 block w-full truncate text-sm font-medium', on ? 'text-fg' : 'text-fg-muted')}>{w.name}</span>
+                          </button>
+                          {/* el permiso: dentro de la ficha pero fuera de su botón (no se anidan botones) */}
+                          <div className="pointer-events-none absolute inset-x-3.5 bottom-2.5 flex h-6 items-center">
+                            {admin ? (
+                              <span className="text-xs font-medium text-accent-ink">{tRole('ws_admin')}</span>
+                            ) : r ? (
+                              <AccessMenu value={r} onChange={(v) => setSelected(new Map(selected).set(w.id, v))} />
+                            ) : (
+                              <span className="text-xs text-fg-subtle">{t('accessNone')}</span>
+                            )}
+                          </div>
+                        </li>
                       )
                     })}
-                  </div>
+                    {!workspaces.length || !shownSpaces.length ? (
+                      <li className="col-span-2 px-2 py-6 text-center text-xs text-fg-muted">{workspaces.length ? t('spacesNoMatch') : t('spacesEmpty')}</li>
+                    ) : null}
+                  </ul>
+                  {/* lo que le llega: el correo de verdad (el mismo HTML que se envía), en chico y al día con lo
+                      elegido. Si la API no tiene vista previa, no se ofrece (mejor nada que un botón que falla). */}
+                  {thumbFailed ? null : (
+                    <div className="flex min-h-40 flex-1 flex-col gap-2 border-t border-line-soft px-6 pb-5 pt-3.5">
+                      <p className="flex items-center gap-2 text-[13px] font-medium text-fg">
+                        <Mail className="size-3.5 text-fg-muted" />
+                        {t('previewTitle')}
+                      </p>
+                      <EmailThumb html={thumbData?.html ?? null} onOpen={() => (thumbData ? setPreview({ subject: thumbData.subject, html: thumbData.html }) : undefined)} />
+                    </div>
+                  )}
                 </div>
-              ) : null}
-              {error ? (
-                <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-fg">
-                  {te(error)}
-                </p>
-              ) : null}
-            </DialogBody>
-            <DialogFooter>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4">
+              {/* lo que va a pasar al enviar */}
+              <p className={cn('mr-auto min-w-0 text-xs', role === 'guest' && selected.size === 0 ? 'font-medium text-fg' : 'text-fg-muted')}>{summary}</p>
               <Button variant="ghost" onClick={close}>
                 {t('cancel')}
               </Button>
@@ -787,9 +892,130 @@ export function InviteDialog({
                 <Send />
                 {t('submit')}
               </Button>
-            </DialogFooter>
+            </div>
+            {/* dentro del diálogo de invitar: al cerrarla se vuelve a él tal como estaba */}
+            <EmailPreview preview={preview} to={email.trim()} onClose={() => setPreview(null)} />
           </form>
         )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** El permiso en un espacio, como texto con flecha (sin caja): Lector, Editor o Admin, cada uno con lo que puede hacer. */
+function AccessMenu({ value, onChange }: { value: WorkspaceRole; onChange: (v: WorkspaceRole) => void }) {
+  const t = useTranslations('settings.members.addDialog')
+  const tRole = useTranslations('roles')
+  return (
+    <Menu>
+      <MenuTrigger className="pointer-events-auto -ml-1.5 inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-xs font-medium text-accent-ink outline-none transition-colors hover:bg-panel focus-visible:ring-2 focus-visible:ring-accent-mid data-[popup-open]:bg-panel">
+        {tRole(`ws_${value}`)}
+        <ChevronDown className="size-3.5" />
+      </MenuTrigger>
+      <MenuContent className="w-64">
+        <MenuRadioGroup value={value} onValueChange={(v) => onChange(v as WorkspaceRole)}>
+          {(['viewer', 'editor', 'admin'] as const).map((x) => (
+            <MenuRadioItem key={x} value={x} closeOnClick className="relative h-auto items-start py-1.5">
+              <span className="flex min-w-0 flex-col">
+                <span className="text-sm text-fg">{tRole(`ws_${x}`)}</span>
+                <span className="text-xs leading-snug text-fg-muted">{t(`accessHint.${x}`)}</span>
+              </span>
+            </MenuRadioItem>
+          ))}
+        </MenuRadioGroup>
+      </MenuContent>
+    </Menu>
+  )
+}
+
+/** Ancho con que se dibuja el correo antes de achicarlo: el del correo (560) más su margen. */
+const EMAIL_WIDTH = 600
+/** El margen de arriba del correo que no hace falta en chico. */
+const EMAIL_TOP = 26
+
+/**
+ * El correo de invitación en chico: el HTML de verdad, dibujado a su ancho y achicado al de la columna,
+ * con la parte de arriba a la vista (logo, quién invita, «Únete a…»). Un clic lo abre entero.
+ */
+function EmailThumb({ html, onOpen }: { html: string | null; onOpen: () => void }) {
+  const t = useTranslations('settings.members.addDialog')
+  const box = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0.66)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setScale(e.contentRect.width / EMAIL_WIDTH))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return (
+    <div ref={box} className="group relative h-56 overflow-hidden rounded-lg bg-[#FBF6F2] ring-1 ring-line-soft transition-shadow duration-150 hover:shadow-card md:h-auto md:min-h-0 md:flex-1">
+      {html ? (
+        <iframe
+          title={t('previewTitle')}
+          srcDoc={html}
+          sandbox="allow-same-origin"
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 origin-top-left border-0"
+          style={{ width: EMAIL_WIDTH, height: 1200, transform: `scale(${scale}) translateY(-${EMAIL_TOP}px)` }}
+        />
+      ) : (
+        <span className="absolute inset-x-[12%] top-6 flex flex-col gap-2.5" aria-hidden>
+          <span className="h-3 w-16 animate-pulse rounded-full bg-[#EFE3EA]" />
+          <span className="h-16 animate-pulse rounded-lg bg-[#F3E8FA]" />
+          <span className="h-3 w-2/3 animate-pulse rounded-full bg-[#EFE3EA]" />
+        </span>
+      )}
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#FBF6F2] to-transparent" />
+      <button
+        type="button"
+        onClick={onOpen}
+        className="absolute inset-0 flex items-end justify-end p-2.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-mid"
+      >
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-panel px-2.5 py-1 text-xs font-medium text-fg shadow-card ring-1 ring-line-soft transition-colors group-hover:bg-hover">
+          <Eye className="size-3.5" />
+          {t('preview')}
+        </span>
+      </button>
+    </div>
+  )
+}
+
+/**
+ * El correo de invitación tal como lo recibiría la persona: de quién, para quién, el asunto y el correo
+ * mismo (el HTML que arma la API, en un marco sin scripts y con los enlaces apagados).
+ */
+function EmailPreview({ preview, to, onClose }: { preview: { subject: string; html: string } | null; to: string; onClose: () => void }) {
+  const t = useTranslations('settings.members.addDialog')
+  const doc = preview ? preview.html.replace('</head>', '<style>a{pointer-events:none;cursor:default}</style></head>') : ''
+  const row = (label: string, value: React.ReactNode, strong?: boolean) => (
+    <p className="flex gap-3">
+      <span className="w-14 shrink-0 text-fg-subtle">{label}</span>
+      <span className={cn('min-w-0 truncate', strong ? 'font-medium text-fg' : 'text-fg')}>{value}</span>
+    </p>
+  )
+  return (
+    <Dialog open={Boolean(preview)} onOpenChange={(o) => (o ? null : onClose())}>
+      <DialogContent viewportClassName="pt-[4vh]" className="flex max-h-[calc(100dvh-6vh)] flex-col sm:max-w-[680px]">
+        <DialogHeader title={t('previewTitle')} description={t('previewNote')} />
+        <div className="mx-5 mb-3 flex shrink-0 flex-col gap-1 rounded-lg bg-canvas px-3.5 py-2.5 text-[13px] ring-1 ring-inset ring-line-soft">
+          {row(t('previewFrom'), 'Veltro')}
+          {row(t('previewTo'), to || t('previewSomeone'))}
+          {row(t('previewSubject'), preview?.subject, true)}
+        </div>
+        <div className="mx-5 mb-5 min-h-0 flex-1 overflow-hidden rounded-xl ring-1 ring-line">
+          {/* aislado: sin scripts, formularios ni ventanas; con el origen de la página para que carguen sus imágenes */}
+          {/* sin foco al abrir (si no, Escape queda dentro del marco y no cierra); si se hace clic adentro, Escape igual cierra */}
+          <iframe
+            title={t('previewTitle')}
+            srcDoc={doc}
+            sandbox="allow-same-origin"
+            tabIndex={-1}
+            onLoad={(e) => e.currentTarget.contentDocument?.addEventListener('keydown', (ev) => (ev.key === 'Escape' ? onClose() : undefined))}
+            className="block h-[min(68vh,760px)] w-full bg-[#FBF6F2]"
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )

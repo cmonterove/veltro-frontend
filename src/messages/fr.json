@@ -859,7 +859,6 @@
       "prepare": "Préparer",
       "join": "Rejoindre",
       "doneOf": "{done} sur {total} terminées",
-      "blocked": "{count, plural, one {# bloquée} other {# bloquées}}",
       "overdue": "{count, plural, one {# en retard} other {# en retard}}",
       "hoursLeft": "{hours} h restantes",
       "agreements": "Accords vivants",
@@ -884,7 +883,49 @@
       "noTasksTitle": "Cet espace n’a pas encore de tâches",
       "noTasksHint": "Créez-les dans Tâches, ou elles viennent des réunions : chaque accord devient une tâche avec un responsable et une date.",
       "goToTasks": "Aller aux Tâches",
-      "allShort": "Tout voir"
+      "allShort": "Tout voir",
+      "peek": {
+        "backlog": "Idées et sujets pour plus tard",
+        "todo": "À commencer",
+        "in_progress": "En cours",
+        "blocked": "À l'arrêt : en attente de quelque chose",
+        "done": "Terminées",
+        "share": "{pct} % des {total}",
+        "none": "Aucune tâche dans ce statut pour l'instant.",
+        "more": "Et {count} de plus : les voir dans Tâches",
+        "seeAll": "Voir dans Tâches"
+      }
+    },
+    "starter": {
+      "title": "Pour démarrer",
+      "progress": "{done} sur {total} faits",
+      "hide": "Masquer",
+      "invite": {
+        "title": "Ajoutez votre équipe",
+        "hint": "Pour l'instant, vous êtes seul dans cet espace.",
+        "cta": "Inviter",
+        "done": "{count, plural, one {# personne} other {# personnes}} dans l’espace."
+      },
+      "tasks": {
+        "title": "Importez vos tâches",
+        "hint": "Depuis Excel, CSV ou Trello, ou créez-les dans Tâches.",
+        "cta": "Importer",
+        "done": "Il a ses propres tâches."
+      },
+      "logo": {
+        "title": "Ajoutez son logo",
+        "hint": "Celui du client ou du projet : il apparaît dans la barre et sur chaque tâche.",
+        "cta": "Envoyer le logo",
+        "done": "Il a son logo."
+      },
+      "calendar": {
+        "title": "Connectez votre Google Agenda",
+        "hint": "Pour voir vos réunions et planifier depuis Veltro.",
+        "cta": "Connecter",
+        "done": "Connecté en tant que {email}."
+      },
+      "stepDone": "Fait",
+      "stepPending": "À faire"
     },
     "sections": "Sections de l'espace",
     "invite": "Inviter"
@@ -1104,12 +1145,35 @@
         "copyLink": "Copier",
         "expiresHint": "Le lien fonctionne une fois et expire dans 7 jours.",
         "whatsapp": "Envoyer sur WhatsApp",
-        "shareMessage": "Je vous ai invité à {account} sur Veltro. Rejoignez-nous ici : {link}",
+        "shareMessage": "Je vous ai invité à {account} sur Veltro, où l’équipe suit ses réunions, décisions et tâches. Rejoignez-nous ici : {link}",
         "guestHint": "Ne voit que l’espace choisi et ses membres. Pour les clients ou les externes.",
         "guestPick": "Espace qu’il rejoint",
         "allWorkspacesToday": "Tout cocher (actuels)",
         "noneWorkspaces": "Tout décocher",
-        "titleSpace": "Inviter dans {space}"
+        "titleSpace": "Inviter dans {space}",
+        "preview": "Voir l’e-mail",
+        "previewTitle": "L’e-mail qu’elle recevra",
+        "previewNote": "C’est un aperçu : le bouton et le lien ne fonctionnent pas ici. Le vrai lien est créé à l’invitation.",
+        "previewFrom": "De",
+        "previewTo": "À",
+        "previewSubject": "Objet",
+        "previewSomeone": "la personne que vous invitez",
+        "spacesHintMember": "Cochez les espaces à rejoindre et le niveau d’accès.",
+        "spacesHintGuest": "Ne verra que les espaces cochés et leurs membres.",
+        "spacesHintAdmin": "En tant qu’admin, accès à tous, y compris aux nouveaux.",
+        "spacesSearch": "Rechercher un espace",
+        "spacesNoMatch": "Aucun espace avec ce nom.",
+        "spacesEmpty": "Aucun espace dans le compte pour l’instant.",
+        "summaryAdmin": "Rejoint en tant qu’admin : voit tous les espaces.",
+        "summaryMember": "Rejoint en tant que membre {count, plural, =0 {sans espace} one {dans # espace} other {dans # espaces}}.",
+        "summaryGuest": "Rejoint en tant qu’invité {count, plural, one {dans # espace} other {dans # espaces}}.",
+        "summaryGuestNone": "Cochez au moins un espace pour l’invité.",
+        "accessNone": "Aucun accès",
+        "accessHint": {
+          "viewer": "Voit tout, sans rien modifier.",
+          "editor": "Crée et modifie tâches, docs et réunions.",
+          "admin": "Gère aussi l’espace et ses membres."
+        }
       },
       "invites": {
         "title": "Invitations en attente",
@@ -1280,7 +1344,23 @@
       },
       "summary": "{statuses} statuts · {fields, plural, =0 {aucun champ} one {# champ} other {# champs}}",
       "newTitle": "Nouvel espace",
-      "newDescription": "Un espace regroupe les tâches, docs et réunions d’un projet ou d’une entreprise. Ensuite vous définissez ses statuts, champs et personnes.",
+      "namePlaceholder": "Nom de l'espace",
+      "descriptionPlaceholder": "À quoi il sert (facultatif)",
+      "keyHintNew": "Ses tâches sont numérotées {key}-1, {key}-2…",
+      "templatesHeading": "Avec quoi démarre-t-il ?",
+      "changeLater": "Tout peut être modifié plus tard.",
+      "previewBoard": "Voici comment démarre « {name} »",
+      "previewBoardNoName": "Voici comment démarre votre espace",
+      "templateMeta": "{statuses, plural, one {# statut} other {# statuts}}, {fields, plural, =0 {aucun champ en plus} one {# champ} other {# champs}} et {tasks, plural, =0 {aucune tâche} one {# tâche pour commencer} other {# tâches pour commencer}}",
+      "fieldsHeading": "Champs de chaque tâche",
+      "noFields": "Aucun champ en plus : ajoutez-les quand vous en avez besoin.",
+      "needName": "Donnez un nom à l'espace pour le créer.",
+      "newSummary": "« {name} » est créé avec le modèle {template}.",
+      "newSummaryBlank": "« {name} » est créé vide, avec les statuts habituels.",
+      "afterTitle": "Après sa création",
+      "after1": "Ajoutez les personnes qui vont y travailler.",
+      "after2": "Créez-y ses tâches, docs et réunions.",
+      "after3": "Modifiez statuts et champs quand vous voulez, depuis ses paramètres.",
       "noDescription": "Pas de description.",
       "open": "Ouvrir l’espace",
       "tabs": {
@@ -1318,7 +1398,6 @@
       "adminsTitle": "Admins du compte",
       "adminsHint": "Ils voient et modifient tous les espaces ; inutile de leur donner accès.",
       "templateTitle": "Modèle",
-      "templateHint": "Démarrez avec des statuts, des champs et des premières tâches adaptés au type de travail. Tout se modifie ensuite.",
       "templateFailed": "L’espace a été créé, mais nous n’avons pas pu appliquer tout le modèle. Ajustez-le dans Réglages › Espaces.",
       "templates": {
         "blank": {
@@ -3017,10 +3096,25 @@
     "done": "Terminé",
     "progress": "Étape {n} sur {total}",
     "replayHint": "Vous pouvez refaire cette visite quand vous voulez depuis votre menu ou avec ⌘K.",
+    "hello": "Bonjour {name}",
+    "flow": {
+      "meetings": {
+        "title": "Réunions",
+        "body": "Avec ordre du jour et notes en direct"
+      },
+      "decisions": {
+        "title": "Décisions",
+        "body": "Écrites et bien visibles"
+      },
+      "tasks": {
+        "title": "Tâches",
+        "body": "Avec un responsable et une date"
+      }
+    },
     "steps": {
       "welcome": {
-        "title": "Bienvenue dans Veltro",
-        "body": "Veltro réunit vos réunions, ce qui s'y décide et les tâches de l'équipe, pour que chaque réunion finisse en travail accompli. En une minute, on vous montre où se trouve chaque chose."
+        "title": "Bienvenue dans {account}",
+        "body": "Ici, chaque réunion se termine par du travail fait : ce qui est décidé est écrit et devient des tâches avec un responsable. En une minute, on vous montre où se trouve chaque chose."
       },
       "ask": {
         "title": "Demandez à Veltro",
@@ -3135,6 +3229,13 @@
   },
   "invite": {
     "metaTitle": "Invitation",
+    "ogTitle": "{inviter} vous a invité à {account}",
+    "ogTitleAnon": "Vous êtes invité à {account}",
+    "ogDescription": "Rejoignez Veltro : les réunions, décisions et tâches de l’équipe, au même endroit.",
+    "ogInvitedYou": "vous a invité à",
+    "ogJoin": "Rejoindre l’équipe",
+    "ogTagline": "Réunions, décisions et tâches au même endroit",
+    "ogGeneric": "Votre équipe vous attend sur Veltro",
     "someone": "Quelqu’un",
     "invitedBy": "{inviter} vous a invité à travailler dans",
     "asAdmin": "Vous rejoindrez en tant qu’admin : vous verrez et gérerez tous les espaces.",
@@ -3488,28 +3589,60 @@
     },
     "importDialog": {
       "title": "Importer des tâches",
-      "description": "Depuis Excel, CSV ou un tableau Trello. Avant de créer quoi que ce soit, nous vous montrons ce que nous avons compris.",
+      "description": "Depuis une feuille Excel ou CSV, ou un tableau Trello. Avant de créer quoi que ce soit, nous vous montrons ce que nous avons compris.",
+      "into": "Créées dans",
       "workspace": "Dans quel espace ?",
-      "drop": "Déposez le fichier ici",
-      "formats": "Excel (.xlsx) ou CSV avec des en-têtes comme Titre, Statut, Responsable, Échéance, Priorité et Étiquettes. Depuis Trello : Menu du tableau › Imprimer, exporter et partager › Exporter en JSON.",
+      "pickWorkspace": "Choisissez l’espace",
+      "drop": "Déposez votre fichier ici",
+      "dropNow": "Relâchez pour le lire",
+      "accepts": "Excel, CSV ou le JSON d'un tableau Trello",
       "choose": "Choisir un fichier",
       "notTrello": "Ce JSON n’est pas un tableau Trello.",
       "noTitle": "Aucune colonne de titre trouvée (Titre, Nom ou Tâche).",
       "unreadable": "Impossible de lire le fichier. Essayez .xlsx, .csv ou le JSON de Trello.",
-      "found": "{count, plural, =0 {Aucune tâche dans {name}} one {# tâche dans {name}} other {# tâches dans {name}}}",
-      "other": "Choisir un autre fichier",
+      "sheetTitle": "Depuis Excel ou CSV",
+      "sheetBody": "Une ligne par tâche et, sur la première, le nom de chaque colonne. Nous lisons celles-ci :",
+      "sheetNote": "Seul le titre est obligatoire. Les dates comme 28/11/2026 ; plusieurs personnes ou étiquettes, séparées par des virgules.",
+      "template": "Télécharger le modèle",
+      "templateFile": "modele-taches",
+      "example1": "Préparer la proposition pour le client",
+      "example1Labels": "ventes, client",
+      "example1Notes": "Inclure les prix et les délais.",
+      "example2": "Relire le contrat avec le juridique",
+      "example2Labels": "juridique",
+      "example3": "Envoyer le rapport du mois",
+      "trelloTitle": "Depuis Trello",
+      "trelloStep1": "Sur le tableau, ouvrez le menu (les trois points)",
+      "trelloStep2": "Imprimer, exporter et partager",
+      "trelloStep3": "Exporter au format JSON et déposez le fichier ici",
+      "trelloNote": "Chaque liste devient un statut, que vous pouvez changer avant d'importer. Membres, étiquettes et dates sont repris tels quels ; les éléments archivés, non.",
+      "found": "{count, plural, =0 {Aucune tâche} one {# tâche à importer} other {# tâches à importer}}",
+      "other": "Changer de fichier",
+      "columnsTitle": "Colonnes utilisées",
+      "fromBoard": "Ce que nous reprenons du tableau",
+      "ignoredNote": "Les colonnes barrées ne sont pas importées.",
+      "headerless": "Nous n'avons pas vu de noms de colonnes : chaque ligne est une tâche et la première colonne, son titre.",
+      "statusesTitle": "Correspondance des statuts",
+      "listsTitle": "Correspondance des listes",
+      "statusFor": "Statut pour « {value} »",
+      "noStatus": "Pas de colonne de statut : toutes entrent comme « {status} ».",
+      "empty": "Aucune tâche trouvée dans ce fichier. Vérifiez que chaque ligne a un titre.",
       "colTitle": "Titre",
       "colStatus": "Statut",
       "colPeople": "Responsables",
       "colDue": "Échéance",
+      "selectAll": "Tout sélectionner",
+      "include": "Importer « {title} »",
+      "includeGroup": "Importer celles de « {value} »",
+      "colLabels": "Étiquettes",
+      "selected": "{count} sur {total} sélectionnées",
       "andMore": "et {count} de plus",
       "unknownPeople": "{count, plural, one {{names} introuvable dans cet espace : sans responsable.} other {{names} introuvables dans cet espace : ces tâches n’auront pas ce responsable.}}",
       "skipped": "{count, plural, one {# ligne sans titre a été ignorée.} other {# lignes sans titre ont été ignorées.}}",
       "cancel": "Annuler",
       "submit": "{count, plural, one {Importer # tâche} other {Importer # tâches}}",
       "submitEmpty": "Importer",
-      "done": "{count, plural, one {# tâche importée dans {workspace}} other {# tâches importées dans {workspace}}}",
-      "pickWorkspace": "Choisissez l’espace"
+      "done": "{count, plural, one {# tâche importée dans {workspace}} other {# tâches importées dans {workspace}}}"
     },
     "fromTemplate": "Nouvelle depuis un modèle…"
   },

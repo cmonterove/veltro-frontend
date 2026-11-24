@@ -21,6 +21,16 @@ export async function setLocale(locale: string) {
 }
 
 /**
+ * El recorrido de bienvenida quedó cerrado (terminado o «Ahora no»): se guarda en el perfil, así no
+ * vuelve a salir en otro navegador ni en otra dirección. Siempre en la persona real, aunque estén
+ * abiertos los datos de prueba. Si falla, queda lo del navegador.
+ */
+export async function markTourSeen() {
+  const token = await realSessionToken()
+  if (token) await api('/v1/me', { method: 'PATCH', body: { tourSeen: true }, token }).catch(() => undefined)
+}
+
+/**
  * Datos de prueba: abre una segunda sesión con la persona del demo (cuenta aparte en la misma base)
  * o la cierra y vuelve a los datos reales. La sesión de la persona real no se toca.
  */

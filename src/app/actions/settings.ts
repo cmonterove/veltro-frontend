@@ -80,6 +80,22 @@ export async function inviteMember(accountId: string, input: AddMemberInput): Pr
   return res.ok ? { ok: true, link: res.data.link, emailed: res.data.emailed } : res
 }
 
+/** El correo de invitación tal como le llegaría a esa persona (no crea ni manda nada). */
+export async function previewInvitation(accountId: string, input: AddMemberInput): Promise<{ ok: true; subject: string; html: string } | Fail> {
+  const res = await attempt(() =>
+    api<{ subject: string; html: string }>(`/v1/accounts/${accountId}/invitations/preview`, {
+      method: 'POST',
+      body: {
+        ...(input.email.trim() ? { email: input.email.trim().toLowerCase() } : {}),
+        ...(input.fullName.trim() ? { fullName: input.fullName.trim() } : {}),
+        role: input.role,
+        workspaces: input.role === 'admin' ? [] : input.workspaces,
+      },
+    }),
+  )
+  return res.ok ? { ok: true, subject: res.data.subject, html: res.data.html } : res
+}
+
 /** Enlace nuevo (el anterior deja de servir) y, si hay correo, se vuelve a mandar. */
 export async function resendInvite(id: string, email = true): Promise<{ ok: true; link: string; emailed: boolean } | Fail> {
   const blocked = await demoBlocked()

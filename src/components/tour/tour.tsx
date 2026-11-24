@@ -4,7 +4,8 @@ import { createContext, use, useCallback, useEffect, useLayoutEffect, useMemo, u
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { format, parseISO } from 'date-fns'
-import { ArrowLeft, ArrowRight, CalendarDays, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, CircleCheck, Diamond, Sparkles, X, type LucideIcon } from 'lucide-react'
+import { markTourSeen } from '@/app/actions/preferences'
 import { useApp } from '@/components/app/app-context'
 import { LogoMark } from '@/components/app/logo'
 import { KindChip } from '@/components/meeting/kinds'
@@ -44,6 +45,12 @@ const STEPS: Step[] = [
 ]
 
 const storageKey = (userId: string) => `veltro:tour:v1:${userId}`
+/** La bienvenida cuenta en tres pasos lo que hace Veltro: de la reunión a la tarea. */
+const FLOW: { key: 'meetings' | 'decisions' | 'tasks'; icon: LucideIcon }[] = [
+  { key: 'meetings', icon: CalendarDays },
+  { key: 'decisions', icon: Diamond },
+  { key: 'tasks', icon: CircleCheck },
+]
 const PAD = 6
 const GAP = 14
 const MARGIN = 12
@@ -64,29 +71,42 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   // con contraseña temporal o la cuenta suspendida, en Pulso va el aviso: el recorrido espera
   const gated = profile.must_change_password || account.status === 'suspended'
 
+  // ya cerrado: en el perfil (vale en cualquier navegador) o, en las cuentas de antes, en este navegador
+  const savedRef = useRef(Boolean(profile.tour_seen_at))
+  const remember = useCallback(() => {
+    if (savedRef.current) return
+    savedRef.current = true
+    void markTourSeen()
+  }, [])
+
   // la primera vez en Pulso arranca solo, cuando la pantalla ya cargó
   useEffect(() => {
-    if (pathname !== '/home' || step !== null || gated) return
+    if (pathname !== '/home' || step !== null || gated || profile.tour_seen_at) return
     let seen: string | null = 'unknown'
     try {
       seen = localStorage.getItem(storageKey(user.id))
     } catch {
       // sin almacenamiento (modo privado estricto): mejor no insistir en cada visita
     }
-    if (seen) return
+    if (seen) {
+      // lo cerró en este navegador antes de que se guardara en el perfil: que ya quede en su usuario
+      remember()
+      return
+    }
     const id = window.setTimeout(() => setStep(0), 1100)
     return () => window.clearTimeout(id)
-  }, [pathname, user.id, step, gated])
+  }, [pathname, user.id, step, gated, profile.tour_seen_at, remember])
 
   const close = useCallback(
     (how: 'done' | 'skipped') => {
       try {
         localStorage.setItem(storageKey(user.id), how)
       } catch {}
+      remember()
       setStep(null)
       track(how === 'done' ? 'feature.tour_done' : 'feature.tour_skipped')
     },
-    [user.id],
+    [user.id, remember],
   )
 
   const api = useMemo<TourApi>(
@@ -123,8 +143,10 @@ const sameBox = (a: Box | null, b: Box | null) => a === b || (!!a && !!b && a.to
 
 function TourOverlay({ step, onStep, onClose }: { step: number; onStep: (n: number) => void; onClose: (how: 'done' | 'skipped') => void }) {
   const t = useTranslations('tour')
+  const { profile, account } = useApp()
   const s = STEPS[step]
   const last = step === STEPS.length - 1
+  const welcome = s.id === 'welcome'
   const [box, setBox] = useState<Box | null>(null)
   const [card, setCard] = useState({ width: 360, height: 220 })
   const [viewport, setViewport] = useState({ width: 1200, height: 800 })
@@ -238,15 +260,62 @@ function TourOverlay({ step, onStep, onClose }: { step: number; onStep: (n: numb
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="absolute w-[min(380px,calc(100vw-24px))] rounded-2xl border border-line bg-panel text-fg shadow-lift transition-[top,left] duration-300 ease-[var(--ease-out-quart)]"
+        className={cn(
+          'absolute rounded-2xl border border-line bg-panel text-fg shadow-lift transition-[top,left] duration-300 ease-[var(--ease-out-quart)]',
+          welcome ? 'w-[min(500px,calc(100vw-24px))] overflow-hidden' : 'w-[min(380px,calc(100vw-24px))]',
+        )}
         style={{ top: pos.top, left: pos.left }}
       >
+        {welcome ? (
+          // la bienvenida: una franja de marca con el saludo y, debajo, de la reunión a la tarea en tres pasos
+          <div key="welcome" className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+            <div className="relative overflow-hidden bg-accent px-6 pb-6 pt-6 text-accent-fg">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-14 -top-12"
+                // el sello en tonos del color de la cuenta (la franja también lo es): ciruela en Neris, verde en otra
+                style={{ '--logo-a': 'color-mix(in oklch, var(--accent) 84%, white)', '--logo-b': 'color-mix(in oklch, var(--accent) 62%, white)' } as React.CSSProperties}
+              >
+                <LogoMark className="size-56" />
+              </span>
+              <button
+                type="button"
+                onClick={() => onClose('skipped')}
+                className="absolute right-3 top-3 inline-flex size-7 items-center justify-center rounded-md text-accent-fg/75 outline-none transition-colors hover:bg-white/10 hover:text-accent-fg focus-visible:ring-2 focus-visible:ring-white/40"
+                aria-label={t('close')}
+              >
+                <X className="size-4" />
+              </button>
+              <span className="relative flex size-11 items-center justify-center rounded-2xl bg-panel shadow-card">
+                <LogoMark className="size-7" />
+              </span>
+              <p className="relative mt-5 text-sm font-medium text-accent-fg/80">{t('hello', { name: profile.full_name.split(' ')[0] || profile.full_name })}</p>
+              <h2 id={titleId} className="relative mt-0.5 max-w-[22rem] text-[22px] font-semibold leading-tight tracking-[-0.02em]">
+                {t('steps.welcome.title', { account: account.name })}
+              </h2>
+            </div>
+            <div className="px-6 pb-5 pt-5">
+              <p className="text-sm leading-relaxed text-fg-muted">{t('steps.welcome.body')}</p>
+              <ol className="mt-4 grid grid-cols-3 gap-2.5">
+                {FLOW.map(({ key, icon: Icon }, i) => (
+                  <li key={key} className="relative rounded-xl bg-canvas px-3 pb-3 pt-2.5 ring-1 ring-inset ring-line-soft">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-accent-soft text-accent-ink">
+                      <Icon className="size-4" />
+                    </span>
+                    <p className="mt-2 text-[13px] font-semibold leading-tight text-fg">{t(`flow.${key}.title`)}</p>
+                    <p className="mt-0.5 text-xs leading-snug text-fg-muted">{t(`flow.${key}.body`)}</p>
+                    {i < FLOW.length - 1 ? (
+                      <span aria-hidden className="absolute -right-[13px] top-1/2 z-[1] flex size-5 -translate-y-1/2 items-center justify-center rounded-full bg-panel text-fg-subtle ring-1 ring-line-soft">
+                        <ArrowRight className="size-3" />
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        ) : (
         <div key={s.id} className="animate-in fade-in slide-in-from-bottom-1 px-5 pb-4 pt-5 duration-300">
-          {s.id === 'welcome' ? (
-            <span className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-accent-soft">
-              <LogoMark className="size-7" />
-            </span>
-          ) : null}
           <div className="flex items-start gap-3">
             <h2 id={titleId} className="min-w-0 flex-1 text-lg font-semibold leading-snug tracking-[-0.01em]">
               {t(`steps.${s.id}.title`)}
@@ -264,14 +333,15 @@ function TourOverlay({ step, onStep, onClose }: { step: number; onStep: (n: numb
           {s.interactive === 'notation' ? <NotationTry /> : null}
           {last ? <p className="mt-3 rounded-lg bg-hover px-3 py-2 text-xs text-fg-muted">{t('replayHint')}</p> : null}
         </div>
+        )}
 
-        <div className="flex items-center gap-2 border-t border-line px-5 py-3">
-          {s.id === 'welcome' ? (
+        <div className={cn('flex items-center gap-2 border-t border-line py-3', welcome ? 'px-6' : 'px-5')}>
+          {welcome ? (
             <>
-              <button type="button" onClick={() => onClose('skipped')} className="text-sm text-fg-muted hover:text-fg">
+              <button type="button" onClick={() => onClose('skipped')} className="rounded-md text-sm text-fg-muted outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid">
                 {t('later')}
               </button>
-              <Button ref={primaryRef} variant="primary" size="sm" className="ml-auto" onClick={next}>
+              <Button ref={primaryRef} variant="primary" className="ml-auto" onClick={next}>
                 <Sparkles />
                 {t('start')}
               </Button>

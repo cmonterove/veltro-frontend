@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { differenceInMinutes, format, formatDistanceToNowStrict, isPast } from 'date-fns'
+import { PreviewCard } from '@base-ui/react/preview-card'
 import { ArrowRight, Play, PenLine, Video } from 'lucide-react'
 import { useWorkspaceMap } from '@/components/app/app-context'
 import { Avatar } from '@/components/ui/avatar'
@@ -18,10 +19,11 @@ import { useWorkspaceItems, useWorkspaceMeetings, type MeetingWithNotes } from '
 import { useAttachments } from '@/lib/queries/attachments'
 import { useDateLocale, dueInfo } from '@/lib/dates'
 import { useNow } from '@/lib/hooks'
-import { TASK_STATUSES } from '@/lib/constants'
+import { statusKey, taskStatusOf, workspaceStatuses, type StatusOption } from '@/lib/statuses'
+import { useStatusName } from '@/lib/use-status-name'
 import { cn, taskRef } from '@/lib/utils'
 import { meetingAgreements } from '@/lib/agreements'
-import type { MeetingItemRow, TaskRow } from '@/lib/database.types'
+import type { MeetingItemRow, TaskRow, TaskStatus } from '@/lib/database.types'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { TaskGroupList } from '@/components/tasks/task-list'
 import { StatusIcon } from '@/components/tasks/status-icon'
@@ -31,12 +33,14 @@ import { AttachmentIcon, formatBytes } from '@/components/attachments/attachment
 import { previewOrOpen } from '@/components/vault/file-viewer'
 import { NoMeetingsAhead, dueThisWeek } from '@/components/calendar/no-meetings'
 import { SpaceHeader } from './workspace-header'
+import { SpaceStarter, useSpaceStarter } from './space-starter'
 
 /**
  * Inicio del espacio, en una sola superficie que cabe en la pantalla. A la izquierda cómo va (la cifra
  * grande y la barra por estado) y, debajo, lo que requiere atención (o, si todo está en orden, lo que
  * sigue). A la derecha, en la columna teñida, lo que viene y lo que pasó: la próxima reunión, los
- * acuerdos vivos y lo último. Lo vacío es una línea, no una caja.
+ * acuerdos vivos y lo último. Lo vacío es una línea, no una caja. En su primer mes, debajo del avance,
+ * los pasos para arrancarlo (su gente, sus tareas, su logo…), hasta que estén o se oculten.
  */
 export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
   const t = useTranslations('workspace.overview')
@@ -45,6 +49,7 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
   const { data: tasks, isLoading } = useTasks({ kind: 'workspace', workspaceId })
   const { data: meetings } = useWorkspaceMeetings(workspaceId, 40)
   const { data: items } = useWorkspaceItems([workspaceId])
+  const starter = useSpaceStarter(ws, tasks, now)
 
   const { focus, upNext } = useMemo(() => {
     const open = (tasks ?? []).filter((x) => x.status !== 'done')
@@ -64,6 +69,7 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
         main={
           <>
             <Progress ws={ws} tasks={tasks} loading={isLoading} now={now} />
+            {starter ? <SpaceStarter ws={ws} model={starter} /> : null}
             <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
               {isLoading ? (
                 <div className="flex flex-col gap-2 p-5">
@@ -76,7 +82,7 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
               ) : (tasks ?? []).length ? (
                 // todo en orden: una línea y, debajo, lo que sigue (en vez de una caja vacía)
                 <>
-                  <AllClear title={t('focusClear')} hint={t('noFocus')} className="border-b border-line-soft px-5 py-3" />
+                  {starter ? null : <AllClear title={t('focusClear')} hint={t('noFocus')} className="border-b border-line-soft px-5 py-3" />}
                   {upNext.length ? <TaskGroupList groups={[{ id: 'next', label: t('upNext'), tasks: upNext, defaults: null }]} className="pb-2" /> : null}
                 </>
               ) : (
@@ -139,19 +145,51 @@ function Quiet({ children }: { children: React.ReactNode }) {
 
 // ---------------- avance ----------------
 
+/** El color de cada tramo de la barra, por la categoría del estado. */
+const BAR: Record<TaskStatus, string> = {
+  done: 'bg-st-done',
+  in_progress: 'bg-st-progress',
+  blocked: 'bg-st-blocked',
+  todo: 'bg-st-todo/50',
+  backlog: 'bg-st-backlog/30',
+}
+
 function Progress({ ws, tasks, loading, now }: { ws: WorkspaceWithRole; tasks: TaskRow[] | undefined; loading: boolean; now: Date }) {
   const t = useTranslations('workspace.overview')
-  const tStatus = useTranslations('tasks.status')
+  const statusName = useStatusName()
 
+  // por los estados del propio espacio (los de su plantilla o los que le definieron), en su orden
   const stats = useMemo(() => {
     const list = tasks ?? []
-    const counts = Object.fromEntries(TASK_STATUSES.map((s) => [s, 0])) as Record<string, number>
-    list.forEach((x) => counts[x.status]++)
-    const overdue = list.filter((x) => x.status !== 'done' && x.due_date && dueInfo(x.due_date).tone === 'overdue').length
-    const hours = list.filter((x) => x.status !== 'done').reduce((n, x) => n + (Number(x.estimate_hours) || 0), 0)
-    return { counts, total: list.length, overdue, hours }
+    const options = workspaceStatuses(ws)
+    const counts = new Map<string, number>(options.map((o) => [statusKey(o), 0]))
+    const byKey = new Map<string, TaskRow[]>()
+    for (const x of list) {
+      const own = taskStatusOf(x, ws)
+      // si su estado propio ya no existe, cuenta en el primero de su categoría
+      const key = counts.has(statusKey(own)) ? statusKey(own) : statusKey(options.find((o) => o.category === own.category) ?? own)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+      byKey.set(key, [...(byKey.get(key) ?? []), x])
+    }
+    // en la tarjeta, primero lo que se movió hace menos
+    byKey.forEach((xs) => xs.sort((a, b) => (b.completed_at ?? b.updated_at).localeCompare(a.completed_at ?? a.updated_at)))
+    const open = list.filter((x) => x.status !== 'done')
+    const overdue = open.filter((x) => x.due_date && dueInfo(x.due_date).tone === 'overdue').length
+    const hours = open.reduce((n, x) => n + (Number(x.estimate_hours) || 0), 0)
+    return { options, counts, byKey, total: list.length, done: list.length - open.length, overdue, hours }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, now.toDateString()])
+  }, [tasks, ws.task_statuses, now.toDateString()])
+  const count = (o: (typeof stats.options)[number]) => stats.counts.get(statusKey(o)) ?? 0
+  // el estado bajo el cursor (en la barra o en la leyenda): ese tramo se destaca y los demás bajan
+  const [hovered, setHovered] = useState<string | null>(null)
+  // lo detenido, con el nombre del propio espacio («1 esperando al cliente»; en los de siempre, «1 bloqueada»)
+  const stopped = stats.options.filter((o) => o.category === 'blocked' && count(o))
+  const peek = (o: StatusOption) => ({
+    o,
+    count: count(o),
+    total: stats.total,
+    tasks: stats.byKey.get(statusKey(o)) ?? [],
+  })
 
   return (
     <section className="shrink-0 border-b border-line-soft px-5 pb-5 pt-4 sm:px-6">
@@ -162,12 +200,16 @@ function Progress({ ws, tasks, loading, now }: { ws: WorkspaceWithRole; tasks: T
             <Skeleton className="mt-1.5 h-8 w-48" />
           ) : (
             <p className="mt-0.5 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-fg">
-              {stats.total ? t('doneOf', { done: stats.counts.done, total: stats.total }) : t('noTasksShort')}
+              {stats.total ? t('doneOf', { done: stats.done, total: stats.total }) : t('noTasksShort')}
             </p>
           )}
         </div>
         <div className="mb-1 flex flex-wrap items-center gap-1.5">
-          {stats.counts.blocked ? <Chip tone="danger">{t('blocked', { count: stats.counts.blocked })}</Chip> : null}
+          {stopped.map((o) => (
+            <Chip key={statusKey(o)} tone="danger">
+              {count(o)} {statusName(o).toLowerCase()}
+            </Chip>
+          ))}
           {stats.overdue ? <Chip tone="danger">{t('overdue', { count: stats.overdue })}</Chip> : null}
           {stats.hours ? <Chip>{t('hoursLeft', { hours: stats.hours })}</Chip> : null}
         </div>
@@ -178,36 +220,138 @@ function Progress({ ws, tasks, loading, now }: { ws: WorkspaceWithRole; tasks: T
       </div>
       {stats.total ? (
         <>
-          {/* la barra por estado: cada tramo con su color y su ancho según cuántas tareas tiene */}
-          <div className="mt-4 flex h-2.5 gap-1">
-            {TASK_STATUSES.filter((s) => stats.counts[s]).map((s) => (
-              <span
-                key={s}
-                title={`${tStatus(s)}: ${stats.counts[s]}`}
-                className={cn(
-                  'h-full min-w-2 rounded-full transition-[flex-grow] duration-500 ease-out',
-                  s === 'done' && 'bg-st-done',
-                  s === 'in_progress' && 'bg-st-progress',
-                  s === 'blocked' && 'bg-st-blocked',
-                  s === 'todo' && 'bg-st-todo/50',
-                  s === 'backlog' && 'bg-st-backlog/30',
-                )}
-                style={{ flexGrow: stats.counts[s] }}
-              />
-            ))}
+          {/* la barra por estado: cada tramo con su color y su ancho según cuántas tareas tiene. Al pasar el
+              cursor (por el tramo o por la leyenda) asoma una tarjeta: qué es, cuántas, qué parte del total
+              y las primeras, cada una con su enlace */}
+          <div className="-my-1.5 flex h-5 items-center gap-1 py-1.5" onMouseLeave={() => setHovered(null)}>
+            {stats.options
+              .filter((o) => count(o))
+              .map((o) => {
+                const key = statusKey(o)
+                return (
+                  <StatusPeek key={key} ws={ws} {...peek(o)}>
+                    <Link
+                      href={`/w/${ws.slug}/tasks`}
+                      aria-label={`${statusName(o)}: ${count(o)}`}
+                      onMouseEnter={() => setHovered(key)}
+                      onFocus={() => setHovered(key)}
+                      className={cn(
+                        'h-2.5 min-w-2 rounded-full outline-none transition-[flex-grow,opacity,height] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid',
+                        BAR[o.category],
+                        hovered === key && 'h-3.5',
+                        hovered && hovered !== key && 'opacity-35',
+                      )}
+                      style={{ flexGrow: count(o) }}
+                    />
+                  </StatusPeek>
+                )
+              })}
           </div>
-          <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
-            {TASK_STATUSES.map((s) => (
-              <li key={s} className="flex items-center gap-1.5 text-xs text-fg-muted">
-                <StatusIcon status={s} className="size-3.5" />
-                {tStatus(s)}
-                <span className="tabular-nums font-medium text-fg">{stats.counts[s]}</span>
-              </li>
-            ))}
+          <ul className="mt-3 flex flex-wrap gap-x-1 gap-y-1" onMouseLeave={() => setHovered(null)}>
+            {stats.options.map((o) => {
+              const key = statusKey(o)
+              return (
+                <li key={key}>
+                  <StatusPeek ws={ws} {...peek(o)}>
+                    <Link
+                      href={`/w/${ws.slug}/tasks`}
+                      onMouseEnter={() => setHovered(key)}
+                      onFocus={() => setHovered(key)}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs outline-none transition-[background-color,opacity] duration-200 hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent-mid',
+                        count(o) ? 'text-fg-muted' : 'text-fg-subtle',
+                        hovered && hovered !== key && 'opacity-50',
+                      )}
+                    >
+                      <StatusIcon status={o.category} className="size-3.5" />
+                      {statusName(o)}
+                      <span className={cn('tabular-nums font-medium', count(o) ? 'text-fg' : 'text-fg-subtle')}>{count(o)}</span>
+                    </Link>
+                  </StatusPeek>
+                </li>
+              )
+            })}
           </ul>
         </>
       ) : null}
     </section>
+  )
+}
+
+const PEEK_ROWS = 5
+
+/**
+ * La tarjeta de un estado al pasar el cursor por su tramo de la barra o por la leyenda: su nombre y
+ * cuántas tiene, qué quiere decir, qué parte del total es y las primeras tareas (cada una abre). Al pie,
+ * a Tareas para ver todas. Se puede pasar el cursor a la tarjeta y usar sus enlaces.
+ */
+function StatusPeek({
+  ws,
+  o,
+  count,
+  total,
+  tasks,
+  children,
+}: {
+  ws: WorkspaceWithRole
+  o: StatusOption
+  count: number
+  total: number
+  tasks: TaskRow[]
+  children: React.ReactElement<Record<string, unknown>>
+}) {
+  const t = useTranslations('workspace.overview.peek')
+  const statusName = useStatusName()
+  const pct = total ? Math.round((count / total) * 100) : 0
+  return (
+    <PreviewCard.Root>
+      <PreviewCard.Trigger render={children} delay={120} closeDelay={150} />
+      <PreviewCard.Portal>
+        <PreviewCard.Positioner side="bottom" align="start" sideOffset={8} className="z-[60]">
+          {/* ancha, para que los títulos se lean enteros (hasta dos líneas) */}
+          <PreviewCard.Popup className="popup-motion w-[25rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-line bg-panel text-sm text-fg shadow-popover outline-none">
+            <div className="px-3.5 pb-3 pt-3">
+              <div className="flex items-center gap-2">
+                <StatusIcon status={o.category} className="size-4" />
+                <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug">{statusName(o)}</span>
+                <span className="rounded-full bg-hover px-2 py-0.5 text-xs font-semibold tabular-nums">{count}</span>
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-fg-muted">
+                {/* qué quiere decir su categoría, en palabras de todos los días */}
+                {t(o.category)}
+                {count ? <span className="text-fg-subtle"> · {t('share', { pct, total })}</span> : null}
+              </p>
+              {count ? (
+                <span className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-hover" aria-hidden>
+                  <span className={cn('rounded-full', BAR[o.category])} style={{ width: `${Math.max(pct, 3)}%` }} />
+                </span>
+              ) : null}
+            </div>
+            {tasks.length ? (
+              <ul className="border-t border-line-soft p-1.5">
+                {tasks.slice(0, PEEK_ROWS).map((x) => (
+                  <li key={x.id}>
+                    <Link href={`/tasks/${taskRef(ws.key, x.number)}`} className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 outline-none hover:bg-hover focus-visible:bg-hover">
+                      <span className="mt-px w-12 shrink-0 font-mono text-[11px] leading-5 text-fg-subtle">{taskRef(ws.key, x.number)}</span>
+                      <span className="line-clamp-2 min-w-0 flex-1 text-[13px] leading-5">{x.title}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="border-t border-line-soft px-3.5 py-2.5 text-xs text-fg-subtle">{t('none')}</p>
+            )}
+            <Link
+              href={`/w/${ws.slug}/tasks`}
+              className="flex items-center justify-between gap-2 border-t border-line-soft bg-canvas/60 px-3.5 py-2 text-xs text-fg-muted outline-none hover:text-fg focus-visible:text-fg"
+            >
+              {tasks.length > PEEK_ROWS ? t('more', { count: tasks.length - PEEK_ROWS }) : t('seeAll')}
+              <ArrowRight className="size-3" />
+            </Link>
+          </PreviewCard.Popup>
+        </PreviewCard.Positioner>
+      </PreviewCard.Portal>
+    </PreviewCard.Root>
   )
 }
 

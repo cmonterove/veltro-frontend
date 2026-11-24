@@ -14,6 +14,8 @@ export type ApiProfile = {
   timezone: string
   mustChangePassword: boolean
   suspended: boolean
+  /** falta en APIs de antes */
+  tourSeenAt?: string | null
   createdAt: string
 }
 

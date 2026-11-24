@@ -39,6 +39,8 @@ export type ProfileRow = Timestamps & {
   must_change_password: boolean
   last_seen_at: string | null
   suspended_at: string | null
+  /** cuándo cerró el recorrido de bienvenida (null: todavía no; undefined: la API de antes no lo dice) */
+  tour_seen_at?: string | null
 }
 
 export type AccountRow = Timestamps & {

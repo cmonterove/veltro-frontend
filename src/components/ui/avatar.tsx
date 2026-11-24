@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
 import { cn, initials } from '@/lib/utils'
 
 const TONES = ['violet', 'mandarina', 'blue', 'teal', 'green', 'pink', 'lavender', 'amber']
@@ -25,6 +28,18 @@ export function Avatar({
   // En tamaños chicos dos letras no caben legibles: se usa solo la inicial.
   const compact = size < 22
   const text = compact ? initials(name).slice(0, 1) : initials(name)
+
+  // Si la foto no carga (la de Google vence o no se deja ver, un enlace roto…) van las iniciales y
+  // no el ícono de imagen rota. Se guarda cuál falló: si cambia la foto, se vuelve a intentar.
+  const [broken, setBroken] = useState<string | null>(null)
+  const img = useRef<HTMLImageElement>(null)
+  // si falló antes de que React tomara la página, su evento se perdió: se revisa al montar
+  useEffect(() => {
+    const el = img.current
+    if (src && el?.complete && el.naturalWidth === 0) setBroken(src)
+  }, [src])
+  const photo = src && broken !== src ? src : null
+
   return (
     <span
       className={cn(
@@ -34,9 +49,9 @@ export function Avatar({
       style={{ width: size, height: size, fontSize: Math.max(9, Math.round(size * (compact ? 0.52 : 0.4))), background: 'var(--ws-color)', color: 'var(--ws-on)' }}
       aria-hidden
     >
-      {src ? (
+      {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" className="size-full object-cover" />
+        <img ref={img} src={photo} alt="" referrerPolicy="no-referrer" onError={() => setBroken(photo)} className="size-full object-cover" />
       ) : (
         text
       )}
