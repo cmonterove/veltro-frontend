@@ -68,6 +68,8 @@ const KNOWN = [
   'team_name_taken',
   // ajustes: personas, contraseña, espacios y suspensión (códigos de la API)
   'owner_only',
+  'already_owner',
+  'guest_cannot_own',
   'member_in_other_account',
   'already_member',
   'current_password_required',

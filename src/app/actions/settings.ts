@@ -137,6 +137,14 @@ export async function updateMemberRole(accountId: string, userId: string, role: 
   return res.ok ? { ok: true as const } : res
 }
 
+/** Le pasa la cuenta a otra persona (admin o miembro): queda como dueña y quien la pasa, como admin. Solo el dueño. */
+export async function transferOwnership(accountId: string, userId: string) {
+  const blocked = await demoBlocked()
+  if (blocked) return blocked
+  const res = await attempt(() => api(`/v1/accounts/${accountId}/owner`, { method: 'POST', body: { userId } }))
+  return res.ok ? { ok: true as const } : res
+}
+
 /** Quita a la persona de la cuenta: sale de sus espacios y de sus tareas abiertas (devuelve cuántas). */
 export async function removeMember(accountId: string, userId: string) {
   const blocked = await demoBlocked()

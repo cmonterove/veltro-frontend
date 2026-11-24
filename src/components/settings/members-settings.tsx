@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, ChevronDown, Copy, DoorOpen, Eye, KeyRound, Layers, Link2, Mail, MailCheck, Maximize2, MoreHorizontal, Search, Send, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react'
+import { Check, ChevronDown, Copy, Crown, DoorOpen, Eye, KeyRound, Layers, Link2, Mail, MailCheck, Maximize2, MoreHorizontal, Search, Send, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { useDateLocale } from '@/lib/dates'
 import { useApp } from '@/components/app/app-context'
@@ -13,9 +13,9 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
 import { Field, Input } from '@/components/ui/input'
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/components/ui/menu'
+import { Menu, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { inviteMember, previewInvitation, removeMember, resendInvite, revokeInvite, setMemberWorkspaces, updateMemberRole } from '@/app/actions/settings'
+import { inviteMember, previewInvitation, removeMember, resendInvite, revokeInvite, setMemberWorkspaces, transferOwnership, updateMemberRole } from '@/app/actions/settings'
 import { cn } from '@/lib/utils'
 import type { AccountRole, WorkspaceRole } from '@/lib/database.types'
 import type { AccountMember, Assignment, Invitation, Usage } from '@/lib/api/ajustes'
@@ -71,6 +71,23 @@ export function MembersSettings({ members, usage, invitations = [] }: { members:
       const res = await removeMember(account.id, m.id)
       if (!res.ok) return void toast.error(te(res.error))
       toast.success(t('removed'), { description: res.unassignedTasks ? t('unassignedTasks', { count: res.unassignedTasks }) : undefined })
+      done()
+    })
+  }
+
+  // traspasar la cuenta: la persona queda como dueña y uno, como admin (solo ella podría devolverla)
+  const transfer = async (m: AccountMember) => {
+    const ok = await confirm({
+      title: t('transferConfirm', { account: account.name, name: m.full_name }),
+      description: t('transferConfirmHint', { name: m.full_name }),
+      danger: true,
+      confirmLabel: t('transferConfirmLabel'),
+    })
+    if (!ok) return
+    start(async () => {
+      const res = await transferOwnership(account.id, m.id)
+      if (!res.ok) return void toast.error(te(res.error))
+      toast.success(t('transferred', { name: m.full_name }))
       done()
     })
   }
@@ -149,6 +166,7 @@ export function MembersSettings({ members, usage, invitations = [] }: { members:
                 workspaces={workspaces}
                 onRole={(role) => run(() => updateMemberRole(account.id, m.id, role), t('roleUpdated'))}
                 onRemove={() => remove(m)}
+                onTransfer={() => transfer(m)}
                 onWorkspaces={(rows) => run(() => setMemberWorkspaces(account.id, m.id, rows), t('workspacesUpdated'))}
               />
             ))}
@@ -284,6 +302,7 @@ function MemberRow({
   workspaces,
   onRole,
   onRemove,
+  onTransfer,
   onWorkspaces,
 }: {
   member: AccountMember
@@ -293,6 +312,7 @@ function MemberRow({
   workspaces: { id: string; name: string; icon: string; color: string }[]
   onRole: (r: Exclude<AccountRole, 'owner'>) => void
   onRemove: () => void
+  onTransfer: () => void
   onWorkspaces: (rows: { id: string; role: WorkspaceRole }[]) => void
 }) {
   const t = useTranslations('settings.members')
@@ -364,6 +384,19 @@ function MemberRow({
                 </span>
               </MenuRadioItem>
             </MenuRadioGroup>
+            {/* solo el dueño, y a un admin o miembro (a un invitado, primero hacerlo miembro) */}
+            {canPromote && member.role !== 'guest' ? (
+              <>
+                <MenuSeparator />
+                <MenuItem onClick={onTransfer} className="h-auto items-start py-2">
+                  <Crown className="mt-0.5" />
+                  <span className="flex flex-col">
+                    <span>{t('transferOwner')}</span>
+                    <span className="text-xs text-fg-muted">{t('transferOwnerHint')}</span>
+                  </span>
+                </MenuItem>
+              </>
+            ) : null}
           </MenuContent>
         </Menu>
       ) : (

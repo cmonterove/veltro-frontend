@@ -1225,7 +1225,13 @@
       "nudge": {
         "title": "Sua equipe vai aparecer aqui",
         "hint": "Convide quem trabalha com você. Cada pessoa entra só nos espaços que você escolher."
-      }
+      },
+      "transferOwner": "Transferir a propriedade",
+      "transferOwnerHint": "Você passa a conta; fica como admin.",
+      "transferConfirm": "Transferir {account} para {name}?",
+      "transferConfirmHint": "A conta passa a ser de {name}: poderá excluí-la e dar ou tirar admin. Você fica como admin, e só {name} poderia devolvê-la.",
+      "transferConfirmLabel": "Transferir a conta",
+      "transferred": "A conta agora é de {name}"
     },
     "workspaces": {
       "title": "Espaços",
@@ -1796,7 +1802,9 @@
     "request_locked": "A solicitação já está sendo atendida: escreva na conversa para mudar algo.",
     "assignee_not_in_department": "Essa pessoa não é desse departamento.",
     "request_other_account": "A tarefa precisa ser de um espaço da mesma conta.",
-    "account_limit": "Você chegou ao máximo de 10 contas próprias."
+    "account_limit": "Você chegou ao máximo de 10 contas próprias.",
+    "already_owner": "Você já é o dono desta conta.",
+    "guest_cannot_own": "Primeiro torne o convidado membro."
   },
   "suspension": {
     "signOut": "Sair",

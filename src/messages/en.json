@@ -1225,7 +1225,13 @@
       "nudge": {
         "title": "Your team will show up here",
         "hint": "Invite the people you work with. Each person only gets the spaces you choose."
-      }
+      },
+      "transferOwner": "Transfer ownership",
+      "transferOwnerHint": "Hand them the account; you stay as an admin.",
+      "transferConfirm": "Transfer {account} to {name}?",
+      "transferConfirmHint": "The account becomes {name}’s: they’ll be able to delete it and grant or remove admin. You stay as an admin, and only {name} could give it back.",
+      "transferConfirmLabel": "Transfer the account",
+      "transferred": "The account now belongs to {name}"
     },
     "workspaces": {
       "title": "Workspaces",
@@ -1796,7 +1802,9 @@
     "request_locked": "This request is already being handled: write in the conversation to change something.",
     "assignee_not_in_department": "That person isn't in that department.",
     "request_other_account": "The task must belong to a workspace in the same account.",
-    "account_limit": "You reached the limit of 10 accounts of your own."
+    "account_limit": "You reached the limit of 10 accounts of your own.",
+    "already_owner": "You already own this account.",
+    "guest_cannot_own": "Make the guest a member first."
   },
   "suspension": {
     "signOut": "Sign out",
