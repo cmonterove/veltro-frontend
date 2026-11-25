@@ -18,6 +18,7 @@ export function toProfile(p: ApiProfile): ProfileRow {
     must_change_password: p.mustChangePassword,
     last_seen_at: null,
     tour_seen_at: p.tourSeenAt,
+    nav_prefs: p.navPrefs,
     // la API solo dice si está suspendida; la web solo lo usa como sí/no
     suspended_at: p.suspended ? p.createdAt : null,
     created_at: p.createdAt,

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { formatDistanceToNowStrict, format } from 'date-fns'
 import { toast } from 'sonner'
-import type { BlockNoteEditor } from '@blocknote/core'
+import type { BlockNoteEditor, PartialBlock } from '@blocknote/core'
 import {
   ChevronRight,
   ClipboardCopy,
@@ -19,6 +19,7 @@ import {
   Plus,
   Trash2,
   MessageCircle,
+  Users,
 } from 'lucide-react'
 import { useApp, useMemberMap, canEdit } from '@/components/app/app-context'
 import { Button } from '@/components/ui/button'
@@ -47,6 +48,8 @@ import { useOpenTask } from '@/lib/use-open-task'
 import { useConfirm } from '@/components/ui/confirm'
 import { useCopy } from '@/lib/clipboard'
 import { AI_ENABLED } from '@/lib/features'
+import { useRealtimeEvent, type RealtimeEvent } from '@/lib/realtime'
+import { ApiError } from '@/lib/api/shared'
 
 const BlockEditor = dynamic(() => import('./block-editor').then((m) => m.BlockEditor), {
   ssr: false,
@@ -67,7 +70,8 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
   const router = useRouter()
   const locale = useDateLocale()
   const memberMap = useMemberMap()
-  const { data: doc = initialDoc } = useDoc(initialDoc.id, initialDoc)
+  const { user } = useApp()
+  const { data: doc = initialDoc, refetch: refetchDoc } = useDoc(initialDoc.id, initialDoc)
   const { data: allDocs } = useWorkspaceDocs(workspace.id)
   const editable = canEdit(workspace)
   const save = useSaveDoc()
@@ -82,25 +86,77 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
   const tConfirm = useTranslations('confirm')
   const pending = useRef<Partial<DocRow> | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const conflictOpen = useRef(false)
+  // la versión sobre la que se está escribiendo: al guardar va a la API, que no pisa si otra persona guardó después
+  const base = useRef(initialDoc.updated_at)
+  // lo de cada render, para que el guardado no cambie (si cambiaba, el efecto de abajo guardaba al momento)
+  const saveRef = useRef(save)
+  saveRef.current = save
+  const tRef = useRef(t)
+  tRef.current = t
+  // En vivo: cuándo se escribió aquí por última vez, lo último del editor, si lo que entra al editor viene
+  // de otra persona (no se vuelve a guardar), quién está editando (se borra solo) y si llegó un cambio que
+  // no se aplicó porque aquí se estaba escribiendo.
+  const lastEdit = useRef(0)
+  const lastChange = useRef<EditorChange | null>(null)
+  const applyingRemote = useRef(false)
+  const titleRef = useRef<HTMLTextAreaElement>(null)
+  const [editingBy, setEditingBy] = useState<string | null>(null)
+  const [conflictBy, setConflictByState] = useState<string | null>(null)
+  const setConflictBy = useCallback((by: string | null) => {
+    conflictOpen.current = by !== null
+    setConflictByState(by)
+  }, [])
+  const openConflict = (by: string) => setConflictBy(by)
+  const liveTimers = useRef<{ editing: ReturnType<typeof setTimeout> | null; pull: ReturnType<typeof setTimeout> | null }>({ editing: null, pull: null })
 
-  const flush = useCallback(() => {
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = null
-    const patch = pending.current
-    if (!patch) return
-    pending.current = null
-    setSaveState('saving')
-    save.mutate(
-      { id: doc.id, patch: patch as never },
-      {
-        onSuccess: () => setSaveState('saved'),
-        onError: () => {
-          setSaveState('error')
-          toast.error(t('saveError'))
+  /** Guarda lo pendiente. `force`: aunque otra persona haya guardado después (eligió «Seguir con la mía»). */
+  const flush = useCallback(
+    (force = false) => {
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = null
+      // con el aviso de que otra persona lo cambió a la vista no se guarda nada (pisaría lo suyo): lo de
+      // aquí espera a que se elija «Seguir con la mía» o «Ver su versión»
+      if (conflictOpen.current) {
+        setSaveState('idle')
+        return
+      }
+      const patch = pending.current
+      if (!patch) return
+      pending.current = null
+      setSaveState('saving')
+      saveRef.current.mutate(
+        { id: doc.id, patch: patch as never, ifUpdatedAt: force ? undefined : base.current },
+        {
+          onSuccess: (summary) => {
+            base.current = summary.updated_at
+            setSaveState('saved')
+          },
+          onError: (error) => {
+            // otra persona guardó antes: lo de aquí no se pierde (queda pendiente) y se pregunta
+            if (error instanceof ApiError && error.code === 'version_conflict') {
+              pending.current = { ...patch, ...(pending.current ?? {}) }
+              setSaveState('idle')
+              void refetchDoc().then(({ data }) => {
+                // lo cambié yo en otro lado (otra pestaña, moverlo en el árbol): sigue sobre lo último
+                if (data && data.updated_by === user.id) {
+                  base.current = data.updated_at
+                  flush()
+                  return
+                }
+                openConflict(data?.updated_by ?? '')
+              })
+              return
+            }
+            setSaveState('error')
+            toast.error(tRef.current('saveError'))
+          },
         },
-      },
-    )
-  }, [doc.id, save, t])
+      )
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doc.id],
+  )
 
   const queue = useCallback(
     (patch: Partial<DocRow>, delay = 800) => {
@@ -122,9 +178,98 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
   }, [flush])
 
   const onEditorChange = useCallback(
-    (c: EditorChange) => queue({ content: c.content, content_text: c.text }),
+    (c: EditorChange) => {
+      // lo que se trajo de otra persona no se vuelve a guardar
+      if (applyingRemote.current) return
+      lastEdit.current = Date.now()
+      lastChange.current = c
+      queue({ content: c.content, content_text: c.text })
+    },
     [queue],
   )
+
+  /** Lo que guardó otra persona, en el editor y el título (sin volver a guardarlo). */
+  const applyRemote = useCallback((fresh: DocRow) => {
+    const editor = editorRef.current
+    const blocks = Array.isArray(fresh.content) ? (fresh.content as unknown as PartialBlock[]) : []
+    if (editor && blocks.length && JSON.stringify(blocks) !== JSON.stringify(editor.document)) {
+      applyingRemote.current = true
+      try {
+        editor.replaceBlocks(editor.document, blocks)
+      } finally {
+        setTimeout(() => (applyingRemote.current = false), 0)
+      }
+    }
+    if (document.activeElement !== titleRef.current) setTitle(fresh.title)
+    base.current = fresh.updated_at
+  }, [])
+
+  const busyHere = () => pending.current !== null || Date.now() - lastEdit.current < 3000
+
+  const pullRemote = useCallback(
+    async (by: string | null) => {
+      const { data: fresh } = await refetchDoc()
+      if (!fresh) return
+      // mientras llegaba se empezó a escribir aquí: mejor preguntar que pisar
+      if (conflictOpen.current || busyHere()) {
+        setConflictBy(by ?? '')
+        return
+      }
+      applyRemote(fresh)
+    },
+    [refetchDoc, applyRemote, setConflictBy],
+  )
+
+  // Otra persona (u otra pestaña) cambió este doc. Si aquí no se está escribiendo, se trae y se ve al
+  // momento; si sí, un aviso deja elegir, para no pisar lo que se escribe (no hay edición a la vez).
+  const onLive = useCallback(
+    (e: RealtimeEvent) => {
+      if (e.type !== 'doc' || e.id !== doc.id) return
+      // lo que esta pestaña acaba de guardar vuelve como evento: ya está aquí
+      if (e.by === user.id && Date.now() - lastEdit.current < 8000) return
+      const timers = liveTimers.current
+      if (e.by && e.by !== user.id) {
+        setEditingBy(e.by)
+        if (timers.editing) clearTimeout(timers.editing)
+        timers.editing = setTimeout(() => setEditingBy(null), 10_000)
+      }
+      if (conflictOpen.current || busyHere()) {
+        setConflictBy(e.by ?? '')
+        return
+      }
+      // quien escribe guarda seguido: se junta lo que llega y se pide una vez
+      if (timers.pull) clearTimeout(timers.pull)
+      timers.pull = setTimeout(() => void pullRemote(e.by), 400)
+    },
+    [doc.id, user.id, pullRemote, setConflictBy],
+  )
+  useRealtimeEvent(onLive)
+  useEffect(() => {
+    const timers = liveTimers.current
+    return () => {
+      if (timers.editing) clearTimeout(timers.editing)
+      if (timers.pull) clearTimeout(timers.pull)
+    }
+  }, [])
+
+  /** Traer lo de la otra persona: lo de aquí sin guardar se descarta. */
+  const takeTheirs = async () => {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+    pending.current = null
+    lastEdit.current = 0
+    setConflictBy(null)
+    setSaveState('idle')
+    const { data: fresh } = await refetchDoc()
+    if (fresh) applyRemote(fresh)
+  }
+  /** Seguir con lo de aquí: se guarda ya, completo, y queda como lo último. */
+  const keepMine = () => {
+    setConflictBy(null)
+    const c = lastChange.current
+    pending.current = { ...(pending.current ?? {}), ...(c ? { content: c.content, content_text: c.text } : {}), title: title.slice(0, 300) }
+    flush(true)
+  }
   const onImported = useCallback(
     (c: EditorChange) => {
       pending.current = { ...(pending.current ?? {}), content: c.content, content_text: c.text, import_markdown: null }
@@ -178,6 +323,13 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
           <span className="truncate px-1 text-fg">{title || t('untitled')}</span>
         </nav>
 
+        {/* quién más está editando (se va solo a los segundos de su último cambio) */}
+        {editingBy ? (
+          <span className="hidden items-center gap-1.5 text-xs text-fg-muted animate-in fade-in-0 duration-300 sm:inline-flex">
+            <Avatar name={memberMap.get(editingBy)?.full_name ?? ''} src={memberMap.get(editingBy)?.avatar_url} seed={editingBy} size={18} />
+            {t('live.editing', { name: memberMap.get(editingBy)?.full_name.split(' ')[0] || t('live.someone') })}
+          </span>
+        ) : null}
         <span className="hidden text-xs text-fg-subtle sm:inline" aria-live="polite">
           {saveState === 'saving' ? t('saving') : saveState === 'saved' ? t('saved') : saveState === 'error' ? t('saveError') : null}
         </span>
@@ -235,6 +387,22 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
         </Menu>
       </header>
 
+      {/* otra persona cambió el doc mientras aquí se escribía: lo último que se guarda reemplaza lo otro */}
+      {conflictBy !== null ? (
+        <div role="status" className="sticky top-11 z-10 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line-soft bg-accent-soft px-3 py-2 text-[13px] text-fg animate-in fade-in-0 slide-in-from-top-1 duration-200 sm:px-4">
+          <Users className="size-4 shrink-0 text-accent-ink" aria-hidden />
+          <span className="min-w-0 flex-1">{t('live.changed', { name: memberMap.get(conflictBy)?.full_name.split(' ')[0] || t('live.someone') })}</span>
+          <span className="flex shrink-0 items-center gap-1.5">
+            <Button variant="ghost" size="sm" onClick={keepMine}>
+              {t('live.mine')}
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => void takeTheirs()}>
+              {t('live.theirs')}
+            </Button>
+          </span>
+        </div>
+      ) : null}
+
       <div className="mx-auto grid w-full max-w-[1160px] grid-cols-1 gap-x-12 gap-y-10 px-5 pb-40 pt-8 sm:px-10 xl:grid-cols-[minmax(0,1fr)_288px] xl:pt-12">
         <article className="min-w-0">
           <p className="mb-3 flex items-center gap-2 text-xs font-medium text-fg-muted">
@@ -242,8 +410,10 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
             {t(`kicker.${doc.source}`)}
           </p>
           <AutoTextarea
+            ref={titleRef}
             value={title}
             onChange={(e) => {
+              lastEdit.current = Date.now()
               setTitle(e.target.value)
               queue({ title: e.target.value.slice(0, 300) }, 500)
             }}
@@ -338,7 +508,10 @@ export function DocView({ initialDoc, workspace }: { initialDoc: DocRow; workspa
               <dt className="text-fg-subtle">{t('rail.created')}</dt>
               <dd className="text-fg">{format(new Date(doc.created_at), 'd MMM yyyy', { locale })}</dd>
               <dt className="text-fg-subtle">{t('rail.updated')}</dt>
-              <dd className="text-fg">{formatDistanceToNowStrict(new Date(doc.updated_at), { addSuffix: true, locale })}</dd>
+              {/* «hace 3 segundos» en el servidor puede ser «hace 5» al hidratar: no es un error */}
+              <dd className="text-fg" suppressHydrationWarning>
+                {formatDistanceToNowStrict(new Date(doc.updated_at), { addSuffix: true, locale })}
+              </dd>
             </dl>
           </RailSection>
         </aside>

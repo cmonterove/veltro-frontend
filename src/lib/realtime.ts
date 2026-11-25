@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 
 /**
  * Tiempo real: la API avisa por SSE cada cambio que importa (mensaje nuevo, editado, leído, aviso
- * nuevo, alguien escribiendo). Los eventos traen ids, no contenido: quien los recibe vuelve a pedir
+ * nuevo, alguien escribiendo; una tarea, un comentario, un doc o una solicitud que cambió). Los eventos traen ids, no contenido: quien los recibe vuelve a pedir
  * lo suyo por la API. La conexión la abre `RealtimeConnection` (en el shell); aquí viven el estado
  * («en vivo» o no), el reparto de eventos y quién está escribiendo en cada chat.
  */
@@ -16,8 +16,11 @@ export type RealtimeEvent =
   | { type: 'ntf'; acct: string; id: string }
   | { type: 'ntf_sync'; acct: string }
   | { type: 'req'; id: string }
+  | { type: 'task'; id: string; ws: string; by: string | null }
+  | { type: 'cmt'; task: string; ws: string; by: string | null }
+  | { type: 'doc'; id: string; ws: string; by: string | null }
 
-export const REALTIME_TYPES = ['msg', 'msg_upd', 'read', 'chat', 'typing', 'ntf', 'ntf_sync', 'req'] as const
+export const REALTIME_TYPES = ['msg', 'msg_upd', 'read', 'chat', 'typing', 'ntf', 'ntf_sync', 'req', 'task', 'cmt', 'doc'] as const
 
 // ---------- en vivo ----------
 

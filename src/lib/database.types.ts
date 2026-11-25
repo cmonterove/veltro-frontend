@@ -41,6 +41,8 @@ export type ProfileRow = Timestamps & {
   suspended_at: string | null
   /** cuándo cerró el recorrido de bienvenida (null: todavía no; undefined: la API de antes no lo dice) */
   tour_seen_at?: string | null
+  /** el menú que armó, tal como lo guardó (se valida al usarlo); null: el de su rol */
+  nav_prefs?: { order: string[]; more: string[] } | null
 }
 
 export type AccountRow = Timestamps & {

@@ -102,12 +102,15 @@ export function useCreateDoc() {
   })
 }
 
-/** Guardado del contenido: sin invalidar listas (se llama en autosave). */
+/**
+ * Guardado del contenido: sin invalidar listas (se llama en autosave). Con `ifUpdatedAt` (la versión sobre
+ * la que se editó), si otra persona guardó después la API responde 409 `version_conflict` y no pisa lo suyo.
+ */
 export function useSaveDoc() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: DocPatch }) =>
-      toDocSummary(await api<ApiDoc>(`/v1/docs/${id}`, { method: 'PATCH', body: docPatchBody(patch) })),
+    mutationFn: async ({ id, patch, ifUpdatedAt }: { id: string; patch: DocPatch; ifUpdatedAt?: string }) =>
+      toDocSummary(await api<ApiDoc>(`/v1/docs/${id}`, { method: 'PATCH', body: { ...docPatchBody(patch), ...(ifUpdatedAt ? { ifUpdatedAt } : {}) } })),
     onSuccess: (summary, { id, patch }) => {
       qc.setQueryData<DocRow>(docKeys.one(id), (old) => (old ? ({ ...old, ...patch, updated_at: summary.updated_at } as DocRow) : old))
       // todas las listas (espacio, Escritos de la bóveda, recientes de Pulso, tarjetas de chat)

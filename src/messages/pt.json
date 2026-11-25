@@ -958,6 +958,13 @@
     "delete": "Excluir doc",
     "deleted": "Doc excluído",
     "linkedTasks": "Tarefas deste doc",
+    "live": {
+      "editing": "{name} está editando",
+      "changed": "{name} mudou este doc enquanto você escrevia.",
+      "theirs": "Ver a versão nova",
+      "mine": "Manter a minha",
+      "someone": "Alguém"
+    },
     "extractTasks": "Converter checklist em tarefas",
     "extractHint": "Cada item não marcado das checklists vira uma tarefa \"{status}\" atribuída a você.",
     "noChecklist": "Não há novos itens de checklist para converter.",

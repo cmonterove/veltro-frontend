@@ -10,6 +10,8 @@ import { api } from '@/lib/api/client'
 import { toChatSummary, type ApiChat } from '@/lib/api/pasillo-boveda'
 import { chatKeys, refreshChatMessages, type ChatSummary } from '@/lib/queries/chats'
 import { fetchNotification, notificationKeys } from '@/lib/queries/notifications'
+import { taskDeletesPending, taskKeys } from '@/lib/queries/tasks'
+import { docKeys } from '@/lib/queries/docs'
 import { emitRealtime, REALTIME_TYPES, setRealtimeLive, useRealtimeEvent, type RealtimeEvent } from '@/lib/realtime'
 import { showDesktop, trackFocus, veltroInFront } from '@/lib/desktop-notify'
 import { useChatPreview } from '@/components/chat/chat-bits'
@@ -126,6 +128,12 @@ function useRouting() {
   const ctx = useRef({ account, user, memberMap, preview, copy, openTask, pathname, router, t })
   ctx.current = { account, user, memberMap, preview, copy, openTask, pathname, router, t }
 
+  // Cuándo hizo esta pestaña su último cambio: lo propio que llega en vivo enseguida ya está en pantalla
+  // (lo de otra pestaña o del celular, en cambio, sí se trae).
+  const lastLocal = useRef(0)
+  useEffect(() => qc.getMutationCache().subscribe(() => void (lastLocal.current = Date.now())), [qc])
+  const mine = (by: string | null) => by === ctx.current.user.id && Date.now() - lastLocal.current < 5000
+
   const onEvent = useCallback(
     (e: RealtimeEvent) => {
       const { account, user } = ctx.current
@@ -152,10 +160,25 @@ function useRouting() {
         case 'ntf_sync':
           qc.invalidateQueries({ queryKey: notificationKeys.all(e.acct) })
           break
-        // una solicitud cambió (mensaje, estado, tareas): su detalle y las listas
+        // una solicitud nueva o que cambió (mensaje, estado, tareas, archivos): su detalle y las listas
         case 'req':
           qc.invalidateQueries({ queryKey: ['request', e.id] })
           qc.invalidateQueries({ queryKey: ['requests'] })
+          break
+        // una tarea que otra persona creó, cambió o borró
+        case 'task':
+          if (!mine(e.by)) queueTasks(e.id)
+          break
+        // un comentario: el hilo de esa tarea (si está abierta) y la cuenta de comentarios en las listas
+        case 'cmt':
+          if (mine(e.by)) break
+          qc.invalidateQueries({ queryKey: ['comments', e.task] })
+          qc.invalidateQueries({ queryKey: ['task-activity', e.task] })
+          queueTasks(e.task)
+          break
+        // un doc: las listas (el doc abierto se pone al día solo, en DocView)
+        case 'doc':
+          if (!mine(e.by)) queueDocs()
           break
       }
     },
@@ -188,6 +211,41 @@ function useRouting() {
       body: preview(last),
       onClick: () => router.push(`/chat/${chatId}`),
     })
+  }
+
+  // Tareas y docs llegan en ráfagas (edición múltiple, reordenar, escribir un doc): se juntan y se pide una vez.
+  const liveTasks = useRef<{ ids: Set<string>; timer: number | null; tries: number }>({ ids: new Set(), timer: null, tries: 0 })
+  function queueTasks(id: string) {
+    const b = liveTasks.current
+    b.ids.add(id)
+    b.timer ??= window.setTimeout(flushTasks, 600)
+  }
+  function flushTasks() {
+    const b = liveTasks.current
+    b.timer = null
+    // Algo propio todavía en camino (un cambio, o un borrado esperando su «Deshacer»): la API aún no lo
+    // tiene y pisaría lo que se ve. Se espera un poco, sin pasar de 15 s.
+    if ((qc.isMutating() > 0 || taskDeletesPending()) && b.tries < 15) {
+      b.tries++
+      b.timer = window.setTimeout(flushTasks, 1000)
+      return
+    }
+    b.tries = 0
+    const ids = [...b.ids]
+    b.ids.clear()
+    qc.invalidateQueries({ queryKey: taskKeys.all })
+    qc.invalidateQueries({ queryKey: taskKeys.stats })
+    for (const id of ids) {
+      qc.invalidateQueries({ queryKey: taskKeys.one(id) })
+      qc.invalidateQueries({ queryKey: ['task-activity', id] })
+    }
+  }
+  const liveDocs = useRef<number | null>(null)
+  function queueDocs() {
+    liveDocs.current ??= window.setTimeout(() => {
+      liveDocs.current = null
+      qc.invalidateQueries({ queryKey: docKeys.all })
+    }, 1500)
   }
 
   // los que llegan juntos (los recordatorios de la mañana) salen como uno solo

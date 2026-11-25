@@ -371,6 +371,13 @@ export function useCreateTask() {
 }
 
 /**
+ * Las tareas que esperan su «Deshacer» para borrarse de verdad. Mientras haya alguna, lo que llega en
+ * vivo no vuelve a pedir las listas (la API todavía las tiene y reaparecerían un momento).
+ */
+const deleting = new Set<string>()
+export const taskDeletesPending = () => deleting.size > 0
+
+/**
  * Eliminar con "Deshacer": la tarea desaparece al instante y el borrado real ocurre a los 5 s,
  * salvo que la persona se arrepienta desde el aviso.
  */
@@ -381,6 +388,7 @@ export function useDeleteTaskWithUndo() {
   return (task: Pick<TaskRow, 'id'>, ref: string) => {
     const snapshot = qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })
     qc.setQueriesData<TaskRow[]>({ queryKey: taskKeys.all }, (old) => (Array.isArray(old) ? old.filter((x) => x.id !== task.id) : old))
+    deleting.add(task.id)
     let undone = false
     const timer = window.setTimeout(async () => {
       if (undone) return
@@ -390,6 +398,7 @@ export function useDeleteTaskWithUndo() {
         snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
         onError(error)
       }
+      deleting.delete(task.id)
       qc.invalidateQueries({ queryKey: taskKeys.all })
       qc.invalidateQueries({ queryKey: taskKeys.stats })
       // al borrar la tarea se borran sus adjuntos y comentarios: la bóveda y los contadores se ponen al día
@@ -403,6 +412,7 @@ export function useDeleteTaskWithUndo() {
         onClick: () => {
           undone = true
           window.clearTimeout(timer)
+          deleting.delete(task.id)
           snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
         },
       },
@@ -423,12 +433,14 @@ export function useDeleteTasksWithUndo() {
     const gone = new Set(ids)
     const snapshot = qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })
     qc.setQueriesData<TaskRow[]>({ queryKey: taskKeys.all }, (old) => (Array.isArray(old) ? old.filter((x) => !gone.has(x.id)) : old))
+    ids.forEach((id) => deleting.add(id))
     let undone = false
     const timer = window.setTimeout(async () => {
       if (undone) return
       const results = await Promise.allSettled(ids.map((id) => api(`/v1/tasks/${id}`, { method: 'DELETE' })))
       const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
       if (failed) onError(failed.reason)
+      ids.forEach((id) => deleting.delete(id))
       qc.invalidateQueries({ queryKey: taskKeys.all })
       qc.invalidateQueries({ queryKey: taskKeys.stats })
       qc.invalidateQueries({ queryKey: ['attachments'] })
@@ -440,6 +452,7 @@ export function useDeleteTasksWithUndo() {
         onClick: () => {
           undone = true
           window.clearTimeout(timer)
+          ids.forEach((id) => deleting.delete(id))
           snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
         },
       },

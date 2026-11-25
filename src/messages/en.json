@@ -958,6 +958,13 @@
     "delete": "Delete doc",
     "deleted": "Doc deleted",
     "linkedTasks": "Tasks from this doc",
+    "live": {
+      "editing": "{name} is editing",
+      "changed": "{name} changed this doc while you were writing.",
+      "theirs": "See their version",
+      "mine": "Keep mine",
+      "someone": "Someone"
+    },
     "extractTasks": "Convert checklist to tasks",
     "extractHint": "Each unchecked checklist item becomes a \"{status}\" task assigned to you.",
     "noChecklist": "No new checklist items to convert.",

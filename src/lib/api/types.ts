@@ -16,6 +16,8 @@ export type ApiProfile = {
   suspended: boolean
   /** falta en APIs de antes */
   tourSeenAt?: string | null
+  /** el menú que armó (null: el de su rol; falta en APIs de antes) */
+  navPrefs?: { order: string[]; more: string[] } | null
   createdAt: string
 }
 

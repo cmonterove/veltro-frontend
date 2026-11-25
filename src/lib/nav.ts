@@ -86,7 +86,10 @@ export function resolveNav(role: NavRole, prefs: NavPrefs | null): ResolvedNav {
   return { groups, more: moreOrdered }
 }
 
-/** El orden completo que se guarda: grupo por grupo lo que está a la vista y, al final, lo de «Más». */
+/**
+ * El orden completo que se guarda: grupo por grupo y, al final, lo de «Más» que no esté ya en un grupo
+ * (el editor muestra cada página en su grupo aunque esté en «Más»: así no queda repetida).
+ */
 export function navOrderOf(nav: ResolvedNav): NavKey[] {
-  return [...nav.groups.flatMap((g) => g.keys), ...nav.more]
+  return [...new Set([...nav.groups.flatMap((g) => g.keys), ...nav.more])]
 }
