@@ -3584,7 +3584,9 @@
       "request_new": "{assigned, select, yes {<b>{actor}</b> te asignó una solicitud} other {{forwarded, select, yes {<b>{actor}</b> derivó una solicitud a <b>{department}</b>} other {<b>{actor}</b> le pidió algo a <b>{department}</b>}}}}",
       "request_message": "{count, plural, one {<b>{actor}</b> escribió en una solicitud} other {# mensajes nuevos en una solicitud, el último de <b>{actor}</b>}}",
       "request_status": "{status, select, in_progress {<b>{actor}</b> empezó a trabajar en tu solicitud} delivered {Tu solicitud quedó entregada: confirma si está resuelta} resolved {<b>{actor}</b> dio la solicitud por resuelta} declined {<b>{actor}</b> rechazó tu solicitud} forwarded {<b>{actor}</b> derivó tu solicitud a <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> reabrió su solicitud} other {<b>{actor}</b> está revisando tu solicitud}}} other {<b>{actor}</b> cambió el estado de una solicitud}}",
-      "chat_thread": "<b>{actor}</b> respondió en un hilo de <b>{chat}</b>"
+      "chat_thread": "<b>{actor}</b> respondió en un hilo de <b>{chat}</b>",
+      "account_invited": "<b>{inviter}</b> te invitó a <b>{account}</b>",
+      "workspace_added": "<b>{actor}</b> te sumó a <b>{workspace}</b>"
     },
     "desktop": {
       "offer": "Recibe los avisos y los mensajes directos aunque Veltro esté en otra pestaña.",
@@ -3593,7 +3595,19 @@
       "denied": "El navegador bloqueó los avisos de Veltro. Puedes permitirlos desde el candado de la barra de direcciones."
     },
     "manyNew": "{count, plural, one {Tienes # aviso nuevo} other {Tienes # avisos nuevos}}",
-    "noDate": "sin fecha"
+    "noDate": "sin fecha",
+    "invite": {
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "joined": "Ya estás en {account}",
+      "declined": "Invitación rechazada",
+      "error": "No se pudo. Prueba de nuevo.",
+      "role": {
+        "admin": "Como admin",
+        "member": "Como miembro",
+        "guest": "Como invitado"
+      }
+    }
   },
   "invite": {
     "metaTitle": "Invitación",

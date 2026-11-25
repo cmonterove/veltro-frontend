@@ -3584,7 +3584,9 @@
       "request_new": "{assigned, select, yes {<b>{actor}</b> assigned you a request} other {{forwarded, select, yes {<b>{actor}</b> forwarded a request to <b>{department}</b>} other {<b>{actor}</b> asked <b>{department}</b> for something}}}}",
       "request_message": "{count, plural, one {<b>{actor}</b> wrote on a request} other {# new messages on a request, the latest from <b>{actor}</b>}}",
       "request_status": "{status, select, in_progress {<b>{actor}</b> started working on your request} delivered {Your request was delivered: confirm it's resolved} resolved {<b>{actor}</b> marked the request resolved} declined {<b>{actor}</b> declined your request} forwarded {<b>{actor}</b> forwarded your request to <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> reopened their request} other {<b>{actor}</b> is reviewing your request}}} other {<b>{actor}</b> changed a request's status}}",
-      "chat_thread": "<b>{actor}</b> replied in a thread in <b>{chat}</b>"
+      "chat_thread": "<b>{actor}</b> replied in a thread in <b>{chat}</b>",
+      "account_invited": "<b>{inviter}</b> invited you to <b>{account}</b>",
+      "workspace_added": "<b>{actor}</b> added you to <b>{workspace}</b>"
     },
     "desktop": {
       "offer": "Get notifications and direct messages even when Veltro is in another tab.",
@@ -3593,7 +3595,19 @@
       "denied": "Your browser blocked Veltro notifications. You can allow them from the lock icon in the address bar."
     },
     "manyNew": "{count, plural, one {You have # new notification} other {You have # new notifications}}",
-    "noDate": "no date"
+    "noDate": "no date",
+    "invite": {
+      "accept": "Accept",
+      "decline": "Decline",
+      "joined": "You’re in {account}",
+      "declined": "Invitation declined",
+      "error": "That didn’t work. Try again.",
+      "role": {
+        "admin": "As admin",
+        "member": "As member",
+        "guest": "As guest"
+      }
+    }
   },
   "invite": {
     "metaTitle": "Invitation",

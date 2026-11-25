@@ -3584,7 +3584,9 @@
       "request_new": "{assigned, select, yes {<b>{actor}</b> vous a attribué une demande} other {{forwarded, select, yes {<b>{actor}</b> a transféré une demande à <b>{department}</b>} other {<b>{actor}</b> a demandé quelque chose à <b>{department}</b>}}}}",
       "request_message": "{count, plural, one {<b>{actor}</b> a écrit dans une demande} other {# nouveaux messages dans une demande, le dernier de <b>{actor}</b>}}",
       "request_status": "{status, select, in_progress {<b>{actor}</b> a commencé à traiter votre demande} delivered {Votre demande a été livrée : confirmez qu’elle est résolue} resolved {<b>{actor}</b> a marqué la demande résolue} declined {<b>{actor}</b> a refusé votre demande} forwarded {<b>{actor}</b> a transféré votre demande à <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> a rouvert sa demande} other {<b>{actor}</b> examine votre demande}}} other {<b>{actor}</b> a changé le statut d’une demande}}",
-      "chat_thread": "<b>{actor}</b> a répondu dans un fil de <b>{chat}</b>"
+      "chat_thread": "<b>{actor}</b> a répondu dans un fil de <b>{chat}</b>",
+      "account_invited": "<b>{inviter}</b> vous a invité à <b>{account}</b>",
+      "workspace_added": "<b>{actor}</b> vous a ajouté à <b>{workspace}</b>"
     },
     "desktop": {
       "offer": "Recevez les notifications et les messages directs même quand Veltro est dans un autre onglet.",
@@ -3593,7 +3595,19 @@
       "denied": "Votre navigateur a bloqué les notifications de Veltro. Vous pouvez les autoriser depuis le cadenas de la barre d’adresse."
     },
     "manyNew": "{count, plural, one {Vous avez # nouvelle notification} other {Vous avez # nouvelles notifications}}",
-    "noDate": "sans date"
+    "noDate": "sans date",
+    "invite": {
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "joined": "Vous êtes dans {account}",
+      "declined": "Invitation refusée",
+      "error": "Ça n’a pas marché. Réessayez.",
+      "role": {
+        "admin": "En tant qu’admin",
+        "member": "En tant que membre",
+        "guest": "En tant qu’invité"
+      }
+    }
   },
   "invite": {
     "metaTitle": "Invitation",

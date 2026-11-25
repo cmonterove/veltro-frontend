@@ -30,6 +30,10 @@ export type NotificationKind =
   | 'request_message'
   | 'request_status'
   | 'chat_thread'
+  /** te invitaron a otra cuenta (sale en la campana de cualquier cuenta tuya): data { invitationId, account, accountColor, inviter, role, workspaces } */
+  | 'account_invited'
+  /** te sumaron a un espacio */
+  | 'workspace_added'
 
 export type AppNotification = {
   id: string

@@ -40,5 +40,9 @@ export function vars(n: AppNotification, t: (k: 'someone' | 'directChat' | 'noDa
     forwarded: n.data?.forwarded === true ? 'yes' : 'no',
     assigned: n.data?.assigned === true ? 'yes' : 'no',
     side: n.data?.side === 'requester' ? 'requester' : 'department',
+    // te invitaron a una cuenta (lo que se muestra viene en data) o te sumaron a un espacio
+    account: typeof n.data?.account === 'string' ? n.data.account : '',
+    inviter: typeof n.data?.inviter === 'string' && n.data.inviter ? n.data.inviter : t('someone'),
+    workspace: n.workspace?.name ?? '',
   }
 }

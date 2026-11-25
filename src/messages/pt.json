@@ -3584,7 +3584,9 @@
       "request_new": "{assigned, select, yes {<b>{actor}</b> atribuiu uma solicitação a você} other {{forwarded, select, yes {<b>{actor}</b> encaminhou uma solicitação para <b>{department}</b>} other {<b>{actor}</b> pediu algo a <b>{department}</b>}}}}",
       "request_message": "{count, plural, one {<b>{actor}</b> escreveu em uma solicitação} other {# mensagens novas em uma solicitação, a última de <b>{actor}</b>}}",
       "request_status": "{status, select, in_progress {<b>{actor}</b> começou a trabalhar na sua solicitação} delivered {Sua solicitação foi entregue: confirme se está resolvida} resolved {<b>{actor}</b> deu a solicitação por resolvida} declined {<b>{actor}</b> recusou sua solicitação} forwarded {<b>{actor}</b> encaminhou sua solicitação para <b>{department}</b>} in_review {{side, select, requester {<b>{actor}</b> reabriu a solicitação} other {<b>{actor}</b> está revisando sua solicitação}}} other {<b>{actor}</b> mudou o status de uma solicitação}}",
-      "chat_thread": "<b>{actor}</b> respondeu em uma conversa de <b>{chat}</b>"
+      "chat_thread": "<b>{actor}</b> respondeu em uma conversa de <b>{chat}</b>",
+      "account_invited": "<b>{inviter}</b> convidou você para <b>{account}</b>",
+      "workspace_added": "<b>{actor}</b> adicionou você a <b>{workspace}</b>"
     },
     "desktop": {
       "offer": "Receba os avisos e as mensagens diretas mesmo com o Veltro em outra aba.",
@@ -3593,7 +3595,19 @@
       "denied": "O navegador bloqueou os avisos do Veltro. Você pode permiti-los no cadeado da barra de endereços."
     },
     "manyNew": "{count, plural, one {Você tem # aviso novo} other {Você tem # avisos novos}}",
-    "noDate": "sem data"
+    "noDate": "sem data",
+    "invite": {
+      "accept": "Aceitar",
+      "decline": "Recusar",
+      "joined": "Você já está em {account}",
+      "declined": "Convite recusado",
+      "error": "Não deu certo. Tente de novo.",
+      "role": {
+        "admin": "Como admin",
+        "member": "Como membro",
+        "guest": "Como convidado"
+      }
+    }
   },
   "invite": {
     "metaTitle": "Convite",

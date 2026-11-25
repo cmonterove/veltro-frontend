@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { formatDistanceToNowStrict } from 'date-fns'
-import { ArrowRightLeft, AtSign, Bell, BellOff, CalendarClock, CalendarSync, CalendarX2, CheckCheck, CircleCheck, MessageSquare, UserRoundCheck, UserRoundPlus, LockOpen, Inbox, MessagesSquare } from 'lucide-react'
+import { ArrowRightLeft, AtSign, Bell, BellOff, CalendarClock, CalendarSync, CalendarX2, CheckCheck, CircleCheck, LayoutGrid, MailPlus, MessageSquare, UserRoundCheck, UserRoundPlus, LockOpen, Inbox, MessagesSquare } from 'lucide-react'
+import { toast } from 'sonner'
 import { LogoMark } from '@/components/app/logo'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,8 @@ import {
   type NotificationKind,
 } from '@/lib/queries/notifications'
 import { disableDesktop, enableDesktop, useDesktopState } from '@/lib/desktop-notify'
+import { useInvitationActions } from '@/lib/queries/invitations'
+import { goToAccount } from '@/lib/switch-account'
 import { useOpenTask } from '@/lib/use-open-task'
 import { useDateLocale } from '@/lib/dates'
 import { track } from '@/lib/telemetry'
@@ -31,7 +34,9 @@ import { vars } from './notification-copy'
 
 /**
  * La campana: avisos de la cuenta (te asignaron, comentaron o terminaron una tarea tuya, te
- * mencionaron). Se mece cuando llega uno nuevo. Abrir un aviso lo marca leído y lleva a lo suyo.
+ * mencionaron, te sumaron a un espacio). Se mece cuando llega uno nuevo. Abrir un aviso lo marca leído
+ * y lleva a lo suyo. Las invitaciones a otra cuenta salen aquí también, con Aceptar (se entra a esa
+ * cuenta) y Rechazar.
  */
 
 type Variant = 'sidebar' | 'rail' | 'topbar' | 'frame'
@@ -199,6 +204,8 @@ const KIND_ICON: Record<NotificationKind, typeof Bell> = {
   request_message: MessageSquare,
   request_status: ArrowRightLeft,
   chat_thread: MessagesSquare,
+  account_invited: MailPlus,
+  workspace_added: LayoutGrid,
 }
 
 // el color dice qué pasó: asignada en ciruela, hecha en frambuesa, mención y «vence hoy» en mandarina,
@@ -219,6 +226,8 @@ const KIND_TONE: Record<NotificationKind, string> = {
   request_message: 'bg-fg-muted text-canvas',
   request_status: 'bg-info text-canvas',
   chat_thread: 'bg-accent text-accent-fg',
+  account_invited: 'bg-success text-canvas',
+  workspace_added: 'bg-accent text-accent-fg',
 }
 
 function NotificationItem({ n, onOpened }: { n: AppNotification; onOpened: () => void }) {
@@ -240,7 +249,11 @@ function NotificationItem({ n, onOpened }: { n: AppNotification; onOpened: () =>
     else if (n.request) router.push(`/requests/${n.request.id}`)
     else if (n.task) openTask(n.task.id)
     else if (n.kind === 'member_joined') router.push('/settings/members')
+    else if (n.kind === 'workspace_added' && n.workspace) router.push(`/w/${n.workspace.slug}`)
   }
+  const invited = n.kind === 'account_invited'
+  const role = invited && typeof n.data?.role === 'string' ? n.data.role : null
+  const spaces = invited && Array.isArray(n.data?.workspaces) ? (n.data.workspaces as string[]) : []
 
   return (
     <li className="group/ntf relative">
@@ -282,6 +295,9 @@ function NotificationItem({ n, onOpened }: { n: AppNotification; onOpened: () =>
               <span className="truncate">{n.request.title}</span>
             </span>
           ) : null}
+          {role ? (
+            <span className="mt-1 block truncate text-[12.5px] text-fg">{[t(`invite.role.${role}`), spaces.join(', ')].filter(Boolean).join(' · ')}</span>
+          ) : null}
           {excerpt ? <span className="mt-1.5 line-clamp-2 rounded-md bg-hover/70 px-2 py-1 text-[12.5px] leading-snug text-fg-muted">{excerpt}</span> : null}
           <span className="mt-1 block text-[11px] text-fg-subtle">
             {formatDistanceToNowStrict(new Date(n.createdAt), { addSuffix: true, locale })}
@@ -289,6 +305,7 @@ function NotificationItem({ n, onOpened }: { n: AppNotification; onOpened: () =>
           </span>
         </span>
       </button>
+      {invited ? <InviteActions n={n} onDone={onOpened} /> : null}
       <Tooltip content={unread ? t('markRead') : t('markUnread')} side="left">
         <button
           type="button"
@@ -305,6 +322,48 @@ function NotificationItem({ n, onOpened }: { n: AppNotification; onOpened: () =>
         </button>
       </Tooltip>
     </li>
+  )
+}
+
+/** Aceptar (se entra a esa cuenta) o rechazar una invitación, debajo de su aviso. */
+function InviteActions({ n, onDone }: { n: AppNotification; onDone: () => void }) {
+  const t = useTranslations('notifications')
+  const { accept, decline } = useInvitationActions()
+  const id = typeof n.data?.invitationId === 'string' ? n.data.invitationId : null
+  if (!id) return null
+  const account = typeof n.data?.account === 'string' ? n.data.account : ''
+  const busy = accept.isPending || decline.isPending
+  return (
+    <div className="flex gap-2 pb-3 pl-[58px] pr-4">
+      <Button
+        size="xs"
+        variant="primary"
+        loading={accept.isPending}
+        disabled={busy}
+        onClick={() =>
+          accept.mutate(id, {
+            onSuccess: (r) => {
+              track('feature.invitation_accept', { props: { from: 'bell' } })
+              toast.success(t('invite.joined', { account }))
+              onDone()
+              goToAccount(r.accountId, '/home?joined=1')
+            },
+            onError: () => toast.error(t('invite.error')),
+          })
+        }
+      >
+        {t('invite.accept')}
+      </Button>
+      <Button
+        size="xs"
+        variant="ghost"
+        loading={decline.isPending}
+        disabled={busy}
+        onClick={() => decline.mutate(id, { onSuccess: () => toast(t('invite.declined')), onError: () => toast.error(t('invite.error')) })}
+      >
+        {t('invite.decline')}
+      </Button>
+    </div>
   )
 }
 

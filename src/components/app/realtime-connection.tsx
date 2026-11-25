@@ -144,7 +144,9 @@ function useRouting() {
           qc.invalidateQueries({ queryKey: chatKeys.unread(account.id) })
           break
         case 'ntf':
+          // la de otra cuenta también: una invitación a otra cuenta sale en la campana de esta
           qc.invalidateQueries({ queryKey: notificationKeys.all(e.acct) })
+          if (e.acct !== account.id) qc.invalidateQueries({ queryKey: notificationKeys.all(account.id) })
           if (e.acct === account.id) queueAnnounce(e.id)
           break
         case 'ntf_sync':
