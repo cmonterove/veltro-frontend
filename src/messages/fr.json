@@ -195,6 +195,8 @@
         "mesa": "Où en sont les espaces et qui est surchargé.",
         "calendar": "Votre semaine : réunions et tâches datées.",
         "tasks": "Tout ce qui vous est assigné dans vos espaces.",
+        "mail": "Votre Gmail dans Veltro : lisez, répondez et écrivez.",
+        "dashboards": "Où en sont les tâches, en chiffres.",
         "vault": "Vos fichiers et liens, avec ou sans espace.",
         "chat": "Ce dont l'équipe parle.",
         "requests": "Ce que vous demandez aux autres départements, et ce qu’ils vous demandent.",
@@ -234,7 +236,27 @@
     },
     "backToApp": "Retour",
     "backTo": "Retour à {place}",
-    "dashboards": "Tableaux de bord"
+    "dashboards": "Tableaux de bord",
+    "menu": {
+      "title": "Votre menu",
+      "more": "Plus",
+      "inMore": "Dans « Plus »",
+      "edit": "Modifier le menu",
+      "hint": "Glissez pour réordonner. L’œil envoie la page dans « Plus ».",
+      "done": "Terminé",
+      "reset": "Revenir au menu par défaut",
+      "show": "Afficher dans le menu",
+      "hide": "Déplacer dans « Plus »",
+      "drag": "Glisser pour réordonner"
+    },
+    "spaces": {
+      "title": "Vos espaces",
+      "manage": "Gérer les espaces",
+      "sections": "Sections de {name}",
+      "open": "{count, plural, one {# ouverte} other {# ouvertes}}",
+      "overdue": "{count, plural, one {# en retard} other {# en retard}}",
+      "others": "{count, plural, one {# autre espace} other {# autres espaces}}"
+    }
   },
   "command": {
     "title": "Rechercher et exécuter",
@@ -278,6 +300,38 @@
     "empty": {
       "title": "Tout est à jour",
       "description": "Les tâches qui vous sont attribuées apparaîtront ici, triées par date. Appuyez sur C pour en créer une."
+    },
+    "clear": {
+      "line": {
+        "me": "Vous n’avez aucune tâche ouverte. Ce qu’on vous attribue arrive ici, trié par date.",
+        "delegated": "Rien d’ouvert dans ce que vous avez délégué.",
+        "following": "Rien d’ouvert dans ce que vous suivez.",
+        "other": "Rien d’ouvert dans {who}.",
+        "noSpaces": "Les tâches vivent dans un espace de travail : créez le premier pour commencer."
+      },
+      "closed": "{count, plural, one {# tâche terminée} other {# tâches terminées}} ces 30 derniers jours",
+      "new": "Nouvelle tâche",
+      "newSpace": "Créer un espace",
+      "meanwhile": "En attendant",
+      "unassigned": {
+        "title": "{count, plural, one {# tâche sans responsable} other {# tâches sans responsable}}",
+        "hint": "Prenez-en une, elle passe dans votre liste"
+      },
+      "meeting": {
+        "hint": "{when} · ce qui est décidé arrive ici"
+      },
+      "delegated": {
+        "title": "{count, plural, one {# tâche déléguée ouverte} other {# tâches déléguées ouvertes}}",
+        "hint": "Ce que vous avez demandé aux autres, dans Déléguées"
+      },
+      "following": {
+        "title": "{count, plural, one {Vous suivez # tâche ouverte} other {Vous suivez # tâches ouvertes}}",
+        "hint": "Ce qui s’y passe, dans Suivies"
+      },
+      "import": {
+        "title": "Importez vos tâches",
+        "hint": "Depuis Excel, CSV ou Trello, en une étape"
+      }
     },
     "emptyFiltered": "Aucune tâche dans cette vue",
     "emptyFilteredHint": "Essayez de retirer un filtre ou changez la personne que vous regardez.",
@@ -585,6 +639,18 @@
       "connectedBody": "En tant que {email}. Vos événements apparaissent déjà dans Calendrier et Pulse.",
       "openCalendar": "Voir mon agenda",
       "doneNote": "Tâche terminée"
+    },
+    "bulk": {
+      "label": "Modifier plusieurs tâches",
+      "select": "Sélectionner",
+      "selectAll": "Tout sélectionner",
+      "selected": "{count, plural, one {# sélectionnée} other {# sélectionnées}}",
+      "clear": "Effacer la sélection (Échap)",
+      "assignTo": "Assigner à",
+      "delete": "Supprimer",
+      "changed": "{count, plural, one {# tâche modifiée} other {# tâches modifiées}}",
+      "deleted": "{count, plural, one {# tâche supprimée} other {# tâches supprimées}}",
+      "mixed": "Plusieurs espaces : chaque tâche prend le premier statut de ce type dans le sien"
     }
   },
   "mail": {
@@ -600,6 +666,7 @@
       "placeholder": "Écrivez votre message",
       "replyPlaceholder": "Écrivez votre réponse",
       "recipientsPlaceholder": "Nom ou e-mail",
+      "recent": "Écrit récemment",
       "badAddress": "Cela ne ressemble pas à un e-mail.",
       "removeRecipient": "Retirer {email}",
       "send": "Envoyer",
@@ -622,7 +689,10 @@
       "fromGoogle": "De vos contacts Google",
       "openInDrive": "Ouvrir dans Drive",
       "draftRestored": "Vous étiez en train d’écrire ceci : on l’a gardé.",
-      "startOver": "Recommencer"
+      "startOver": "Recommencer",
+      "draftSaved": "Brouillon enregistré",
+      "close": "Fermer (le brouillon reste enregistré)",
+      "pagePlaceholder": "Écrivez votre message…"
     },
     "newMessage": "Nouveau message",
     "connectAnother": "Connecter un autre compte Gmail",
@@ -1326,7 +1396,8 @@
       "noMatchYet": "Ils ne correspondent pas encore",
       "showPassword": "Afficher le mot de passe",
       "hidePassword": "Masquer le mot de passe",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "lookTitle": "Votre Veltro"
     },
     "account": {
       "title": "Compte",
@@ -1817,7 +1888,7 @@
       "pageDescription": "Connectez Veltro aux outils que votre équipe utilise déjà.",
       "permissions": {
         "title": "Autorisations Google",
-        "description": "Une seule fois dans Google et Veltro lit et répond à vos e-mails, suggère vos contacts, apporte des fichiers Drive et affiche votre agenda. Dans Google, vous pouvez décocher ce que vous ne voulez pas.",
+        "description": "Une seule fois dans Google et Veltro lit vos e-mails, suggère vos contacts, apporte vos fichiers Drive et affiche votre agenda.",
         "grantAll": "Tout autoriser",
         "connect": "Connecter Google",
         "review": "Vérifier dans Google",
@@ -1827,28 +1898,51 @@
         "calendarOther": "connecté avec {email}",
         "mail": {
           "title": "E-mails",
-          "body": "lire, répondre et envoyer"
+          "body": "lire, répondre et envoyer",
+          "chip": "E-mails",
+          "gain": "Lisez et répondez à vos e-mails, et transformez-les en tâches, sans quitter Veltro."
         },
         "contacts": {
           "title": "Contacts",
-          "body": "suggestions pendant l’écriture"
+          "body": "suggestions pendant l’écriture",
+          "chip": "Contacts",
+          "gain": "Quand vous écrivez un e-mail, Veltro vous suggère à qui."
         },
         "drive": {
           "title": "Drive",
-          "body": "insérer des fichiers dans un e-mail"
+          "body": "insérer des fichiers dans un e-mail",
+          "chip": "Drive",
+          "gain": "Joignez des fichiers Drive à vos e-mails."
         },
         "driveFiles": {
           "title": "Drive",
-          "body": "copier des fichiers dans le Coffre"
+          "body": "copier des fichiers de Drive",
+          "chip": "Vers le Coffre",
+          "gain": "Copiez des fichiers Drive dans le Coffre sans les télécharger."
         },
         "calendar": {
           "title": "Agenda",
-          "body": "agenda et réunions"
-        }
+          "body": "agenda et réunions",
+          "chip": "Agenda",
+          "gain": "Votre agenda dans Veltro, des notes pour chaque réunion et des réunions avec Meet."
+        },
+        "allSet": "Tout est connecté",
+        "missing": "{count, plural, one {# autorisation manquante} other {# autorisations manquantes}}",
+        "disconnectCalendar": "Déconnecter l'agenda",
+        "retry": "Réessayer",
+        "reconnect": "Reconnecter",
+        "stateOn": "autorisé",
+        "stateOff": "non autorisé",
+        "grantOne": "Autoriser : {name}",
+        "showAll": "Tout voir ({count})",
+        "showLess": "Voir moins",
+        "gains": "Avec les autorisations manquantes",
+        "gainsNew": "En connectant Google",
+        "connectHint": "E-mails, contacts, Drive et agenda."
       },
       "microsoft": {
         "title": "Microsoft : Outlook et OneDrive",
-        "body": "E-mails, agenda et fichiers Microsoft 365, comme avec Google.",
+        "body": "Outlook, OneDrive et son agenda, comme avec Google.",
         "soon": "Bientôt"
       }
     },

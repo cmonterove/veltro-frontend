@@ -9,19 +9,20 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { track } from '@/lib/telemetry'
 import { AI_ENABLED } from '@/lib/features'
+import { SpaceSwitcher } from './space-switcher'
 
 /** En Pulso la pregunta se responde ahí mismo (la respuesta flota sobre el tablero); en el resto abre Veltro IA. */
 export const ASK_EVENT = 'veltro:ask'
 export const ASK_INPUT_ID = 'veltro-ask'
 
 /**
- * La barra de arriba vive sobre el marco: «Pregúntale a Veltro» al centro, siempre a mano (⌘J),
- * y a la derecha el buscador (⌘K) y los avisos. Solo en escritorio; en el celular cada pantalla trae lo suyo.
+ * La barra de arriba vive sobre el marco: a la izquierda los espacios (en cuál estás y sus secciones), con
+ * la IA «Pregúntale a Veltro» al centro (⌘J), y a la derecha el buscador compacto (⌘K), los avisos y la
+ * pantalla completa. Solo en escritorio; en el celular cada pantalla trae lo suyo.
  */
 export function TopBar({ onSearch, onFullscreen }: { onSearch: () => void; onFullscreen: () => void }) {
   const t = useTranslations('pulse.ask')
   const tn = useTranslations('nav')
-  const tc = useTranslations('command')
   const router = useRouter()
   const pathname = usePathname()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -40,19 +41,11 @@ export function TopBar({ onSearch, onFullscreen }: { onSearch: () => void; onFul
 
   return (
     <div className="hidden h-[60px] shrink-0 items-center gap-3 pl-2 pr-2.5 md:flex">
-      {/* sin la IA (lib/features), el centro de la barra es el buscador (abre ⌘K), como en la consola */}
-      {!AI_ENABLED ? (
-        <button
-          type="button"
-          onClick={onSearch}
-          data-tour="search"
-          className="mx-auto flex h-12 w-full max-w-[720px] items-center gap-3 rounded-[16px] bg-panel pl-4 pr-2.5 text-left text-fg shadow-[0_0_0_4px_oklch(0.773_0.115_303/0.2),0_14px_32px_-18px_oklch(0.12_0.04_315/0.75)] outline-none transition-shadow hover:shadow-[0_0_0_4px_oklch(0.773_0.115_303/0.32),0_14px_32px_-18px_oklch(0.12_0.04_315/0.75)] focus-visible:shadow-[0_0_0_4px_oklch(0.773_0.115_303/0.42),0_14px_32px_-18px_oklch(0.12_0.04_315/0.75)]"
-        >
-          <Search className="size-[18px] shrink-0 text-fg-muted" />
-          <span className="min-w-0 flex-1 truncate text-[15px] text-fg-subtle">{tc('placeholder')}</span>
-          <Kbd>⌘K</Kbd>
-        </button>
-      ) : (
+      {/* a la izquierda, los espacios: en cuál estás y, adentro de uno, sus secciones */}
+      <div className="flex min-w-0 flex-1 items-center">
+        <SpaceSwitcher />
+      </div>
+      {AI_ENABLED ? (
         <form
           data-tour="ask"
           onSubmit={(e) => {
@@ -65,7 +58,7 @@ export function TopBar({ onSearch, onFullscreen }: { onSearch: () => void; onFul
             setQ('')
             inputRef.current?.blur()
           }}
-          className="mx-auto flex h-12 w-full max-w-[720px] items-center gap-3 rounded-[16px] bg-panel pl-2 pr-2.5 text-fg shadow-[0_0_0_4px_oklch(0.773_0.115_303/0.2),0_14px_32px_-18px_oklch(0.12_0.04_315/0.75)] transition-shadow focus-within:shadow-[0_0_0_4px_oklch(0.773_0.115_303/0.42),0_14px_32px_-18px_oklch(0.12_0.04_315/0.75)]"
+          className="flex h-11 w-full max-w-[560px] items-center gap-3 rounded-[16px] bg-panel pl-2 pr-2.5 text-fg shadow-[0_0_0_4px_oklch(0.773_0.115_303/0.2),0_14px_32px_-18px_oklch(0.12_0.04_315/0.75)] transition-shadow focus-within:shadow-[0_0_0_4px_oklch(0.773_0.115_303/0.42),0_14px_32px_-18px_oklch(0.12_0.04_315/0.75)]"
         >
           <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[11px] bg-accent text-accent-fg">
             <Sparkles className="size-4" />
@@ -84,7 +77,21 @@ export function TopBar({ onSearch, onFullscreen }: { onSearch: () => void; onFul
           />
           <Kbd>⌘J</Kbd>
         </form>
-      )}
+      ) : null}
+      {/* sin la IA, el buscador (abre ⌘K) va compacto a la derecha; en pantallas medianas, solo la lupa */}
+      {!AI_ENABLED ? (
+        <button
+          type="button"
+          onClick={onSearch}
+          data-tour="search"
+          aria-label={tn('search')}
+          className="flex h-9 w-9 shrink-0 items-center gap-2 rounded-[11px] bg-panel px-2.5 text-left text-fg shadow-[0_0_0_3px_oklch(0.773_0.115_303/0.16),0_10px_24px_-16px_oklch(0.12_0.04_315/0.7)] outline-none transition-shadow hover:shadow-[0_0_0_3px_oklch(0.773_0.115_303/0.3),0_10px_24px_-16px_oklch(0.12_0.04_315/0.7)] focus-visible:shadow-[0_0_0_3px_oklch(0.773_0.115_303/0.45)] lg:w-56 xl:w-64"
+        >
+          <Search className="size-4 shrink-0 text-fg-muted" />
+          <span className="hidden min-w-0 flex-1 truncate text-sm text-fg-subtle lg:inline">{tn('search')}…</span>
+          <Kbd className="hidden lg:inline-flex">⌘K</Kbd>
+        </button>
+      ) : null}
       <div className="on-frame flex shrink-0 items-center gap-0.5">
         {AI_ENABLED ? (
           <Tooltip content={tn('search')} shortcut={['⌘', 'K']}>

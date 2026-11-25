@@ -195,6 +195,8 @@
         "mesa": "Cómo van los espacios y quién está sobrecargado.",
         "calendar": "Tu semana: reuniones y tareas con fecha.",
         "tasks": "Lo que tienes asignado en todos tus espacios.",
+        "mail": "Tu Gmail dentro de Veltro: lee, responde y escribe.",
+        "dashboards": "Cómo van las tareas, en números.",
         "vault": "Tus archivos y links, con o sin espacio.",
         "chat": "Lo que se habla en el equipo.",
         "requests": "Lo que pides a otros departamentos y lo que te piden a ti.",
@@ -234,7 +236,27 @@
     },
     "backToApp": "Volver",
     "backTo": "Volver a {place}",
-    "dashboards": "Dashboards"
+    "dashboards": "Dashboards",
+    "menu": {
+      "title": "Tu menú",
+      "more": "Más",
+      "inMore": "En «Más»",
+      "edit": "Editar menú",
+      "hint": "Arrastra para ordenar. Con el ojo, la página pasa a «Más».",
+      "done": "Listo",
+      "reset": "Volver al de fábrica",
+      "show": "Mostrar en el menú",
+      "hide": "Pasar a «Más»",
+      "drag": "Arrastrar para ordenar"
+    },
+    "spaces": {
+      "title": "Tus espacios",
+      "manage": "Administrar espacios",
+      "sections": "Secciones de {name}",
+      "open": "{count, plural, one {# abierta} other {# abiertas}}",
+      "overdue": "{count, plural, one {# vencida} other {# vencidas}}",
+      "others": "{count, plural, one {# espacio más} other {# espacios más}}"
+    }
   },
   "command": {
     "title": "Buscar y ejecutar",
@@ -278,6 +300,38 @@
     "empty": {
       "title": "Todo al día",
       "description": "Cuando te asignen tareas aparecerán aquí, ordenadas por fecha. Presiona C para crear una."
+    },
+    "clear": {
+      "line": {
+        "me": "No tienes tareas abiertas. Lo que te asignen llega aquí, ordenado por fecha.",
+        "delegated": "No queda nada abierto en lo que delegaste.",
+        "following": "No queda nada abierto en lo que sigues.",
+        "other": "No queda nada abierto en {who}.",
+        "noSpaces": "Las tareas viven en un espacio de trabajo: arma el primero para empezar."
+      },
+      "closed": "{count, plural, one {# tarea cerrada} other {# tareas cerradas}} en los últimos 30 días",
+      "new": "Nueva tarea",
+      "newSpace": "Crear un espacio",
+      "meanwhile": "Mientras tanto",
+      "unassigned": {
+        "title": "{count, plural, one {# tarea sin responsable} other {# tareas sin responsable}}",
+        "hint": "Toma una y queda en tu lista"
+      },
+      "meeting": {
+        "hint": "{when} · lo acordado llega aquí"
+      },
+      "delegated": {
+        "title": "{count, plural, one {# delegada abierta} other {# delegadas abiertas}}",
+        "hint": "Lo que pediste a otros, en Delegadas"
+      },
+      "following": {
+        "title": "{count, plural, one {Sigues # tarea abierta} other {Sigues # tareas abiertas}}",
+        "hint": "Lo que pasa en ellas, en Siguiendo"
+      },
+      "import": {
+        "title": "Importa tus tareas",
+        "hint": "De Excel, CSV o Trello, en un paso"
+      }
     },
     "emptyFiltered": "No hay tareas en esta vista",
     "emptyFilteredHint": "Prueba quitando algún filtro o cambia a quién estás mirando.",
@@ -585,6 +639,18 @@
       "connectedBody": "Como {email}. Tus eventos ya aparecen en Calendario y en Pulso.",
       "openCalendar": "Ver mi calendario",
       "doneNote": "Tarea hecha"
+    },
+    "bulk": {
+      "label": "Editar varias tareas",
+      "select": "Seleccionar",
+      "selectAll": "Seleccionar todas",
+      "selected": "{count, plural, one {# seleccionada} other {# seleccionadas}}",
+      "clear": "Quitar la selección (Esc)",
+      "assignTo": "Asignar a",
+      "delete": "Borrar",
+      "changed": "{count, plural, one {Cambiaste # tarea} other {Cambiaste # tareas}}",
+      "deleted": "{count, plural, one {Borraste # tarea} other {Borraste # tareas}}",
+      "mixed": "Varios espacios: cada tarea toma el primer estado de ese tipo en el suyo"
     }
   },
   "mail": {
@@ -600,6 +666,7 @@
       "placeholder": "Escribe tu mensaje",
       "replyPlaceholder": "Escribe tu respuesta",
       "recipientsPlaceholder": "Nombre o correo",
+      "recent": "Escribiste hace poco",
       "badAddress": "Eso no parece un correo.",
       "removeRecipient": "Quitar a {email}",
       "send": "Enviar",
@@ -622,7 +689,10 @@
       "fromGoogle": "De tus contactos de Google",
       "openInDrive": "Abrir en Drive",
       "draftRestored": "Seguías escribiendo esto: lo recuperamos.",
-      "startOver": "Empezar de cero"
+      "startOver": "Empezar de cero",
+      "draftSaved": "Borrador guardado",
+      "close": "Cerrar (el borrador queda guardado)",
+      "pagePlaceholder": "Escribe tu mensaje…"
     },
     "newMessage": "Mensaje nuevo",
     "connectAnother": "Conectar otra cuenta de Gmail",
@@ -1326,7 +1396,8 @@
       "noMatchYet": "Todavía no coinciden",
       "showPassword": "Mostrar contraseña",
       "hidePassword": "Ocultar contraseña",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "lookTitle": "Así ves Veltro"
     },
     "account": {
       "title": "Cuenta",
@@ -1817,7 +1888,7 @@
       "pageDescription": "Conecta Veltro con las herramientas que tu equipo ya usa.",
       "permissions": {
         "title": "Permisos de Google",
-        "description": "Con una sola vez en Google, Veltro lee y responde tu correo, sugiere tus contactos, trae archivos de Drive y muestra tu calendario. En Google puedes destildar lo que no quieras.",
+        "description": "Una sola vez en Google y Veltro lee tu correo, sugiere tus contactos, trae archivos de Drive y muestra tu calendario.",
         "grantAll": "Dar todos los permisos",
         "connect": "Conectar Google",
         "review": "Revisar en Google",
@@ -1827,28 +1898,51 @@
         "calendarOther": "conectado con {email}",
         "mail": {
           "title": "Correo",
-          "body": "leer, responder y enviar"
+          "body": "leer, responder y enviar",
+          "chip": "Correo",
+          "gain": "Lee y responde tu correo, y conviértelo en tareas, sin salir de Veltro."
         },
         "contacts": {
           "title": "Contactos",
-          "body": "sugerencias al escribir"
+          "body": "sugerencias al escribir",
+          "chip": "Contactos",
+          "gain": "Al escribir un correo, Veltro te sugiere a quién."
         },
         "drive": {
           "title": "Drive",
-          "body": "insertar archivos en un correo"
+          "body": "insertar archivos en un correo",
+          "chip": "Drive",
+          "gain": "Adjunta archivos de Drive a tus correos."
         },
         "driveFiles": {
           "title": "Drive",
-          "body": "copiar archivos a la Bóveda"
+          "body": "copiar archivos de Drive",
+          "chip": "A la Bóveda",
+          "gain": "Copia archivos de Drive a la Bóveda sin descargarlos."
         },
         "calendar": {
           "title": "Calendario",
-          "body": "agenda y reuniones"
-        }
+          "body": "agenda y reuniones",
+          "chip": "Calendario",
+          "gain": "Tu agenda en Veltro, notas para cada reunión y reuniones con Meet."
+        },
+        "allSet": "Todo conectado",
+        "missing": "{count, plural, one {Falta # permiso} other {Faltan # permisos}}",
+        "disconnectCalendar": "Desconectar calendario",
+        "retry": "Reintentar",
+        "reconnect": "Volver a conectar",
+        "stateOn": "con permiso",
+        "stateOff": "sin permiso",
+        "grantOne": "Dar permiso: {name}",
+        "showAll": "Ver todos ({count})",
+        "showLess": "Ver menos",
+        "gains": "Con los permisos que faltan",
+        "gainsNew": "Al conectar Google",
+        "connectHint": "Correo, contactos, Drive y calendario."
       },
       "microsoft": {
         "title": "Microsoft: Outlook y OneDrive",
-        "body": "Correo, calendario y archivos de Microsoft 365, como con Google.",
+        "body": "Outlook, OneDrive y su calendario, como con Google.",
         "soon": "Próximamente"
       }
     },

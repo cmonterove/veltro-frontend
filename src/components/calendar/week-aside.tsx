@@ -72,8 +72,8 @@ export function WeekAside({
 
   return (
     <aside className="hidden w-72 shrink-0 flex-col gap-4 xl:flex">
-      {/* el mes chico, sobre la ciruela del marco: la pieza de color de Calendario */}
-      <section className="on-frame day-surface shrink-0 rounded-[24px] px-4 pb-4 pt-4 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)]">
+      {/* el mes chico, en blanco como la semana: la ciruela de Calendario la pone la portada de arriba */}
+      <section className={cn(CARD, 'shrink-0 px-4 pb-4 pt-4')}>
         <div className="mb-2.5 flex items-center gap-1">
           <p className="mr-auto pl-1 text-[15px] font-semibold capitalize text-fg">{format(month, 'LLLL yyyy', { locale })}</p>
           <Button variant="ghost" size="icon-xs" onClick={() => setMonth(addMonths(month, -1))} aria-label={t('prevMonth')}>

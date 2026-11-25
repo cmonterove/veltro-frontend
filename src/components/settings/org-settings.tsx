@@ -118,57 +118,59 @@ export function OrgSettings({ members, departments: serverDepartments }: { membe
 
   return (
     <Ctx value={ctx}>
-      <SettingsHeader title={t('pageTitle')} description={t('chartHint')} />
+      {/* la barra de la vista (organigrama o por área, cuántos y buscar) va en la portada: abajo, los
+          departamentos y el organigrama se montan sobre su borde */}
+      <SettingsHeader title={t('pageTitle')} description={t('chartHint')}>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg bg-hover p-0.5" role="group" aria-label={t('viewLabel')}>
+            {(
+              [
+                ['chart', Network, t('viewChart')],
+                ['areas', Rows3, t('viewAreas')],
+              ] as const
+            ).map(([id, Icon, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setView(id)}
+                aria-pressed={view === id}
+                className={cn(
+                  'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors [&_svg]:size-3.5',
+                  view === id ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
+                )}
+              >
+                <Icon />
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-fg-muted">
+            {t('people', { count: live.length })} · {t('departmentsCount', { count: departments.length })}
+            {unplaced ? <span className="ml-1.5 rounded-full bg-warning-soft px-1.5 py-0.5 font-medium text-warning">{t('unplaced', { count: unplaced })}</span> : null}
+          </p>
+          <div className="relative ml-auto flex w-full items-center sm:w-56">
+            <Search className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
+              placeholder={t('search')}
+              aria-label={t('search')}
+              className={cn(inputClass, 'h-8 border-fg/15 bg-fg/[0.08] pl-8 pr-7 hover:border-fg/30')}
+            />
+            {query ? (
+              <button type="button" onClick={() => setQuery('')} className="absolute right-1.5 inline-flex size-5 items-center justify-center rounded-sm text-fg-subtle hover:text-fg" aria-label={t('clearSearch')}>
+                <X className="size-3.5" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </SettingsHeader>
 
       {/* los departamentos al lado (primer paso y siempre a mano), el organigrama con todo el ancho */}
       <div className="grid flex-1 grid-cols-1 gap-6 lg:min-h-0 lg:grid-cols-[17rem_minmax(0,1fr)] 2xl:grid-cols-[20rem_minmax(0,1fr)]">
         <DepartmentsPanel />
         <div className="flex min-w-0 flex-col lg:min-h-0">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex rounded-lg bg-hover p-0.5" role="group" aria-label={t('viewLabel')}>
-          {(
-            [
-              ['chart', Network, t('viewChart')],
-              ['areas', Rows3, t('viewAreas')],
-            ] as const
-          ).map(([id, Icon, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setView(id)}
-              aria-pressed={view === id}
-              className={cn(
-                'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors [&_svg]:size-3.5',
-                view === id ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
-              )}
-            >
-              <Icon />
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-fg-muted">
-          {t('people', { count: live.length })} · {t('departmentsCount', { count: departments.length })}
-          {unplaced ? <span className="ml-1.5 rounded-full bg-warning-soft px-1.5 py-0.5 font-medium text-warning">{t('unplaced', { count: unplaced })}</span> : null}
-        </p>
-        <div className="relative ml-auto flex w-full items-center sm:w-56">
-          <Search className="pointer-events-none absolute left-2.5 size-3.5 text-fg-subtle" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
-            placeholder={t('search')}
-            aria-label={t('search')}
-            className={cn(inputClass, 'h-8 pl-8 pr-7')}
-          />
-          {query ? (
-            <button type="button" onClick={() => setQuery('')} className="absolute right-1.5 inline-flex size-5 items-center justify-center rounded-sm text-fg-subtle hover:text-fg" aria-label={t('clearSearch')}>
-              <X className="size-3.5" />
-            </button>
-          ) : null}
-        </div>
-      </div>
-
       {view === 'chart' ? (
         <OrgChart tree={tree} />
       ) : (
@@ -217,7 +219,7 @@ function OrgChart({ tree }: { tree: OrgNode<Member>[] }) {
 
   return (
     <DndContext sensors={sensors} onDragStart={(e) => setDragId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setDragId(null)}>
-      <div className="relative flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-[radial-gradient(var(--line)_1px,transparent_1px)] [background-size:18px_18px]">
+      <div className="relative flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-canvas bg-[radial-gradient(var(--line)_1px,transparent_1px)] [background-size:18px_18px]">
         {admin && dragged?.reports_to ? <RootDrop /> : null}
         <div className="flex-1 overflow-auto px-6 pb-8 pt-7 scrollbar-thin">
           <div className="org-tree mx-auto w-max">

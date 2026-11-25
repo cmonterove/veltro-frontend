@@ -42,7 +42,15 @@ import {
   UserRound,
   ArrowLeft,
   Mail,
+  Ellipsis,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Pencil,
 } from 'lucide-react'
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useApp, useIsAccountAdmin } from './app-context'
 import { DemoDataMenuItem } from './demo-data'
 import { useChatUnread } from '@/lib/queries/chats'
@@ -78,18 +86,20 @@ import { useAccountSwitch } from './account-switch'
 import { Logo, LogoMark } from './logo'
 import type { WorkspaceWithRole } from '@/lib/types'
 import { WorkspaceMark, AccountLogo } from '@/components/app/marks'
-import { NavPeekBody, PeekHead, RailPeek, WorkspacePeek } from './rail-peek'
+import { NavPeekBody, PeekHead, RailPeek } from './rail-peek'
 import { useTour } from '@/components/tour/tour'
 import { RequestsIcon } from '@/components/requests/request-bits'
 import { useRequestSummary } from '@/lib/queries/requests'
 import { SupportIcon } from '@/components/support/support-bits'
 import { AI_ENABLED } from '@/lib/features'
+import { useNav } from './use-nav'
+import { navOrderOf, type NavGroupId, type NavKey, type NavPrefs } from '@/lib/nav'
 
 // El menú vive sobre el marco (ciruela empolvado, con los colores de on-frame) y el contenido es una hoja encima.
 // Lo activo es una pastilla en relieve: en el menú principal se desliza de un ítem al otro.
 // Cada ícono va en su baldosa (lila sobre el marco); en lo activo la baldosa se llena.
 export const navItemClass =
-  'group/nav relative flex h-9 w-full min-w-0 items-center gap-2.5 rounded-[11px] px-1 text-sm [@media(max-height:760px)]:h-8 [@media(max-height:760px)]:[&>svg]:size-6 [@media(max-height:760px)]:[&>svg]:p-[5px] text-fg-muted outline-none transition-colors duration-150 hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/35 [&>svg]:relative [&>svg]:size-7 [&>svg]:shrink-0 [&>svg]:rounded-[9px] [&>svg]:p-[6px] [&>svg]:text-accent [&>svg]:transition-colors'
+  'group/nav relative flex h-9 w-full min-w-0 items-center gap-2.5 rounded-[11px] px-1 text-sm [@media(max-height:760px)]:h-[30px] [@media(max-height:760px)]:[&>svg]:size-6 [@media(max-height:760px)]:[&>svg]:p-[5px] text-fg-muted outline-none transition-colors duration-150 hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/35 [&>svg]:relative [&>svg]:size-7 [&>svg]:shrink-0 [&>svg]:rounded-[9px] [&>svg]:p-[6px] [&>svg]:text-accent [&>svg]:transition-colors'
 export const navActiveClass = 'bg-panel font-semibold text-fg shadow-card hover:bg-panel hover:text-fg [&>svg]:bg-accent [&>svg]:text-accent-fg'
 /** el fondo lo pone la pastilla que se desliza (NavPill) */
 const navCurrentClass = 'font-semibold text-fg hover:bg-transparent hover:text-fg [&>svg]:bg-accent [&>svg]:text-accent-fg'
@@ -154,7 +164,7 @@ function NavGroupHead({ label, open, onToggle, peek, action }: { label: string; 
     </>
   )
   return (
-    <div className="group/section flex h-7 items-center gap-2 pl-1.5 pr-1">
+    <div className="group/section flex h-7 items-center gap-2 pl-1.5 pr-1 short:h-6">
       {onToggle ? (
         <button
           type="button"
@@ -264,14 +274,25 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
     vault: { href: '/vault', label: t('vault'), icon: Vault, keys: ['G', 'B'] },
     chat: { href: '/chat', label: t('pasillo'), icon: MessagesSquare, keys: ['G', 'P'], badge: unread },
   } satisfies Record<string, NavItem>
-  // Pulso arriba, solo; el resto en grupos que se pliegan (Veltro IA, oculta por ahora: lib/features)
+  // Pulso arriba, fijo (Veltro IA, oculta por ahora: lib/features); después los grupos (Trabajo y Equipo)
+  // con lo que el rol ve y como lo ordenó cada persona; lo que escondió, en «Más»
   const homeItems: NavItem[] = [item.home, ...(AI_ENABLED ? [item.veltro] : [])]
-  const groups: { id: string; label: string; items: NavItem[] }[] = [
-    { id: 'work', label: t('groups.work'), items: [item.tasks, item.mail, item.dashboards, item.calendar, item.requests] },
-    { id: 'team', label: t('groups.team'), items: [item.chat, item.mesa] },
-    { id: 'memory', label: t('groups.memory'), items: [item.decisions, item.vault] },
-  ]
-  const top: NavItem[] = [...homeItems, ...groups.flatMap((g) => g.items)]
+  const nav = useNav()
+  const groupLabel: Record<NavGroupId, string> = { work: t('groups.work'), team: t('groups.team') }
+  const navGroups = nav.groups
+    .map((g) => ({ id: g.id, label: groupLabel[g.id], items: g.keys.map((k): NavItem => item[k]) }))
+    .filter((g) => g.items.length)
+  const shownItems: NavItem[] = navGroups.flatMap((g) => g.items)
+  const moreItems: NavItem[] = nav.more.map((k) => item[k])
+  const top: NavItem[] = [...homeItems, ...shownItems, ...moreItems]
+  const [moreOpen, setMoreOpen] = useLocalStorage<boolean>('veltro:nav-more-open', false)
+  const moreBadge = moreItems.some((it) => it.badge)
+  // editar el menú ahí mismo (desde «Más» o desde el menú de la persona)
+  const [editing, setEditing] = useState(false)
+  const startEditing = () => {
+    if (collapsed) onToggleCollapsed?.()
+    setEditing(true)
+  }
   const [folded, setFolded] = useLocalStorage<string[]>('veltro:nav-folded', [])
   const toggleGroup = (id: string) => setFolded((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
   // en los ajustes de la cuenta la barra se transforma en el menú de Ajustes (un solo menú)
@@ -344,7 +365,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
                 ))}
             </>
           ) : null}
-          {settingsMode ? null : top.map(({ href, label, icon: Icon, keys, badge }) => (
+          {settingsMode ? null : [...homeItems, ...shownItems].map(({ href, label, icon: Icon, keys, badge }) => (
             <RailPeek
               key={href}
               trigger={
@@ -367,13 +388,36 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
               <NavPeekBody href={href} />
             </RailPeek>
           ))}
+          {!settingsMode && moreItems.length ? (
+            <Menu>
+              <MenuTrigger
+                aria-label={t('menu.more')}
+                className={cn(railItemClass, moreItems.some((it) => isActive(it.href)) && navActiveClass)}
+              >
+                <Ellipsis />
+                {moreBadge ? <span className="absolute right-1 top-1 size-2 rounded-full bg-count ring-2 ring-sidebar" aria-hidden /> : null}
+              </MenuTrigger>
+              <MenuContent side="right" align="start" className="w-56">
+                <MenuLabel>{t('menu.more')}</MenuLabel>
+                {moreItems.map((it) => (
+                  <MenuLinkItem key={it.href} render={<Link href={it.href} />}>
+                    <it.icon />
+                    <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                    {it.badge ? <span className="rounded-full bg-count px-1.5 text-[11px] font-semibold tabular-nums text-count-fg">{it.badge > 99 ? '99+' : it.badge}</span> : null}
+                  </MenuLinkItem>
+                ))}
+                <MenuSeparator />
+                <MenuItem onClick={startEditing}>
+                  <Pencil />
+                  {t('menu.edit')}
+                </MenuItem>
+              </MenuContent>
+            </Menu>
+          ) : null}
         </nav>
 
-        <div className="mt-2 flex min-h-0 w-full flex-1 flex-col items-center gap-0.5 overflow-y-auto border-t border-line/70 pt-2 scrollbar-none" data-tour="spaces">
-          {workspaces.map((ws) => (
-            <RailWorkspace key={ws.id} ws={ws} pathname={pathname} />
-          ))}
-        </div>
+        {/* los espacios van en la barra de arriba (su selector); aquí queda el aire */}
+        <div className="min-h-0 flex-1" />
 
         <div className="flex flex-col items-center gap-0.5 pb-3 pt-2">
           {/* invitar vive en Ajustes y la cuenta solo aparece si hay más de una: el alto es para los espacios */}
@@ -385,7 +429,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
           </Tooltip>
           <ThemeToggle className={railItemClass} side="right" />
           {accounts.length > 1 ? <AccountSwitcher compact /> : null}
-          <UserMenu onShortcuts={onShortcuts} compact />
+          <UserMenu onShortcuts={onShortcuts} onEditMenu={startEditing} compact />
         </div>
       </aside>
     )
@@ -423,7 +467,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
 
       {/* el medio se desplaza entero si no cabe (pantallas bajas): nada se monta sobre el pie */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-none">
-        <div className="hidden px-2.5 pb-3 pt-1 md:block">
+        <div className="hidden px-2.5 pb-3 pt-1 short:pb-2 md:block">
           <AccountSwitcher card />
         </div>
 
@@ -448,42 +492,106 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
             </motion.div>
           ) : (
             <motion.div key="app" custom={-1} variants={SLIDE} initial="enter" animate="center" exit="exit" transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
-              <nav className="flex flex-col gap-0.5 px-2.5">
+              <nav className="flex flex-col gap-0.5 px-2.5" aria-label={t('menu.title')}>
                 {homeItems.map((it) => (
                   <NavLink key={it.href} item={it} current={isActive(it.href)} onClick={navClick(it.href)} pillId={pillId} />
                 ))}
               </nav>
-              {/* los grupos: se pliegan desde su título y se recuerda; plegado, lo que estás viendo sigue a la vista */}
-              {groups.map((g) => {
-                const open = !folded.includes(g.id)
-                const here = g.items.find((it) => isActive(it.href))
-                return (
-                  <div key={g.id} className="mt-3.5 px-2.5">
-                    <NavGroupHead
-                      label={g.label}
-                      open={open}
-                      onToggle={() => toggleGroup(g.id)}
-                      peek={g.items.map((it) => (
-                        <PeekLink key={it.href} href={it.href} label={it.label} dot={Boolean(it.badge)}>
-                          <it.icon />
-                        </PeekLink>
-                      ))}
-                    />
-                    <div className="disclosure" data-open={open ? '' : undefined} inert={!open}>
-                      <div>
-                        <div className="flex flex-col gap-0.5 pt-0.5">
-                          {g.items.map((it) => (
-                            <NavLink key={it.href} item={it} current={open && isActive(it.href)} onClick={navClick(it.href)} pillId={pillId} tour={open} />
+              {editing ? (
+                <div className="px-2.5">
+                  <NavEditor
+                    groups={nav.groups}
+                    more={nav.more}
+                    labels={groupLabel}
+                    items={item}
+                    onChange={nav.setPrefs}
+                    onReset={() => nav.setPrefs(null)}
+                    onDone={() => setEditing(false)}
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* los grupos: se pliegan desde su título y se recuerda; plegado, lo que estás viendo sigue a la vista */}
+                  {navGroups.map((g, gi) => {
+                    const open = !folded.includes(g.id)
+                    const here = g.items.find((it) => isActive(it.href))
+                    return (
+                      <div key={g.id} className="mt-3.5 px-2.5 short:mt-2">
+                        <NavGroupHead
+                          label={g.label}
+                          open={open}
+                          onToggle={() => toggleGroup(g.id)}
+                          peek={g.items.map((it) => (
+                            <PeekLink key={it.href} href={it.href} label={it.label} dot={Boolean(it.badge)}>
+                              <it.icon />
+                            </PeekLink>
                           ))}
+                          action={
+                            gi === 0 ? (
+                              <Tooltip content={t('menu.edit')}>
+                                <button
+                                  type="button"
+                                  onClick={startEditing}
+                                  aria-label={t('menu.edit')}
+                                  className="inline-flex size-5 items-center justify-center rounded-sm text-fg-subtle opacity-0 outline-none transition-opacity hover:bg-hover hover:text-fg focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent-mid/40 group-hover/section:opacity-100"
+                                >
+                                  <Pencil className="size-3" />
+                                </button>
+                              </Tooltip>
+                            ) : null
+                          }
+                        />
+                        <div className="disclosure" data-open={open ? '' : undefined} inert={!open}>
+                          <div>
+                            <div className="flex flex-col gap-0.5 pt-0.5 short:gap-px">
+                              {g.items.map((it) => (
+                                <NavLink key={it.href} item={it} current={open && isActive(it.href)} onClick={navClick(it.href)} pillId={pillId} tour={open} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {!open && here ? <NavLink item={here} current onClick={navClick(here.href)} pillId={pillId} /> : null}
+                      </div>
+                    )
+                  })}
+                  {/* «Más»: lo que la persona escondió; se pliega como un grupo y avisa si adentro hay algo pendiente */}
+                  {moreItems.length ? (
+                    <div className="mt-3.5 px-2.5 short:mt-2">
+                      <NavGroupHead
+                        label={t('menu.more')}
+                        open={moreOpen}
+                        onToggle={() => setMoreOpen(!moreOpen)}
+                        peek={moreItems.map((it) => (
+                          <PeekLink key={it.href} href={it.href} label={it.label} dot={Boolean(it.badge)}>
+                            <it.icon />
+                          </PeekLink>
+                        ))}
+                      />
+                      <div className="disclosure" data-open={moreOpen ? '' : undefined} inert={!moreOpen}>
+                        <div>
+                          <div className="flex flex-col gap-0.5 pt-0.5 short:gap-px">
+                            {moreItems.map((it) => (
+                              <NavLink key={it.href} item={it} current={moreOpen && isActive(it.href)} onClick={navClick(it.href)} pillId={pillId} tour={moreOpen} />
+                            ))}
+                            <button type="button" onClick={startEditing} className={cn(navItemClass, 'text-fg-subtle [&>svg]:text-fg-subtle')}>
+                              <Pencil />
+                              <span className="relative truncate">{t('menu.edit')}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
+                      {!moreOpen
+                        ? moreItems
+                            .filter((it) => isActive(it.href))
+                            .map((it) => <NavLink key={it.href} item={it} current onClick={navClick(it.href)} pillId={pillId} />)
+                        : null}
                     </div>
-                    {!open && here ? <NavLink item={here} current onClick={navClick(here.href)} pillId={pillId} /> : null}
-                  </div>
-                )
-              })}
+                  ) : null}
+                </>
+              )}
 
-            <div className="mt-3.5 flex flex-col px-2.5" data-tour="spaces">
+            {/* en escritorio los espacios están en la barra de arriba (su selector); en el celular, aquí */}
+            <div className="mt-3.5 flex flex-col px-2.5 md:hidden" data-tour="spaces">
               <NavGroupHead
                 label={t('workspaces')}
                 open={!folded.includes('spaces')}
@@ -553,7 +661,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
           <AccountSwitcher />
         </div>
         <div className="flex items-center gap-0.5">
-          <UserMenu onShortcuts={onShortcuts} />
+          <UserMenu onShortcuts={onShortcuts} onEditMenu={startEditing} />
           <ThemeToggle className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg [&>svg]:size-[15px]" />
         </div>
       </div>
@@ -629,47 +737,6 @@ function WorkspaceNav({ ws, pathname }: { ws: WorkspaceWithRole; pathname: strin
         </div>
       </div>
     </div>
-  )
-}
-
-/** Espacio en el riel: su marca; si estás dentro, debajo aparecen Resumen, Tareas, Docs y Reuniones. */
-function RailWorkspace({ ws, pathname }: { ws: WorkspaceWithRole; pathname: string }) {
-  const t = useTranslations('nav')
-  const base = `/w/${ws.slug}`
-  const inWs = pathname === base || pathname.startsWith(`${base}/`)
-  const tWs = useTranslations('workspace')
-  const links = [
-    { href: base, label: tWs('summary'), icon: LayoutDashboard },
-    { href: `${base}/tasks`, label: t('tasks'), icon: ListTodo },
-    { href: `${base}/docs`, label: t('docs'), icon: FileText },
-    { href: `${base}/meetings`, label: t('meetings'), icon: Video },
-  ]
-  const isActive = (href: string) => (href === base ? pathname === base : pathname.startsWith(href))
-  return (
-    <>
-      <RailPeek
-        trigger={
-          <Link href={base} aria-label={ws.name} className={cn(railItemClass, inWs && 'bg-hover')}>
-            <WorkspaceMark ws={ws} size={18} />
-          </Link>
-        }
-      >
-        <WorkspacePeek ws={ws} />
-      </RailPeek>
-      <div className="disclosure" data-open={inWs ? '' : undefined} inert={!inWs}>
-        <div>
-          <div className="mb-1 flex flex-col items-center gap-0.5 rounded-lg bg-hover/50 py-0.5">
-            {links.map(({ href, label, icon: Icon }) => (
-              <Tooltip key={href} content={`${ws.name} · ${label}`} side="right">
-                <Link href={href} aria-label={label} aria-current={isActive(href) ? 'page' : undefined} className={cn(railItemClass, 'size-7 [&>svg]:size-3.5', isActive(href) && navActiveClass)}>
-                  <Icon />
-                </Link>
-              </Tooltip>
-            ))}
-          </div>
-        </div>
-      </div>
-    </>
   )
 }
 
@@ -752,7 +819,7 @@ function AccountSwitcher({ compact = false, card = false }: { compact?: boolean;
   )
 }
 
-function UserMenu({ onShortcuts, compact = false }: { onShortcuts: () => void; compact?: boolean }) {
+function UserMenu({ onShortcuts, onEditMenu, compact = false }: { onShortcuts: () => void; onEditMenu: () => void; compact?: boolean }) {
   const t = useTranslations('nav')
   const tour = useTour()
   const { profile } = useApp()
@@ -787,6 +854,10 @@ function UserMenu({ onShortcuts, compact = false }: { onShortcuts: () => void; c
           <SlidersHorizontal />
           {t('preferences')}
         </MenuLinkItem>
+        <MenuItem onClick={onEditMenu}>
+          <Pencil />
+          {t('menu.edit')}
+        </MenuItem>
         <MenuItem onClick={onShortcuts}>
           <Keyboard />
           {t('shortcuts')}
@@ -857,5 +928,171 @@ function LanguageSubmenu() {
         </MenuRadioGroup>
       </MenuContent>
     </MenuSubmenu>
+  )
+}
+
+type EditorItem = { label: string; icon: typeof Activity }
+
+/**
+ * Editar el menú ahí mismo: cada grupo con sus páginas, que se arrastran para ordenarlas dentro del grupo
+ * (también con el teclado), y el ojo que pasa una a «Más» o la trae de vuelta a su grupo. Vale al momento
+ * y queda en este navegador; «Volver al de fábrica» deja el menú de tu rol.
+ */
+function NavEditor({
+  groups,
+  more,
+  labels,
+  items,
+  onChange,
+  onReset,
+  onDone,
+}: {
+  groups: { id: NavGroupId; keys: NavKey[] }[]
+  more: NavKey[]
+  labels: Record<NavGroupId, string>
+  items: Record<NavKey, EditorItem>
+  onChange: (prefs: NavPrefs) => void
+  onReset: () => void
+  onDone: () => void
+}) {
+  const t = useTranslations('nav.menu')
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  const save = (nextGroups: { id: NavGroupId; keys: NavKey[] }[], nextMore: NavKey[]) =>
+    onChange({ order: navOrderOf({ groups: nextGroups, more: nextMore }), more: nextMore })
+  const onDragEnd = (groupId: NavGroupId) => ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return
+    save(
+      groups.map((g) => (g.id === groupId ? { ...g, keys: arrayMove(g.keys, g.keys.indexOf(active.id as NavKey), g.keys.indexOf(over.id as NavKey)) } : g)),
+      more,
+    )
+  }
+  const toggle = (key: NavKey) => save(groups, more.includes(key) ? more.filter((k) => k !== key) : [...more, key])
+
+  // Esc termina (como «Listo»)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || document.querySelector('[role=dialog],[role=menu]')) return
+      e.stopPropagation()
+      onDone()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [onDone])
+
+  return (
+    <div className="mt-3 rounded-[14px] bg-fg/[0.06] p-1.5 ring-1 ring-line animate-in fade-in-0 slide-in-from-top-1 duration-200 ease-out">
+      <div className="flex items-center gap-2 pb-0.5 pl-2 pr-0.5 pt-0.5">
+        <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{t('title')}</p>
+        <button
+          type="button"
+          onClick={onDone}
+          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 text-xs font-semibold text-accent-fg outline-none transition-[filter] hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+        >
+          <Check className="size-3.5" strokeWidth={2.5} />
+          {t('done')}
+        </button>
+      </div>
+      <p className="px-2 pb-1 text-[11.5px] leading-snug text-fg-muted">{t('hint')}</p>
+      {groups.map((g) =>
+        g.keys.length ? (
+          <section key={g.id}>
+            <p className="px-2 pb-1 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-subtle">{labels[g.id]}</p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd(g.id)}>
+              <SortableContext items={g.keys} strategy={verticalListSortingStrategy}>
+                <ul className="flex flex-col gap-0.5">
+                  {g.keys.map((key) => (
+                    <EditorRow key={key} id={key} item={items[key]} onToggle={() => toggle(key)} />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          </section>
+        ) : null,
+      )}
+      {more.length ? (
+        <section>
+          <p className="px-2 pb-1 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-subtle">{t('inMore')}</p>
+          <ul className="flex flex-col gap-0.5">
+            {more.map((key) => (
+              <li key={key}>
+                <EditorRowBody item={items[key]} inMore onToggle={() => toggle(key)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <button
+        type="button"
+        onClick={onReset}
+        className="mt-1.5 w-full rounded-lg px-2 py-1.5 text-left text-xs text-fg-muted outline-none transition-colors hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+      >
+        {t('reset')}
+      </button>
+    </div>
+  )
+}
+
+/** Una página en el editor que se ordena: se arrastra desde las rayitas (o con el teclado). */
+function EditorRow({ id, item, onToggle }: { id: NavKey; item: EditorItem; onToggle: () => void }) {
+  const t = useTranslations('nav.menu')
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn('relative', isDragging && 'z-10')}>
+      <EditorRowBody
+        item={item}
+        onToggle={onToggle}
+        dragging={isDragging}
+        handle={
+          <button
+            ref={setActivatorNodeRef}
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label={`${t('drag')}: ${item.label}`}
+            className="inline-flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-fg-subtle outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40 active:cursor-grabbing"
+          >
+            <GripVertical className="size-3.5" />
+          </button>
+        }
+      />
+    </li>
+  )
+}
+
+/** La fila de una página en el editor: su ícono y nombre, y el ojo que la manda a «Más» o la trae de vuelta. */
+function EditorRowBody({
+  item,
+  inMore = false,
+  dragging = false,
+  handle,
+  onToggle,
+}: {
+  item: EditorItem
+  inMore?: boolean
+  dragging?: boolean
+  handle?: React.ReactNode
+  onToggle: () => void
+}) {
+  const t = useTranslations('nav.menu')
+  const Icon = item.icon
+  return (
+    <div className={cn('flex h-9 items-center gap-1.5 rounded-[10px] pr-0.5 text-sm transition-colors', dragging ? 'bg-panel shadow-card' : 'hover:bg-hover/70', !handle && 'pl-1')}>
+      {handle}
+      <Icon className={cn('size-7 shrink-0 rounded-[9px] p-[6px]', inMore ? 'text-fg-subtle' : 'text-accent')} aria-hidden />
+      <span className={cn('min-w-0 flex-1 truncate', inMore ? 'text-fg-subtle' : 'text-fg')}>{item.label}</span>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={!inMore}
+        aria-label={`${inMore ? t('show') : t('hide')}: ${item.label}`}
+        title={inMore ? t('show') : t('hide')}
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted outline-none transition-colors hover:bg-hover hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+      >
+        {inMore ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
   )
 }

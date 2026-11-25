@@ -44,8 +44,9 @@ export function StatusMenu({
   options,
   value,
   onChange,
+  closeOnPick = false,
   ...trigger
-}: { options: StatusOption[]; value: StatusOption; onChange: (o: StatusOption) => void } & TriggerProps) {
+}: { options: StatusOption[]; value: StatusOption; onChange: (o: StatusOption) => void; closeOnPick?: boolean } & TriggerProps) {
   const name = useStatusName()
   return (
     <Menu>
@@ -66,7 +67,7 @@ export function StatusMenu({
           }}
         >
           {options.map((o) => (
-            <MenuRadioItem key={statusKey(o)} value={statusKey(o)}>
+            <MenuRadioItem key={statusKey(o)} value={statusKey(o)} closeOnClick={closeOnPick}>
               <StatusIcon status={o.category} />
               <span className="truncate">{name(o)}</span>
             </MenuRadioItem>
@@ -80,8 +81,9 @@ export function StatusMenu({
 export function PriorityMenu({
   value,
   onChange,
+  closeOnPick = false,
   ...trigger
-}: { value: TaskPriority; onChange: (p: TaskPriority) => void } & TriggerProps) {
+}: { value: TaskPriority; onChange: (p: TaskPriority) => void; closeOnPick?: boolean } & TriggerProps) {
   const t = useTranslations('tasks.priority')
   return (
     <Menu>
@@ -96,7 +98,7 @@ export function PriorityMenu({
       <MenuContent className="w-48" onClick={(e) => e.stopPropagation()}>
         <MenuRadioGroup value={value} onValueChange={(v) => onChange(v as TaskPriority)}>
           {TASK_PRIORITIES.map((p) => (
-            <MenuRadioItem key={p} value={p}>
+            <MenuRadioItem key={p} value={p} closeOnClick={closeOnPick}>
               <PriorityIcon priority={p} />
               {t(p)}
             </MenuRadioItem>

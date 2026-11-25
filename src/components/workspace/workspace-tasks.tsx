@@ -28,6 +28,7 @@ import { useOpenTask } from '@/lib/use-open-task'
 import { Tooltip } from '@/components/ui/tooltip'
 import { NewStatus, canCreateStatus } from '@/components/tasks/new-status'
 import { SpaceHeader } from './workspace-header'
+import { COVER_INSET } from '@/components/app/cover'
 
 type View = 'list' | 'table' | 'board' | 'calendar'
 const GROUPS = ['status', 'date', 'assignee', 'priority'] as const
@@ -162,28 +163,9 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
     </div>
   ) : null
 
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
-      {ws ? (
-        <SpaceHeader
-          ws={ws}
-          section="tasks"
-          actions={
-            <>
-              {/* exportar lo que se ve e importar de Excel, CSV o Trello */}
-              <TasksMoreMenu tasks={shown} workspaceId={workspaceId} />
-              {editable ? (
-                <Button variant="primary" onClick={() => setQuickOpen(true)}>
-                  <Plus />
-                  {t('newTask')}
-                </Button>
-              ) : null}
-            </>
-          }
-        />
-      ) : null}
-
-      {/* cómo se ve (vistas) y qué se ve (búsqueda y filtros), sueltos sobre el fondo: sin franja */}
+  const toolbar = (
+    <>
+      {/* cómo se ve (vistas) y qué se ve (búsqueda y filtros): en la portada, debajo del título */}
       <div className="flex shrink-0 items-center gap-3">
         <nav className="flex shrink-0 items-center gap-0.5 rounded-xl bg-fg/[0.05] p-0.5" aria-label={t('viewsLabel')}>
           {views.map(({ id, label, icon: Icon }) => {
@@ -230,14 +212,45 @@ export function WorkspaceTasks({ workspaceId, initialTasks }: { workspaceId: str
           {view === 'list' ? <CollapseAllButton groups={groups} collapsed={collapsed} onChange={setCollapsed} /> : null}
         </TaskFilterBar>
       </div>
+    </>
+  )
+  // la lista, la tabla y el calendario van en una tarjeta que se monta sobre la portada; el tablero va suelto
+  const loose = view === 'board' && !body
 
-      {view === 'board' && !body ? (
+  return (
+    // isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja
+    <div className="isolate flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
+      {ws ? (
+        <SpaceHeader
+          ws={ws}
+          section="tasks"
+          overlap={!loose}
+          actions={
+            <>
+              {/* exportar lo que se ve e importar de Excel, CSV o Trello */}
+              <TasksMoreMenu tasks={shown} workspaceId={workspaceId} />
+              {editable ? (
+                <Button variant="primary" onClick={() => setQuickOpen(true)}>
+                  <Plus />
+                  {t('newTask')}
+                </Button>
+              ) : null}
+            </>
+          }
+        >
+          {toolbar}
+        </SpaceHeader>
+      ) : (
+        toolbar
+      )}
+
+      {loose ? (
         // el tablero va suelto: carriles teñidos por estado directo sobre el fondo
         <div className="min-h-0 flex-1">
           <TaskBoard tasks={shown} workspaceId={workspaceId} inset={false} />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 gap-4">
+        <div className={cn('flex min-h-0 flex-1 gap-4', COVER_INSET)}>
           <section className={cn(CARD, 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden')}>
             <div className={cn('min-h-0 flex-1', view === 'list' && !body ? 'overflow-y-auto scrollbar-thin' : '')}>
               {body ??

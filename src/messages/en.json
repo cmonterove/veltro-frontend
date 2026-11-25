@@ -195,6 +195,8 @@
         "mesa": "How spaces are doing and who's overloaded.",
         "calendar": "Your week: meetings and dated tasks.",
         "tasks": "Everything assigned to you across your spaces.",
+        "mail": "Your Gmail inside Veltro: read, reply and write.",
+        "dashboards": "How tasks are going, in numbers.",
         "vault": "Your files and links, with or without a space.",
         "chat": "What the team is talking about.",
         "requests": "What you ask other departments for, and what they ask of you.",
@@ -234,7 +236,27 @@
     },
     "backToApp": "Back",
     "backTo": "Back to {place}",
-    "dashboards": "Dashboards"
+    "dashboards": "Dashboards",
+    "menu": {
+      "title": "Your menu",
+      "more": "More",
+      "inMore": "In “More”",
+      "edit": "Edit menu",
+      "hint": "Drag to reorder. The eye moves a page to “More”.",
+      "done": "Done",
+      "reset": "Back to the default",
+      "show": "Show in the menu",
+      "hide": "Move to “More”",
+      "drag": "Drag to reorder"
+    },
+    "spaces": {
+      "title": "Your spaces",
+      "manage": "Manage spaces",
+      "sections": "{name} sections",
+      "open": "{count, plural, one {# open} other {# open}}",
+      "overdue": "{count, plural, one {# overdue} other {# overdue}}",
+      "others": "{count, plural, one {# more space} other {# more spaces}}"
+    }
   },
   "command": {
     "title": "Search and run",
@@ -278,6 +300,38 @@
     "empty": {
       "title": "All caught up",
       "description": "Tasks assigned to you will show up here, sorted by date. Press C to create one."
+    },
+    "clear": {
+      "line": {
+        "me": "You have no open tasks. Whatever gets assigned to you lands here, sorted by date.",
+        "delegated": "Nothing open in what you delegated.",
+        "following": "Nothing open in what you follow.",
+        "other": "Nothing open in {who}.",
+        "noSpaces": "Tasks live in a workspace: set up your first one to get started."
+      },
+      "closed": "{count, plural, one {# task closed} other {# tasks closed}} in the last 30 days",
+      "new": "New task",
+      "newSpace": "Create a space",
+      "meanwhile": "Meanwhile",
+      "unassigned": {
+        "title": "{count, plural, one {# task with no owner} other {# tasks with no owner}}",
+        "hint": "Take one and it lands in your list"
+      },
+      "meeting": {
+        "hint": "{when} · what gets agreed lands here"
+      },
+      "delegated": {
+        "title": "{count, plural, one {# open delegated task} other {# open delegated tasks}}",
+        "hint": "What you asked others for, in Delegated"
+      },
+      "following": {
+        "title": "{count, plural, one {You follow # open task} other {You follow # open tasks}}",
+        "hint": "What happens in them, in Following"
+      },
+      "import": {
+        "title": "Import your tasks",
+        "hint": "From Excel, CSV or Trello, in one step"
+      }
     },
     "emptyFiltered": "No tasks in this view",
     "emptyFilteredHint": "Try removing a filter or change who you are looking at.",
@@ -585,6 +639,18 @@
       "connectedBody": "As {email}. Your events now show up in Calendar and Pulse.",
       "openCalendar": "Open my calendar",
       "doneNote": "Task done"
+    },
+    "bulk": {
+      "label": "Edit several tasks",
+      "select": "Select",
+      "selectAll": "Select all",
+      "selected": "{count, plural, one {# selected} other {# selected}}",
+      "clear": "Clear selection (Esc)",
+      "assignTo": "Assign to",
+      "delete": "Delete",
+      "changed": "{count, plural, one {Changed # task} other {Changed # tasks}}",
+      "deleted": "{count, plural, one {Deleted # task} other {Deleted # tasks}}",
+      "mixed": "Several spaces: each task takes the first status of that kind in its own"
     }
   },
   "mail": {
@@ -600,6 +666,7 @@
       "placeholder": "Write your message",
       "replyPlaceholder": "Write your reply",
       "recipientsPlaceholder": "Name or email",
+      "recent": "Recently emailed",
       "badAddress": "That does not look like an email.",
       "removeRecipient": "Remove {email}",
       "send": "Send",
@@ -622,7 +689,10 @@
       "fromGoogle": "From your Google contacts",
       "openInDrive": "Open in Drive",
       "draftRestored": "You were writing this: we kept it.",
-      "startOver": "Start over"
+      "startOver": "Start over",
+      "draftSaved": "Draft saved",
+      "close": "Close (the draft stays saved)",
+      "pagePlaceholder": "Write your message…"
     },
     "newMessage": "New message",
     "connectAnother": "Connect another Gmail account",
@@ -1326,7 +1396,8 @@
       "noMatchYet": "They don’t match yet",
       "showPassword": "Show password",
       "hidePassword": "Hide password",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "lookTitle": "How Veltro looks for you"
     },
     "account": {
       "title": "Account",
@@ -1817,7 +1888,7 @@
       "pageDescription": "Connect Veltro with the tools your team already uses.",
       "permissions": {
         "title": "Google permissions",
-        "description": "Once in Google and Veltro reads and answers your mail, suggests your contacts, brings files from Drive and shows your calendar. In Google you can uncheck what you don’t want.",
+        "description": "Once in Google and Veltro reads your mail, suggests your contacts, brings Drive files and shows your calendar.",
         "grantAll": "Grant all permissions",
         "connect": "Connect Google",
         "review": "Review in Google",
@@ -1827,28 +1898,51 @@
         "calendarOther": "connected as {email}",
         "mail": {
           "title": "Mail",
-          "body": "read, reply and send"
+          "body": "read, reply and send",
+          "chip": "Mail",
+          "gain": "Read and answer your mail, and turn it into tasks, without leaving Veltro."
         },
         "contacts": {
           "title": "Contacts",
-          "body": "suggestions while writing"
+          "body": "suggestions while writing",
+          "chip": "Contacts",
+          "gain": "When you write an email, Veltro suggests who to send it to."
         },
         "drive": {
           "title": "Drive",
-          "body": "insert files in an email"
+          "body": "insert files in an email",
+          "chip": "Drive",
+          "gain": "Attach Drive files to your emails."
         },
         "driveFiles": {
           "title": "Drive",
-          "body": "copy files to the Vault"
+          "body": "copy files from Drive",
+          "chip": "To the Vault",
+          "gain": "Copy Drive files to the Vault without downloading them."
         },
         "calendar": {
           "title": "Calendar",
-          "body": "agenda and meetings"
-        }
+          "body": "agenda and meetings",
+          "chip": "Calendar",
+          "gain": "Your schedule in Veltro, notes for every meeting and meetings with Meet."
+        },
+        "allSet": "All connected",
+        "missing": "{count, plural, one {# permission missing} other {# permissions missing}}",
+        "disconnectCalendar": "Disconnect calendar",
+        "retry": "Try again",
+        "reconnect": "Connect again",
+        "stateOn": "allowed",
+        "stateOff": "not allowed",
+        "grantOne": "Allow: {name}",
+        "showAll": "Show all ({count})",
+        "showLess": "Show less",
+        "gains": "With the missing permissions",
+        "gainsNew": "When you connect Google",
+        "connectHint": "Mail, contacts, Drive and calendar."
       },
       "microsoft": {
         "title": "Microsoft: Outlook and OneDrive",
-        "body": "Microsoft 365 mail, calendar and files, just like Google.",
+        "body": "Outlook, OneDrive and its calendar, just like Google.",
         "soon": "Coming soon"
       }
     },

@@ -80,7 +80,7 @@ export function SupportRoutingSettings() {
         }
       />
       {routing.isError ? (
-        <ErrorState onRetry={() => routing.refetch()} />
+        <ErrorState onRetry={() => routing.refetch()} className="rounded-2xl bg-panel px-6 shadow-sheet ring-1 ring-line-soft" />
       ) : !value ? (
         <Skeleton className="h-72 rounded-2xl" />
       ) : (

@@ -20,7 +20,8 @@ export function WorkspaceMeetings({ workspaceId }: { workspaceId: string }) {
 
   return (
     // cabe en la pantalla (debajo de la cabecera del espacio): la semana se desplaza por dentro
-    <div className="flex h-full min-h-[480px] flex-col">
+    // isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja
+    <div className="isolate flex h-full min-h-[480px] flex-col">
       <div className="shrink-0 px-4 pt-4 sm:px-6">
         <SpaceHeader ws={ws} section="meetings" />
       </div>

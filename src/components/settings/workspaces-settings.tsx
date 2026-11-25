@@ -26,6 +26,7 @@ import { StatusEditor } from './status-editor'
 import { FieldsEditor } from './fields-editor'
 import { useConfirm } from '@/components/ui/confirm'
 import type { Usage, WorkspacePerson } from '@/lib/api/ajustes'
+import { CoverBackdrop } from '@/components/app/cover'
 
 // ---------------- todos los espacios ----------------
 
@@ -134,11 +135,10 @@ export function WorkspaceSettings({ workspace, people, tab }: { workspace: Works
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* el espacio en su color, compacto, con sus pestañas adentro: el alto queda para el panel */}
-      <header
-        className={cn(`ws-${workspace.color}`, 'mb-4 flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3 rounded-[18px] border border-line px-4 py-3')}
-        style={{ background: 'color-mix(in oklch, var(--ws-color) 10%, var(--panel))' }}
-      >
+      {/* el espacio sobre la portada ciruela (su color va en su marca), compacto y con sus pestañas adentro: el
+          alto queda para el panel, que se monta sobre el borde de abajo de la portada */}
+      <header className="on-frame relative mb-4 flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3">
+        <CoverBackdrop className="-inset-x-2.5 -top-4 -bottom-[76px] sm:-inset-x-5 sm:-top-5" />
         <WorkspaceMark ws={workspace} size={40} />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold leading-tight tracking-[-0.015em] text-fg">{workspace.name}</h1>
@@ -150,7 +150,7 @@ export function WorkspaceSettings({ workspace, people, tab }: { workspace: Works
             <span>{t('peopleCount', { count: peopleCount })}</span>
           </p>
         </div>
-        <nav className="flex gap-1 rounded-xl bg-panel/70 p-1 ring-1 ring-line-soft" aria-label={ts('tabs')}>
+        <nav className="flex gap-1 rounded-xl bg-panel/70 p-1 ring-1 ring-line-soft max-sm:max-w-full max-sm:overflow-x-auto scrollbar-none" aria-label={ts('tabs')}>
           {tabs.map((tab) => (
             <Link
               key={tab.id}

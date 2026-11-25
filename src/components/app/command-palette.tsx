@@ -28,6 +28,9 @@ import { useChats } from '@/lib/queries/chats'
 import { setLocale } from '@/app/actions/preferences'
 import { localeNames, locales } from '@/i18n/config'
 import { AI_ENABLED } from '@/lib/features'
+import { useNavRole } from './use-nav'
+import { navHrefAllowed } from '@/lib/nav'
+import { RequestsIcon } from '@/components/requests/request-bits'
 
 const groupClass =
   '[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-2xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-fg-subtle'
@@ -66,6 +69,7 @@ export function CommandPalette({
   const appLocale = useLocale()
   const [, startLocale] = useTransition()
   const { workspaces } = useApp()
+  const navRole = useNavRole()
   const [query, setQuery] = useState('')
   const q = useDebounced(query.trim(), 180)
   const wsIds = useMemo(() => workspaces.map((w) => w.id), [workspaces])
@@ -119,10 +123,13 @@ export function CommandPalette({
     { label: tNav('myTasks'), icon: CircleCheck, href: '/tasks', keys: ['G', 'T'] },
     { label: tNav('mail'), icon: Mail, href: '/mail', keys: ['G', 'E'] },
     { label: tNav('dashboards'), icon: ChartColumnBig, href: '/dashboards', keys: ['G', 'A'] },
+    { label: tNav('requests'), icon: RequestsIcon, href: '/requests', keys: ['G', 'S'] },
+    { label: tNav('decisions'), icon: Diamond, href: '/decisions', keys: ['G', 'D'] },
     { label: tNav('vault'), icon: Vault, href: '/vault', keys: ['G', 'B'] },
     { label: tNav('pasillo'), icon: MessagesSquare, href: '/chat', keys: ['G', 'P'] },
     { label: tNav('settings'), icon: Settings, href: '/settings', keys: null },
-  ]
+    // lo que el rol no ve tampoco sale aquí (lo que la persona pasó a «Más», sí)
+  ].filter((n) => navHrefAllowed(navRole, n.href))
 
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>

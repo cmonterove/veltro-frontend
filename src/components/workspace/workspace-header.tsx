@@ -12,26 +12,33 @@ import { Avatar } from '@/components/ui/avatar'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useWorkspaceMembers } from '@/lib/queries/workspace-members'
 import type { WorkspaceWithRole } from '@/lib/types'
+import { CoverBackdrop } from '@/components/app/cover'
 
 export type SpaceSection = 'overview' | 'tasks' | 'docs' | 'meetings'
 
 /**
- * La cabecera de cada sección del espacio, sobre el fondo de la página. Sin franja, sin pestañas y sin
- * menú: las secciones (Resumen · Tareas · Docs · Reuniones) están en la barra lateral, debajo del
- * espacio. A la izquierda el logo, el espacio (lleva al Resumen) y el título fijo de la sección; a la
- * derecha su gente y lo de esa sección.
+ * La cabecera de cada sección del espacio, sobre la portada ciruela (como Tareas, Calendario o Ajustes). Sin
+ * pestañas y sin menú: las secciones (Resumen · Tareas · Docs · Reuniones) están en la barra lateral,
+ * debajo del espacio. A la izquierda el logo, el espacio (lleva al Resumen) y el título fijo de la sección;
+ * a la derecha su gente y lo de esa sección. Debajo, si la sección la trae, su fila de vistas y filtros.
  */
 export function SpaceHeader({
   ws,
   section,
   actions,
+  overlap = false,
   className,
+  children,
 }: {
   ws: WorkspaceWithRole
   section: SpaceSection
   /** lo propio de la sección (p. ej. «Nueva tarea»), al final de la fila */
   actions?: React.ReactNode
+  /** lo que sigue se monta sobre el borde de la portada (solo si eso es una tarjeta con fondo) */
+  overlap?: boolean
   className?: string
+  /** una fila más, adentro de la portada: las vistas y los filtros de la sección */
+  children?: React.ReactNode
 }) {
   const t = useTranslations('workspace')
   const { accountRole } = useApp()
@@ -45,7 +52,9 @@ export function SpaceHeader({
   const extra = people.length - shown.length
 
   return (
-    <header className={cn('flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3', className)}>
+    <header className={cn('on-frame day-ink relative flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-5', overlap ? 'pb-1' : 'pb-4', className)}>
+      <CoverBackdrop className={cn('inset-x-0 top-0', overlap ? '-bottom-[76px]' : 'bottom-0')} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       <div className="flex min-w-0 items-center gap-3">
         <Link href={base} aria-label={ws.name} className="shrink-0 rounded-[13px] outline-none focus-visible:ring-2 focus-visible:ring-accent-mid/50">
           <WorkspaceMark ws={ws} size={40} className="shadow-[0_8px_18px_-12px_oklch(0.3_0.09_312/0.55)]" />
@@ -75,10 +84,10 @@ export function SpaceHeader({
           <Tooltip content={people.map((m) => m.full_name).join(', ')}>
             <span className="mr-1 hidden -space-x-1.5 md:flex">
               {shown.map((m) => (
-                <Avatar key={m.id} name={m.full_name} src={m.avatar_url} seed={m.id} size={26} className="ring-2 ring-canvas" />
+                <Avatar key={m.id} name={m.full_name} src={m.avatar_url} seed={m.id} size={26} className="ring-2 ring-[var(--frame)]" />
               ))}
               {extra > 0 ? (
-                <span className="relative inline-flex size-[26px] items-center justify-center rounded-full bg-fg/[0.07] text-[10.5px] font-semibold tabular-nums text-fg-muted ring-2 ring-canvas">
+                <span className="relative inline-flex size-[26px] items-center justify-center rounded-full bg-fg/[0.07] text-[10.5px] font-semibold tabular-nums text-fg-muted ring-2 ring-[var(--frame)]">
                   +{extra}
                 </span>
               ) : null}
@@ -120,6 +129,8 @@ export function SpaceHeader({
           </>
         ) : null}
       </div>
+      </div>
+      {children}
       {canInvite ? <InviteDialog open={inviting} onOpenChange={setInviting} canPromote={accountRole === 'owner'} initialWorkspaceId={ws.id} /> : null}
     </header>
   )

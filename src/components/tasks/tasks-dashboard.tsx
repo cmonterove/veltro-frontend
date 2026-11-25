@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { differenceInCalendarDays, format, isToday, parseISO, startOfDay } from 'date-fns'
 import { Activity, ArrowRight, CalendarDays, CheckCheck, LayoutGrid, OctagonPause, Users } from 'lucide-react'
@@ -36,12 +37,15 @@ const toLoad = (l: { atRisk: number; inProgress: number; rest: number; overdue?:
  * ritmo (cerradas contra nuevas), qué se viene (próximas dos semanas) y dónde está la carga.
  */
 export function TasksDashboard({
+  heroTarget,
   tasks,
   stats,
   scope,
   onFilter,
   onTab,
 }: {
+  /** dónde va la respuesta corta: adentro de la portada de la página (sin destino, en su bloque ciruela) */
+  heroTarget?: HTMLElement | null
   tasks: TaskRow[]
   /** cifras del alcance calculadas por la API (GET /v1/tasks/stats de los últimos 14 días) */
   stats: ApiTaskStats | undefined
@@ -172,34 +176,50 @@ export function TasksDashboard({
       </>
   ) : null
 
+  const heroBody = (
+    <>
+      <div className="min-w-0">
+        <p className="text-[20px] font-semibold leading-snug tracking-[-0.02em] text-fg">
+          {parts.length ? (
+            <>
+              {t('subject', { subject, who: scope.display })} {joined}.
+            </>
+          ) : (
+            t('allClear', { subject, who: scope.display })
+          )}
+        </p>
+        <p className="mt-1 text-[13px] text-fg-muted">{t('subline', { open: openCount, spaces, done: doneWeek })}</p>
+      </div>
+      <div className="flex min-w-0 flex-col gap-2.5">
+        <LoadBar load={total} max={Math.max(1, openCount)} className="!h-2.5" />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <LoadLegend className="text-fg-muted" />
+          <span className="ml-auto text-xs font-medium tabular-nums text-fg-muted">{t('loadNumbers', { risk: total.risk, progress: total.progress, rest: total.rest })}</span>
+        </div>
+      </div>
+    </>
+  )
+  // en la portada de la página (portal) o, si la página no tiene, en su propio bloque ciruela
+  const hero =
+    heroTarget === undefined ? (
+      <section className="on-frame day-surface grid items-center gap-x-10 gap-y-4 rounded-[22px] px-6 py-5 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)] sm:px-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        {heroBody}
+      </section>
+    ) : heroTarget ? (
+      createPortal(
+        <section className="grid items-center gap-x-10 gap-y-3 pb-1 pt-0.5 animate-in fade-in-0 duration-300 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">{heroBody}</section>,
+        heroTarget,
+      )
+    ) : null
+
   // llena el alto: en pantallas altas crecen la fila de lo urgente (2 partes) y la de la carga (1)
   return (
     <div className="flex min-h-full flex-col gap-4 pb-2">
-      {/* 1 · la respuesta corta, sobre la ciruela del marco: el estado de las tareas de un vistazo */}
-      <section className="on-frame day-surface grid items-center gap-x-10 gap-y-4 rounded-[22px] px-6 py-5 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)] sm:px-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <p className="text-[20px] font-semibold leading-snug tracking-[-0.02em] text-fg">
-            {parts.length ? (
-              <>
-                {t('subject', { subject, who: scope.display })} {joined}.
-              </>
-            ) : (
-              t('allClear', { subject, who: scope.display })
-            )}
-          </p>
-          <p className="mt-1 text-[13px] text-fg-muted">{t('subline', { open: openCount, spaces, done: doneWeek })}</p>
-        </div>
-        <div className="flex min-w-0 flex-col gap-2.5">
-          <LoadBar load={total} max={Math.max(1, openCount)} className="!h-2.5" />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <LoadLegend className="text-fg-muted" />
-            <span className="ml-auto text-xs font-medium tabular-nums text-fg-muted">{t('loadNumbers', { risk: total.risk, progress: total.progress, rest: total.rest })}</span>
-          </div>
-        </div>
-      </section>
+      {/* 1 · la respuesta corta, sobre la ciruela: el estado de las tareas de un vistazo */}
+      {hero}
 
       {/* 2 · qué urge y cómo viene el ritmo: misma altura */}
-      <div className="grid gap-4 lg:flex-[2_1_auto] lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-4 lg:flex-[2_1_auto] lg:grid-cols-12">
         <section className={cn(CARD, 'flex flex-col px-5 pb-4 pt-4 lg:col-span-7')}>
           <CardHead icon={urgent.length ? <OctagonPause className="text-danger" /> : <CheckCheck className="text-done" />} title={t('urgent.title')} count={urgent.length || undefined} />
           {urgent.length ? (
@@ -335,7 +355,7 @@ export function TasksDashboard({
       </section>
 
       {/* 4 · dónde está la carga */}
-      <div className="grid gap-4 lg:flex-[1_1_auto] lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:flex-[1_1_auto] lg:grid-cols-2">
         <LoadList
           title={t('bySpace')}
           icon={<LayoutGrid className="text-accent" />}

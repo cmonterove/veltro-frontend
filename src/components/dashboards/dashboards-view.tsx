@@ -22,6 +22,7 @@ import { toDateKey, useDateLocale } from '@/lib/dates'
 import { TASK_PRIORITIES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { TaskPriority, TaskRow, TaskStatus } from '@/lib/database.types'
+import { COVER_INSET, Cover } from '@/components/app/cover'
 
 /**
  * Dashboards: los números que dicen cómo van las tareas, para quien mira el conjunto. Complementa a
@@ -206,8 +207,11 @@ export function DashboardsView() {
   return (
     // lo abierto en ciruela (claro) o lavanda (oscuro) en las tarjetas; sobre el marco, lavanda y coral
     <div className="@container/dash h-full [--dash-open:#7e45a1] dark:[--dash-open:#9d78c6]">
-      <div className="flex w-full flex-col gap-4 px-4 pb-4 pt-5 sm:px-6 @min-[1000px]/dash:h-full">
-        <header className="flex shrink-0 flex-wrap items-end gap-x-8 gap-y-3 px-1">
+      {/* isolate: la portada va detrás de la página, pero encima de la hoja */}
+      <div className="isolate flex w-full flex-col gap-4 px-4 pb-4 pt-4 sm:px-6 @min-[1000px]/dash:h-full">
+        {/* la cabecera y la respuesta corta, sobre la portada ciruela; las tarjetas se montan sobre su borde */}
+        <Cover className="gap-4">
+          <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
           <div className="mr-auto min-w-0">
             <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.025em] text-fg">{t('title')}</h1>
             {/* quién y dónde: eso lo responde Mesa */}
@@ -223,35 +227,38 @@ export function DashboardsView() {
             <SpaceFilter value={wsId} onChange={setWsId} />
             <ScopePeople scope={scope} />
           </div>
-        </header>
+          </div>
+          {/* al cambiar un filtro, lo anterior queda a la vista (atenuado) hasta que llegan los datos nuevos */}
+          {m && m.total > 0 ? (
+            <Hero m={m} period={period} className={cn('transition-opacity duration-200', tasksQuery.isFetching && 'opacity-60')} />
+          ) : !m && !tasksQuery.isError ? (
+            <Skeleton className="h-52 shrink-0 rounded-[18px]" />
+          ) : null}
+        </Cover>
 
-        {tasksQuery.isError ? (
-          <ErrorState onRetry={() => tasksQuery.refetch()} />
-        ) : !m ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <Skeleton className="h-60 shrink-0 rounded-[24px]" />
+        {/* un poco adentro de la portada: a los lados se ve su ciruela */}
+        <div className={cn('flex min-h-0 flex-1 flex-col', COVER_INSET)}>
+          {tasksQuery.isError ? (
+            <ErrorState onRetry={() => tasksQuery.refetch()} className={cn(CARD, 'px-6')} />
+          ) : !m ? (
             <div className={GRID}>
               {[0, 1, 2, 3].map((i) => (
                 <Skeleton key={i} className="min-h-56 rounded-[24px]" />
               ))}
             </div>
-          </div>
-        ) : m.total === 0 ? (
-          <div className={cn(CARD, 'flex flex-1 items-center justify-center px-6 py-16 text-center')}>
-            <p className="max-w-sm text-sm text-fg-muted">{t('empty')}</p>
-          </div>
-        ) : (
-          // al cambiar un filtro, lo anterior queda a la vista (atenuado) hasta que llegan los datos nuevos
-          <div className={cn('flex min-h-0 flex-1 flex-col gap-4 transition-opacity duration-200', tasksQuery.isFetching && 'opacity-60')}>
-            <Hero m={m} period={period} />
-            <div className={GRID}>
+          ) : m.total === 0 ? (
+            <div className={cn(CARD, 'flex flex-1 items-center justify-center px-6 py-16 text-center')}>
+              <p className="max-w-sm text-sm text-fg-muted">{t('empty')}</p>
+            </div>
+          ) : (
+            <div className={cn(GRID, 'transition-opacity duration-200', tasksQuery.isFetching && 'opacity-60')}>
               <ByStatus m={m} />
               <ByPriority m={m} />
               <DueSoon m={m} todayKey={todayKey} noDateHref={tasksHref('&due=none')} />
               <CycleTime m={m} />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
@@ -300,15 +307,19 @@ function SpaceFilter({ value, onChange }: { value: string; onChange: (id: string
  * El bloque de arriba, sobre el marco (perla sobre el color de la cuenta): a la izquierda la frase
  * con las dos cifras que importan y las cuatro cifras del período; a la derecha lo pendiente día a día.
  */
-function Hero({ m, period }: { m: Metrics; period: string }) {
+function Hero({ m, period, className }: { m: Metrics; period: string; className?: string }) {
   const t = useTranslations('dashboards.hero')
   const tk = useTranslations('dashboards.kpi')
   const cycleValue = m.cycle.median == null ? '—' : m.cycle.median < 1 ? tk('lessThanDay') : tk('daysValue', { n: Math.round(m.cycle.median * 10) / 10 })
   const strong = (chunks: React.ReactNode) => <span className="text-fg">{chunks}</span>
   const late = (chunks: React.ReactNode) => <span className="text-danger">{chunks}</span>
   return (
+    // sin bloque propio: va adentro de la portada de la página (el ciruela y los colores aclarados son de ella)
     <section
-      className="on-frame day-surface grid shrink-0 gap-x-8 gap-y-5 rounded-[24px] px-6 py-5 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)] [--hero-late:#e86154] [--hero-open:#9186d1] sm:px-7 @min-[1000px]/dash:h-64 @min-[1000px]/dash:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)]"
+      className={cn(
+        'grid shrink-0 gap-x-8 gap-y-5 pb-1 [--hero-late:#e86154] [--hero-open:#9186d1] @min-[1000px]/dash:h-52 @min-[1000px]/dash:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)]',
+        className,
+      )}
     >
       <div className="flex min-w-0 flex-col">
         <p className="text-[13px] font-medium text-fg-muted">{period}</p>

@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isMailCategory } from '@/lib/api/correo'
 import { useHydrated } from '@/lib/hooks'
@@ -131,17 +129,8 @@ export function MailView() {
       </aside>
       <main className={cn('min-h-0 min-w-0 flex-1 md:overflow-hidden md:rounded-[20px] md:bg-canvas md:shadow-sheet', detail ? 'flex' : 'hidden lg:flex')}>
         {composing ? (
-          <div className="flex min-h-0 w-full flex-col">
-            <header className="flex shrink-0 items-center gap-2 border-b border-line-soft px-4 py-3 sm:px-6">
-              <Button variant="ghost" size="icon" onClick={back} aria-label={t('backToList')} className="lg:hidden">
-                <ArrowLeft />
-              </Button>
-              <h1 className="text-lg font-semibold tracking-[-0.015em] text-fg">{t('newMessage')}</h1>
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 scrollbar-thin sm:p-6">
-              <MailComposer box={box.id} fromEmail={box.email} mode={{ kind: 'new' }} onClose={back} className="mx-auto max-w-[860px]" />
-            </div>
-          </div>
+          // el correo nuevo: una hoja de carta que llena el panel (trae su propio encabezado y su pie)
+          <MailComposer variant="page" box={box.id} fromEmail={box.email} mode={{ kind: 'new' }} onClose={back} />
         ) : threadId ? (
           <MailThread key={`${box.id}-${threadId}`} box={box.id} fromEmail={box.email} threadId={threadId} folder={folder} onBack={back} />
         ) : (

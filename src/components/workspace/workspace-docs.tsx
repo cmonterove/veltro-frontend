@@ -111,8 +111,10 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
   ) : undefined
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
-      <SpaceHeader ws={ws} section="docs" actions={actions} />
+    // isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja
+    <div className="isolate flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
+      {/* la fila de documentos o archivos, tipos y buscar va en la portada, debajo del título */}
+      <SpaceHeader ws={ws} section="docs" actions={actions}>
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2">
         {/* documentos o archivos: el mismo control segmentado de las vistas de Tareas */}
         <nav className="flex items-center gap-0.5 rounded-2xl bg-fg/[0.05] p-1" aria-label={t('library.views')}>
@@ -174,6 +176,7 @@ export function WorkspaceDocs({ workspaceId, initialDocs }: { workspaceId: strin
           </div>
         </div>
       </div>
+      </SpaceHeader>
 
       <div className="min-h-0 flex-1">
         {!data ? (

@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { Usage } from '@/lib/api/ajustes'
 import { cn } from '@/lib/utils'
 import { SaveBar, SettingsCard } from './ui'
+import { CoverBackdrop } from '@/components/app/cover'
 
 /**
  * General: la cuenta en una banda con su color (al elegir otro cambia al instante y hace de vista previa),
@@ -47,12 +48,12 @@ export function AccountSettings({ usage }: { usage: Usage | null }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* la banda es la cabecera de la página: la cuenta misma, en su color (un título «General» encima solo repetía el menú) */}
-      <section className="frame-bg on-frame relative overflow-hidden rounded-[20px] px-5 py-5 sm:px-6">
+      {/* la cabecera es la cuenta misma, sobre la portada ciruela (un título «General» encima solo repetía el
+          menú); el color de la cuenta se monta sobre el borde de abajo */}
+      <header className="on-frame relative mb-4">
         <h1 className="sr-only">{t('pageTitle')}</h1>
-        {/* un brillo suave del acento: la banda no es un rectángulo plano */}
-        <span aria-hidden className="pointer-events-none absolute -right-10 -top-20 size-56 rounded-full bg-accent/25 blur-3xl" />
-        <div className="relative flex items-center gap-4">
+        <CoverBackdrop className="-inset-x-2.5 -top-4 -bottom-[76px] sm:-inset-x-5 sm:-top-5" />
+        <div className="flex items-center gap-4">
           {/* la marca de la cuenta: su logo o la inicial; los admins la tocan para subir o cambiar el logo */}
           <LogoPicker kind="account" id={account.id} hasLogo={!!account.logo_updated_at} canEdit={isAdmin} size={48} radius={15} className="shadow-[0_12px_26px_-12px_oklch(0_0_0/0.6)] rounded-[15px]">
             <AccountLogo
@@ -96,11 +97,9 @@ export function AccountSettings({ usage }: { usage: Usage | null }) {
             </p>
           </div>
         </div>
-      </section>
+      </header>
 
-      <div className="mt-8">
-        <AccountColor />
-      </div>
+      <AccountColor />
 
       <AccountSpaces admin={isAdmin} full={usage?.max_workspaces != null && usage.workspaces_count >= usage.max_workspaces} />
 
@@ -196,7 +195,7 @@ function AccountColor() {
     })
   }
   return (
-    <SettingsCard title={t('colorTitle')} description={isAdmin ? t('colorHint') : t('colorHintMember')} className="mb-0">
+    <SettingsCard inside title={t('colorTitle')} description={isAdmin ? t('colorHint') : t('colorHintMember')} className="mb-0">
       <div className="@container">
       <div className="grid grid-cols-3 gap-x-3 gap-y-4 px-4 py-4 @xl:grid-cols-5 @5xl:grid-cols-10">
         {BRANDS.map((b) => {

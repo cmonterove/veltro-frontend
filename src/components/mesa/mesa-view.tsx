@@ -33,6 +33,7 @@ import { useDateLocale, toDateKey } from '@/lib/dates'
 import { cn, taskRef } from '@/lib/utils'
 import type { TaskRow } from '@/lib/database.types'
 import type { Member, WorkspaceWithRole } from '@/lib/types'
+import { COVER_INSET, Cover } from '@/components/app/cover'
 
 /**
  * Mesa de control: cómo van los espacios. Responde tres preguntas para quien mira el conjunto
@@ -126,8 +127,10 @@ export function MesaView() {
   // quién está cargado. Cada bloque en su tarjeta, de la misma familia que las de Pulso.
   return (
     <div className="@container/mesa h-full">
-    <div className="flex w-full flex-col gap-4 px-4 pb-4 pt-5 sm:px-6 @min-[980px]/mesa:h-full">
-      <header className="shrink-0 px-1">
+    {/* isolate: la portada va detrás de la página, pero encima de la hoja */}
+    <div className="isolate flex w-full flex-col gap-4 px-4 pb-4 pt-4 sm:px-6 @min-[980px]/mesa:h-full">
+      {/* la cabecera y la respuesta corta, sobre la portada ciruela; las tarjetas se montan sobre su borde */}
+      <Cover>
         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
           <h1 className="mr-auto text-[26px] font-semibold leading-tight tracking-[-0.025em] text-fg">{t('title')}</h1>
           {/* filtros: una fila, arriba de todo lo que acotan */}
@@ -140,19 +143,19 @@ export function MesaView() {
         </div>
         {/* la respuesta corta, en una frase: cada cifra con el color de lo que cuenta */}
         <p className="mt-1 max-w-[90ch] text-[15px] leading-relaxed text-fg-muted">{sentence}</p>
-      </header>
+      </Cover>
 
       {statsQuery.isError ? (
-        <ErrorState onRetry={() => statsQuery.refetch()} />
+        <ErrorState onRetry={() => statsQuery.refetch()} className={cn(CARD, 'px-6', COVER_INSET)} />
       ) : !data ? (
-        <div className={GRID}>
+        <div className={cn(GRID, COVER_INSET)}>
           <Skeleton className="h-64 rounded-[24px]" />
           <Skeleton className="h-64 rounded-[24px]" />
           <Skeleton className="min-h-48 rounded-[24px]" />
           <Skeleton className="min-h-48 rounded-[24px]" />
         </div>
       ) : (
-        <div className={GRID}>
+        <div className={cn(GRID, COVER_INSET)}>
           <Rhythm daily={data.daily} buckets={range.buckets} now={now} totals={totals} open={data.counters.open} />
           <Attention stats={stats} people={peopleAll} />
           <SpacesTable stats={stats} scope={scope} range={range} now={now} />
@@ -221,15 +224,16 @@ function CardHead({ icon, title, count, hint, aside }: { icon?: React.ReactNode;
 }
 
 /** Una cifra dentro de la frase: lo hecho en frambuesa, lo nuevo neutro, lo atrasado en rojo, lo bloqueado en mandarina. */
+// la frase va sobre la portada ciruela: cada cifra en su color aclarado y subrayada, como en el Resumen de Tareas
 const FIGURE_TONE = {
-  done: 'bg-done-soft text-done',
-  new: 'bg-hover text-fg',
-  late: 'bg-danger-soft text-danger',
-  stuck: 'bg-warning-soft text-mandarina-ink',
+  done: 'text-done',
+  new: 'text-fg',
+  late: 'text-danger',
+  stuck: 'text-mandarina-ink',
 } as const
 
 function Figure({ tone, children }: { tone: keyof typeof FIGURE_TONE; children: React.ReactNode }) {
-  return <span className={cn('rounded-[5px] px-1 py-px font-semibold [box-decoration-break:clone]', FIGURE_TONE[tone])}>{children}</span>
+  return <span className={cn('font-semibold underline decoration-2 underline-offset-[5px] [box-decoration-break:clone]', FIGURE_TONE[tone])}>{children}</span>
 }
 
 // ---------------- ritmo ----------------
@@ -284,9 +288,9 @@ function Rhythm({
   const ticks = [0, top / 2, top]
   const NetIcon = net > 0 ? ArrowDownRight : net < 0 ? ArrowUpRight : Minus
 
-  // el ritmo es la pieza de Mesa: va sobre la ciruela del marco, con las cifras en perla
+  // el ritmo es la pieza de Mesa; en blanco, como las demás tarjetas: la ciruela la pone la portada de arriba
   return (
-    <section className="on-frame day-surface @container/rhythm rounded-[24px] px-6 pb-5 pt-5 shadow-[0_18px_40px_-24px_oklch(0.3_0.12_312/0.55)]">
+    <section className={cn(CARD, '@container/rhythm px-6 pb-5 pt-5')}>
       <CardHead title={t('title')} hint={t(`hint.${unit}`)} />
       <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 @min-[34rem]/rhythm:grid-cols-[minmax(0,15.5rem)_minmax(0,1fr)]">
         {/* las cifras del período; cerradas y nuevas son también la leyenda del gráfico */}
@@ -301,7 +305,7 @@ function Rhythm({
                 // sobre ciruela: fondo translúcido y el texto en la versión clara de su color
                 className={cn(
                   'inline-flex items-center gap-0.5 whitespace-nowrap rounded-md bg-fg/[0.1] px-1.5 py-0.5 text-[11px] font-semibold',
-                  net > 0 ? 'text-[oklch(0.86_0.12_155)]' : net < 0 ? 'text-mandarina-ink' : 'text-fg-muted',
+                  net > 0 ? 'text-success' : net < 0 ? 'text-mandarina-ink' : 'text-fg-muted',
                 )}
               >
                 <NetIcon className="size-3" strokeWidth={2.5} />

@@ -23,6 +23,7 @@ import { useCopy } from '@/lib/clipboard'
 import { cn } from '@/lib/utils'
 import { CARD } from '@/components/ui/surface'
 import { AI_ENABLED } from '@/lib/features'
+import { CoverBackdrop } from '@/components/app/cover'
 
 const PERIODS = ['all', '7', '30', '90', '365'] as const
 type Period = (typeof PERIODS)[number]
@@ -96,9 +97,12 @@ export function DecisionsView() {
   const askHref = `/veltro?q=${encodeURIComponent(t('askQuestion', { topic: q }))}`
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
-      {/* lo primero que se hace acá es buscar: el buscador es la pieza de esta pantalla */}
-      <header className="shrink-0 px-1">
+    // isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja
+    <div className="isolate flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
+      {/* lo primero que se hace acá es buscar: el buscador es la pieza de esta pantalla. Todo va sobre la
+          portada ciruela (con el sello de textura) y lo de abajo se monta sobre su borde */}
+      <header className="on-frame relative shrink-0 px-4 pb-1 pt-4 sm:px-5">
+        <CoverBackdrop className="inset-x-0 top-0 -bottom-[72px]" />
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
           <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{t('title')}</h1>
           <span className="text-sm text-fg-muted">
@@ -109,7 +113,8 @@ export function DecisionsView() {
         </div>
         {/* el buscador grande, con el brillo lila del de la barra de arriba, y al lado los filtros */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
-        <div className="relative flex min-w-[16rem] flex-1 items-center">
+        {/* on-sheet: el buscador sigue blanco sobre la portada, como el de la barra de arriba sobre el marco */}
+        <div className="on-sheet relative flex min-w-[16rem] flex-1 items-center">
           <Search className="pointer-events-none absolute left-4 size-4 text-fg-subtle" />
           <input
             value={query}
@@ -162,43 +167,46 @@ export function DecisionsView() {
         </div>
       </header>
 
-      {page.isError && !page.data ? (
-        <ErrorState onRetry={() => page.refetch()} />
-      ) : !page.data ? (
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <Skeleton className="rounded-[24px]" />
-          <Skeleton className="hidden rounded-[24px] lg:block" />
-        </div>
-      ) : groups.length === 0 && !filtering ? (
-        <EmptyDecisions />
-      ) : groups.length === 0 ? (
-        <section className={cn(CARD, 'flex min-h-0 flex-1 overflow-y-auto scrollbar-thin')}>
-          <Empty filtering={filtering} q={q} askHref={askHref} />
-        </section>
-      ) : (
-        // la línea de tiempo en su tarjeta (ancha) y, al lado, de qué espacios y reuniones salió lo decidido
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <section className={cn(CARD, 'min-h-0 overflow-y-auto px-5 pb-2 pt-1 scrollbar-thin')}>
-            {/* cada día un punto en la línea, cada reunión un bloque colgado de ella */}
-            <ol className={cn('relative ml-2 border-l-2 border-line-soft pl-6 transition-opacity', page.isFetching && !page.isFetchingNextPage && 'opacity-60')}>
-              {groups.map((g, i) => {
-                const day = new Date(g.meeting.startsAt)
-                const newDay = i === 0 || !isSameDay(day, new Date(groups[i - 1].meeting.startsAt))
-                return (
-                  <Fragment key={`${g.meeting.id}-${g.items[0].id}`}>
-                    {newDay ? <DayLabel date={day} /> : null}
-                    <MeetingDecisions group={g} q={q} onOnlyMeeting={() => setMeetingId(g.meeting.id)} pinned={meetingId === g.meeting.id} />
-                  </Fragment>
-                )
-              })}
-            </ol>
-            <div ref={more} className="flex h-10 items-center justify-center">
-              {isFetchingNextPage ? <Spinner className="size-4" /> : null}
-            </div>
+      {/* un poco adentro de la portada: a los lados se ve su ciruela */}
+      <div className="mx-3 flex min-h-0 flex-1 flex-col sm:mx-4">
+        {page.isError && !page.data ? (
+          <ErrorState onRetry={() => page.refetch()} className={cn(CARD, 'px-6')} />
+        ) : !page.data ? (
+          <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <Skeleton className="rounded-[24px]" />
+            <Skeleton className="hidden rounded-[24px] lg:block" />
+          </div>
+        ) : groups.length === 0 && !filtering ? (
+          <EmptyDecisions />
+        ) : groups.length === 0 ? (
+          <section className={cn(CARD, 'flex min-h-0 flex-1 overflow-y-auto scrollbar-thin')}>
+            <Empty filtering={filtering} q={q} askHref={askHref} />
           </section>
-          <Sources items={items} onSpace={(id) => setWsIds([id])} onMeeting={setMeetingId} activeSpaces={wsIds} activeMeeting={meetingId} />
-        </div>
-      )}
+        ) : (
+          // la línea de tiempo en su tarjeta (ancha) y, al lado, de qué espacios y reuniones salió lo decidido
+          <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <section className={cn(CARD, 'min-h-0 overflow-y-auto px-5 pb-2 pt-1 scrollbar-thin')}>
+              {/* cada día un punto en la línea, cada reunión un bloque colgado de ella */}
+              <ol className={cn('relative ml-2 border-l-2 border-line-soft pl-6 transition-opacity', page.isFetching && !page.isFetchingNextPage && 'opacity-60')}>
+                {groups.map((g, i) => {
+                  const day = new Date(g.meeting.startsAt)
+                  const newDay = i === 0 || !isSameDay(day, new Date(groups[i - 1].meeting.startsAt))
+                  return (
+                    <Fragment key={`${g.meeting.id}-${g.items[0].id}`}>
+                      {newDay ? <DayLabel date={day} /> : null}
+                      <MeetingDecisions group={g} q={q} onOnlyMeeting={() => setMeetingId(g.meeting.id)} pinned={meetingId === g.meeting.id} />
+                    </Fragment>
+                  )
+                })}
+              </ol>
+              <div ref={more} className="flex h-10 items-center justify-center">
+                {isFetchingNextPage ? <Spinner className="size-4" /> : null}
+              </div>
+            </section>
+            <Sources items={items} onSpace={(id) => setWsIds([id])} onMeeting={setMeetingId} activeSpaces={wsIds} activeMeeting={meetingId} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

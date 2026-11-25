@@ -12,14 +12,18 @@ import { Field, Input } from '@/components/ui/input'
 import { Avatar } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { IntegrationsSection } from './integrations-settings'
+import { FullscreenExitButton } from '@/components/app/fullscreen'
+import { CoverBackdrop } from '@/components/app/cover'
 import { setLocale } from '@/app/actions/preferences'
 import { localeNames, locales, type AppLocale } from '@/i18n/config'
 import { Select } from '@/components/ui/select'
 import { changePassword, updateProfile } from '@/app/actions/settings'
 import { passwordProblem } from '@/lib/api/ajustes'
 import { cn } from '@/lib/utils'
-import { useHydrated } from '@/lib/hooks'
+import { useHydrated, useNow } from '@/lib/hooks'
 import { SaveBar, SettingsCard, SettingsRow } from './ui'
+import { PrefPanel } from './pref-panel'
+import { LookPreview } from './look-preview'
 
 /** active: llegó por el enlace de recuperación y aún vale; expired: llegó por el enlace pero ya venció. */
 export type RecoveryState = 'active' | 'expired' | null
@@ -44,15 +48,29 @@ export function PersonalSettings({ tab, recovery = null, redirectUri }: { tab: '
     { id: 'profile' as const, label: t('profile'), icon: <UserRound /> },
     { id: 'preferences' as const, label: t('preferences'), icon: <SlidersHorizontal /> },
   ]
+  // el aviso de la contraseña trae su título suelto (texto sobre la hoja): ahí la portada no se mete debajo
+  const urgent = current === 'profile' && (recovery !== null || profile.must_change_password)
   return (
-    <div>
-      <header className="mb-8 flex flex-wrap items-center gap-4">
-        <Avatar name={profile.full_name} src={profile.avatar_url} seed={profile.id} size={52} />
-        <div className="min-w-0 flex-1">
+    // isolate: la portada va detrás de todo lo de esta página, pero encima de la hoja
+    <div className={cn('isolate', current === 'profile' && 'mx-auto w-full max-w-3xl')}>
+      <header className="on-frame relative flex flex-wrap items-center gap-x-4 gap-y-3 px-4 pt-3.5 sm:px-5">
+        {/* la portada: el ciruela del marco con el sello de textura; baja más que la cabecera y los paneles
+            se montan sobre su borde */}
+        <CoverBackdrop className={cn('inset-x-0 top-0', urgent ? '-bottom-4' : '-bottom-[76px]')} />
+        <Avatar
+          name={profile.full_name}
+          src={profile.avatar_url}
+          seed={profile.id}
+          size={current === 'profile' ? 52 : 46}
+          className="ring-2 ring-fg/15"
+        />
+        {/* en el teléfono el nombre se queda con la fila y las pestañas bajan a la suya */}
+        <div className="min-w-0 flex-1 max-sm:basis-[calc(100%-4.5rem)]">
           <h1 className="truncate text-[22px] font-semibold leading-tight tracking-[-0.02em] text-fg">{profile.full_name}</h1>
           <p className="truncate text-sm text-fg-muted">{profile.email}</p>
         </div>
-        <nav className="flex items-center gap-0.5 rounded-2xl bg-fg/[0.05] p-1" aria-label={t('groupYou')}>
+        <FullscreenExitButton />
+        <nav className="flex items-center gap-0.5 rounded-2xl bg-fg/[0.07] p-1 max-sm:flex-1" aria-label={t('groupYou')}>
           {tabs.map((x) => (
             <button
               key={x.id}
@@ -60,7 +78,7 @@ export function PersonalSettings({ tab, recovery = null, redirectUri }: { tab: '
               onClick={() => go(x.id)}
               aria-current={current === x.id ? 'page' : undefined}
               className={cn(
-                'inline-flex h-8 items-center gap-2 rounded-xl px-3 text-sm font-medium outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40 [&_svg]:size-4',
+                'inline-flex h-8 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium outline-none max-sm:flex-1 transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40 [&_svg]:size-4',
                 current === x.id ? 'bg-panel text-fg shadow-card [&_svg]:text-accent' : 'text-fg-muted hover:text-fg [&_svg]:text-fg-subtle',
               )}
             >
@@ -70,14 +88,19 @@ export function PersonalSettings({ tab, recovery = null, redirectUri }: { tab: '
           ))}
         </nav>
       </header>
-      {current === 'profile' ? (
-        <ProfileSettings recovery={recovery} />
-      ) : (
-        <>
-          <PreferencesSettings />
-          <IntegrationsSection redirectUri={redirectUri} />
-        </>
-      )}
+      {/* un poco adentro de la portada: a los lados se ve su ciruela, como si los paneles salieran de ella */}
+      <div className={cn('px-3 sm:px-5', urgent ? 'mt-8' : 'mt-3.5')}>
+        {current === 'profile' ? (
+          <ProfileSettings recovery={recovery} />
+        ) : (
+          // dos paneles a lo ancho, parejos: cómo ves Veltro y con qué se conecta (cabe sin desplazarse; en
+          // pantallas altas las miniaturas crecen en vez de estirar los paneles con un hueco en el medio)
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:items-stretch">
+            <PreferencesSettings />
+            <IntegrationsSection redirectUri={redirectUri} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -112,7 +135,7 @@ export function ProfileSettings({ recovery = null }: { recovery?: RecoveryState 
     <div className="flex flex-col gap-3">
       {urgent ? <PasswordCard recovery={recovery} email={profile.email} mustChange={profile.must_change_password} /> : null}
 
-      <ul className="divide-y divide-line-soft overflow-hidden rounded-2xl bg-panel ring-1 ring-line-soft">
+      <ul className="divide-y divide-line-soft overflow-hidden rounded-2xl bg-panel shadow-sheet ring-1 ring-line-soft">
         <ListRow icon={<UserRound />} tone="bg-accent-soft text-accent-ink" label={t('name')} hint={t('nameHint')} htmlFor="p-name">
           <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} className="sm:w-64" />
         </ListRow>
@@ -443,12 +466,17 @@ export function PasswordCard({ recovery, email, mustChange, doneHref, variant = 
   )
 }
 
-/** Un saludo en cada idioma, para elegirlo viéndolo (no se traduce: es la muestra). */
-const SAMPLE: Record<AppLocale, string> = { es: 'Hola, ¿cómo vas?', en: 'Hi, how’s it going?', pt: 'Olá, tudo bem?', fr: 'Bonjour, ça va ?' }
+type ThemeId = 'light' | 'dark' | 'system'
+const THEMES: { id: ThemeId; Icon: typeof Sun }[] = [
+  { id: 'light', Icon: Sun },
+  { id: 'dark', Icon: Moon },
+  { id: 'system', Icon: Monitor },
+]
 
 /**
- * Preferencias: se elige viendo. El idioma en tarjetas con un saludo, el tema con una vista previa de la
- * app (claro, oscuro o según el equipo) y la zona horaria con la hora de ahora allí. Todo se aplica al momento.
+ * Preferencias › Así ves Veltro: arriba, la app en miniatura tal como la vas a ver (el tema, el saludo en
+ * tu idioma, la fecha y la hora de tu zona con la barra del día); abajo, las tres opciones en filas. Todo
+ * se aplica al momento, y al pasar el mouse por una opción la miniatura la muestra antes de elegirla.
  */
 export function PreferencesSettings() {
   const t = useTranslations('settings.profile')
@@ -459,6 +487,9 @@ export function PreferencesSettings() {
   const [timezone, setTimezone] = useState(profile.timezone)
   const [switching, startLocale] = useTransition()
   const [picked, setPicked] = useState<AppLocale | null>(null)
+  // lo que se está mirando (mouse o teclado encima de una opción), para verlo en la miniatura antes de elegir
+  const [peekLocale, setPeekLocale] = useState<AppLocale | null>(null)
+  const [peekTheme, setPeekTheme] = useState<ThemeId | null>(null)
   const hydrated = useHydrated()
 
   // La lista de zonas depende del ICU de cada motor (Node y el navegador difieren): solo se arma en el cliente.
@@ -484,116 +515,142 @@ export function PreferencesSettings() {
     }
   }
 
-  // la hora de ahora en la zona elegida (solo en el navegador: el servidor iría un minuto atrás)
-  const now = hydrated ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: timezone }).format(new Date()) : null
-  const head = (title: string, hint: string) => (
-    <div className="mb-3">
-      <h2 className="text-sm font-semibold text-fg">{title}</h2>
-      <p className="mt-0.5 text-xs text-fg-muted">{hint}</p>
-    </div>
-  )
-  const tile = (active: boolean) =>
-    cn(
-      'group/tile relative flex flex-col rounded-2xl bg-panel text-left outline-none ring-1 transition-[box-shadow,transform] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/50',
-      active ? 'shadow-card ring-2 ring-accent' : 'ring-line-soft hover:-translate-y-px hover:shadow-card hover:ring-line',
-    )
+  // la hora de ahora, al minuto (solo en el navegador: el servidor iría un minuto atrás)
+  const clock = useNow(30_000)
+  const offset = hydrated ? zoneOffset(timezone, locale, clock) : null
+  const city = timezone.split('/').pop()?.replace(/_/g, ' ') ?? timezone
+  const shown = picked ?? locale
+  // el tema guardado solo se sabe en el navegador: hasta hidratar, la miniatura va en claro (como el servidor)
+  const current: ThemeId = hydrated ? ((theme as ThemeId | undefined) ?? 'system') : 'light'
 
   return (
-    <div>
-      <h2 className="sr-only">{t('preferences')}</h2>
+    <PrefPanel title={t('lookTitle')}>
+      <div className="flex flex-1 flex-col">
+        {/* el escenario: la miniatura sobre un fondo con un poco de color; si el panel crece, crece ella */}
+        <div className="flex flex-1 flex-col rounded-2xl bg-hover/50 bg-[radial-gradient(115%_95%_at_0%_0%,var(--accent-soft),transparent_62%),radial-gradient(90%_85%_at_100%_100%,var(--warning-soft),transparent_60%)] p-3.5">
+          <LookPreview
+            mode={peekTheme ?? current}
+            locale={peekLocale ?? shown}
+            timeZone={timezone}
+            at={hydrated ? clock : null}
+            className="min-h-[176px] flex-1 tall:min-h-[236px]"
+          />
+        </div>
 
-      <section className="mb-8">
-        {head(t('language'), t('languageHint'))}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {locales.map((l) => {
-            const active = (picked ?? locale) === l
-            return (
-              <button
+        <div className="mt-4 grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-[5.75rem_minmax(0,1fr)] sm:items-center">
+          <span title={t('languageHint')} className="text-[13px] font-medium text-fg">
+            {t('language')}
+          </span>
+          {/* en el teléfono, dos por fila (cuatro no caben con su nombre entero) */}
+          <Segmented label={t('language')} className="max-sm:grid max-sm:grid-cols-2">
+            {locales.map((l) => (
+              <SegmentedItem
                 key={l}
-                type="button"
                 lang={l}
-                aria-pressed={active}
+                active={shown === l}
                 disabled={switching}
+                onPeek={(on) => setPeekLocale(on ? l : null)}
                 onClick={() => {
-                  if (l === locale) return
+                  if (l === shown) return
                   setPicked(l)
                   startLocale(() => setLocale(l))
                 }}
-                className={cn(tile(active), 'gap-1 p-4 disabled:cursor-wait')}
               >
-                <span className="text-[15px] font-semibold text-fg">{localeNames[l]}</span>
-                <span className="text-sm text-fg-muted">{SAMPLE[l]}</span>
-                {active ? <Check className="absolute right-3.5 top-3.5 size-4 text-accent" /> : null}
-              </button>
-            )
-          })}
-        </div>
-      </section>
+                {localeNames[l]}
+              </SegmentedItem>
+            ))}
+          </Segmented>
 
-      <section className="mb-8">
-        {head(t('theme'), t('themeHint'))}
-        <div className="grid grid-cols-3 gap-3">
-          {(['light', 'dark', 'system'] as const).map((id) => {
-            const active = hydrated && theme === id
-            const Icon = id === 'light' ? Sun : id === 'dark' ? Moon : Monitor
-            return (
-              <button key={id} type="button" aria-pressed={active} onClick={() => setTheme(id)} className={cn(tile(active), 'p-2.5')}>
-                <ThemePreview mode={id} />
-                <span className="flex items-center gap-1.5 px-1 pb-0.5 pt-2.5 text-sm font-medium text-fg">
-                  <Icon className="size-3.5 text-fg-muted" />
-                  {t(`themes.${id}`)}
-                  {active ? <Check className="ml-auto size-4 text-accent" /> : null}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </section>
+          <span title={t('themeHint')} className="text-[13px] font-medium text-fg">
+            {t('theme')}
+          </span>
+          <Segmented label={t('theme')}>
+            {THEMES.map(({ id, Icon }) => (
+              <SegmentedItem
+                key={id}
+                icon={<Icon className="size-3.5" />}
+                active={hydrated && theme === id}
+                title={id === 'system' ? t('themeHint') : undefined}
+                onPeek={(on) => setPeekTheme(on ? id : null)}
+                onClick={() => setTheme(id)}
+              >
+                {t(`themes.${id}`)}
+              </SegmentedItem>
+            ))}
+          </Segmented>
 
-      <SettingsCard title={t('timezone')} description={t('timezoneHint')}>
-        <SettingsRow label={t('timezoneZone')} description={now ? t('nowThere', { time: now }) : undefined} htmlFor="p-tz">
-          <Select id="p-tz" value={timezone} onChange={changeZone} options={zones.map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))} className="sm:w-72" />
-        </SettingsRow>
-      </SettingsCard>
+          <label htmlFor="p-tz" title={t('timezoneHint')} className="text-[13px] font-medium text-fg">
+            {t('timezone')}
+          </label>
+          <div className="flex min-w-0 items-center gap-3">
+            <Select id="p-tz" value={timezone} onChange={changeZone} options={zones.map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))} className="min-w-0 flex-1 sm:max-w-64" />
+            <span className="min-w-0 truncate text-xs text-fg-muted" suppressHydrationWarning>
+              {offset ? `${city} · ${offset}` : city}
+            </span>
+          </div>
+        </div>
+      </div>
+    </PrefPanel>
+  )
+}
+
+/** Un selector de varias opciones en una fila (la elegida, en blanco y con sombra). */
+function Segmented({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div role="group" aria-label={label} className={cn('flex min-w-0 gap-1 rounded-xl bg-hover p-1', className)}>
+      {children}
     </div>
   )
 }
 
-/**
- * La app en miniatura en cada tema (con sus colores fijos, no los del tema actual): el marco ciruela, el
- * menú y la hoja con unas líneas. «Sistema» mitad y mitad.
- */
-function ThemePreview({ mode }: { mode: 'light' | 'dark' | 'system' }) {
-  const palette = {
-    light: { frame: 'oklch(0.33 0.085 312)', sheet: 'oklch(0.975 0.008 75)', card: 'oklch(1 0 0)', line: 'oklch(0.3 0.04 312 / 0.14)', accent: 'oklch(0.62 0.12 312)' },
-    dark: { frame: 'oklch(0.19 0.03 312)', sheet: 'oklch(0.235 0.02 312)', card: 'oklch(0.28 0.022 312)', line: 'oklch(1 0 0 / 0.14)', accent: 'oklch(0.72 0.11 312)' },
-  }
-  const scene = (p: (typeof palette)['light']) => (
-    <span className="absolute inset-0 flex gap-1.5 p-1.5" style={{ background: p.frame }}>
-      <span className="flex w-[22%] flex-col gap-1 pt-1">
-        {[0.9, 0.6, 0.7, 0.5].map((w, i) => (
-          <span key={i} className="h-1 rounded-full" style={{ width: `${w * 100}%`, background: i === 0 ? p.accent : 'oklch(1 0 0 / 0.22)' }} />
-        ))}
-      </span>
-      <span className="flex flex-1 flex-col gap-1.5 rounded-md p-2" style={{ background: p.sheet }}>
-        <span className="h-1.5 w-1/2 rounded-full" style={{ background: p.line }} />
-        <span className="flex flex-1 gap-1.5">
-          <span className="flex-1 rounded" style={{ background: p.card, boxShadow: `inset 0 0 0 1px ${p.line}` }} />
-          <span className="flex-1 rounded" style={{ background: p.card, boxShadow: `inset 0 0 0 1px ${p.line}` }} />
-        </span>
-      </span>
-    </span>
-  )
+function SegmentedItem({
+  active,
+  onClick,
+  onPeek,
+  disabled,
+  lang,
+  title,
+  icon,
+  children,
+}: {
+  active: boolean
+  icon?: React.ReactNode
+  onClick: () => void
+  /** el mouse o el foco entra (true) o sale (false): la miniatura la muestra mientras tanto */
+  onPeek?: (on: boolean) => void
+  disabled?: boolean
+  lang?: string
+  title?: string
+  children: React.ReactNode
+}) {
   return (
-    <span className="relative block h-24 overflow-hidden rounded-xl" aria-hidden>
-      {mode === 'system' ? (
-        <>
-          {scene(palette.light)}
-          <span className="absolute inset-0 [clip-path:polygon(55%_0,100%_0,100%_100%,45%_100%)]">{scene(palette.dark)}</span>
-        </>
-      ) : (
-        scene(palette[mode])
+    <button
+      type="button"
+      lang={lang}
+      title={title}
+      aria-pressed={active}
+      disabled={disabled}
+      onClick={onClick}
+      onPointerEnter={() => onPeek?.(true)}
+      onPointerLeave={() => onPeek?.(false)}
+      onFocus={() => onPeek?.(true)}
+      onBlur={() => onPeek?.(false)}
+      className={cn(
+        'inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-1.5 text-[13px] outline-none transition-[background-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-accent-mid/40 disabled:cursor-wait [&_svg]:shrink-0',
+        active ? 'bg-panel font-semibold text-fg shadow-card' : 'text-fg-muted hover:text-fg',
       )}
-    </span>
+    >
+      {icon}
+      <span className="truncate">{children}</span>
+    </button>
   )
+}
+
+/** El desfase de una zona con UTC, como lo escribe el navegador (p. ej. «GMT-4»). */
+function zoneOffset(timeZone: string, locale: string, at: Date) {
+  try {
+    return new Intl.DateTimeFormat(locale, { timeZone, timeZoneName: 'shortOffset' }).formatToParts(at).find((p) => p.type === 'timeZoneName')?.value ?? null
+  } catch {
+    return null
+  }
 }

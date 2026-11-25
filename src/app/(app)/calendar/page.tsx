@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function CalendarPage() {
   return (
     <div className="h-full">
-      <WeekView />
+      <WeekView cover />
     </div>
   )
 }

@@ -21,6 +21,7 @@ import { TaskBoard } from '@/components/tasks/task-board'
 import { TaskCalendar } from '@/components/tasks/task-calendar'
 import { TaskGrid } from '@/components/tasks/task-grid'
 import { TasksDashboard } from '@/components/tasks/tasks-dashboard'
+import { TasksAllClear } from '@/components/tasks/tasks-all-clear'
 import { ScopeChips } from '@/components/app/scope-menu'
 import { SavedViewsMenu } from '@/components/tasks/saved-views'
 import { TasksMoreMenu } from '@/components/tasks/task-transfer'
@@ -34,6 +35,7 @@ import { track } from '@/lib/telemetry'
 import { cn } from '@/lib/utils'
 import { CARD } from '@/components/ui/surface'
 import { FullscreenExitButton } from '@/components/app/fullscreen'
+import { COVER_INSET, Cover } from '@/components/app/cover'
 
 const TABS = ['summary', 'list', 'table', 'board', 'calendar'] as const
 const NO_TASKS: TaskRow[] = []
@@ -73,6 +75,8 @@ export function MyTasksView() {
   const setCollapsed = (next: CollapsedGroups) => setCollapsedBy((prev) => ({ ...prev, [groupBy]: next }))
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
+  // dónde dibuja el Resumen su respuesta corta: adentro de la portada
+  const [heroEl, setHeroEl] = useState<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (tabParam && TABS.includes(tabParam) && tabParam !== lastTab) setLastTab(tabParam)
@@ -180,9 +184,11 @@ export function MyTasksView() {
   const peek = tab === 'list' && wide
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
-      {/* encabezado compacto: lo que importa es el contenido de abajo */}
-      <header className="flex shrink-0 flex-col gap-3 px-1">
+    // isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja
+    <div className="isolate flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
+      {/* encabezado compacto sobre la portada ciruela (en el Resumen, con la respuesta corta adentro): lo
+          que importa es el contenido de abajo, que se monta sobre su borde */}
+      <Cover className="gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="mr-auto min-w-0">
             <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{t('title')}</h1>
@@ -237,16 +243,17 @@ export function MyTasksView() {
             />
           </div>
         </div>
-      </header>
+        {/* el Resumen dibuja aquí su respuesta corta (sobre la portada, no en otro bloque ciruela) */}
+        {tab === 'summary' ? <div ref={setHeroEl} className="min-h-14" /> : null}
+      </Cover>
 
       {tab === 'summary' ? (
         // el Resumen arma sus propias tarjetas; aquí solo se desplaza (con aire para sus sombras)
-        <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1 scrollbar-thin sm:-mx-6 sm:px-6">
+        <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-7 pb-1 scrollbar-thin sm:-mx-6 sm:px-10">
           {tasksQuery.isError ? (
             <ErrorState onRetry={() => tasksQuery.refetch()} />
           ) : isLoading || !scoped ? (
             <div className="flex flex-col gap-4">
-              <Skeleton className="h-24 rounded-[22px]" />
               <div className="grid gap-4 lg:grid-cols-12">
                 <Skeleton className="h-56 rounded-[24px] lg:col-span-7" />
                 <Skeleton className="h-56 rounded-[24px] lg:col-span-5" />
@@ -254,6 +261,7 @@ export function MyTasksView() {
             </div>
           ) : (
             <TasksDashboard
+              heroTarget={heroEl}
               tasks={scoped}
               stats={stats.data}
               scope={scope}
@@ -263,15 +271,15 @@ export function MyTasksView() {
           )}
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 gap-4">
+        <div className={cn('flex min-h-0 flex-1 gap-4', COVER_INSET)}>
         {/* filtros y vista en una tarjeta hasta abajo (para verla más grande: la pantalla completa general, F) */}
         <section
           className={cn(CARD, 'flex min-h-0 flex-1 flex-col overflow-hidden')}
         >
-          {/* búsqueda y filtros: comunes a Lista, Tabla, Tablero y Calendario */}
+          {/* búsqueda y filtros: comunes a Lista, Tabla, Tablero y Calendario; en blanco, porque la tarjeta
+              se monta sobre la portada ciruela */}
           {searched && scoped ? (
             <TaskFilterBar
-              brand
               tasks={searched}
               universe={scoped}
               filters={filters}
@@ -310,27 +318,37 @@ export function MyTasksView() {
                 <Skeleton className="h-10 rounded-xl" />
                 <Skeleton className="h-10 rounded-xl" />
               </div>
-            ) : counted.shown === 0 ? (
+            ) : counted.shown === 0 && filtering ? (
               <div className="px-6">
                 <EmptyState
                   icon={<CircleCheck />}
-                  title={filtering ? t('emptyFiltered') : t('empty.title')}
-                  description={filtering ? t('emptyFilteredHint') : t('empty.description')}
+                  title={t('emptyFiltered')}
+                  description={t('emptyFilteredHint')}
                   action={
-                    filtering ? (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setQuery('')
-                          setFilters(NO_FILTERS)
-                        }}
-                      >
-                        {tf('clearFilters')}
-                      </Button>
-                    ) : null
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setQuery('')
+                        setFilters(NO_FILTERS)
+                      }}
+                    >
+                      {tf('clearFilters')}
+                    </Button>
                   }
                 />
               </div>
+            ) : counted.shown === 0 ? (
+              // todo al día: la calma y, al lado, lo siguiente útil (no una caja grande vacía)
+              <TasksAllClear
+                scope={scope}
+                options={options}
+                tasks={scoped}
+                onCreate={() => setCreating(true)}
+                onScope={(id, who) => {
+                  setParam('scope', id === 'me' ? null : id)
+                  if (who) setFilters({ ...NO_FILTERS, who }, 'list')
+                }}
+              />
             ) : tab === 'list' ? (
               <ShowIdleContext.Provider value={scope.kind !== 'me'}>
                 <TaskGroupList

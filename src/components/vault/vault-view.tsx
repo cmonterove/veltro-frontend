@@ -33,6 +33,7 @@ import { FullscreenExitButton } from '@/components/app/fullscreen'
 import { FILE_KINDS, FilePreview, FileKindIcon, KIND_STYLE, fileKindOf, fileTitle } from './file-visual'
 import { FileInspector } from './file-inspector'
 import { UploadDialog, type UploadMode } from './upload-dialog'
+import { CoverBackdrop } from '@/components/app/cover'
 
 type VaultFilters = { kind: string[]; ws: string[]; link: string[]; label: string[]; who: string[] }
 type FilterKey = keyof VaultFilters
@@ -199,8 +200,11 @@ export function VaultView() {
   }, [])
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
-      <header className="flex shrink-0 flex-col gap-3 px-1">
+    // isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja
+    <div className="isolate flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
+      {/* la cabecera sobre la portada ciruela (con el sello de textura): la tarjeta de abajo se monta sobre su borde */}
+      <header className="on-frame relative flex shrink-0 flex-col gap-3 px-4 pb-1 pt-4 sm:px-5">
+        <CoverBackdrop className="inset-x-0 top-0 -bottom-[72px]" />
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="min-w-0">
             <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{t('title')}</h1>
@@ -259,7 +263,7 @@ export function VaultView() {
                 </ul>
               </div>
             ) : null}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {tab === 'files' ? (
               <>
                 <Button onClick={() => setUploading({ mode: 'drive' })} title={t('fromDriveHint')}>
@@ -284,11 +288,11 @@ export function VaultView() {
       </header>
 
       {tab === 'written' ? (
-        <section className={cn(CARD, 'flex min-h-0 flex-1 flex-col overflow-hidden')}>
+        <section className={cn(CARD, 'mx-3 flex min-h-0 flex-1 flex-col overflow-hidden sm:mx-4')}>
           <DocsHub embedded />
         </section>
       ) : (
-        <div className="flex min-h-0 flex-1 gap-4">
+        <div className="mx-3 flex min-h-0 flex-1 gap-4 sm:mx-4">
         <section className={cn(CARD, 'flex min-w-0 flex-1 flex-col overflow-hidden')}>
           {/* buscar y filtrar: en blanco, con una línea fina debajo (la ciruela no va en todas las pantallas) */}
           <div role="search" aria-label={t('filters')} className="flex shrink-0 items-start gap-2 border-b border-line-soft px-4 py-3 sm:px-5">

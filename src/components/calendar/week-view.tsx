@@ -30,6 +30,7 @@ import { useOpenTask } from '@/lib/use-open-task'
 import { TaskPeek } from './task-peek'
 import { WeekAside } from './week-aside'
 import { FullscreenExitButton } from '@/components/app/fullscreen'
+import { COVER_INSET, Cover } from '@/components/app/cover'
 
 const HOUR = 48
 
@@ -86,7 +87,11 @@ function firstToday(events: CalendarEvent[] | undefined, now: Date) {
 }
 
 /** Calendario semanal. Con `workspaceId` muestra la vista de un espacio: sus reuniones resaltadas y sus tareas. */
-export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
+/**
+ * `cover`: la cabecera va sobre la portada ciruela y la semana se monta sobre su borde (en Calendario; en
+ * las Reuniones de un espacio la cabecera de la página es la del espacio).
+ */
+export function WeekView({ workspaceId, cover = false }: { workspaceId?: string; cover?: boolean } = {}) {
   const t = useTranslations('calendar')
   const tf = useTranslations('calendar.filters')
   const tTasks = useTranslations('tasks')
@@ -221,73 +226,82 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
   const errorCode = error instanceof CalendarError ? error.code : error ? 'google_error' : null
   const connectReturn = workspaceId && scopeWs ? `/w/${scopeWs.slug}/meetings` : '/calendar'
 
+  const headerInner = (
+    <>
+      {/* el mes y, debajo, cómo viene la semana (lo que se ve con los filtros puestos) */}
+      <div className="mr-auto min-w-0">
+        <h1 className="text-[26px] font-semibold capitalize leading-tight tracking-[-0.025em]">{format(anchor, 'LLLL yyyy', { locale })}</h1>
+        <p className="truncate text-sm text-fg-muted">
+          {t('weekSummary', {
+            week: format(anchor, 'w', { locale }),
+            // «16 – 22 nov» (o «30 nov – 6 dic» si cambia de mes)
+            range: `${format(anchor, anchor.getMonth() === addDays(anchor, 6).getMonth() ? 'd' : 'd MMM', { locale })} – ${format(addDays(anchor, 6), 'd MMM', { locale })}`,
+            meetings: allDay.length + timed.length,
+            tasks: days.reduce((n, d) => n + dayTasks(d).length, 0),
+          })}
+        </p>
+      </div>
+      {google ? <span className="hidden text-xs text-fg-subtle md:inline">{google.email}</span> : null}
+      {workspaceId ? (
+        <span className="hidden items-center gap-3 text-xs text-fg-muted lg:flex">
+          <span className="inline-flex items-center gap-1.5">
+            <span className={cn('ws-' + (scopeWs?.color ?? 'violet'), 'size-2.5 rounded-sm')} style={{ background: 'var(--ws-color)' }} />
+            {t('legend.mine', { workspace: scopeWs?.name ?? '' })}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2.5 rounded-sm border border-dashed border-fg-subtle" />
+            {t('legend.unlinked')}
+          </span>
+        </span>
+      ) : null}
+      {/* moverse de semana: una pastilla con las tres acciones juntas */}
+      <div className="flex items-center rounded-xl bg-panel p-0.5 shadow-card">
+        <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, -1))} aria-label={t('prevWeek')}>
+          <ChevronLeft />
+        </Button>
+        <Button variant="ghost" size="sm" className="font-semibold text-fg" onClick={() => goToDay(new Date())}>
+          {t('today')}
+        </Button>
+        <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, 1))} aria-label={t('nextWeek')}>
+          <ChevronRight />
+        </Button>
+      </div>
+      {/* con o sin Google: sin Google la reunión se crea en Veltro */}
+      <Button
+        variant="primary"
+        size="md"
+        onClick={() => {
+          setSlot(null)
+          setDialogOpen(true)
+        }}
+      >
+        <CalendarPlus />
+        {t('newMeeting')}
+      </Button>
+      <FullscreenExitButton />
+    </>
+  )
+
   return (
     // la semana en una tarjeta que llega hasta abajo y, al lado, el mes chico y la semana como lista
-    <div className="flex h-full min-h-0 flex-col gap-4 px-4 pb-4 pt-5 sm:px-6">
-      <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 px-1">
-        {/* el mes y, debajo, cómo viene la semana (lo que se ve con los filtros puestos) */}
-        <div className="mr-auto min-w-0">
-          <h1 className="text-[26px] font-semibold capitalize leading-tight tracking-[-0.025em]">{format(anchor, 'LLLL yyyy', { locale })}</h1>
-          <p className="truncate text-sm text-fg-muted">
-            {t('weekSummary', {
-              week: format(anchor, 'w', { locale }),
-              // «16 – 22 nov» (o «30 nov – 6 dic» si cambia de mes)
-              range: `${format(anchor, anchor.getMonth() === addDays(anchor, 6).getMonth() ? 'd' : 'd MMM', { locale })} – ${format(addDays(anchor, 6), 'd MMM', { locale })}`,
-              meetings: allDay.length + timed.length,
-              tasks: days.reduce((n, d) => n + dayTasks(d).length, 0),
-            })}
-          </p>
-        </div>
-        {google ? <span className="hidden text-xs text-fg-subtle md:inline">{google.email}</span> : null}
-        {workspaceId ? (
-          <span className="hidden items-center gap-3 text-xs text-fg-muted lg:flex">
-            <span className="inline-flex items-center gap-1.5">
-              <span className={cn('ws-' + (scopeWs?.color ?? 'violet'), 'size-2.5 rounded-sm')} style={{ background: 'var(--ws-color)' }} />
-              {t('legend.mine', { workspace: scopeWs?.name ?? '' })}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-sm border border-dashed border-fg-subtle" />
-              {t('legend.unlinked')}
-            </span>
-          </span>
-        ) : null}
-        {/* moverse de semana: una pastilla con las tres acciones juntas */}
-        <div className="flex items-center rounded-xl bg-panel p-0.5 shadow-card">
-          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, -1))} aria-label={t('prevWeek')}>
-            <ChevronLeft />
-          </Button>
-          <Button variant="ghost" size="sm" className="font-semibold text-fg" onClick={() => goToDay(new Date())}>
-            {t('today')}
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(addWeeks(anchor, 1))} aria-label={t('nextWeek')}>
-            <ChevronRight />
-          </Button>
-        </div>
-        {/* con o sin Google: sin Google la reunión se crea en Veltro */}
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => {
-            setSlot(null)
-            setDialogOpen(true)
-          }}
-        >
-          <CalendarPlus />
-          {t('newMeeting')}
-        </Button>
-        <FullscreenExitButton />
-      </header>
+    // (isolate: con portada, la portada va detrás de la página pero encima de la hoja)
+    <div className={cn('flex h-full min-h-0 flex-col gap-4 px-4 pb-4 sm:px-6', cover ? 'isolate pt-4' : 'pt-5')}>
+      {cover ? (
+        <Cover className="flex-row flex-wrap items-center gap-x-4 gap-y-2">{headerInner}</Cover>
+      ) : (
+        <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 px-1">{headerInner}</header>
+      )}
 
       {errorCode === 'google_auth_revoked' ? (
-        <div className="shrink-0">
+        <div className={cn('shrink-0', cover && COVER_INSET)}>
           <ConnectCalendar reason={errorCode} returnTo={connectReturn} />
         </div>
       ) : !google || errorCode === 'google_not_connected' ? (
         // sin Google el calendario funciona con las reuniones de Veltro; Google solo suma sus eventos
-        <ConnectCalendarHint returnTo={connectReturn} className="shrink-0 self-start" />
+        <ConnectCalendarHint returnTo={connectReturn} className={cn('shrink-0 self-start', cover && COVER_INSET)} />
       ) : errorCode ? (
         // cualquier otro error de Google: se avisa (antes el calendario quedaba vacío sin explicación)
-        <div className="flex shrink-0 items-center gap-3 rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <div className={cn('flex shrink-0 items-center gap-3 rounded-xl border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger', cover && COVER_INSET)}>
           <CloudOff className="size-4 shrink-0" />
           <span className="min-w-0 flex-1">{t('loadError')}</span>
           <Button size="xs" variant="secondary" onClick={() => refetchEvents()}>
@@ -297,7 +311,7 @@ export function WeekView({ workspaceId }: { workspaceId?: string } = {}) {
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className={cn('flex min-h-0 flex-1 gap-4', cover && COVER_INSET)}>
       <section className={cn(CARD, 'flex min-w-0 flex-1 flex-col overflow-hidden')}>
       {/* qué se ve: reuniones y/o tareas, de qué espacio y de quién */}
       <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line-soft px-4 py-2.5">

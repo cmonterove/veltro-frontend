@@ -34,6 +34,7 @@ import { previewOrOpen } from '@/components/vault/file-viewer'
 import { NoMeetingsAhead, dueThisWeek } from '@/components/calendar/no-meetings'
 import { SpaceHeader } from './workspace-header'
 import { SpaceStarter, useSpaceStarter } from './space-starter'
+import { COVER_INSET } from '@/components/app/cover'
 
 /**
  * Inicio del espacio, en una sola superficie que cabe en la pantalla. A la izquierda cómo va (la cifra
@@ -62,10 +63,11 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
   }, [tasks])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
-      <SpaceHeader ws={ws} section="overview" />
+    // isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja
+    <div className="isolate flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4 pt-4 sm:px-6">
+      <SpaceHeader ws={ws} section="overview" overlap />
       <SplitPanel
-        className="xl:grid-cols-[minmax(0,1fr)_23rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]"
+        className={cn('xl:grid-cols-[minmax(0,1fr)_23rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]', COVER_INSET)}
         main={
           <>
             <Progress ws={ws} tasks={tasks} loading={isLoading} now={now} />

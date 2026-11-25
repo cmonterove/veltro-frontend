@@ -15,6 +15,8 @@ import { TopBar } from './top-bar'
 import { FullscreenContext, FullscreenExitButton } from './fullscreen'
 import { isTypingTarget } from '@/lib/hooks'
 import { useApp } from './app-context'
+import { useNavRole } from './use-nav'
+import { navHrefAllowed } from '@/lib/nav'
 import { ConfirmProvider } from '@/components/ui/confirm'
 import { TourProvider } from '@/components/tour/tour'
 import { useChatUnread } from '@/lib/queries/chats'
@@ -39,6 +41,8 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   const pathname = usePathname()
   const router = useRouter()
   const { profile, workspaces, account } = useApp()
+  // qué páginas ve el rol (los atajos G + letra solo abren esas)
+  const navRole = useNavRole()
   // el color de la cuenta: llega del servidor con la cuenta (sin parpadeo); al elegir otro se ve al instante
   const [preview, setPreview] = useState<{ account: string; brand: Brand } | null>(null)
   const brand = preview && preview.account === account.id ? preview.brand : brandOf(account.color)
@@ -155,7 +159,9 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [quickTaskOpen])
 
   useEffect(() => {
-    const routes: Record<string, string> = { h: '/home', ...(AI_ENABLED ? { v: '/veltro' } : {}), m: '/mesa', c: '/calendar', t: '/tasks', e: '/mail', a: '/dashboards', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
+    const all: Record<string, string> = { h: '/home', ...(AI_ENABLED ? { v: '/veltro' } : {}), m: '/mesa', c: '/calendar', t: '/tasks', e: '/mail', a: '/dashboards', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
+    // las páginas que el rol no ve tampoco se abren con el atajo
+    const routes = Object.fromEntries(Object.entries(all).filter(([, href]) => navHrefAllowed(navRole, href)))
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -206,7 +212,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [router, workspaces, toggleSidebar, toggleFull])
+  }, [router, workspaces, toggleSidebar, toggleFull, navRole])
 
   return (
     <BrandContext.Provider value={brandValue}>

@@ -6,6 +6,7 @@ import { Building2, LayoutTemplate, LifeBuoy, Network, Users, UsersRound, type L
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { CoverBackdrop } from '@/components/app/cover'
 
 /** El ícono de cada página de la cuenta, el mismo que tiene en el menú: la cabecera no queda en solo texto. */
 const PAGE_ICON: Record<string, LucideIcon> = {
@@ -17,13 +18,19 @@ const PAGE_ICON: Record<string, LucideIcon> = {
   '/settings/support': LifeBuoy,
 }
 
-/** Encabezado de cada página de Ajustes: su ícono, qué es y, opcionalmente, acciones y pestañas. */
+/**
+ * Encabezado de cada página de Ajustes, sobre su portada ciruela (la misma de tus ajustes): su ícono, qué es
+ * y, opcionalmente, acciones y una fila debajo (pestañas, la barra de una vista). La portada baja más que el
+ * encabezado y lo primero de la página se monta sobre su borde: tiene que ser una tarjeta con fondo. Con
+ * `overlap={false}` la portada termina con el encabezado.
+ */
 export function SettingsHeader({
   title,
   description,
   leading,
   actions,
   children,
+  overlap = true,
 }: {
   title: React.ReactNode
   description?: React.ReactNode
@@ -32,11 +39,15 @@ export function SettingsHeader({
   actions?: React.ReactNode
   /** pestañas u otra fila debajo del título */
   children?: React.ReactNode
+  /** false: la portada no se mete debajo de lo que sigue (cuando arriba de la página no va una tarjeta) */
+  overlap?: boolean
 }) {
   const pathname = usePathname()
   const Icon = PAGE_ICON[pathname]
   return (
-    <header className="mb-7">
+    <header className={cn('on-frame relative', overlap ? 'mb-4' : 'mb-9')}>
+      {/* sobresale por los lados y arriba (en el margen de la hoja) y, abajo, queda debajo de lo primero de la página */}
+      <CoverBackdrop className={cn('-inset-x-2.5 -top-4 sm:-inset-x-5 sm:-top-5', overlap ? '-bottom-[76px]' : '-bottom-5')} />
       <div className="flex items-center gap-4">
         {leading ? (
           <div className="shrink-0">{leading}</div>
@@ -86,6 +97,7 @@ export function SettingsCard({
   description,
   action,
   tone,
+  inside = false,
   children,
   className,
 }: {
@@ -93,9 +105,27 @@ export function SettingsCard({
   description?: React.ReactNode
   action?: React.ReactNode
   tone?: 'danger'
+  /** el título va adentro de la tarjeta, como su primera fila (cuando la tarjeta se monta sobre la portada) */
+  inside?: boolean
   children: React.ReactNode
   className?: string
 }) {
+  if (inside) {
+    return (
+      <section className={cn('mb-8 divide-y divide-line-soft rounded-2xl bg-panel shadow-sheet ring-1 ring-line-soft', className)}>
+        {title || action ? (
+          <div className="flex items-end gap-4 px-5 pb-3 pt-4">
+            <div className="min-w-0 flex-1">
+              {title ? <h2 className={cn('text-sm font-semibold', tone === 'danger' ? 'text-danger' : 'text-fg')}>{title}</h2> : null}
+              {description ? <p className="mt-0.5 max-w-2xl text-xs leading-relaxed text-fg-muted">{description}</p> : null}
+            </div>
+            {action}
+          </div>
+        ) : null}
+        <div className="divide-y divide-line-soft">{children}</div>
+      </section>
+    )
+  }
   return (
     <section className={cn('mb-8', className)}>
       {title || action ? (

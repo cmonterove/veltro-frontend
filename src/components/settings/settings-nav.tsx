@@ -116,7 +116,9 @@ export function SettingsContainer({ children }: { children: React.ReactNode }) {
 function PersonalFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-full overflow-y-auto scrollbar-thin">
-      <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-8 sm:px-8">{children}</div>
+      {/* Perfil se angosta solo; Preferencias usa el ancho (dos columnas, sin desplazarse). La portada ciruela
+          de arriba queda con el mismo margen por los tres lados */}
+      <div className="mx-auto w-full max-w-[1480px] p-3 sm:p-4">{children}</div>
     </div>
   )
 }
@@ -134,7 +136,8 @@ export function SettingsFrame({ children }: { children: React.ReactNode }) {
         <div className="mb-6 md:hidden">
           <SettingsNavMobile />
         </div>
-        <div key={pathname} className="flex min-h-0 flex-1 flex-col animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out">
+        {/* isolate: la portada de la cabecera va detrás de la página, pero encima de la hoja */}
+        <div key={pathname} className="isolate flex min-h-0 flex-1 flex-col animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out">
           {children}
         </div>
       </SettingsContainer>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { ChevronDown, HardDrive, History, Send, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, HardDrive, History, PenLine, Send, Trash2, X } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { GoogleG } from '@/components/calendar/connect-calendar'
 import { Avatar } from '@/components/ui/avatar'
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { useDateLocale } from '@/lib/dates'
 import { useDebounced } from '@/lib/hooks'
 import type { ApiDriveFile, ApiMailMessage, MailAddress } from '@/lib/api/correo'
-import { useMailActions, useMailboxes, useMailContacts } from '@/lib/queries/mail'
+import { useMailActions, useMailboxes, useMailContacts, useMailThreads } from '@/lib/queries/mail'
 import { cn } from '@/lib/utils'
 import { bodyText, fold, forwardSubject, longWhen, parseAddress, personName, quoted, replySubject, replyTargets } from './mail-utils'
 import { useMailError } from './mail-errors'
@@ -50,6 +50,9 @@ export type ComposeMode =
  * reenviar. Para y Cc con sugerencias de la gente de Veltro, de quienes están en el hilo y de los
  * contactos de Google; «Drive» inserta el enlace de un archivo. Al responder, el mensaje citado va
  * al pie (se puede quitar). ⌘↵ envía.
+ *
+ * `page`: el correo nuevo, como una hoja de carta que llena el panel (quién envía y a quién arriba, el
+ * asunto grande como título y el mensaje con todo el alto); `inline`: la respuesta dentro del hilo.
  */
 export function MailComposer({
   box,
@@ -58,6 +61,7 @@ export function MailComposer({
   known = [],
   onClose,
   className,
+  variant = 'inline',
 }: {
   box: string
   fromEmail: string
@@ -66,12 +70,17 @@ export function MailComposer({
   known?: MailAddress[]
   onClose: () => void
   className?: string
+  variant?: 'inline' | 'page'
 }) {
   const t = useTranslations('mail.compose')
+  const tMail = useTranslations('mail')
+  const { profile } = useApp()
   const locale = useDateLocale()
   const mailError = useMailError()
   const { send } = useMailActions(box)
   const mailbox = useMailboxes().data?.items.find((b) => b.id === box)
+  // a quién le escribiste hace poco: Para vacío lo ofrece antes de escribir nada
+  const recent = useRecentRecipients(box, Boolean(mailbox?.canRead))
   const [driveOpen, setDriveOpen] = useState(false)
 
   const initial = useMemo(() => {
@@ -106,6 +115,14 @@ export function MailComposer({
   const [withQuote, setWithQuote] = useState(saved?.withQuote ?? true)
   const [quoteOpen, setQuoteOpen] = useState(false)
   const text = useRef<HTMLTextAreaElement>(null)
+  // un borrador recuperado que ya tiene a quién: se sigue escribiendo el mensaje, donde quedó
+  const [startInBody] = useState(() => variant === 'page' && (saved?.to ?? initial.to).length > 0)
+  useEffect(() => {
+    const ta = text.current
+    if (!startInBody || !ta) return
+    ta.focus()
+    ta.setSelectionRange(ta.value.length, ta.value.length)
+  }, [startInBody])
 
   // se guarda mientras se escribe; si quedó como al abrirlo, no hay nada que guardar
   useEffect(() => {
@@ -151,6 +168,8 @@ export function MailComposer({
   }
 
   const isReply = mode.kind === 'reply' || mode.kind === 'replyAll'
+  // hay algo escrito (y por eso queda guardado si se cierra)
+  const dirty = to.length > 0 || cc.length > 0 || bcc.length > 0 || subject.trim() !== initial.subject.trim() || body.trim() !== initial.body.trim()
 
   /** El archivo de Drive entra donde está el cursor, en su propia línea: «Nombre: enlace». */
   const insertDrive = (f: ApiDriveFile) => {
@@ -170,6 +189,136 @@ export function MailComposer({
       const pos = before.length + (before && !before.endsWith('\n') ? 1 : 0) + line.length + 1
       ta?.setSelectionRange(pos, pos)
     })
+  }
+
+  const onKeys = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      submit()
+    }
+    if (e.key === 'Escape' && !body.trim()) done()
+  }
+  const ccToggles = (
+    <span className="ml-auto flex shrink-0 gap-0.5 self-start pt-1.5">
+      {!showCc ? (
+        <button type="button" onClick={() => setShowCc(true)} className="rounded-md px-1.5 py-0.5 text-xs font-medium text-fg-muted hover:bg-hover hover:text-fg">
+          {t('cc')}
+        </button>
+      ) : null}
+      {!showBcc ? (
+        <button type="button" onClick={() => setShowBcc(true)} className="rounded-md px-1.5 py-0.5 text-xs font-medium text-fg-muted hover:bg-hover hover:text-fg">
+          {t('bcc')}
+        </button>
+      ) : null}
+    </span>
+  )
+
+  if (variant === 'page') {
+    return (
+      // la hoja llena el panel: lo de arriba fijo, el mensaje se desplaza y el pie queda abajo
+      <div className={cn('flex h-full min-h-0 w-full flex-col p-2 sm:p-4', className)} onKeyDown={onKeys}>
+        <div className="mx-auto flex min-h-0 w-full max-w-[920px] flex-1 flex-col overflow-hidden rounded-[22px] bg-panel shadow-sheet ring-1 ring-line-soft animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out">
+          <header className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-3.5 sm:px-6">
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label={tMail('backToList')} className="-ml-1.5 lg:hidden">
+              <ArrowLeft />
+            </Button>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft py-1 pl-2 pr-2.5 text-xs font-semibold text-accent-ink">
+              <PenLine className="size-3.5" />
+              {tMail('newMessage')}
+            </span>
+            {/* lo escrito queda en la pestaña: al volver, sigue ahí */}
+            {dirty ? (
+              <span className="inline-flex items-center gap-1 text-xs text-fg-subtle animate-in fade-in-0 duration-300">
+                <Check className="size-3.5" />
+                {t('draftSaved')}
+              </span>
+            ) : null}
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('close')} title={t('close')} className="ml-auto max-lg:hidden">
+              <X />
+            </Button>
+          </header>
+
+          {restored ? (
+            <div className="mx-4 mb-1 flex items-center gap-2 rounded-xl bg-accent-soft/50 px-3 py-1.5 text-xs text-fg-muted sm:mx-6">
+              <History className="size-3.5 shrink-0 text-accent-ink" />
+              <span className="min-w-0 flex-1">{t('draftRestored')}</span>
+              <button type="button" onClick={startOver} className="shrink-0 rounded px-1 py-0.5 font-medium text-accent-ink hover:underline">
+                {t('startOver')}
+              </button>
+            </div>
+          ) : null}
+
+          {/* quién envía y a quién: el encabezado de la carta */}
+          <div className="mx-4 flex shrink-0 flex-col divide-y divide-line-soft border-b border-line-soft sm:mx-6">
+            <div className="flex min-h-11 items-center gap-3 py-1.5">
+              <span className="w-12 shrink-0 text-xs font-medium text-fg-muted">{t('fromLabel')}</span>
+              <Avatar name={profile.full_name} src={profile.avatar_url} seed={profile.id} size={24} />
+              <span className="min-w-0 truncate text-sm">
+                <span className="font-semibold text-fg">{profile.full_name}</span>
+                <span className="ml-1.5 text-fg-muted">{fromEmail}</span>
+              </span>
+            </div>
+            <Row label={t('to')} wide>
+              <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={to} onChange={setTo} known={known} recent={recent} autoFocus={!startInBody} label={t('to')} />
+              {ccToggles}
+            </Row>
+            {showCc ? (
+              <Row label={t('cc')} wide>
+                <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={cc} onChange={setCc} known={known} recent={recent} label={t('cc')} />
+              </Row>
+            ) : null}
+            {showBcc ? (
+              <Row label={t('bcc')} wide>
+                <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={bcc} onChange={setBcc} known={known} recent={recent} label={t('bcc')} />
+              </Row>
+            ) : null}
+          </div>
+
+          {/* el asunto como título y el mensaje con todo el alto */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-5 scrollbar-thin sm:px-6" onClick={(e) => e.target === e.currentTarget && text.current?.focus()}>
+            {/* el asunto crece en renglones (en el teléfono no se corta) y Enter pasa al mensaje */}
+            <textarea
+              rows={1}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value.replace(/\s*\n\s*/g, ' '))}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || e.metaKey || e.ctrlKey || e.nativeEvent.isComposing) return
+                e.preventDefault()
+                text.current?.focus()
+              }}
+              maxLength={500}
+              aria-label={t('subject')}
+              placeholder={t('subjectPlaceholder')}
+              className="w-full shrink-0 resize-none overflow-hidden bg-transparent text-[22px] font-semibold leading-tight tracking-[-0.02em] text-fg outline-none [field-sizing:content] placeholder:text-fg-subtle/60 sm:text-[24px]"
+            />
+            <textarea
+              ref={text}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              aria-label={t('body')}
+              placeholder={t('pagePlaceholder')}
+              className="mt-3 min-h-40 w-full max-w-[72ch] flex-1 resize-none bg-transparent text-[15px] leading-[1.7] text-fg outline-none placeholder:text-fg-subtle/70"
+            />
+          </div>
+
+          <footer className="flex shrink-0 items-center gap-2 border-t border-line-soft bg-canvas/50 px-3 py-2.5 sm:px-5">
+            <Button variant="primary" onClick={submit} disabled={!ready} loading={send.isPending} className="pl-3 pr-2">
+              <Send />
+              {t('send')}
+              <kbd className="ml-1 hidden rounded-[5px] bg-[oklch(1_0_0/0.16)] px-1 font-sans text-[11px] font-medium sm:inline">⌘↵</kbd>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setDriveOpen(true)} title={t('driveHint')}>
+              <HardDrive />
+              {t('drive')}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={done} aria-label={t('discard')} title={t('discard')} className="ml-auto hover:text-danger">
+              <Trash2 />
+            </Button>
+          </footer>
+        </div>
+        <DriveInsertDialog box={box} open={driveOpen} onOpenChange={setDriveOpen} onPick={insertDrive} />
+      </div>
+    )
   }
 
   return (
@@ -194,7 +343,7 @@ export function MailComposer({
       ) : null}
       <div className="flex flex-col divide-y divide-line-soft px-4">
         <Row label={t('to')}>
-          <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={to} onChange={setTo} known={known} autoFocus={!isReply} label={t('to')} />
+          <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={to} onChange={setTo} known={known} recent={recent} autoFocus={!isReply} label={t('to')} />
           <span className="ml-auto flex shrink-0 gap-0.5 self-start pt-1.5">
             {!showCc ? (
               <button type="button" onClick={() => setShowCc(true)} className="rounded px-1.5 py-0.5 text-xs text-fg-muted hover:bg-hover hover:text-fg">
@@ -210,12 +359,12 @@ export function MailComposer({
         </Row>
         {showCc ? (
           <Row label={t('cc')}>
-            <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={cc} onChange={setCc} known={known} label={t('cc')} />
+            <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={cc} onChange={setCc} known={known} recent={recent} label={t('cc')} />
           </Row>
         ) : null}
         {showBcc ? (
           <Row label={t('bcc')}>
-            <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={bcc} onChange={setBcc} known={known} label={t('bcc')} />
+            <RecipientInput box={box} google={Boolean(mailbox?.canContacts)} value={bcc} onChange={setBcc} known={known} recent={recent} label={t('bcc')} />
           </Row>
         ) : null}
         {isReply ? null : (
@@ -285,13 +434,33 @@ export function MailComposer({
   )
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) {
   return (
-    <div className="flex min-h-10 items-start gap-3 py-0.5">
-      <span className="w-12 shrink-0 pt-2.5 text-xs text-fg-muted">{label}</span>
+    <div className={cn('flex items-start gap-3 py-0.5', wide ? 'min-h-11' : 'min-h-10')}>
+      <span className={cn('w-12 shrink-0 text-xs text-fg-muted', wide ? 'pt-3 font-medium' : 'pt-2.5')}>{label}</span>
       <div className="flex min-w-0 flex-1 items-start gap-2">{children}</div>
     </div>
   )
+}
+
+/**
+ * A quién le escribiste hace poco: la gente de lo último que enviaste (lo más nuevo primero, sin
+ * repetir y sin vos). Sale de Enviados, que la lista del correo ya pide.
+ */
+function useRecentRecipients(box: string, enabled: boolean): MailAddress[] {
+  const { data } = useMailThreads(enabled ? box : null, 'SENT', '')
+  return useMemo(() => {
+    const seen = new Set<string>()
+    const out: MailAddress[] = []
+    for (const th of data?.pages[0]?.items ?? [])
+      for (const p of [...th.to, ...th.participants]) {
+        const key = p.email.toLowerCase()
+        if (p.me || !key || seen.has(key)) continue
+        seen.add(key)
+        out.push({ name: p.name, email: p.email })
+      }
+    return out
+  }, [data])
 }
 
 /** `google`: viene de los contactos de Google (no es alguien de Veltro ni del hilo) */
@@ -308,6 +477,7 @@ function RecipientInput({
   value,
   onChange,
   known,
+  recent,
   autoFocus,
   label,
 }: {
@@ -317,6 +487,8 @@ function RecipientInput({
   value: MailAddress[]
   onChange: (v: MailAddress[]) => void
   known: MailAddress[]
+  /** a quién le escribí hace poco: se ofrece con el campo vacío */
+  recent: MailAddress[]
   autoFocus?: boolean
   label: string
 }) {
@@ -324,8 +496,16 @@ function RecipientInput({
   const { members, user } = useApp()
   const [q, setQ] = useState('')
   const [bad, setBad] = useState(false)
-  const [active, setActive] = useState(0)
+  // -1: nada marcado (con el campo vacío, Enter no elige a nadie sin querer)
+  const [active, setActive] = useState(-1)
+  const [focused, setFocused] = useState(false)
+  // Esc cierra la lista sin cerrar el correo
+  const [open, setOpen] = useState(true)
   const input = useRef<HTMLInputElement>(null)
+  // autoFocus pone el foco al montar sin avisar si la ventana no lo tenía: se mira dónde quedó
+  useEffect(() => {
+    if (document.activeElement === input.current) setFocused(true)
+  }, [])
 
   const pool = useMemo(() => {
     const all: MailAddress[] = [...known, ...members.filter((m) => m.id !== user.id).map((m) => ({ name: m.full_name, email: m.email }))]
@@ -347,7 +527,16 @@ function RecipientInput({
           .filter((c) => !chosen(c) && !local.some((l) => l.email.toLowerCase() === c.email.toLowerCase()) && (fresh || matches(c)))
           .map((c) => ({ ...c, google: true }))
       : []
-  const suggestions: Suggestion[] = [...local, ...fromGoogle].slice(0, 8)
+  // sin nada escrito, a quién le escribiste hace poco
+  const showingRecent = !needle
+  const suggestions: Suggestion[] = showingRecent ? recent.filter((a) => !chosen(a)).slice(0, 6) : [...local, ...fromGoogle].slice(0, 8)
+  const listOpen = focused && open && suggestions.length > 0
+  const hi = showingRecent ? active : Math.max(active, 0)
+  const pick = (s: Suggestion) => {
+    add([s])
+    setQ('')
+    setActive(-1)
+  }
 
   const add = (list: MailAddress[]) => {
     const next = [...value]
@@ -397,7 +586,8 @@ function RecipientInput({
         onChange={(e) => {
           setQ(e.target.value)
           setBad(false)
-          setActive(0)
+          setActive(e.target.value.trim() ? 0 : -1)
+          setOpen(true)
         }}
         onPaste={(e) => {
           const pasted = e.clipboardData.getData('text')
@@ -407,16 +597,22 @@ function RecipientInput({
           add(list)
         }}
         onKeyDown={(e) => {
-          if (suggestions.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+          if (listOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
             e.preventDefault()
-            setActive((i) => (i + (e.key === 'ArrowDown' ? 1 : suggestions.length - 1)) % suggestions.length)
+            const down = e.key === 'ArrowDown'
+            setActive((i) => (i < 0 ? (down ? 0 : suggestions.length - 1) : (i + (down ? 1 : suggestions.length - 1)) % suggestions.length))
+            return
+          }
+          if (listOpen && e.key === 'Escape') {
+            e.preventDefault()
+            e.stopPropagation()
+            setOpen(false)
             return
           }
           if ((e.key === 'Enter' && !(e.metaKey || e.ctrlKey)) || e.key === ',' || e.key === ';' || (e.key === 'Tab' && q.trim())) {
-            if (suggestions.length && e.key !== ',' && e.key !== ';') {
+            if (listOpen && hi >= 0 && e.key !== ',' && e.key !== ';') {
               e.preventDefault()
-              add([suggestions[active] ?? suggestions[0]])
-              setQ('')
+              pick(suggestions[hi])
               return
             }
             if (q.trim()) {
@@ -426,40 +622,48 @@ function RecipientInput({
           }
           if (e.key === 'Backspace' && !q && value.length) onChange(value.slice(0, -1))
         }}
+        onFocus={() => {
+          setFocused(true)
+          setOpen(true)
+        }}
         onBlur={() => {
+          setFocused(false)
+          setActive(-1)
           if (q.trim() && !suggestions.length) commit()
         }}
         className={cn('h-7 min-w-32 flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-fg-subtle', bad && 'text-danger')}
         placeholder={value.length ? '' : t('recipientsPlaceholder')}
       />
-      {suggestions.length ? (
-        <ul role="listbox" className="absolute left-0 top-full z-20 mt-1 w-full max-w-sm overflow-hidden rounded-xl border border-line bg-panel p-1 shadow-lift">
-          {suggestions.map((s, i) => (
-            <li key={s.email} role="option" aria-selected={i === active}>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  add([s])
-                  setQ('')
-                }}
-                className={cn('flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left', i === active ? 'bg-hover' : 'hover:bg-hover')}
-              >
-                <Avatar name={s.name || s.email} seed={s.email} src={s.photo} size={24} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] text-fg">{s.name || s.email}</span>
-                  {s.name ? <span className="block truncate text-2xs text-fg-subtle">{s.email}</span> : null}
-                </span>
-                {s.google ? (
-                  <span title={t('fromGoogle')} className="flex shrink-0 opacity-70">
-                    <GoogleG className="size-3" />
-                    <span className="sr-only">{t('fromGoogle')}</span>
+      {listOpen ? (
+        <div className="absolute left-0 top-full z-20 mt-1 w-full max-w-sm overflow-hidden rounded-xl border border-line bg-panel p-1 shadow-lift animate-in fade-in-0 slide-in-from-top-1 duration-150 ease-out">
+          {showingRecent ? <p className="px-2 pb-1 pt-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-fg-subtle">{t('recent')}</p> : null}
+          <ul role="listbox" aria-label={showingRecent ? t('recent') : label}>
+            {suggestions.map((s, i) => (
+              <li key={s.email} role="option" aria-selected={i === hi}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    pick(s)
+                  }}
+                  className={cn('flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left', i === hi ? 'bg-hover' : 'hover:bg-hover')}
+                >
+                  <Avatar name={s.name || s.email} seed={s.email} src={s.photo} size={24} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] text-fg">{s.name || s.email}</span>
+                    {s.name ? <span className="block truncate text-2xs text-fg-subtle">{s.email}</span> : null}
                   </span>
-                ) : null}
-              </button>
-            </li>
-          ))}
-        </ul>
+                  {s.google ? (
+                    <span title={t('fromGoogle')} className="flex shrink-0 opacity-70">
+                      <GoogleG className="size-3" />
+                      <span className="sr-only">{t('fromGoogle')}</span>
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {bad ? <span className="w-full text-2xs text-danger">{t('badAddress')}</span> : null}
     </div>

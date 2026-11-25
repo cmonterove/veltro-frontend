@@ -4,6 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 /* pantallas bajas (laptops con la barra del navegador): las pantallas que deben caber sin scroll se compactan */
 @custom-variant short (@media (max-height: 820px));
+@custom-variant tall (@media (min-height: 880px));
 
 /* ============================================================
    Veltro: tokens de marca (identidad 1.0, noviembre 2026)
@@ -474,6 +475,23 @@
   --chart-rest: oklch(0.969 0.011 54.5 / 0.45);
   --chart-risk: oklch(0.72 0.17 28);
   background: linear-gradient(180deg, color-mix(in oklch, var(--frame-hi) 55%, var(--frame)) 0, var(--frame) 7rem) var(--frame);
+}
+
+/*
+ * Los colores de estado aclarados de day-surface, sin su fondo: para lo que va sobre la portada de una
+ * página (el ciruela lo pinta CoverBackdrop, detrás), como el resumen de Tareas o el de Dashboards.
+ */
+@utility day-ink {
+  --danger: oklch(0.79 0.13 32);
+  --mandarina-ink: oklch(0.84 0.12 58);
+  --st-progress: oklch(0.84 0.12 58);
+  --st-blocked: oklch(0.79 0.13 32);
+  --done: oklch(0.8 0.13 3);
+  --chart-closed: #e86081;
+  --chart-new: #9186d1;
+  --chart-track: oklch(0.969 0.011 54.5 / 0.12);
+  --chart-rest: oklch(0.969 0.011 54.5 / 0.45);
+  --chart-risk: oklch(0.72 0.17 28);
 }
 
 /* Paleta del kit de identidad (06-Color/veltro-tailwind-theme.css): clases bg-ciruela-100, text-frambuesa, etc. */

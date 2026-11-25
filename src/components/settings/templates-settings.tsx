@@ -88,7 +88,7 @@ function Column({
 }) {
   const t = useTranslations('settings.templates')
   return (
-    <section className="flex min-h-[26rem] min-w-0 flex-col rounded-2xl bg-sidebar/55 p-4 ring-1 ring-line-soft">
+    <section className="flex min-h-[26rem] min-w-0 flex-col rounded-2xl bg-[color-mix(in_oklch,var(--sidebar)_55%,var(--canvas))] p-4 ring-1 ring-line-soft">
       <div className="flex items-start gap-3 px-1 pb-1">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-panel text-accent-ink shadow-card">{icon}</span>
         <div className="min-w-0 flex-1">

@@ -18,6 +18,7 @@ import { WORKSPACE_COLORS } from '@/lib/constants'
 import type { TaskStatus } from '@/lib/database.types'
 import { cn, workspaceKeyFrom } from '@/lib/utils'
 import { WORKSPACE_TEMPLATES, type WorkspaceTemplate } from '@/lib/workspace-templates'
+import { CoverBackdrop } from '@/components/app/cover'
 
 const TEMPLATE_ICON: Record<string, LucideIcon> = { blank: LayoutGrid, client: Handshake, project: FolderKanban, sales: TrendingUp, helpdesk: LifeBuoy, content: Megaphone }
 /** Lo que sigue después de crearlo (en pantallas altas, al pie de las plantillas). */
@@ -86,11 +87,10 @@ export function NewWorkspace({ usage }: { usage: Usage | null }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* la identidad, en su color: lo que se ve en la barra lateral y en cada tarea */}
-      <section
-        className={cn(`ws-${form.color}`, 'mb-4 flex shrink-0 items-center gap-4 rounded-[18px] border border-line px-4 py-4 transition-[background-color] duration-300 ease-out sm:gap-5 sm:px-5')}
-        style={{ background: 'color-mix(in oklch, var(--ws-color) 11%, var(--panel))' }}
-      >
+      {/* la identidad (lo que se ve en la barra lateral y en cada tarea) sobre la portada ciruela, como en los
+          ajustes de cada espacio: la marca toma el color al momento; abajo, el arranque se monta sobre el borde */}
+      <section className="on-frame relative mb-4 flex shrink-0 items-center gap-4 sm:gap-5">
+        <CoverBackdrop className="-inset-x-2.5 -top-4 -bottom-[76px] sm:-inset-x-5 sm:-top-5" />
         <WorkspaceMark ws={live} size={56} className="shadow-[0_1px_3px_oklch(0.2_0.02_300/0.14)] transition-[background-color] duration-300 max-sm:hidden" />
         <div className="min-w-0 flex-1">
           <h1 className="text-2xs font-semibold uppercase tracking-[0.08em] text-fg-muted">{t('newTitle')}</h1>
@@ -161,7 +161,7 @@ export function NewWorkspace({ usage }: { usage: Usage | null }) {
         </div>
       </section>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-card lg:grid lg:min-h-[25rem] lg:grid-cols-[18.5rem_minmax(0,1fr)] 2xl:grid-cols-[21rem_minmax(0,1fr)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-card lg:grid lg:min-h-[24.5rem] lg:grid-cols-[18.5rem_minmax(0,1fr)] 2xl:grid-cols-[21rem_minmax(0,1fr)]">
         {/* con qué arranca */}
         <div className="flex min-h-0 flex-col border-b border-line-soft bg-sidebar/45 lg:border-b-0 lg:border-r">
           <div className="px-4 pb-2 pt-4">

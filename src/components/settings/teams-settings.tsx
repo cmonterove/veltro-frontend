@@ -110,7 +110,7 @@ export function TeamsSettings({ admin }: { admin: boolean }) {
               <button
                 type="button"
                 onClick={() => setEditing('new')}
-                className="flex h-full min-h-44 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong text-sm text-fg-muted transition-colors hover:border-accent-mid hover:bg-accent-soft/40 hover:text-accent-ink"
+                className="flex h-full min-h-44 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong bg-canvas text-sm text-fg-muted transition-colors hover:border-accent-mid hover:bg-[color-mix(in_oklch,var(--accent-soft)_40%,var(--canvas))] hover:text-accent-ink"
               >
                 <span className="flex size-10 items-center justify-center rounded-xl bg-hover">
                   <Plus className="size-5" />
@@ -168,7 +168,7 @@ function EmptyTeams({ admin, onCreate }: { admin: boolean; onCreate: () => void 
     </div>
   )
   return (
-    <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong px-6 py-10 text-center">
+    <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong bg-canvas px-6 py-10 text-center">
       <div className="relative h-40 w-56" aria-hidden>
         <div className="absolute inset-0 translate-x-5 translate-y-2 rotate-[5deg] opacity-50">{ghost('teal')}</div>
         <div className="absolute inset-0 -rotate-[2deg]">{ghost('violet')}</div>

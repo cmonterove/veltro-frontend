@@ -410,6 +410,43 @@ export function useDeleteTaskWithUndo() {
   }
 }
 
+/**
+ * Borrar varias de una vez (la edición múltiple de la Tabla): salen de la vista al momento, un solo aviso
+ * con «Deshacer» y se borran de verdad a los 5 segundos. Si alguna no se puede, la lista se pide de nuevo.
+ */
+export function useDeleteTasksWithUndo() {
+  const qc = useQueryClient()
+  const t = useTranslations('tasks')
+  const onError = useErrorToast()
+  return (ids: string[]) => {
+    if (!ids.length) return
+    const gone = new Set(ids)
+    const snapshot = qc.getQueriesData<TaskRow[]>({ queryKey: taskKeys.all })
+    qc.setQueriesData<TaskRow[]>({ queryKey: taskKeys.all }, (old) => (Array.isArray(old) ? old.filter((x) => !gone.has(x.id)) : old))
+    let undone = false
+    const timer = window.setTimeout(async () => {
+      if (undone) return
+      const results = await Promise.allSettled(ids.map((id) => api(`/v1/tasks/${id}`, { method: 'DELETE' })))
+      const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+      if (failed) onError(failed.reason)
+      qc.invalidateQueries({ queryKey: taskKeys.all })
+      qc.invalidateQueries({ queryKey: taskKeys.stats })
+      qc.invalidateQueries({ queryKey: ['attachments'] })
+    }, 5000)
+    toast(t('bulk.deleted', { count: ids.length }), {
+      duration: 5000,
+      action: {
+        label: t('undo'),
+        onClick: () => {
+          undone = true
+          window.clearTimeout(timer)
+          snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
+        },
+      },
+    })
+  }
+}
+
 /** Subtareas: vienen en el detalle de la tarea madre (también si se ve por el organigrama). */
 export function useSubtasks(parentId: string | null) {
   const qc = useQueryClient()
