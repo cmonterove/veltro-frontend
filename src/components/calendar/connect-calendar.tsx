@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { RefreshCw } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
+import { connectMailHref } from '@/lib/api/correo'
 import { cn } from '@/lib/utils'
 import { track } from '@/lib/telemetry'
 
@@ -63,13 +64,32 @@ export function CalendarGlyph({ size = 'md', revoked, className }: { size?: keyo
 /**
  * El botón para conectar: con la «G» y los colores del botón de Google (claro en el tema claro, casi
  * negro en el oscuro, como pide su guía de marca). Es lo que la gente reconoce como «entrar con Google».
+ * `kind="mail"` conecta el correo (el buzón) en vez del calendario; con `onClick` que llame a
+ * preventDefault, se queda (p. ej. para mostrar antes la guía de cómo dar acceso).
  */
-export function GoogleConnectButton({ returnTo, label, size = 'md', className }: { returnTo: string; label?: string; size?: 'sm' | 'md'; className?: string }) {
+export function GoogleConnectButton({
+  returnTo,
+  label,
+  size = 'md',
+  kind = 'calendar',
+  onClick,
+  className,
+}: {
+  returnTo: string
+  label?: string
+  size?: 'sm' | 'md'
+  kind?: 'calendar' | 'mail'
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
+  className?: string
+}) {
   const t = useTranslations('calendar.connect')
   return (
     <a
-      href={connectGoogleHref(returnTo)}
-      onClick={() => track('feature.calendar_connect')}
+      href={kind === 'mail' ? connectMailHref(returnTo) : connectGoogleHref(returnTo)}
+      onClick={(e) => {
+        onClick?.(e)
+        if (!e.defaultPrevented) track(kind === 'mail' ? 'feature.mail_connect' : 'feature.calendar_connect')
+      }}
       className={cn(
         'inline-flex shrink-0 items-center justify-center gap-2.5 whitespace-nowrap rounded-full border font-medium outline-none transition-[background-color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-accent-mid/40',
         'border-[#747775] bg-[#ffffff] text-[#1f1f1f] shadow-[0_1px_2px_rgb(60_64_67/0.12)] hover:bg-[#f8fafd] hover:shadow-[0_1px_3px_rgb(60_64_67/0.25)]',

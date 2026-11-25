@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes'
 import { Command } from 'cmdk'
 import { Dialog as D } from '@base-ui/react/dialog'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, CalendarDays, CalendarPlus, ChartColumnBig, CircleCheck, Columns3, Compass, Diamond, FilePlus2, FileText, Keyboard, Languages, ListTodo, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Search, Settings, Sparkles, SquarePen, Sun, Vault, Video } from 'lucide-react'
+import { Activity, CalendarDays, CalendarPlus, ChartColumnBig, CircleCheck, Columns3, Compass, Diamond, FilePlus2, FileText, Keyboard, Languages, ListTodo, Mail, MessagesSquare, Moon, PanelLeftClose, PanelLeftOpen, Search, Settings, Sparkles, SquarePen, Sun, Vault, Video } from 'lucide-react'
 import { format } from 'date-fns'
 import { Kbd } from '@/components/ui/kbd'
 import { useDateLocale } from '@/lib/dates'
@@ -117,6 +117,7 @@ export function CommandPalette({
     { label: tNav('mesa'), icon: Columns3, href: '/mesa', keys: ['G', 'M'] },
     { label: tNav('calendar'), icon: CalendarDays, href: '/calendar', keys: ['G', 'C'] },
     { label: tNav('myTasks'), icon: CircleCheck, href: '/tasks', keys: ['G', 'T'] },
+    { label: tNav('mail'), icon: Mail, href: '/mail', keys: ['G', 'E'] },
     { label: tNav('dashboards'), icon: ChartColumnBig, href: '/dashboards', keys: ['G', 'A'] },
     { label: tNav('vault'), icon: Vault, href: '/vault', keys: ['G', 'B'] },
     { label: tNav('pasillo'), icon: MessagesSquare, href: '/chat', keys: ['G', 'P'] },

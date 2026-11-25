@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { parseQuickTask } from '@/lib/quick-parse'
 import { statusKey, statusPatch, workspaceStatuses, type StatusOption } from '@/lib/statuses'
 import { useStatusName } from '@/lib/use-status-name'
-import type { TaskPriority } from '@/lib/database.types'
+import type { TaskPriority, TaskRow } from '@/lib/database.types'
 import { AssigneesMenu, DuePopover, PriorityMenu, StatusMenu } from './pickers'
 import { PriorityIcon, StatusIcon } from './status-icon'
 import { DueDate } from './due-date'
@@ -28,10 +28,14 @@ export function QuickTaskDialog({
   open,
   onOpenChange,
   defaults,
+  onCreated,
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
-  defaults?: { workspaceId?: string; dueDate?: string | null; assigneeIds?: string[] }
+  /** con `title` y `description`, la tarea llega ya escrita (p. ej. desde un correo) */
+  defaults?: { workspaceId?: string; dueDate?: string | null; assigneeIds?: string[]; title?: string; description?: string }
+  /** si está, se queda donde está (p. ej. leyendo el correo) en vez de abrir la tarea */
+  onCreated?: (task: TaskRow) => void
 }) {
   const t = useTranslations('tasks')
   const statusName = useStatusName()
@@ -59,6 +63,7 @@ export function QuickTaskDialog({
     setWorkspaceId(defaults?.workspaceId ?? fromPath?.id ?? editableWs[0]?.id)
     setDue(defaults?.dueDate ?? null)
     setAssignees(defaults?.assigneeIds ?? [user.id])
+    if (defaults?.title) setTitle(defaults.title.slice(0, 500))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -99,13 +104,15 @@ export function QuickTaskDialog({
         assignee_ids: membersLoaded ? effAssignees.filter((id) => members.some((m) => m.id === id)) : effAssignees,
         due_date: effDue,
         position: Date.now() / 1000,
+        ...(defaults?.description ? { description_text: defaults.description.slice(0, 20_000) } : {}),
       },
       {
         onSuccess: ([task]) => {
           reset()
           if (!keepOpen) {
             onOpenChange(false)
-            if (task) panel.open(task.id)
+            if (task && onCreated) onCreated(task)
+            else if (task) panel.open(task.id)
           }
         },
       },

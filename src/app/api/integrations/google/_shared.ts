@@ -10,11 +10,20 @@ import { ApiError, parseResponse } from '@/lib/api/shared'
 
 /** Cookie con el secreto del navegador que empezó la conexión (la API guarda solo su hash en el estado). */
 export const BINDING_COOKIE = 'veltro-google-binding'
+/** La del correo (el buzón), aparte: conectar el correo no pisa una conexión del calendario a medio camino. */
+export const MAIL_BINDING_COOKIE = 'veltro-mail-binding'
 export const BINDING_PATH = '/api/integrations/google'
+
+const internal = (v: string | null | undefined): v is string => Boolean(v && v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/\\') && v.length <= 200)
 
 /** Solo rutas internas de la web (nada de //otro.sitio). */
 export function safeReturn(v: string | null | undefined) {
-  return v && v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/\\') && v.length <= 200 ? v : '/settings/preferences'
+  return internal(v) ? v : '/settings/preferences'
+}
+
+/** Lo mismo para el correo: si no, vuelve al buzón. */
+export function safeMailReturn(v: string | null | undefined) {
+  return internal(v) ? v : '/mail'
 }
 
 type Result<T> = { renewed: ApiSession | null } & ({ data: T; error: null } | { data: null; error: ApiError })

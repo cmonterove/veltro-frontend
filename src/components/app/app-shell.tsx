@@ -155,7 +155,7 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
   }, [quickTaskOpen])
 
   useEffect(() => {
-    const routes: Record<string, string> = { h: '/home', ...(AI_ENABLED ? { v: '/veltro' } : {}), m: '/mesa', c: '/calendar', t: '/tasks', a: '/dashboards', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
+    const routes: Record<string, string> = { h: '/home', ...(AI_ENABLED ? { v: '/veltro' } : {}), m: '/mesa', c: '/calendar', t: '/tasks', e: '/mail', a: '/dashboards', s: '/requests', d: '/decisions', b: '/vault', p: '/chat' }
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()

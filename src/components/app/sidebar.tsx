@@ -41,10 +41,12 @@ import {
   SlidersHorizontal,
   UserRound,
   ArrowLeft,
+  Mail,
 } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from './app-context'
 import { DemoDataMenuItem } from './demo-data'
 import { useChatUnread } from '@/lib/queries/chats'
+import { useMailboxes } from '@/lib/queries/mail'
 import {
   Menu,
   MenuContent,
@@ -239,6 +241,8 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
   // solicitudes: las nuevas de mis departamentos y las respuestas a lo que pedí
   const requestCounts = useRequestSummary().data?.counts
   const requestsPending = (requestCounts?.inboxNew ?? 0) + (requestCounts?.mineUnread ?? 0)
+  // correo: los hilos sin leer en Recibidos de las cuentas que se pueden leer
+  const mailUnread = (useMailboxes().data?.items ?? []).reduce((n, b) => n + (b.canRead ? (b.unread ?? 0) : 0), 0)
   // cada barra (escritorio y celular) con su propia pastilla: con el mismo id, Motion deja visible solo una
   const pillId = useId()
 
@@ -249,6 +253,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
     mesa: { href: '/mesa', label: t('mesa'), icon: Columns3, keys: ['G', 'M'] },
     calendar: { href: '/calendar', label: t('calendar'), icon: CalendarDays, keys: ['G', 'C'] },
     tasks: { href: '/tasks', label: t('myTasks'), icon: CircleCheck, keys: ['G', 'T'] },
+    mail: { href: '/mail', label: t('mail'), icon: Mail, keys: ['G', 'E'], badge: mailUnread },
     dashboards: { href: '/dashboards', label: t('dashboards'), icon: ChartColumnBig, keys: ['G', 'A'] },
     requests: { href: '/requests', label: t('requests'), icon: RequestsIcon, keys: ['G', 'S'], badge: requestsPending },
     decisions: { href: '/decisions', label: t('decisions'), icon: Diamond, keys: ['G', 'D'] },
@@ -258,7 +263,7 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
   // Pulso arriba, solo; el resto en grupos que se pliegan (Veltro IA, oculta por ahora: lib/features)
   const homeItems: NavItem[] = [item.home, ...(AI_ENABLED ? [item.veltro] : [])]
   const groups: { id: string; label: string; items: NavItem[] }[] = [
-    { id: 'work', label: t('groups.work'), items: [item.tasks, item.dashboards, item.calendar, item.requests] },
+    { id: 'work', label: t('groups.work'), items: [item.tasks, item.mail, item.dashboards, item.calendar, item.requests] },
     { id: 'team', label: t('groups.team'), items: [item.chat, item.mesa] },
     { id: 'memory', label: t('groups.memory'), items: [item.decisions, item.vault] },
   ]
