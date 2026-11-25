@@ -695,7 +695,7 @@
       "grantRead": "Give it permission to read",
       "sendOnly": "You already connected {emails} to send notifications. Also give it permission to read:",
       "notConfigured": "The Google connection is not set up on this server.",
-      "permissions": "Veltro asks for permission to read, mark and send your mail (not to delete it forever) and, if you want, to see your contacts and the names of your Drive files (not their content). You can remove it anytime from your Google account.",
+      "permissions": "Veltro asks for permission to read, mark and send your mail (not to delete it forever) and, if you want, to see your contacts, your Drive files (to insert them in an email or copy them to the Vault) and your calendar. You can remove it anytime from your Google account.",
       "reconnect": "Connect again",
       "preview": {
         "inbox": "Inbox",
@@ -710,7 +710,9 @@
         "row3Who": "Dimassi",
         "row3Subject": "We need the proposal on Friday",
         "row3Snippet": "Could you send it before the close?"
-      }
+      },
+      "soon": "Coming soon",
+      "outlookSoon": "Outlook is coming soon."
     },
     "connectErrors": {
       "generic": "Could not connect mail. Try again.",
@@ -740,7 +742,15 @@
       "contacts_scope_missing": "Veltro has no permission to see your Google contacts. Connect your mail again and check that box.",
       "drive_scope_missing": "Veltro has no permission to see your Drive files. Connect your mail again and check that box.",
       "people_api_disabled": "The contacts API (People API) is not enabled in Veltro’s Google project.",
-      "drive_api_disabled": "The Drive API is not enabled in Veltro’s Google project."
+      "drive_api_disabled": "The Drive API is not enabled in Veltro’s Google project.",
+      "drive_content_scope_missing": "Veltro has no permission to download your Drive files. Give it the permission and try again.",
+      "drive_file_too_big": "The file is over 20 MB, the Vault’s limit.",
+      "drive_export_too_big": "Google won’t convert a file that large. Download it from Drive and upload it by hand.",
+      "drive_not_exportable": "That kind of Google file can’t be copied to the Vault.",
+      "drive_is_folder": "That’s a folder: pick the files inside.",
+      "drive_download_blocked": "Google won’t let you download that file (its owner blocked it or it hit the download limit).",
+      "drive_file_forbidden": "You don’t have permission to download that file.",
+      "drive_download_failed": "Couldn’t download the file from Drive."
     },
     "composeButton": "Compose",
     "taskCreated": "Task {ref} created",
@@ -766,7 +776,7 @@
       "step2Title": "Get past the warning",
       "step2Body": "Tap “Advanced” and then “Go to Veltro (unsafe)”.",
       "step3Title": "Check everything and continue",
-      "step3Body": "Tap “Select all” (mail, contacts and Drive) and then “Continue”.",
+      "step3Body": "Tap “Select all” (mail, contacts, Drive and calendar) and then “Continue”.",
       "why": "Veltro is new and Google has not finished verifying it yet: that is why it warns you. Your mail is not stored in Veltro (it is read from Google on the spot) and you can remove the permission anytime from your Google account.",
       "adminTitle": "Do you manage your company’s Google Workspace? Remove the warning for everyone",
       "adminBody": "Once, in the admin console, mark Veltro as a trusted app. From then on nobody in your company sees the warning:",
@@ -795,11 +805,66 @@
         "scopeContacts": "See your contacts",
         "scopeDrive": "See information about your Google Drive files",
         "cancel": "Cancel",
-        "continue": "Continue"
+        "continue": "Continue",
+        "scopeDriveFiles": "See and download all your Google Drive files",
+        "scopeCalendar": "View and edit events on all your calendars"
       },
       "clientId": "Client ID",
       "copyClientId": "Copy the client ID",
-      "clientIdCopied": "Client ID copied"
+      "clientIdCopied": "Client ID copied",
+      "driveTitle": "Let Veltro copy from your Drive",
+      "driveDescription": "The same three Google screens. You get every permission at once: mail, contacts, Drive and calendar.",
+      "driveWhy": "Veltro only downloads the files you pick, to copy them to the Vault. You can remove the permission anytime from your Google account.",
+      "allTitle": "Every Google permission, at once",
+      "allDescription": "There are three Google screens. Check everything and Veltro is ready: mail, contacts, Drive and calendar."
+    },
+    "categories": {
+      "label": "Inbox tabs",
+      "primary": "Primary",
+      "promotions": "Promotions",
+      "social": "Social",
+      "updates": "Updates",
+      "forums": "Forums"
+    },
+    "tabsToggle": "Tabs like Gmail",
+    "tabsToggleHint": "Primary, Promotions, Social…",
+    "connectOutlook": "Connect Outlook",
+    "googlePermissions": "Google permissions",
+    "home": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}",
+      "summaryUnread": "{count, plural, one {# to read in {where}} other {# to read in {where}}}",
+      "summaryWaiting": "{count, plural, one {# waiting for your reply} other {# waiting for your reply}}",
+      "summaryStarred": "{count, plural, one {# starred} other {# starred}}",
+      "upToDate": "You’re up to date in {where}.",
+      "compose": "Compose",
+      "toRead": "To read in {where}",
+      "latest": "Latest arrivals",
+      "allRead": "Nothing to read in {where}. Here’s what arrived last.",
+      "moreInList": "{count, plural, one {And # more in the list} other {And # more in the list}}",
+      "yesterday": "yesterday",
+      "waiting": "Waiting for your reply",
+      "nobodyWaiting": "Nobody is waiting for a reply from you this week.",
+      "noSubject": "(no subject)",
+      "tabs": "Your tabs",
+      "folders": "Folders",
+      "unreadShort": "{count, plural, one {# unread} other {# unread}}",
+      "caughtUp": "Up to date",
+      "starredShort": "{count, plural, one {# saved} other {# saved}}",
+      "none": "None",
+      "open": "Open",
+      "shortcuts": "Shortcuts",
+      "search": {
+        "attachments": "With attachments",
+        "unread": "Unread",
+        "week": "This week",
+        "starred": "Starred"
+      },
+      "driveTitle": "Bring from Drive",
+      "driveBody": "Copy files from your Drive to the Vault",
+      "permissionsTitle": "Google permissions",
+      "permissionsBody": "What Veltro sees of your account, and grant it all at once"
     }
   },
   "docs": {
@@ -1749,7 +1814,43 @@
         "unexpected": "Couldn’t connect Google Calendar."
       },
       "pageTitle": "Integrations",
-      "pageDescription": "Connect Veltro with the tools your team already uses."
+      "pageDescription": "Connect Veltro with the tools your team already uses.",
+      "permissions": {
+        "title": "Google permissions",
+        "description": "Once in Google and Veltro reads and answers your mail, suggests your contacts, brings files from Drive and shows your calendar. In Google you can uncheck what you don’t want.",
+        "grantAll": "Grant all permissions",
+        "connect": "Connect Google",
+        "review": "Review in Google",
+        "none": "You haven’t connected a Google account yet.",
+        "done": "Done: Google is connected with the permissions you gave.",
+        "sendOnly": "only to send email alerts",
+        "calendarOther": "connected as {email}",
+        "mail": {
+          "title": "Mail",
+          "body": "read, reply and send"
+        },
+        "contacts": {
+          "title": "Contacts",
+          "body": "suggestions while writing"
+        },
+        "drive": {
+          "title": "Drive",
+          "body": "insert files in an email"
+        },
+        "driveFiles": {
+          "title": "Drive",
+          "body": "copy files to the Vault"
+        },
+        "calendar": {
+          "title": "Calendar",
+          "body": "agenda and meetings"
+        }
+      },
+      "microsoft": {
+        "title": "Microsoft: Outlook and OneDrive",
+        "body": "Microsoft 365 mail, calendar and files, just like Google.",
+        "soon": "Coming soon"
+      }
     },
     "org": {
       "chartHint": "Everyone sees their own tasks and those of the people below them; a department head sees the whole department. Admins see everything.",
@@ -3036,7 +3137,8 @@
       "what": "What you are uploading",
       "mode": {
         "files": "Files",
-        "link": "Link"
+        "link": "Link",
+        "drive": "Google Drive"
       },
       "drop": "Drag files here or",
       "choose": "choose them from your computer",
@@ -3081,7 +3183,50 @@
       "uploaded": "Now it's version {version}",
       "restored": "Restored as version {version}"
     },
-    "dropHint": "Drag files here or click to choose them"
+    "dropHint": "Drag files here or click to choose them",
+    "fromDrive": "Google Drive",
+    "fromDriveHint": "Bring files from your Google Drive",
+    "drive": {
+      "description": "Pick files from your Drive: they’re copied to the Vault (Google files converted: Docs and Slides to PDF, Sheets to Excel).",
+      "label": "Google Drive",
+      "tabs": {
+        "recent": "Recent",
+        "mine": "My Drive",
+        "shared": "Shared with me"
+      },
+      "views": "What to see in Drive",
+      "search": "Search your Drive",
+      "clearSearch": "Clear search",
+      "path": "Folder",
+      "myDrive": "My Drive",
+      "folder": "Folder",
+      "noResults": "Nothing in your Drive for “{q}”.",
+      "emptyFolder": "This folder is empty.",
+      "emptyShared": "Nobody has shared files with you yet.",
+      "emptyRecent": "No recent files.",
+      "loading": "Loading…",
+      "more": "Load more",
+      "convertsTo": "copied as {ext}",
+      "problem": {
+        "notExportable": "This kind of Google file can’t be copied",
+        "badType": "The Vault doesn’t accept this file type",
+        "tooBig": "Over 20 MB"
+      },
+      "permissionTitle": "One permission is missing.",
+      "permissionBody": "To copy files, Veltro needs to be able to download them from your Drive.",
+      "grant": "Give permission",
+      "grantDrive": "Give Drive permission",
+      "connectTitle": "Connect your Google account",
+      "connectBody": "With your Google account connected you see your Drive here and copy whatever you want to the Vault.",
+      "connect": "Connect Google",
+      "needDriveTitle": "Drive permission is missing",
+      "needDriveBody": "Your Google account is connected, but without Drive access. Give the permission and you’ll come back here.",
+      "soon": "Coming soon",
+      "submit": "{count, plural, =0 {Pick files} one {Copy # to the Vault} other {Copy # to the Vault}}",
+      "fetching": "Downloading from Drive {done} of {total}…",
+      "failed": "Couldn’t bring “{name}”: {reason}",
+      "granted": "Done: you can now copy files from Drive."
+    }
   },
   "pasillo": {
     "title": "Hallway",

@@ -4,19 +4,28 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Check } from 'lucide-react'
+import { Calendar, Check, CircleDashed, ExternalLink, HardDrive, Mail, Users } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CalendarError, disconnectGoogle, saveSelectedCalendars, useCalendars, useInvalidateCalendar } from '@/lib/queries/calendar'
 import { toErrorCode } from '@/lib/errors'
-import { CalendarGlyph, GoogleConnectButton } from '@/components/calendar/connect-calendar'
+import { CalendarGlyph, GoogleConnectButton, GoogleG } from '@/components/calendar/connect-calendar'
+import { ConnectMailButton } from '@/components/mail/mail-connect'
+import { useMailboxes } from '@/lib/queries/mail'
+import { useHydrated } from '@/lib/hooks'
+import type { ApiMailbox } from '@/lib/api/correo'
 import { cn } from '@/lib/utils'
 import { SettingsSection } from './section'
 
-/** Integraciones, dentro de Preferencias: por ahora Google Calendar (agenda, notas por reunión y Meet). */
+/**
+ * Integraciones, dentro de Preferencias. Arriba, los permisos de Google de cada cuenta (correo,
+ * contactos, Drive y calendario) y un botón para darlos todos de una vez; después, Google Calendar
+ * (qué calendarios se muestran) y Microsoft, que viene pronto.
+ */
 export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
   const t = useTranslations('settings.integrations')
+  const tConnect = useTranslations('mail.connectErrors')
   const tErrors = useTranslations('errors')
   const router = useRouter()
   const params = useSearchParams()
@@ -25,10 +34,14 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
   const [disconnecting, setDisconnecting] = useState(false)
 
   useEffect(() => {
+    // la vuelta de Google: del calendario (?google=) o de todos los permisos (?mail=)
     const status = params.get('google')
-    if (!status) return
+    const all = params.get('mail')
+    if (!status && !all) return
     if (status === 'connected') toast.success(t('connected'))
-    else toast.error(t.has(`errors.${status}`) ? t(`errors.${status}`) : t('errors.generic'))
+    else if (status) toast.error(t.has(`errors.${status}`) ? t(`errors.${status}`) : t('errors.generic'))
+    if (all === 'connected') toast.success(t('permissions.done'))
+    else if (all) toast.error(tConnect.has(all) ? tConnect(all) : tConnect('generic'))
     router.replace('/settings/preferences#integrations', { scroll: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -49,7 +62,8 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
 
   return (
     <SettingsSection id="integrations" title={t('pageTitle')} description={t('pageDescription')} className="mt-10 scroll-mt-6">
-      <div className="overflow-hidden rounded-xl border border-line bg-panel">
+      {googleConfigured ? <GooglePermissions calendarEmail={google?.email ?? null} /> : null}
+      <div className="mt-3 overflow-hidden rounded-xl border border-line bg-panel">
         <div className="flex items-center gap-3 px-4 py-3.5">
           <CalendarGlyph />
           <div className="min-w-0 flex-1">
@@ -96,7 +110,114 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
           )}
         </div>
       </div>
+      <MicrosoftSoon />
     </SettingsSection>
+  )
+}
+
+type Permission = { key: 'mail' | 'contacts' | 'drive' | 'driveFiles' | 'calendar'; icon: typeof Mail; on: boolean; note?: string }
+
+/**
+ * Los permisos de Google de cada cuenta conectada, uno por fila (dado o no), y un botón que los pide
+ * todos de una vez (en Google se destilda lo que no se quiera). Sin cuentas, el mismo botón conecta.
+ */
+function GooglePermissions({ calendarEmail }: { calendarEmail: string | null }) {
+  const t = useTranslations('settings.integrations.permissions')
+  const boxes = useMailboxes()
+  // la barra lateral también pide los buzones: hasta hidratarse se dibuja la carga, como en el servidor
+  const hydrated = useHydrated()
+  const loading = !hydrated || boxes.isLoading
+  const google = (boxes.data?.items ?? []).filter((b) => b.provider === 'google')
+  const rows = (b: ApiMailbox): Permission[] => {
+    const sameCalendar = calendarEmail?.toLowerCase() === b.email.toLowerCase()
+    return [
+      { key: 'mail', icon: Mail, on: b.canRead, note: b.canRead ? undefined : t('sendOnly') },
+      { key: 'contacts', icon: Users, on: b.canContacts },
+      { key: 'drive', icon: HardDrive, on: b.canDrive },
+      { key: 'driveFiles', icon: HardDrive, on: b.canDriveFiles },
+      { key: 'calendar', icon: Calendar, on: sameCalendar, note: calendarEmail && !sameCalendar ? t('calendarOther', { email: calendarEmail }) : undefined },
+    ]
+  }
+  const missing = google.some((b) => rows(b).some((r) => !r.on && !r.note)) || !google.length
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-line bg-panel">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-[oklch(0.995_0.003_80)] ring-1 ring-inset ring-[oklch(0.2_0.02_300/0.1)] dark:bg-[oklch(0.3_0.02_300)]">
+          <GoogleG />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-fg">{t('title')}</p>
+          <p className="max-w-[62ch] text-xs leading-relaxed text-fg-muted">{t('description')}</p>
+        </div>
+        {loading ? null : missing ? (
+          <ConnectMailButton label={google.length ? t('grantAll') : t('connect')} size="sm" purpose="all" returnTo="/settings/preferences#integrations" />
+        ) : (
+          <a
+            href="https://myaccount.google.com/connections"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+          >
+            {t('review')}
+            <ExternalLink className="size-3" />
+          </a>
+        )}
+      </div>
+      <div className="border-t border-line">
+        {loading ? (
+          <div className="p-4">
+            <Skeleton className="h-28" />
+          </div>
+        ) : !google.length ? (
+          <p className="px-4 py-4 text-sm text-fg-muted">{t('none')}</p>
+        ) : (
+          google.map((b) => (
+            <div key={b.id} className="border-b border-line-soft px-4 py-3 last:border-b-0">
+              <p className="mb-1.5 text-xs font-medium text-fg-subtle">{b.email}</p>
+              <ul className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                {rows(b).map((r) => (
+                  <li key={r.key} className="flex min-w-0 items-center gap-2.5 py-1">
+                    {r.on ? (
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-success-soft text-success">
+                        <Check className="size-3" strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <CircleDashed className="size-5 shrink-0 text-fg-subtle" />
+                    )}
+                    <r.icon className="size-3.5 shrink-0 text-fg-subtle" />
+                    <span className="min-w-0 text-[13px] leading-snug">
+                      <span className={cn('font-medium', r.on ? 'text-fg' : 'text-fg-muted')}>{t(`${r.key}.title`)}</span>
+                      <span className="text-fg-subtle"> · {r.note ?? t(`${r.key}.body`)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Microsoft (Outlook, OneDrive y su calendario): viene pronto. */
+function MicrosoftSoon() {
+  const t = useTranslations('settings.integrations.microsoft')
+  return (
+    <div className="mt-3 flex items-center gap-3 rounded-xl border border-dashed border-line-strong px-4 py-3.5">
+      <span aria-hidden className="grid size-10 shrink-0 grid-cols-2 gap-[3px] rounded-[11px] bg-hover p-2.5 opacity-70">
+        <span className="rounded-[1px] bg-[#f25022]" />
+        <span className="rounded-[1px] bg-[#7fba00]" />
+        <span className="rounded-[1px] bg-[#00a4ef]" />
+        <span className="rounded-[1px] bg-[#ffb900]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-fg">{t('title')}</p>
+        <p className="text-xs leading-relaxed text-fg-muted">{t('body')}</p>
+      </div>
+      <span className="shrink-0 rounded-full bg-hover px-2.5 py-1 text-xs font-medium text-fg-muted">{t('soon')}</span>
+    </div>
   )
 }
 

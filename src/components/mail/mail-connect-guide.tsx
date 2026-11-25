@@ -20,9 +20,26 @@ import { cn } from '@/lib/utils'
  * Google no verifique Veltro, la advertencia sale y asusta: así la persona sabe que es normal y cómo
  * seguir. Al pie, para quien administra el Google Workspace de su empresa, cómo quitarla para todos.
  * Los dibujos imitan las pantallas de Google en claro (como el correo, también en el tema oscuro).
+ * Se piden todos los permisos de una vez (correo, contactos, Drive y calendario). `purpose` solo
+ * cambia cómo se cuenta: `driveFiles` (desde la Bóveda, para copiar de Drive) o `all` (desde
+ * Permisos de Google, en Preferencias).
  */
-export function MailConnectGuide({ open, onOpenChange, returnTo }: { open: boolean; onOpenChange: (o: boolean) => void; returnTo?: string }) {
+export type GuidePurpose = 'mail' | 'driveFiles' | 'all'
+
+export function MailConnectGuide({
+  open,
+  onOpenChange,
+  returnTo,
+  purpose = 'mail',
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  returnTo?: string
+  purpose?: GuidePurpose
+}) {
   const t = useTranslations('mail.guide')
+  const drive = purpose === 'driveFiles'
+  const all = purpose === 'all'
   const [admin, setAdmin] = useState(false)
   const adminRef = useRef<HTMLDivElement>(null)
   // el foco va a «Ir a Google» (siempre a la vista, al pie): si fuera al primer botón de la guía,
@@ -42,7 +59,10 @@ export function MailConnectGuide({ open, onOpenChange, returnTo }: { open: boole
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent initialFocus={goRef} className="flex max-h-[calc(100dvh-12vh-1rem)] flex-col sm:max-w-[980px]">
-        <DialogHeader title={t('title')} description={t('description')} />
+        <DialogHeader
+          title={drive ? t('driveTitle') : all ? t('allTitle') : t('title')}
+          description={drive ? t('driveDescription') : all ? t('allDescription') : t('description')}
+        />
         <DialogBody className="min-h-0 flex-1 overflow-y-auto pb-3 scrollbar-thin">
           <ol className="grid gap-x-4 gap-y-6 md:grid-cols-3">
             <Step n={1} title={t('step1Title')} body={t('step1Body')}>
@@ -52,13 +72,13 @@ export function MailConnectGuide({ open, onOpenChange, returnTo }: { open: boole
               <Unverified />
             </Step>
             <Step n={3} title={t('step3Title')} body={t('step3Body')}>
-              <Consent />
+              <Consent scopes={['scopeMail', 'scopeContacts', 'scopeDriveFiles', 'scopeCalendar']} />
             </Step>
           </ol>
 
           <p className="mt-4 flex items-start gap-2.5 rounded-xl bg-hover/70 px-4 py-2.5 text-[13px] leading-relaxed text-fg-muted">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-fg-subtle" />
-            <span>{t('why')}</span>
+            <span>{drive ? t('driveWhy') : t('why')}</span>
           </p>
 
           <div ref={adminRef} className="mt-2.5 scroll-mb-2 rounded-xl ring-1 ring-inset ring-line-soft">
@@ -232,7 +252,9 @@ function Unverified() {
   )
 }
 
-function Consent() {
+type Scope = 'scopeMail' | 'scopeContacts' | 'scopeDriveFiles' | 'scopeCalendar'
+
+function Consent({ scopes }: { scopes: Scope[] }) {
   const t = useTranslations('mail.guide.screens')
   const box = (
     <span className="flex size-3.5 shrink-0 items-center justify-center rounded-[3px] bg-[#1a73e8]">
@@ -251,7 +273,7 @@ function Consent() {
         </Tap>
       </span>
       <ul className="mt-2.5 flex flex-col gap-2 border-t border-[#e8eaed] pt-2.5">
-        {(['scopeMail', 'scopeContacts', 'scopeDrive'] as const).map((k) => (
+        {scopes.map((k) => (
           <li key={k} className="flex items-start gap-2 text-[10.5px] leading-snug text-[#3c4043]">
             {box}
             <span>{t(k)}</span>

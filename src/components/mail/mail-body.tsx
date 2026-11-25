@@ -115,6 +115,8 @@ function PlainBody({ text, showQuote, toggle }: { text: string; showQuote: boole
   // lo citado empieza en la primera línea «> » (y su encabezado «El … escribió:», si lo tiene)
   let cut = lines.findIndex((l) => /^\s*>/.test(l))
   if (cut > 0 && /:\s*$/.test(lines[cut - 1] ?? '')) cut -= 1
+  // si plegarlo dejara el correo vacío, no se pliega
+  if (cut >= 0 && !lines.slice(0, cut).some((l) => l.trim())) cut = -1
   const shown = cut >= 0 && !showQuote ? lines.slice(0, cut) : lines
   return (
     <div>

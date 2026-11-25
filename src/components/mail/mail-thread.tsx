@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Archive, ArrowLeft, Forward, Inbox, ListPlus, Mail, MailOpen, Reply, ReplyAll, Star, Trash2, Undo2 } from 'lucide-react'
+import { Archive, ArrowLeft, Forward, Inbox, ListPlus, Mail, Reply, ReplyAll, Star, Trash2, Undo2 } from 'lucide-react'
 import { useWorkspaceMap } from '@/components/app/app-context'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -279,24 +279,5 @@ function MessageCard({ box, m, onReply }: { box: string; m: ApiMailMessage; onRe
         <MailAttachments box={box} message={m} />
       </div>
     </article>
-  )
-}
-
-/** Sin hilo abierto: qué se puede hacer, con lo sin leer a la vista. */
-export function MailEmpty({ unread, onCompose }: { unread: number | null; onCompose: () => void }) {
-  const t = useTranslations('mail')
-  return (
-    <div className="flex w-full flex-col items-center justify-center gap-4 px-6 text-center">
-      <span className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent-ink">
-        <MailOpen className="size-7" />
-      </span>
-      <div>
-        <p className="text-base font-semibold text-fg">{unread ? t('emptyUnread', { count: unread }) : t('emptyTitle')}</p>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-fg-muted">{t('emptyBody')}</p>
-      </div>
-      <Button variant="primary" onClick={onCompose}>
-        {t('composeButton')}
-      </Button>
-    </div>
   )
 }

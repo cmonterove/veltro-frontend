@@ -6,7 +6,7 @@ import { Inbox, ListPlus, Paperclip, ShieldCheck, Star } from 'lucide-react'
 import { GoogleConnectButton } from '@/components/calendar/connect-calendar'
 import type { ApiMailboxes } from '@/lib/api/correo'
 import { cn } from '@/lib/utils'
-import { MailConnectGuide } from './mail-connect-guide'
+import { MailConnectGuide, type GuidePurpose } from './mail-connect-guide'
 
 /**
  * Todavía sin un buzón que se pueda leer. A la izquierda, qué se gana y qué permiso pide (con el botón
@@ -50,10 +50,16 @@ export function MailConnect({ boxes }: { boxes: ApiMailboxes | undefined }) {
                 sendOnly.length ? (
                   <>
                     <p className="text-sm text-fg">{t('sendOnly', { emails: sendOnly.map((b) => b.email).join(', ') })}</p>
-                    <ConnectMailButton label={t('grantRead')} />
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <ConnectMailButton label={t('grantRead')} />
+                      <OutlookSoon />
+                    </div>
                   </>
                 ) : (
-                  <ConnectMailButton label={t('button')} />
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <ConnectMailButton label={t('button')} />
+                    <OutlookSoon />
+                  </div>
                 )
               ) : (
                 <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-fg">{t('notConfigured')}</p>
@@ -66,6 +72,34 @@ export function MailConnect({ boxes }: { boxes: ApiMailboxes | undefined }) {
         </div>
       </main>
     </div>
+  )
+}
+
+/** Outlook (Microsoft 365): todavía no; se muestra para que se sepa que viene. */
+export function OutlookSoon({ className }: { className?: string }) {
+  const t = useTranslations('mail.connect')
+  return (
+    <span
+      aria-disabled
+      title={t('outlookSoon')}
+      className={cn('inline-flex h-10 shrink-0 cursor-default select-none items-center gap-2 rounded-full border border-dashed border-line-strong pl-3.5 pr-2 text-sm text-fg-muted', className)}
+    >
+      <MicrosoftMark className="size-3.5 opacity-70" />
+      Outlook
+      <span className="rounded-full bg-hover px-2 py-0.5 text-[11px] font-medium text-fg-subtle">{t('soon')}</span>
+    </span>
+  )
+}
+
+/** Los cuatro cuadros de Microsoft, en chico. */
+export function MicrosoftMark({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className={cn('grid shrink-0 grid-cols-2 gap-px', className)}>
+      <span className="bg-[#f25022]" />
+      <span className="bg-[#7fba00]" />
+      <span className="bg-[#00a4ef]" />
+      <span className="bg-[#ffb900]" />
+    </span>
   )
 }
 
@@ -121,7 +155,20 @@ function InboxPreview() {
  * advertencia de «app no verificada» asusta si no se sabe que va a salir). Sin `returnTo`, al volver
  * de Google se queda donde estaba (el hilo abierto o el correo a medio escribir).
  */
-export function ConnectMailButton({ label, size, className, returnTo }: { label: string; size?: 'sm' | 'md'; className?: string; returnTo?: string }) {
+export function ConnectMailButton({
+  label,
+  size,
+  className,
+  returnTo,
+  purpose,
+}: {
+  label: string
+  size?: 'sm' | 'md'
+  className?: string
+  returnTo?: string
+  /** `driveFiles`: sumar el permiso de bajar archivos de Drive (para la Bóveda) */
+  purpose?: GuidePurpose
+}) {
   const [guide, setGuide] = useState(false)
   return (
     <>
@@ -136,7 +183,7 @@ export function ConnectMailButton({ label, size, className, returnTo }: { label:
           setGuide(true)
         }}
       />
-      <MailConnectGuide open={guide} onOpenChange={setGuide} returnTo={returnTo} />
+      <MailConnectGuide open={guide} onOpenChange={setGuide} returnTo={returnTo} purpose={purpose} />
     </>
   )
 }

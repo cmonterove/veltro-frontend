@@ -78,6 +78,32 @@ const QUOTE_SELECTORS = '.gmail_quote, blockquote[type="cite"], .yahoo_quoted, #
 
 export type PreparedEmail = { doc: string; hasRemoteImages: boolean; hasQuote: boolean }
 
+/** Gmail arma un reenvío como una cita, pero con su raya: «---------- Mensaje reenviado ---------». */
+const FORWARD_RULE = /-{4,}[^-\n]{3,80}-{4,}/
+const isForward = (q: Element) => {
+  const attr = q.querySelector(':scope > .gmail_attr')
+  return FORWARD_RULE.test((attr?.textContent ?? q.textContent ?? '').slice(0, 160))
+}
+/** ¿Se ve algo (texto o una imagen)? Sin contar espacios ni caracteres invisibles. */
+const hasContent = (el: Element) => (el.textContent ?? '').replace(/[\s\u00a0\u200b-\u200d\u2060\ufeff]+/g, '') !== '' || Boolean(el.querySelector('img'))
+
+/**
+ * Lo que se pliega detrás de «···»: lo citado de respuestas anteriores. Nunca lo reenviado (ni lo
+ * que va dentro), ni lo vacío; y si al plegarlo no quedara nada a la vista (un reenvío de otro
+ * programa, una respuesta sin texto), no se pliega nada.
+ */
+function foldable(doc: Document): HTMLElement[] {
+  const all = [...doc.querySelectorAll<HTMLElement>(QUOTE_SELECTORS)]
+  const forwards = all.filter(isForward)
+  const quotes = all.filter((q) => hasContent(q) && !forwards.some((f) => f === q || f.contains(q)))
+  if (!quotes.length) return []
+  quotes.forEach((q) => q.setAttribute('data-veltro-fold', ''))
+  const clone = doc.body.cloneNode(true) as HTMLElement
+  quotes.forEach((q) => q.removeAttribute('data-veltro-fold'))
+  clone.querySelectorAll('[data-veltro-fold]').forEach((n) => n.remove())
+  return hasContent(clone) ? quotes : []
+}
+
 /**
  * Un correo HTML (de cualquiera) listo para mostrarse en un iframe con sandbox y sin scripts. Por si
  * acaso se quita todo lo activo (scripts, formularios, marcos, redirecciones, eventos, enlaces
@@ -118,7 +144,7 @@ export function prepareEmailHtml(html: string, o: { images: boolean; cid: Map<st
   })
   if (!hasRemoteImages && /url\(\s*['"]?(https?:)?\/\//i.test(html)) hasRemoteImages = true
 
-  const quotes = doc.querySelectorAll<HTMLElement>(QUOTE_SELECTORS)
+  const quotes = foldable(doc)
   if (!o.showQuote) quotes.forEach((q) => q.style.setProperty('display', 'none', 'important'))
 
   const remote = o.images ? ' https: http:' : ''

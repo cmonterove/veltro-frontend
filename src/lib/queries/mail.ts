@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api/client'
-import type { ApiDriveFile, ApiGoogleContact, ApiMailboxes, ApiMailLabels, ApiMailSend, ApiMailThread, ApiMailThreadPage } from '@/lib/api/correo'
+import type { ApiDriveFile, ApiDrivePage, ApiGoogleContact, ApiMailLabels, ApiMailSend, ApiMailThread, ApiMailThreadPage, ApiMailboxes, MailCategory } from '@/lib/api/correo'
 
 // El buzón: lo que se ve se vuelve a pedir cada minuto mientras la pestaña está a la vista (Gmail no
 // avisa sin facturación en Google Cloud); lo que se hace (leer, estrella, archivar) se ve al instante.
@@ -12,10 +12,11 @@ export const mailKeys = {
   boxes: ['mail', 'boxes'] as const,
   labels: (box: string) => ['mail', 'labels', box] as const,
   lists: (box: string) => ['mail', 'threads', box] as const,
-  threads: (box: string, folder: string | null, q: string) => ['mail', 'threads', box, folder, q] as const,
+  threads: (box: string, folder: string | null, q: string, category: MailCategory | null = null) => ['mail', 'threads', box, folder, q, category] as const,
   thread: (box: string, id: string) => ['mail', 'thread', box, id] as const,
   contacts: (box: string, q: string) => ['mail', 'contacts', box, q] as const,
   drive: (box: string, q: string) => ['mail', 'drive', box, q] as const,
+  driveBrowse: (box: string, view: DriveView) => ['mail', 'drive-browse', box, view] as const,
 }
 
 const MINUTE = 60_000
@@ -44,16 +45,19 @@ export function useMailLabels(box: string | null) {
 }
 
 /** Los hilos de una carpeta o de una búsqueda, de a 20 («Cargar más» pide la página siguiente). */
-export function useMailThreads(box: string | null, folder: string | null, q: string) {
+/** Los hilos de una carpeta o búsqueda; en Recibidos, `category` deja solo esa pestaña (Principal, Promociones…). */
+export function useMailThreads(box: string | null, folder: string | null, q: string, category: MailCategory | null = null) {
   return useInfiniteQuery({
-    queryKey: mailKeys.threads(box ?? '', folder, q),
+    queryKey: mailKeys.threads(box ?? '', folder, q, category),
     enabled: Boolean(box),
     initialPageParam: null as string | null,
     staleTime: 20_000,
     refetchInterval: MINUTE,
     placeholderData: (prev) => prev,
     queryFn: ({ pageParam }): Promise<ApiMailThreadPage> =>
-      api<ApiMailThreadPage>(`/v1/mail/mailboxes/${box}/threads`, { query: { label: folder ?? undefined, q: q || undefined, pageToken: pageParam ?? undefined } }),
+      api<ApiMailThreadPage>(`/v1/mail/mailboxes/${box}/threads`, {
+        query: { label: folder ?? undefined, category: category ?? undefined, q: q || undefined, pageToken: pageParam ?? undefined },
+      }),
     getNextPageParam: (last: ApiMailThreadPage) => last.nextPageToken,
   })
 }
@@ -89,8 +93,50 @@ export function useMailDrive(box: string | null, q: string, enabled: boolean) {
     staleTime: MINUTE,
     placeholderData: (prev) => prev,
     retry: false,
-    queryFn: () => api<{ items: ApiDriveFile[] }>(`/v1/mail/mailboxes/${box}/drive`, { query: { q: term || undefined } }),
+    queryFn: () => api<ApiDrivePage>(`/v1/mail/mailboxes/${box}/drive`, { query: { q: term || undefined } }),
   })
+}
+
+/** Qué se mira de Drive: lo último abierto, lo compartido conmigo, una carpeta («root» es Mi unidad) o una búsqueda. */
+export type DriveView = { kind: 'recent' } | { kind: 'shared' } | { kind: 'folder'; id: string } | { kind: 'search'; q: string }
+
+/** Explorar Drive (para traer archivos a la Bóveda), de a páginas. */
+export function useDriveBrowse(box: string | null, view: DriveView, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: mailKeys.driveBrowse(box ?? '', view),
+    enabled: Boolean(box) && enabled && (view.kind !== 'search' || view.q.trim().length > 0),
+    initialPageParam: null as string | null,
+    staleTime: MINUTE,
+    retry: false,
+    queryFn: ({ pageParam }): Promise<ApiDrivePage> =>
+      api<ApiDrivePage>(`/v1/mail/mailboxes/${box}/drive`, {
+        query: {
+          q: view.kind === 'search' ? view.q.trim() : undefined,
+          folders: view.kind === 'search' ? '1' : undefined,
+          folder: view.kind === 'folder' ? view.id : undefined,
+          shared: view.kind === 'shared' ? '1' : undefined,
+          pageToken: pageParam ?? undefined,
+        },
+      }),
+    getNextPageParam: (last: ApiDrivePage) => last.nextPageToken,
+  })
+}
+
+/**
+ * Baja un archivo de Drive (por la API, convertido si es de Google) y lo deja como un File, listo para
+ * subirlo a la Bóveda como cualquier otro.
+ */
+export async function fetchDriveFile(box: string, file: Pick<ApiDriveFile, 'id' | 'name'>): Promise<File> {
+  const res = await fetch(`/api/veltro/v1/mail/mailboxes/${box}/drive/${encodeURIComponent(file.id)}/content`, { credentials: 'same-origin' })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null
+    throw new ApiError(res.status, body?.error?.code ?? 'drive_download_failed', body?.error?.message ?? 'No se pudo bajar el archivo de Drive.')
+  }
+  const disposition = res.headers.get('content-disposition') ?? ''
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
+  const name = encoded ? decodeURIComponent(encoded) : file.name
+  const blob = await res.blob()
+  return new File([blob], name, { type: blob.type && blob.type !== 'application/octet-stream' ? blob.type : '' })
 }
 
 type Pages = InfiniteData<ApiMailThreadPage, string | null>

@@ -1,37 +1,46 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { Check, ChevronDown, Inbox, PenLine, Paperclip, Plus, Search, ShieldAlert, Star, Trash2, X } from 'lucide-react'
+import { useFormatter, useTranslations } from 'next-intl'
+import { Check, ChevronDown, Inbox, Info, KeyRound, MessagesSquare, PenLine, Paperclip, Plus, Search, ShieldAlert, Star, Tag, Trash2, Users, X, type LucideIcon } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
+import { Menu, MenuCheckboxItem, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDateLocale } from '@/lib/dates'
-import type { ApiMailbox, ApiMailThreadSummary } from '@/lib/api/correo'
+import { MAIL_CATEGORIES, type ApiMailbox, type ApiMailThreadSummary, type MailCategory } from '@/lib/api/correo'
 import { useMailLabels, useMailThreads } from '@/lib/queries/mail'
 import { cn } from '@/lib/utils'
 import { errorCode, RECONNECT_CODES, useMailError } from './mail-errors'
-import { MailReconnect } from './mail-connect'
+import { MailReconnect, MicrosoftMark } from './mail-connect'
 import { MailConnectGuide } from './mail-connect-guide'
+import { setInboxTabs, unreadOf, useInboxTabsOf } from './inbox-tabs'
 import { firstName, personName, shortWhen } from './mail-utils'
 
 /** Las carpetas a la vista; Spam, Papelera y las etiquetas propias van en «Más» (Borradores queda en Gmail por ahora). */
 const FOLDERS = ['INBOX', 'STARRED', 'SENT'] as const
 const MORE = ['SPAM', 'TRASH'] as const
 
+/** Los íconos de las pestañas de Recibidos, como los de Gmail. */
+const CATEGORY_ICON: Record<MailCategory, LucideIcon> = { primary: Inbox, promotions: Tag, social: Users, updates: Info, forums: MessagesSquare }
+
 export type MailNav = (patch: Record<string, string | null>, push?: boolean) => void
 
 /**
  * La lista, sobre el marco (como Pasillo): el título con lo sin leer y «Redactar», la cuenta (si hay
  * varias, se cambia aquí), la búsqueda (con la sintaxis de Gmail), las carpetas y, debajo, los hilos.
- * El abierto se une a la hoja como la pestaña de una carpeta.
+ * Si la cuenta usa pestañas (como en Gmail), Recibidos se parte en Principal, Promociones, Social,
+ * Notificaciones y Foros, y lo sin leer que se cuenta es el de Principal. El abierto se une a la hoja
+ * como la pestaña de una carpeta.
  */
 export function MailList({
   box,
   boxes,
   folder,
+  category,
+  tabs,
   q,
   activeId,
   hrefFor,
@@ -41,6 +50,10 @@ export function MailList({
   box: ApiMailbox
   boxes: ApiMailbox[]
   folder: string | null
+  /** la pestaña de Recibidos que se mira (null: sin pestañas, otra carpeta o buscando) */
+  category: MailCategory | null
+  /** si la cuenta usa pestañas en Recibidos */
+  tabs: boolean
   q: string
   activeId: string | null
   hrefFor: (threadId: string) => string
@@ -48,16 +61,26 @@ export function MailList({
   onCompose: () => void
 }) {
   const t = useTranslations('mail')
+  const format = useFormatter()
   const locale = useDateLocale()
   const mailError = useMailError()
   const labels = useMailLabels(box.id)
-  const threads = useMailThreads(box.id, folder, q)
+  const threads = useMailThreads(box.id, folder, q, category)
+  const tabsOf = useInboxTabsOf(boxes)
+  const router = useRouter()
   const [search, setSearch] = useState(q)
   const [guide, setGuide] = useState(false)
   useEffect(() => setSearch(q), [q])
 
   const items = threads.data?.pages.flatMap((p) => p.items) ?? []
-  const inboxUnread = labels.data?.system.find((f) => f.id === 'INBOX')?.unread ?? box.unread ?? 0
+  // con pestañas, lo sin leer de Recibidos es el de Principal (como en Gmail)
+  const inboxAll = labels.data?.system.find((f) => f.id === 'INBOX')?.unread ?? box.unread ?? 0
+  const primaryUnread = labels.data?.categories.find((c) => c.id === 'primary')?.unread ?? box.unreadPrimary
+  const inboxUnread = tabs ? (primaryUnread ?? inboxAll) : inboxAll
+  // las pestañas que la cuenta tiene (Principal siempre; mientras cargan, todas)
+  const categories = MAIL_CATEGORIES.filter(
+    (c) => !labels.data || c === 'primary' || c === category || (labels.data.categories.find((x) => x.id === c)?.total ?? 0) > 0,
+  )
   const userLabels = labels.data?.labels ?? []
   const activeLabel = userLabels.find((l) => l.id === folder)
   const moreActive = folder === 'SPAM' || folder === 'TRASH' || Boolean(activeLabel)
@@ -84,17 +107,44 @@ export function MailList({
             <ChevronDown className="size-3 shrink-0" />
           </MenuTrigger>
           <MenuContent align="start" className="w-72">
-            {boxes.map((b) => (
-              <MenuItem key={b.id} onClick={() => go({ b: b.id, h: null, q: null, f: null })}>
-                <span className="min-w-0 flex-1 truncate">{b.email}</span>
-                {b.unread ? <span className="shrink-0 text-xs tabular-nums text-fg-subtle">{b.unread}</span> : null}
-                {b.id === box.id ? <Check className="!text-accent" /> : null}
-              </MenuItem>
-            ))}
+            {boxes.map((b, i) => {
+              const unread = unreadOf(b, tabsOf(i))
+              return (
+                <MenuItem key={b.id} onClick={() => go({ b: b.id, h: null, q: null, f: null, cat: null })}>
+                  <span className="min-w-0 flex-1 truncate">{b.email}</span>
+                  {unread ? <span className="shrink-0 text-xs tabular-nums text-fg-subtle">{format.number(unread)}</span> : null}
+                  {b.id === box.id ? <Check className="!text-accent" /> : null}
+                </MenuItem>
+              )
+            })}
             <MenuItem onClick={() => setGuide(true)}>
               <Plus />
               {t('connectAnother')}
             </MenuItem>
+            <MenuItem disabled>
+              <MicrosoftMark className="size-3.5" />
+              <span className="flex-1">{t('connectOutlook')}</span>
+              <span className="rounded-full bg-hover px-1.5 py-px text-[10.5px] font-medium text-fg-subtle">{t('connect.soon')}</span>
+            </MenuItem>
+            <MenuItem onClick={() => router.push('/settings/preferences#integrations')}>
+              <KeyRound />
+              {t('googlePermissions')}
+            </MenuItem>
+            <MenuSeparator />
+            {/* Recibidos con pestañas o todo junto: Gmail no avisa cómo lo tiene cada uno, se elige aquí */}
+            <MenuCheckboxItem
+              checked={tabs}
+              onCheckedChange={(on) => {
+                setInboxTabs(box, on)
+                go({ cat: null, h: null })
+              }}
+            >
+              <Inbox />
+              <span className="min-w-0 flex-1">
+                <span className="block">{t('tabsToggle')}</span>
+                <span className="block text-2xs text-fg-subtle">{t('tabsToggleHint')}</span>
+              </span>
+            </MenuCheckboxItem>
           </MenuContent>
         </Menu>
         <MailConnectGuide open={guide} onOpenChange={setGuide} />
@@ -139,12 +189,13 @@ export function MailList({
         <div className="mt-2 flex gap-1 overflow-x-auto scrollbar-none md:mt-2.5" role="group" aria-label={t('folders.label')}>
           {FOLDERS.map((f) => {
             const on = folder === f
-            const unread = f === 'INBOX' ? inboxUnread : 0
+            // con las pestañas a la vista, la cuenta va en Principal
+            const unread = f === 'INBOX' && !category ? inboxUnread : 0
             return (
               <button
                 key={f}
                 type="button"
-                onClick={() => go({ f, q: null, h: null })}
+                onClick={() => go({ f, q: null, h: null, cat: null })}
                 aria-pressed={on}
                 className={cn(
                   'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs transition-colors md:h-8 md:rounded-[10px] md:text-[13px]',
@@ -153,7 +204,7 @@ export function MailList({
               >
                 {t(`folders.${f}`)}
                 {unread ? (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-count px-1 text-[10.5px] font-semibold tabular-nums text-count-fg">{unread}</span>
+                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-count px-1 text-[10.5px] font-semibold tabular-nums text-count-fg">{format.number(unread)}</span>
                 ) : null}
               </button>
             )
@@ -172,7 +223,7 @@ export function MailList({
             </MenuTrigger>
             <MenuContent align="end" className="max-h-80 w-60 overflow-y-auto scrollbar-thin">
               {MORE.map((f) => (
-                <MenuItem key={f} onClick={() => go({ f, q: null, h: null })}>
+                <MenuItem key={f} onClick={() => go({ f, q: null, h: null, cat: null })}>
                   {f === 'SPAM' ? <ShieldAlert /> : <Trash2 />}
                   <span className="flex-1">{t(`folders.${f}`)}</span>
                   {folder === f ? <Check className="!text-accent" /> : null}
@@ -183,7 +234,7 @@ export function MailList({
                   <MenuSeparator />
                   <MenuLabel>{t('folders.labels')}</MenuLabel>
                   {userLabels.map((l) => (
-                    <MenuItem key={l.id} onClick={() => go({ f: l.id, q: null, h: null })}>
+                    <MenuItem key={l.id} onClick={() => go({ f: l.id, q: null, h: null, cat: null })}>
                       <span className="size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-fg/10" style={{ background: l.color?.background ?? 'var(--hover)' }} />
                       <span className="min-w-0 flex-1 truncate">{l.name}</span>
                       {l.unread ? <span className="shrink-0 text-xs tabular-nums text-fg-subtle">{l.unread}</span> : null}
@@ -194,6 +245,37 @@ export function MailList({
             </MenuContent>
           </Menu>
         </div>
+        {/* Las pestañas de Recibidos, como en Gmail: debajo de las carpetas y más suaves. Las cinco con
+            nombre no entran en la columna: como Gmail en una ventana angosta, la elegida lleva su nombre
+            y las demás su ícono (el nombre, al pasar por encima). Principal siempre con lo sin leer. */}
+        {category ? (
+          <div className="-mx-1 mt-1.5 flex gap-0.5 px-1" role="group" aria-label={t('categories.label')}>
+            {categories.map((c) => {
+              const on = category === c
+              const Icon = CATEGORY_ICON[c]
+              const name = t(`categories.${c}`)
+              const unread = c === 'primary' ? inboxUnread : 0
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => go({ cat: c === 'primary' ? null : c, h: null })}
+                  aria-pressed={on}
+                  aria-label={name}
+                  title={on ? undefined : name}
+                  className={cn(
+                    'inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg text-xs transition-colors md:text-[12.5px]',
+                    on ? 'bg-hover px-2 font-medium text-fg' : 'min-w-7 px-1.5 text-fg-muted hover:bg-hover/60 hover:text-fg',
+                  )}
+                >
+                  <Icon className={cn('size-3.5 shrink-0', on ? 'text-accent-ink' : 'opacity-80')} />
+                  {on ? <span>{name}</span> : null}
+                  {unread ? <span className="text-[11px] font-semibold tabular-nums text-accent-ink">{format.number(unread)}</span> : null}
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
         {q ? <p className="mt-2 truncate text-xs text-fg-muted">{t('resultsFor', { q })}</p> : null}
       </div>
 

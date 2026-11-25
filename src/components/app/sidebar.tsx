@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
-import { useEffect, useId, useState, useTransition } from 'react'
+import { useEffect, useId, useMemo, useState, useTransition } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   CalendarDays,
@@ -47,6 +47,7 @@ import { useApp, useIsAccountAdmin } from './app-context'
 import { DemoDataMenuItem } from './demo-data'
 import { useChatUnread } from '@/lib/queries/chats'
 import { useMailboxes } from '@/lib/queries/mail'
+import { unreadOf, useInboxTabsOf } from '@/components/mail/inbox-tabs'
 import {
   Menu,
   MenuContent,
@@ -241,8 +242,11 @@ export function Sidebar({ onSearch, onNewTask, onShortcuts, collapsed = false, o
   // solicitudes: las nuevas de mis departamentos y las respuestas a lo que pedí
   const requestCounts = useRequestSummary().data?.counts
   const requestsPending = (requestCounts?.inboxNew ?? 0) + (requestCounts?.mineUnread ?? 0)
-  // correo: los hilos sin leer en Recibidos de las cuentas que se pueden leer
-  const mailUnread = (useMailboxes().data?.items ?? []).reduce((n, b) => n + (b.canRead ? (b.unread ?? 0) : 0), 0)
+  // correo: los hilos sin leer en Recibidos de las cuentas que se pueden leer (con pestañas, solo Principal)
+  const mailItems = useMailboxes().data?.items
+  const mailBoxes = useMemo(() => (mailItems ?? []).filter((b) => b.canRead), [mailItems])
+  const mailTabsOf = useInboxTabsOf(mailBoxes)
+  const mailUnread = mailBoxes.reduce((n, b, i) => n + unreadOf(b, mailTabsOf(i)), 0)
   // cada barra (escritorio y celular) con su propia pastilla: con el mismo id, Motion deja visible solo una
   const pillId = useId()
 

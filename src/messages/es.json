@@ -695,7 +695,7 @@
       "grantRead": "Darle permiso para leer",
       "sendOnly": "Ya conectaste {emails} para avisar por correo. Dale también permiso para leer:",
       "notConfigured": "La conexión con Google no está configurada en este servidor.",
-      "permissions": "Veltro pide permiso para leer, marcar y enviar tu correo (no para borrarlo para siempre) y, si quieres, para ver tus contactos y los nombres de tus archivos de Drive (no su contenido). Puedes quitarlo cuando quieras desde tu cuenta de Google.",
+      "permissions": "Veltro pide permiso para leer, marcar y enviar tu correo (no para borrarlo para siempre) y, si quieres, para ver tus contactos, tus archivos de Drive (para insertarlos en un correo o copiarlos a la Bóveda) y tu calendario. Puedes quitarlo cuando quieras desde tu cuenta de Google.",
       "reconnect": "Volver a conectar",
       "preview": {
         "inbox": "Recibidos",
@@ -710,7 +710,9 @@
         "row3Who": "Dimassi",
         "row3Subject": "Necesitamos la propuesta el viernes",
         "row3Snippet": "¿Nos la pueden mandar antes del cierre?"
-      }
+      },
+      "soon": "Próximamente",
+      "outlookSoon": "La conexión con Outlook llega pronto."
     },
     "connectErrors": {
       "generic": "No se pudo conectar el correo. Inténtalo de nuevo.",
@@ -740,7 +742,15 @@
       "contacts_scope_missing": "Veltro no tiene permiso para ver tus contactos de Google. Vuelve a conectar el correo y marca esa casilla.",
       "drive_scope_missing": "Veltro no tiene permiso para ver tus archivos de Drive. Vuelve a conectar el correo y marca esa casilla.",
       "people_api_disabled": "La API de contactos (People API) no está activada en el proyecto de Google de Veltro.",
-      "drive_api_disabled": "La API de Drive no está activada en el proyecto de Google de Veltro."
+      "drive_api_disabled": "La API de Drive no está activada en el proyecto de Google de Veltro.",
+      "drive_content_scope_missing": "Veltro no tiene permiso para descargar tus archivos de Drive. Dale el permiso y vuelve a intentarlo.",
+      "drive_file_too_big": "El archivo pesa más de 20 MB, el máximo de la Bóveda.",
+      "drive_export_too_big": "Google no deja convertir un archivo tan grande. Descárgalo desde Drive y súbelo a mano.",
+      "drive_not_exportable": "Ese tipo de archivo de Google no se puede copiar a la Bóveda.",
+      "drive_is_folder": "Eso es una carpeta: elige los archivos de adentro.",
+      "drive_download_blocked": "Google no deja descargar ese archivo (su dueño lo bloqueó o se pasó el límite de descargas).",
+      "drive_file_forbidden": "No tienes permiso para descargar ese archivo.",
+      "drive_download_failed": "No se pudo bajar el archivo de Drive."
     },
     "composeButton": "Redactar",
     "taskCreated": "Tarea {ref} creada",
@@ -766,7 +776,7 @@
       "step2Title": "Pasa la advertencia",
       "step2Body": "Toca «Configuración avanzada» y después «Ir a Veltro (no seguro)».",
       "step3Title": "Marca todo y continúa",
-      "step3Body": "Toca «Seleccionar todo» (correo, contactos y Drive) y después «Continuar».",
+      "step3Body": "Toca «Seleccionar todo» (correo, contactos, Drive y calendario) y después «Continuar».",
       "why": "Veltro es nuevo y Google todavía no terminó de verificarlo: por eso avisa. Tu correo no se guarda en Veltro (se lee de Google en el momento) y puedes quitarle el permiso cuando quieras desde tu cuenta de Google.",
       "adminTitle": "¿Administras el Google Workspace de tu empresa? Quita la advertencia para todos",
       "adminBody": "Una sola vez, en la consola de administración, marca Veltro como app de confianza. Desde entonces nadie de tu empresa ve la advertencia:",
@@ -795,11 +805,66 @@
         "scopeContacts": "Ver tus contactos",
         "scopeDrive": "Ver información sobre tus archivos de Google Drive",
         "cancel": "Cancelar",
-        "continue": "Continuar"
+        "continue": "Continuar",
+        "scopeDriveFiles": "Ver y descargar todos tus archivos de Google Drive",
+        "scopeCalendar": "Ver y editar los eventos de todos tus calendarios"
       },
       "clientId": "ID de cliente",
       "copyClientId": "Copiar el ID de cliente",
-      "clientIdCopied": "ID de cliente copiado"
+      "clientIdCopied": "ID de cliente copiado",
+      "driveTitle": "Dale permiso a Veltro para copiar de tu Drive",
+      "driveDescription": "Son las mismas tres pantallas de Google. De paso quedan todos los permisos de una vez: correo, contactos, Drive y calendario.",
+      "driveWhy": "Veltro solo baja los archivos que tú eliges, para copiarlos a la Bóveda. Puedes quitarle el permiso cuando quieras desde tu cuenta de Google.",
+      "allTitle": "Todos los permisos de Google, de una vez",
+      "allDescription": "Son tres pantallas de Google. Marca todo y Veltro queda listo: correo, contactos, Drive y calendario."
+    },
+    "categories": {
+      "label": "Pestañas de Recibidos",
+      "primary": "Principal",
+      "promotions": "Promociones",
+      "social": "Social",
+      "updates": "Notificaciones",
+      "forums": "Foros"
+    },
+    "tabsToggle": "Pestañas como en Gmail",
+    "tabsToggleHint": "Principal, Promociones, Social…",
+    "connectOutlook": "Conectar Outlook",
+    "googlePermissions": "Permisos de Google",
+    "home": {
+      "morning": "Buenos días, {name}",
+      "afternoon": "Buenas tardes, {name}",
+      "evening": "Buenas noches, {name}",
+      "summaryUnread": "{count, plural, one {# por leer en {where}} other {# por leer en {where}}}",
+      "summaryWaiting": "{count, plural, one {# espera tu respuesta} other {# esperan tu respuesta}}",
+      "summaryStarred": "{count, plural, one {# destacado} other {# destacados}}",
+      "upToDate": "Estás al día en {where}.",
+      "compose": "Redactar",
+      "toRead": "Por leer en {where}",
+      "latest": "Lo último que llegó",
+      "allRead": "Nada por leer en {where}. Esto es lo último que llegó.",
+      "moreInList": "{count, plural, one {Y # más en la lista} other {Y # más en la lista}}",
+      "yesterday": "ayer",
+      "waiting": "Esperan tu respuesta",
+      "nobodyWaiting": "Nadie espera una respuesta tuya esta semana.",
+      "noSubject": "(sin asunto)",
+      "tabs": "Tus pestañas",
+      "folders": "Carpetas",
+      "unreadShort": "{count, plural, one {# sin leer} other {# sin leer}}",
+      "caughtUp": "Al día",
+      "starredShort": "{count, plural, one {# guardado} other {# guardados}}",
+      "none": "Ninguno",
+      "open": "Abrir",
+      "shortcuts": "Atajos",
+      "search": {
+        "attachments": "Con adjuntos",
+        "unread": "Sin leer",
+        "week": "Esta semana",
+        "starred": "Destacados"
+      },
+      "driveTitle": "Traer de Drive",
+      "driveBody": "Copia archivos de tu Drive a la Bóveda",
+      "permissionsTitle": "Permisos de Google",
+      "permissionsBody": "Qué ve Veltro de tu cuenta, y darle todo de una vez"
     }
   },
   "docs": {
@@ -1749,7 +1814,43 @@
         "unexpected": "No se pudo conectar Google Calendar."
       },
       "pageTitle": "Integraciones",
-      "pageDescription": "Conecta Veltro con las herramientas que tu equipo ya usa."
+      "pageDescription": "Conecta Veltro con las herramientas que tu equipo ya usa.",
+      "permissions": {
+        "title": "Permisos de Google",
+        "description": "Con una sola vez en Google, Veltro lee y responde tu correo, sugiere tus contactos, trae archivos de Drive y muestra tu calendario. En Google puedes destildar lo que no quieras.",
+        "grantAll": "Dar todos los permisos",
+        "connect": "Conectar Google",
+        "review": "Revisar en Google",
+        "none": "Todavía no conectas una cuenta de Google.",
+        "done": "Listo: Google quedó conectado con los permisos que diste.",
+        "sendOnly": "solo para avisar por correo",
+        "calendarOther": "conectado con {email}",
+        "mail": {
+          "title": "Correo",
+          "body": "leer, responder y enviar"
+        },
+        "contacts": {
+          "title": "Contactos",
+          "body": "sugerencias al escribir"
+        },
+        "drive": {
+          "title": "Drive",
+          "body": "insertar archivos en un correo"
+        },
+        "driveFiles": {
+          "title": "Drive",
+          "body": "copiar archivos a la Bóveda"
+        },
+        "calendar": {
+          "title": "Calendario",
+          "body": "agenda y reuniones"
+        }
+      },
+      "microsoft": {
+        "title": "Microsoft: Outlook y OneDrive",
+        "body": "Correo, calendario y archivos de Microsoft 365, como con Google.",
+        "soon": "Próximamente"
+      }
     },
     "org": {
       "chartHint": "Cada persona ve sus tareas y las de quienes están debajo de ella; el jefe de un departamento ve a todo su departamento. Los administradores ven todo.",
@@ -3036,7 +3137,8 @@
       "what": "Qué vas a subir",
       "mode": {
         "files": "Archivos",
-        "link": "Link"
+        "link": "Link",
+        "drive": "Google Drive"
       },
       "drop": "Arrastra archivos aquí o",
       "choose": "elígelos de tu equipo",
@@ -3081,7 +3183,50 @@
       "uploaded": "Ahora es la versión {version}",
       "restored": "Restaurada como versión {version}"
     },
-    "dropHint": "Arrastra archivos aquí o haz clic para elegirlos"
+    "dropHint": "Arrastra archivos aquí o haz clic para elegirlos",
+    "fromDrive": "Google Drive",
+    "fromDriveHint": "Traer archivos de tu Google Drive",
+    "drive": {
+      "description": "Elige archivos de tu Drive: se copian a la Bóveda (los de Google, convertidos: Documentos y Presentaciones a PDF, Hojas a Excel).",
+      "label": "Google Drive",
+      "tabs": {
+        "recent": "Recientes",
+        "mine": "Mi unidad",
+        "shared": "Compartidos conmigo"
+      },
+      "views": "Qué mirar de Drive",
+      "search": "Buscar en tu Drive",
+      "clearSearch": "Borrar la búsqueda",
+      "path": "Carpeta",
+      "myDrive": "Mi unidad",
+      "folder": "Carpeta",
+      "noResults": "Nada en tu Drive para «{q}».",
+      "emptyFolder": "Esta carpeta está vacía.",
+      "emptyShared": "Nadie te compartió archivos todavía.",
+      "emptyRecent": "No hay archivos recientes.",
+      "loading": "Cargando…",
+      "more": "Cargar más",
+      "convertsTo": "se copia como {ext}",
+      "problem": {
+        "notExportable": "Este tipo de archivo de Google no se puede copiar",
+        "badType": "La Bóveda no admite este tipo de archivo",
+        "tooBig": "Pesa más de 20 MB"
+      },
+      "permissionTitle": "Falta un permiso.",
+      "permissionBody": "Para copiar archivos, Veltro necesita poder descargarlos de tu Drive.",
+      "grant": "Dar permiso",
+      "grantDrive": "Darle permiso a Drive",
+      "connectTitle": "Conecta tu cuenta de Google",
+      "connectBody": "Con tu cuenta de Google conectada ves tu Drive aquí y copias lo que quieras a la Bóveda.",
+      "connect": "Conectar Google",
+      "needDriveTitle": "Falta el permiso de Drive",
+      "needDriveBody": "Tu cuenta de Google está conectada, pero sin acceso a Drive. Dale permiso y vuelves aquí.",
+      "soon": "Próximamente",
+      "submit": "{count, plural, =0 {Elige archivos} one {Copiar # a la Bóveda} other {Copiar # a la Bóveda}}",
+      "fetching": "Bajando de Drive {done} de {total}…",
+      "failed": "No se pudo traer «{name}»: {reason}",
+      "granted": "Listo: ya puedes copiar archivos de Drive."
+    }
   },
   "pasillo": {
     "title": "Pasillo",

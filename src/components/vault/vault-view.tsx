@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { formatDistanceToNowStrict } from 'date-fns'
-import { CircleCheck, FileText, LayoutGrid, Link2, List, MessagesSquare, Search, Shapes, Tag, Upload, UploadCloud, UserPen, Vault, Video, X } from 'lucide-react'
+import { CircleCheck, FileText, HardDrive, LayoutGrid, Link2, List, MessagesSquare, Search, Shapes, Tag, Upload, UploadCloud, UserPen, Vault, Video, X } from 'lucide-react'
 import { canEdit, useApp, useMemberMap, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Avatar } from '@/components/ui/avatar'
@@ -180,6 +181,22 @@ export function VaultView() {
   const target = filters.ws.length === 1 && filters.ws[0] !== NONE && canEdit(wsMap.get(filters.ws[0])) ? filters.ws[0] : null
   // subir abre el formulario (título, etiquetas, vínculos); soltar archivos también, ya con ellos cargados
   const [uploading, setUploading] = useState<{ mode: UploadMode; files?: File[] } | null>(null)
+  // de vuelta de Google (dar permiso para Drive): ?drive=1 abre Drive otra vez y ?mail= dice cómo salió
+  const tDrive = useTranslations('vault.drive')
+  const tConnect = useTranslations('mail.connectErrors')
+  useEffect(() => {
+    const status = params.get('mail')
+    const drive = params.get('drive') === '1'
+    if (!status && !drive) return
+    if (status === 'connected') toast.success(tDrive('granted'))
+    else if (status) toast.error(tConnect.has(status) ? tConnect(status) : tConnect('generic'))
+    if (drive) setUploading({ mode: 'drive' })
+    const next = new URLSearchParams(window.location.search)
+    next.delete('drive')
+    next.delete('mail')
+    window.history.replaceState(null, '', `${pathname}${next.toString() ? `?${next}` : ''}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 px-4 pb-4 pt-4 sm:px-6">
@@ -245,6 +262,10 @@ export function VaultView() {
           <div className="ml-auto flex items-center gap-2">
             {tab === 'files' ? (
               <>
+                <Button onClick={() => setUploading({ mode: 'drive' })} title={t('fromDriveHint')}>
+                  <HardDrive />
+                  {t('fromDrive')}
+                </Button>
                 <Button onClick={() => setUploading({ mode: 'link' })}>
                   <Link2 />
                   {t('addLink')}

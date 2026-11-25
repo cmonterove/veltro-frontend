@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { addDays, subDays } from 'date-fns'
-import { ChevronDown, CircleCheck, LayoutGrid, Link2, Tag, UploadCloud, Video, X } from 'lucide-react'
+import { ChevronDown, CircleCheck, HardDrive, LayoutGrid, Link2, Tag, UploadCloud, Video, X } from 'lucide-react'
 import { canEdit, useApp, useWorkspaceMap } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,8 @@ import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTr
 import { LabelChip, LabelsPopover } from '@/components/tasks/pickers'
 import { StatusIcon } from '@/components/tasks/status-icon'
 import { formatBytes } from '@/components/attachments/attachments'
+import { useMailError } from '@/components/mail/mail-errors'
+import { fetchDriveFile, useMailboxes } from '@/lib/queries/mail'
 import { MAX_FILE_BYTES, useAttachmentMutations } from '@/lib/queries/attachments'
 import { uploadMimeOf } from '@/lib/api/pasillo-boveda'
 import { useTasks } from '@/lib/queries/tasks'
@@ -23,8 +26,9 @@ import type { AttachmentRow } from '@/lib/database.types'
 import { cn, taskRef } from '@/lib/utils'
 import { FileKindIcon } from './file-visual'
 import { LinkedValue, linkTrigger } from './file-inspector'
+import { DriveImport, type DriveSelection } from './drive-import'
 
-export type UploadMode = 'files' | 'link'
+export type UploadMode = 'files' | 'link' | 'drive'
 type Item = { id: string; file: File; title: string }
 
 const fileStub = (f: File) => ({ kind: 'file' as const, mime_type: f.type || null, name: f.name })
@@ -33,9 +37,10 @@ const fileStub = (f: File) => ({ kind: 'file' as const, mime_type: f.type || nul
 const problemOf = (f: File) => (f.size > MAX_FILE_BYTES ? 'tooBig' : !uploadMimeOf(f) ? 'badType' : null)
 
 /**
- * Subir a la bóveda: archivos (o un link) con su título, etiquetas para todos y, si se quiere, el
- * espacio, la tarea o la reunión de la que cuelgan. Nada de eso es obligatorio: sin vínculos, queda
- * suelto en la bóveda.
+ * Subir a la bóveda: archivos (o un link, o archivos de Google Drive) con su título, etiquetas para
+ * todos y, si se quiere, el espacio, la tarea o la reunión de la que cuelgan. Nada de eso es
+ * obligatorio: sin vínculos, queda suelto en la bóveda. Los de Drive se bajan (por la API) y se suben
+ * como cualquier otro archivo, con los mismos límites.
  */
 export function UploadDialog({
   open,
@@ -57,6 +62,8 @@ export function UploadDialog({
 }) {
   const t = useTranslations('vault')
   const tu = useTranslations('vault.uploadForm')
+  const td = useTranslations('vault.drive')
+  const mailError = useMailError()
   const locale = useDateLocale()
   const { workspaces, observedWorkspaces } = useApp()
   const wsMap = useWorkspaceMap()
@@ -73,6 +80,12 @@ export function UploadDialog({
   const [meetingId, setMeetingId] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const input = useRef<HTMLInputElement>(null)
+  // Google Drive: lo elegido y, mientras se baja, cuántos van
+  const [drive, setDrive] = useState<DriveSelection>({ box: null, files: [] })
+  const [fetching, setFetching] = useState<{ done: number; total: number } | null>(null)
+  const mailboxes = useMailboxes(open && mode === 'drive')
+  const driveBox = mailboxes.data?.items.find((b) => b.id === drive.box)
+  const driveReady = Boolean(driveBox?.canDriveFiles) && drive.files.length > 0
 
   // cada vez que se abre, empieza limpio (con lo que se haya soltado y el espacio filtrado, si hay)
   useEffect(() => {
@@ -85,8 +98,16 @@ export function UploadDialog({
     setWorkspaceId(defaultWorkspaceId && editableWs.some((w) => w.id === defaultWorkspaceId) ? defaultWorkspaceId : null)
     setTaskId(null)
     setMeetingId(null)
+    setDrive({ box: null, files: [] })
+    setFetching(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // lo que llega de Drive lleva su etiqueta (para encontrarlo después); se puede quitar
+  useEffect(() => {
+    if (open && mode === 'drive') setLabels((l) => (l.length ? l : [td('label')]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode])
 
   // tareas y reuniones para vincular: las del espacio elegido, o de todos si no hay
   const wsIds = useMemo(() => [...workspaces, ...observedWorkspaces].map((w) => w.id), [workspaces, observedWorkspaces])
@@ -121,13 +142,36 @@ export function UploadDialog({
   const addFiles = (list: File[]) => setItems((prev) => [...prev, ...list.map((file) => ({ id: crypto.randomUUID(), file, title: '' }))])
   const valid = items.filter((i) => !problemOf(i.file))
   const linkOk = /^(https?:\/\/)?[\w-]+(\.[\w-]+)+/i.test(url.trim())
-  const pending = upload.isPending || addLink.isPending
+  const pending = upload.isPending || addLink.isPending || fetching !== null
   const parent = { workspaceId, taskId, meetingId, labels }
 
+  const done = (rows: AttachmentRow[]) => {
+    onUploaded?.(rows)
+    onOpenChange(false)
+  }
+
+  /** De Drive: se bajan de a uno (convertidos si son de Google) y se suben como cualquier archivo. */
+  const importDrive = async () => {
+    const box = drive.box
+    if (!box || !driveReady) return
+    const files: File[] = []
+    setFetching({ done: 0, total: drive.files.length })
+    for (const [i, f] of drive.files.entries()) {
+      try {
+        files.push(await fetchDriveFile(box, f))
+      } catch (e) {
+        toast.error(td('failed', { name: f.name, reason: mailError(e) }))
+      }
+      setFetching({ done: i + 1, total: drive.files.length })
+    }
+    setFetching(null)
+    if (files.length) upload.mutate({ parent, files }, { onSuccess: done })
+  }
+
   const submit = () => {
-    const done = (rows: AttachmentRow[]) => {
-      onUploaded?.(rows)
-      onOpenChange(false)
+    if (mode === 'drive') {
+      void importDrive()
+      return
     }
     if (mode === 'files') {
       if (!valid.length) return
@@ -140,18 +184,19 @@ export function UploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader title={tu('title')} description={tu('description')} />
+      <DialogContent className={cn('flex max-h-[calc(100dvh-12vh-1rem)] flex-col', mode === 'drive' ? 'max-w-2xl' : 'max-w-xl')}>
+        <DialogHeader title={tu('title')} description={mode === 'drive' ? td('description') : tu('description')} />
         <form
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={(e) => {
             e.preventDefault()
             submit()
           }}
         >
-          <DialogBody className="flex flex-col gap-5">
+          <DialogBody className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto scrollbar-thin">
             {/* archivo o link */}
             <div className="flex w-fit items-center rounded-lg bg-hover p-0.5" role="group" aria-label={tu('what')}>
-              {(['files', 'link'] as const).map((m) => (
+              {(['files', 'link', 'drive'] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
@@ -162,13 +207,15 @@ export function UploadDialog({
                     mode === m ? 'bg-panel font-medium text-fg shadow-card' : 'text-fg-muted hover:text-fg',
                   )}
                 >
-                  {m === 'files' ? <UploadCloud className="size-3.5" /> : <Link2 className="size-3.5" />}
+                  {m === 'files' ? <UploadCloud className="size-3.5" /> : m === 'link' ? <Link2 className="size-3.5" /> : <HardDrive className="size-3.5" />}
                   {tu(`mode.${m}`)}
                 </button>
               ))}
             </div>
 
-            {mode === 'files' ? (
+            {mode === 'drive' ? (
+              <DriveImport value={drive} onChange={setDrive} disabled={pending} />
+            ) : mode === 'files' ? (
               <div className="flex flex-col gap-2">
                 <button
                   type="button"
@@ -372,8 +419,14 @@ export function UploadDialog({
             <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
               {tu('cancel')}
             </Button>
-            <Button type="submit" variant="primary" size="sm" loading={pending} disabled={mode === 'files' ? !valid.length : !linkOk}>
-              {mode === 'files' ? tu('submitFiles', { count: valid.length }) : tu('submitLink')}
+            <Button type="submit" variant="primary" size="sm" loading={pending} disabled={mode === 'files' ? !valid.length : mode === 'link' ? !linkOk : !driveReady}>
+              {mode === 'files'
+                ? tu('submitFiles', { count: valid.length })
+                : mode === 'link'
+                  ? tu('submitLink')
+                  : fetching
+                    ? td('fetching', { done: fetching.done, total: fetching.total })
+                    : td('submit', { count: drive.files.length })}
             </Button>
           </DialogFooter>
         </form>
