@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { CalendarDays, X } from 'lucide-react'
 import { useApp, useIsAccountAdmin } from '@/components/app/app-context'
 import { Button } from '@/components/ui/button'
+import { CARD } from '@/components/ui/surface'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from '@/components/ui/dialog'
 import { Field, Input, Textarea } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -241,7 +242,7 @@ export function NewRequestDialog({
     </form>
   )
 
-  if (embedded) return <div className="rounded-xl border border-line bg-panel">{form}</div>
+  if (embedded) return <div className={CARD}>{form}</div>
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">{form}</DialogContent>

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { ChevronDown, CircleUser } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { CARD } from '@/components/ui/surface'
 import { Switch } from '@/components/ui/switch'
 import { AvatarStack } from '@/components/ui/avatar'
 import { AutoTextarea } from '@/components/ui/auto-textarea'
@@ -246,7 +247,7 @@ export function QuickTaskDialog({
       </form>
     )
 
-  if (embedded) return <div className="rounded-xl border border-line bg-panel">{content}</div>
+  if (embedded) return <div className={CARD}>{content}</div>
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl" hideClose>

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ExternalLink, FileText, Link2, LogOut, Mail, Paperclip, Plus, UserPlus, X } from 'lucide-react'
-import { LogoMark } from '@/components/app/logo'
+import { Logo, LogoMark } from '@/components/app/logo'
+import { CARD } from '@/components/ui/surface'
 import { AppProvider, canEdit } from '@/components/app/app-context'
 import { WorkspaceMark } from '@/components/app/marks'
 import { Field, Input } from '@/components/ui/input'
@@ -463,7 +464,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const people = app?.members.filter((m) => m.id !== app.user.id) ?? []
   const chosen = people.filter((m) => mailPeople.includes(m.id))
   const mailBox = (
-    <div className="mx-4 mb-3 rounded-lg border border-line p-3">
+    <div className="mx-4 mb-3 rounded-xl bg-canvas p-3 ring-1 ring-line-soft">
       {mailAccounts === null ? null : mailAccounts.length === 0 ? (
         <div className="flex items-center gap-3">
           <Mail className="size-4 shrink-0 text-fg-subtle" />
@@ -529,7 +530,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
 
   // adjuntos: archivos, capturas pegadas y enlaces (van dentro del formulario de Veltro, antes del botón)
   const attachBox = (
-    <div className="mx-4 mb-3 rounded-lg border border-line p-3">
+    <div className="mx-4 mb-3 rounded-xl bg-canvas p-3 ring-1 ring-line-soft">
       <div className="flex items-center gap-2">
         <Paperclip className="size-4 text-fg-subtle" />
         <span className="text-sm font-medium">{t('attachTitle')}</span>
@@ -608,208 +609,212 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const editable = app?.workspaces.filter((w) => canEdit(w)) ?? []
   const prefs = typeof window === 'undefined' ? {} : readPrefs(platform)
 
+  const ready = status === 'ready' && app && !done
+  const tabs = (
+    // Tarea o Solicitud: las pestañas de Veltro sobre el ciruela (como en Solicitudes)
+    <div role="tablist" aria-label={t('title')} className="mt-3 flex gap-0.5 rounded-xl bg-fg/[0.08] p-0.5">
+      {(['task', 'request'] as const).map((k) => (
+        <button
+          key={k}
+          type="button"
+          role="tab"
+          aria-selected={tab === k}
+          onClick={() => {
+            setTab(k)
+            savePrefs(platform, { tab: k })
+          }}
+          className={cn(
+            'inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-[10px] px-2 text-xs transition-colors duration-150',
+            tab === k ? 'bg-fg/[0.16] font-semibold text-fg' : 'text-fg-muted hover:text-fg',
+          )}
+        >
+          {t(k)}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
-    <div className="flex h-dvh flex-col bg-canvas text-fg">
-      {/* cabecera: la marca, de dónde se la llama y cerrar */}
-      <header className="flex items-center gap-2.5 border-b border-line bg-panel px-4 py-3">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-highlight">
-          <LogoMark className="size-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-tight">{t('title')}</p>
-          <p className="truncate text-xs text-fg-muted">{t('from', { platform })}</p>
+    <div className="frame-bg flex h-dvh flex-col">
+      {/* la cabecera, sobre el ciruela de Veltro: la marca, de dónde viene y Tarea o Solicitud */}
+      <header className="on-frame day-surface shrink-0 px-4 pb-3.5 pt-3.5 text-fg">
+        <div className="flex items-center gap-2">
+          <Logo className="w-[92px]" />
+          <span className="ml-auto" />
+          {me ? <Avatar name={me.name} src={me.avatar} seed={me.id} size={24} /> : null}
+          <Button variant="ghost" size="icon-sm" aria-label={t('close')} onClick={() => post({ type: MSG.close })}>
+            <X />
+          </Button>
         </div>
-        {me ? <Avatar name={me.name} src={me.avatar} seed={me.id} size={26} /> : null}
-        <Button variant="ghost" size="icon-sm" aria-label={t('close')} onClick={() => post({ type: MSG.close })}>
-          <X />
-        </Button>
+        <div className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">
+          <Link2 className="size-3.5 shrink-0" />
+          <span className="truncate">
+            <strong className="font-semibold text-fg">{t('from', { platform })}</strong>
+            {record ? ` · ${record}` : host.url ? ` · ${host.url.replace(/^https?:\/\//, '')}` : ''}
+          </span>
+        </div>
+        {ready ? tabs : null}
       </header>
 
-      {status === 'loading' ? (
-        <div className="flex flex-1 items-center justify-center gap-2 text-sm text-fg-muted">
-          <Spinner className="size-4" /> {t('loading')}
-        </div>
-      ) : status === 'no-account' ? (
-        // entró sin cuenta (se registró desde la burbuja): no se le pide armar una; la cuenta es de su empresa
-        <Centered title={t('noAccountTitle')} text={t('noAccountText')}>
-          <Button variant="ghost" size="sm" className="mt-2" onClick={() => void load()}>
-            {t('retry')}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={disconnect}>
-            <LogOut /> {t('disconnect')}
-          </Button>
-        </Centered>
-      ) : status === 'error' ? (
-        <Centered title={t('error')} text="">
-          <Button variant="secondary" size="sm" onClick={() => void load()}>
-            {t('retry')}
-          </Button>
-        </Centered>
-      ) : status !== 'ready' || !app ? (
-        // sin conectar: un paso, con la cuenta de Veltro
-        <Centered title={t('connectTitle')} text={t('connectText', { platform })}>
-          <Button variant="primary" size="lg" className="mt-2 w-full" loading={status === 'connecting'} onClick={connect}>
-            {status === 'connecting' ? t('connecting') : t('connect')}
-          </Button>
-          {status === 'blocked' ? (
-            <p className="text-xs text-danger" role="alert">
-              {t('popupBlocked')}
-            </p>
-          ) : null}
-        </Centered>
-      ) : done ? (
-        <Centered title={done.label} text={done.note ?? ''} icon={<Check className="size-6" />}>
-          <div className="mt-2 flex gap-2">
-            <Button variant="secondary" onClick={another}>
-              {t('another')}
+      {/* la hoja crema de Veltro, con las esquinas de arriba redondeadas */}
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-[22px] bg-canvas">
+        {status === 'loading' ? (
+          <div className="flex flex-1 items-center justify-center gap-2 text-sm text-fg-muted">
+            <Spinner className="size-4" /> {t('loading')}
+          </div>
+        ) : status === 'no-account' ? (
+          // entró sin cuenta (se registró desde la burbuja): no se le pide armar una; la cuenta es de su empresa
+          <Centered title={t('noAccountTitle')} text={t('noAccountText')}>
+            <Button variant="secondary" className="mt-1 w-full" onClick={() => void load()}>
+              {t('retry')}
             </Button>
-            <a
-              href={done.href}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-accent px-3 text-sm font-medium text-accent-fg hover:bg-accent-hover"
-            >
-              {t('open')} <ExternalLink className="size-4" />
-            </a>
-          </div>
-        </Centered>
-      ) : (
-        <AppProvider value={app}>
-          <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
-            {/* de dónde viene: queda guardado en la tarea o la solicitud */}
-            <div className="flex items-center gap-2 rounded-lg bg-highlight px-3 py-2 text-xs text-highlight-ink">
-              <Link2 className="size-3.5 shrink-0" />
-              <span className="truncate">
-                <strong className="font-semibold">{platform}</strong>
-                {record ? ` · ${record}` : host.url ? ` · ${host.url.replace(/^https?:\/\//, '')}` : ''}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Tarea o Solicitud */}
-              <div className="grid flex-1 grid-cols-2 gap-1 rounded-lg bg-hover p-1" role="tablist">
-                {(['task', 'request'] as const).map((k) => (
-                  <button
-                    key={k}
-                    role="tab"
-                    aria-selected={tab === k}
-                    onClick={() => {
-                      setTab(k)
-                      savePrefs(platform, { tab: k })
-                    }}
-                    className={cn(
-                      'h-8 rounded-md text-sm font-medium transition-colors',
-                      tab === k ? 'bg-panel text-fg shadow-card' : 'text-fg-muted hover:text-fg',
-                    )}
-                  >
-                    {t(k)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* la cuenta y, para las tareas, el espacio: con una sola opción se muestra fija */}
-            <div className="grid grid-cols-2 gap-2">
-              <Field label={t('account')}>
-                {app.accounts.length > 1 ? (
-                  <Select
-                    value={app.account.id}
-                    onChange={(id) => {
-                      savePrefs(platform, { accountId: id })
-                      setStatus('loading')
-                      void load(id)
-                    }}
-                    options={app.accounts.map((a) => ({ value: a.id, label: a.name }))}
-                    aria-label={t('account')}
-                  />
-                ) : (
-                  <Fixed>{app.account.name}</Fixed>
-                )}
-              </Field>
-              {tab === 'task' ? (
-                <Field label={t('space')}>
-                  {editable.length > 1 ? (
-                    <Select
-                      value={workspaceId}
-                      onChange={(id) => {
-                        setWorkspaceId(id)
-                        savePrefs(platform, { workspaceId: id })
-                      }}
-                      options={editable.map((w) => ({ value: w.id, label: w.name, icon: <WorkspaceMark ws={w} size={16} /> }))}
-                      aria-label={t('space')}
-                    />
-                  ) : editable[0] ? (
-                    <Fixed>
-                      <WorkspaceMark ws={editable[0]} size={16} />
-                      {editable[0].name}
-                    </Fixed>
-                  ) : (
-                    <Fixed>{t('noSpaces')}</Fixed>
-                  )}
-                </Field>
-              ) : null}
-            </div>
-
-            {/* los formularios de Veltro, tal cual */}
-            {tab === 'task' ? (
-              <QuickTaskDialog
-                key={`t-${app.account.id}-${workspaceId}-${round}`}
-                embedded
-                open
-                onOpenChange={() => {}}
-                defaults={{ workspaceId: workspaceId || undefined, ...(host.text ? { title: host.text } : {}) }}
-                onCreated={(task) => void taskCreated(task)}
-                extra={
-                  <>
-                    {attachBox}
-                    {mailBox}
-                  </>
-                }
-              />
-            ) : (
-              <NewRequestDialog
-                key={`r-${app.account.id}-${round}`}
-                embedded
-                open
-                onOpenChange={() => {}}
-                defaultDepartment={prefs.departmentId}
-                beforeSend={requestExtra}
-                onCreated={(r) => void requestCreated(r)}
-                extra={
-                  <>
-                    {attachBox}
-                    {mailBox}
-                  </>
-                }
-              />
-            )}
-          </div>
-
-          <footer className="flex items-center border-t border-line bg-panel px-4 py-2">
             <Button variant="ghost" size="sm" onClick={disconnect}>
               <LogOut /> {t('disconnect')}
             </Button>
-          </footer>
-        </AppProvider>
-      )}
+          </Centered>
+        ) : status === 'error' ? (
+          <Centered title={t('error')} text="">
+            <Button variant="secondary" className="mt-1 w-full" onClick={() => void load()}>
+              {t('retry')}
+            </Button>
+          </Centered>
+        ) : status !== 'ready' || !app ? (
+          // sin conectar: un paso, con la cuenta de Veltro
+          <Centered title={t('connectTitle')} text={t('connectText', { platform })}>
+            <Button variant="primary" size="lg" className="mt-1 w-full" loading={status === 'connecting'} onClick={connect}>
+              {status === 'connecting' ? t('connecting') : t('connect')}
+            </Button>
+            {status === 'blocked' ? (
+              <p className="text-xs text-danger" role="alert">
+                {t('popupBlocked')}
+              </p>
+            ) : null}
+          </Centered>
+        ) : done ? (
+          <Centered title={done.label} text={done.note ?? ''} done>
+            <div className="mt-1 flex w-full gap-2">
+              <Button variant="secondary" className="flex-1" onClick={another}>
+                {t('another')}
+              </Button>
+              <a
+                href={done.href}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md bg-accent px-3 text-sm font-medium text-accent-fg hover:bg-accent-hover"
+              >
+                {t('open')} <ExternalLink className="size-4" />
+              </a>
+            </div>
+          </Centered>
+        ) : (
+          <AppProvider value={app}>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-4 pt-3 scrollbar-thin">
+              {/* la cuenta y, para las tareas, el espacio: con una sola opción se muestra fija */}
+              <div className={cn(CARD, 'grid gap-3 p-3.5', tab === 'task' ? 'grid-cols-2' : 'grid-cols-1')}>
+                <Field label={t('account')}>
+                  {app.accounts.length > 1 ? (
+                    <Select
+                      value={app.account.id}
+                      onChange={(id) => {
+                        savePrefs(platform, { accountId: id })
+                        setStatus('loading')
+                        void load(id)
+                      }}
+                      options={app.accounts.map((a) => ({ value: a.id, label: a.name }))}
+                      aria-label={t('account')}
+                    />
+                  ) : (
+                    <Fixed>{app.account.name}</Fixed>
+                  )}
+                </Field>
+                {tab === 'task' ? (
+                  <Field label={t('space')}>
+                    {editable.length > 1 ? (
+                      <Select
+                        value={workspaceId}
+                        onChange={(id) => {
+                          setWorkspaceId(id)
+                          savePrefs(platform, { workspaceId: id })
+                        }}
+                        options={editable.map((w) => ({ value: w.id, label: w.name, icon: <WorkspaceMark ws={w} size={16} /> }))}
+                        aria-label={t('space')}
+                      />
+                    ) : editable[0] ? (
+                      <Fixed>
+                        <WorkspaceMark ws={editable[0]} size={16} />
+                        {editable[0].name}
+                      </Fixed>
+                    ) : (
+                      <Fixed>{t('noSpaces')}</Fixed>
+                    )}
+                  </Field>
+                ) : null}
+              </div>
+
+              {/* los formularios de Veltro, tal cual */}
+              {tab === 'task' ? (
+                <QuickTaskDialog
+                  key={`t-${app.account.id}-${workspaceId}-${round}`}
+                  embedded
+                  open
+                  onOpenChange={() => {}}
+                  defaults={{ workspaceId: workspaceId || undefined, ...(host.text ? { title: host.text } : {}) }}
+                  onCreated={(task) => void taskCreated(task)}
+                  extra={
+                    <>
+                      {attachBox}
+                      {mailBox}
+                    </>
+                  }
+                />
+              ) : (
+                <NewRequestDialog
+                  key={`r-${app.account.id}-${round}`}
+                  embedded
+                  open
+                  onOpenChange={() => {}}
+                  defaultDepartment={prefs.departmentId}
+                  beforeSend={requestExtra}
+                  onCreated={(r) => void requestCreated(r)}
+                  extra={
+                    <>
+                      {attachBox}
+                      {mailBox}
+                    </>
+                  }
+                />
+              )}
+
+              <div className="flex justify-center pt-1">
+                <Button variant="ghost" size="xs" onClick={disconnect}>
+                  <LogOut /> {t('disconnect')}
+                </Button>
+              </div>
+            </div>
+          </AppProvider>
+        )}
+      </main>
     </div>
   )
 }
 
-function Centered({ title, text, icon, children }: { title: string; text: string; icon?: React.ReactNode; children?: React.ReactNode }) {
+/** Las pantallas de un paso (conectar, sin cuenta, listo): una tarjeta de Veltro con el sello arriba. */
+function Centered({ title, text, done, children }: { title: string; text: string; done?: boolean; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
-      <span className={cn('flex size-12 items-center justify-center', icon ? 'rounded-full bg-accent text-accent-fg' : 'rounded-2xl bg-highlight')}>
-        {icon ?? <LogoMark className="size-7" />}
-      </span>
-      <h1 className="text-base font-semibold">{title}</h1>
-      {text ? <p className="text-sm leading-relaxed text-fg-muted">{text}</p> : null}
-      {children}
+    <div className="flex flex-1 items-center justify-center p-4">
+      <div className={cn(CARD, 'flex w-full max-w-sm flex-col items-center gap-3 px-6 py-7 text-center')}>
+        <span className={cn('flex size-12 items-center justify-center rounded-2xl', done ? 'bg-accent text-accent-fg' : 'bg-highlight')}>
+          {done ? <Check className="size-6" /> : <LogoMark className="size-7" />}
+        </span>
+        <h1 className="text-[17px] font-semibold tracking-[-0.01em]">{title}</h1>
+        {text ? <p className="text-sm leading-relaxed text-fg-muted">{text}</p> : null}
+        {children}
+      </div>
     </div>
   )
 }
 
 /** Un valor que no se elige (hay uno solo): se ve como el selector, sin flecha. */
 function Fixed({ children }: { children: React.ReactNode }) {
-  return <div className="flex h-9 min-w-0 items-center gap-2 truncate rounded-md border border-line bg-hover px-2.5 text-sm text-fg">{children}</div>
+  return <div className="flex h-9 min-w-0 items-center gap-2 truncate rounded-md border border-line bg-canvas px-2.5 text-sm text-fg">{children}</div>
 }
