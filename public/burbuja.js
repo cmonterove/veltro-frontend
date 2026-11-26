@@ -34,16 +34,16 @@
   raiz.innerHTML =
     '<style>' +
     ':host{all:initial}' +
-    '.boton{position:fixed;bottom:20px;' + lado + ':20px;z-index:2147483646;width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;' +
+    '.boton{position:fixed;bottom:24px;' + lado + ':24px;z-index:2147483646;width:64px;height:64px;border-radius:50%;border:0;cursor:pointer;' +
     'background:linear-gradient(135deg,#5B1F7A 0%,#A3195B 70%,#E0546B 100%);box-shadow:0 8px 24px rgba(70,15,96,.35),0 2px 6px rgba(70,15,96,.25);' +
     'display:flex;align-items:center;justify-content:center;transition:transform .18s cubic-bezier(.2,0,0,1),box-shadow .18s;padding:0}' +
     '.boton:hover{transform:scale(1.06);box-shadow:0 10px 28px rgba(70,15,96,.42),0 2px 6px rgba(70,15,96,.25)}' +
     '.boton:active{transform:scale(.96)}' +
     '.boton:focus-visible{outline:3px solid #C9A6E4;outline-offset:3px}' +
-    '.boton svg{width:30px;height:30px}' +
+    '.boton svg{width:34px;height:34px}' +
     '.boton.abierta .logo{opacity:0;transform:rotate(-45deg) scale(.6)}.boton .x{position:absolute;opacity:0;transform:rotate(45deg) scale(.6)}' +
     '.boton.abierta .x{opacity:1;transform:none}.logo,.x{transition:opacity .18s,transform .18s}' +
-    '.panel{position:fixed;bottom:88px;' + lado + ':20px;z-index:2147483647;width:380px;height:min(620px,calc(100vh - 112px));border:0;border-radius:16px;' +
+    '.panel{position:fixed;bottom:98px;' + lado + ':24px;z-index:2147483647;width:420px;height:min(700px,calc(100vh - 122px));border:0;border-radius:16px;' +
     'background:#fff;box-shadow:0 24px 64px rgba(30,10,45,.28),0 4px 14px rgba(30,10,45,.14);opacity:0;transform:translateY(12px) scale(.98);' +
     'transform-origin:bottom ' + lado + ';pointer-events:none;transition:opacity .2s cubic-bezier(.2,0,0,1),transform .2s cubic-bezier(.2,0,0,1);overflow:hidden}' +
     '.panel.abierta{opacity:1;transform:none;pointer-events:auto}' +
@@ -56,7 +56,7 @@
     '<svg class="logo" viewBox="150 23.3 724.3 851" aria-hidden="true">' +
     '<path fill="#fff" d="M670.8 188.9A360 360 0 1 0 770.4 261.3L483.6 758L305.6 530.1L371.6 415.8L468.4 539.6Z"/>' +
     '<path fill="#F7A8C4" d="M686.2 162.4L765.4 25.2L871.4 86.4L786.2 233.9A390.6 390.6 0 0 0 686.2 162.4Z"/></svg>' +
-    '<svg class="x" viewBox="0 0 24 24" aria-hidden="true" style="width:24px;height:24px"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>' +
+    '<svg class="x" viewBox="0 0 24 24" aria-hidden="true" style="width:28px;height:28px"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>' +
     '</button>'
 
   var iframe = raiz.querySelector('.panel')
