@@ -14,7 +14,8 @@ import { Field, Input, Textarea } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { MiniCalendar } from '@/components/tasks/pickers'
+import { DuePopover, MiniCalendar } from '@/components/tasks/pickers'
+import { DueDate } from '@/components/tasks/due-date'
 import { useDateLocale } from '@/lib/dates'
 import { REQUEST_KINDS, useRequestMutations, type RequestKind } from '@/lib/queries/requests'
 import { track } from '@/lib/telemetry'
@@ -180,24 +181,36 @@ export function NewRequestDialog({
           <div className="flex flex-wrap items-end gap-4">
             <Field label={t('due')} htmlFor="rq-due" className="min-w-44 flex-1">
               <div className="flex items-center gap-1">
-                <Popover open={dateOpen} onOpenChange={setDateOpen}>
-                  <PopoverTrigger
-                    id="rq-due"
-                    className="flex h-9 w-full items-center gap-2 rounded-lg border border-line bg-panel px-2.5 text-left text-sm outline-none transition-colors hover:border-line-strong focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[popup-open]:border-accent-mid"
+                {embedded ? (
+                  // dentro de la burbuja: el mismo selector de las tareas (Hoy, Mañana, Próxima semana y el calendario)
+                  <DuePopover
+                    value={due}
+                    onChange={setDue}
+                    className="flex h-9 w-full items-center justify-start gap-2 rounded-lg border border-line bg-panel px-2.5 text-sm hover:border-line-strong"
                   >
                     <CalendarDays className="size-4 shrink-0 text-fg-subtle" />
-                    <span className={cn('truncate first-letter:uppercase', !due && 'text-fg-subtle')}>{due ? format(parseISO(due), 'EEE d MMM', { locale }) : t('noDue')}</span>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2">
-                    <MiniCalendar
-                      selected={due ? parseISO(due) : null}
-                      onSelect={(d) => {
-                        setDue(format(d, 'yyyy-MM-dd'))
-                        setDateOpen(false)
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
+                    {due ? <DueDate due={due} /> : <span className="text-fg-subtle">{t('noDue')}</span>}
+                  </DuePopover>
+                ) : (
+                  <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                    <PopoverTrigger
+                      id="rq-due"
+                      className="flex h-9 w-full items-center gap-2 rounded-lg border border-line bg-panel px-2.5 text-left text-sm outline-none transition-colors hover:border-line-strong focus-visible:ring-2 focus-visible:ring-accent-mid/40 data-[popup-open]:border-accent-mid"
+                    >
+                      <CalendarDays className="size-4 shrink-0 text-fg-subtle" />
+                      <span className={cn('truncate first-letter:uppercase', !due && 'text-fg-subtle')}>{due ? format(parseISO(due), 'EEE d MMM', { locale }) : t('noDue')}</span>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-2">
+                      <MiniCalendar
+                        selected={due ? parseISO(due) : null}
+                        onSelect={(d) => {
+                          setDue(format(d, 'yyyy-MM-dd'))
+                          setDateOpen(false)
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
                 {due ? (
                   <Button type="button" variant="ghost" size="icon-sm" onClick={() => setDue(null)} aria-label={t('clearDue')}>
                     <X />

@@ -4333,6 +4333,23 @@
     "fileTooBig": "{name} is over 20 MB.",
     "linkInvalid": "Check the link.",
     "tooManyFiles": "A request can have up to 5 files.",
-    "attachFailed": "It was created, but some attachment couldn't be uploaded: add it from Veltro."
+    "attachFailed": "It was created, but some attachment couldn't be uploaded: add it from Veltro.",
+    "mailSend": "Also send by email",
+    "mailFrom": "From",
+    "mailTo": "To",
+    "mailHead": "The department head (always)",
+    "mailAssignees": "The task's assignees (always)",
+    "mailWholeDept": "The whole department",
+    "mailAddPeople": "Add people",
+    "mailPeopleCount": "{count} people",
+    "mailConnectText": "Connect your Gmail to also send it by email.",
+    "mailConnect": "Connect Gmail",
+    "mailConnecting": "Waiting for Google…",
+    "mailSent": "Email sent to {count, plural, one {# person} other {# people}}.",
+    "mailFailed": "The email couldn't be sent: let them know from Veltro.",
+    "mailNoRecipients": "No email was sent: there was no one to send it to (add assignees or people).",
+    "connectedTitle": "Gmail connected",
+    "connectedText": "You can go back to the bubble.",
+    "connectFailed": "Couldn't connect Gmail. Try again from the bubble."
   }
 }

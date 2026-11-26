@@ -47,11 +47,18 @@
     'background:#fff;box-shadow:0 24px 64px rgba(30,10,45,.28),0 4px 14px rgba(30,10,45,.14);opacity:0;transform:translateY(12px) scale(.98);' +
     'transform-origin:bottom ' + lado + ';pointer-events:none;transition:opacity .2s cubic-bezier(.2,0,0,1),transform .2s cubic-bezier(.2,0,0,1);overflow:hidden}' +
     '.panel.abierta{opacity:1;transform:none;pointer-events:auto}' +
+    '.panel iframe{width:100%;height:100%;border:0;display:block;border-radius:inherit}' +
+    // la manija para cambiar el ancho, en el borde de adentro (el que da a la página)
+    '.asa{position:absolute;top:0;bottom:0;' + (izquierda ? 'right' : 'left') + ':0;width:10px;cursor:ew-resize;z-index:1}' +
+    '.asa::after{content:"";position:absolute;top:50%;' + (izquierda ? 'right' : 'left') + ':3px;width:4px;height:44px;margin-top:-22px;border-radius:2px;background:rgba(91,31,122,.28);opacity:0;transition:opacity .15s}' +
+    '.asa:hover::after,.arrastrando .asa::after{opacity:1}' +
+    '.arrastrando iframe{pointer-events:none}' +
+    '.arrastrando{transition:none}' +
     '.oculta{display:none}' +
-    '@media (max-width:480px){.panel{bottom:0;' + lado + ':0;width:100vw;height:100dvh;border-radius:0}.panel.abierta~.boton{display:none}}' +
+    '@media (max-width:480px){.panel{bottom:0;' + lado + ':0;width:100vw!important;height:100dvh;border-radius:0}.panel.abierta~.boton{display:none}.asa{display:none}}' +
     '@media (prefers-reduced-motion:reduce){.boton,.panel,.logo,.x{transition:none}}' +
     '</style>' +
-    '<iframe class="panel" title="Veltro" allow="clipboard-write" loading="lazy"></iframe>' +
+    '<div class="panel"><div class="asa" title="Arrastra para cambiar el ancho (doble clic: el de siempre)"></div><iframe title="Veltro" allow="clipboard-write" loading="lazy"></iframe></div>' +
     '<button class="boton' + (oculta ? ' oculta' : '') + '" type="button" aria-label="Abrir Veltro" aria-expanded="false">' +
     '<svg class="logo" viewBox="150 23.3 724.3 851" aria-hidden="true">' +
     '<path fill="#fff" d="M670.8 188.9A360 360 0 1 0 770.4 261.3L483.6 758L305.6 530.1L371.6 415.8L468.4 539.6Z"/>' +
@@ -59,7 +66,55 @@
     '<svg class="x" viewBox="0 0 24 24" aria-hidden="true" style="width:28px;height:28px"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>' +
     '</button>'
 
-  var iframe = raiz.querySelector('.panel')
+  var panel = raiz.querySelector('.panel')
+  var iframe = raiz.querySelector('iframe')
+  var asa = raiz.querySelector('.asa')
+
+  // ── el ancho: se arrastra la manija y queda guardado en este navegador ──
+  var CLAVE_ANCHO = 'veltro-burbuja:ancho'
+  var ANCHO_BASE = 420
+  function topeAncho() {
+    return Math.max(360, Math.min(1100, window.innerWidth - 48))
+  }
+  function ponerAncho(px, guardar) {
+    var w = Math.round(Math.max(360, Math.min(topeAncho(), px)))
+    panel.style.width = w + 'px'
+    if (guardar) {
+      try {
+        localStorage.setItem(CLAVE_ANCHO, String(w))
+      } catch (e) {}
+    }
+  }
+  try {
+    var guardado = Number(localStorage.getItem(CLAVE_ANCHO))
+    if (guardado) ponerAncho(guardado, false)
+  } catch (e) {}
+  asa.addEventListener('pointerdown', function (e) {
+    e.preventDefault()
+    // los movimientos se escuchan en toda la página (el iframe no los toma mientras se arrastra)
+    panel.classList.add('arrastrando')
+    var caja = panel.getBoundingClientRect()
+    function mover(ev) {
+      ponerAncho(izquierda ? ev.clientX - caja.left : caja.right - ev.clientX, false)
+    }
+    function soltar() {
+      panel.classList.remove('arrastrando')
+      window.removeEventListener('pointermove', mover)
+      window.removeEventListener('pointerup', soltar)
+      window.removeEventListener('pointercancel', soltar)
+      ponerAncho(panel.getBoundingClientRect().width, true)
+    }
+    window.addEventListener('pointermove', mover)
+    window.addEventListener('pointerup', soltar)
+    window.addEventListener('pointercancel', soltar)
+  })
+  asa.addEventListener('dblclick', function () {
+    ponerAncho(ANCHO_BASE, true)
+  })
+  window.addEventListener('resize', function () {
+    var w = panel.getBoundingClientRect().width
+    if (w > topeAncho()) ponerAncho(topeAncho(), false)
+  })
   var boton = raiz.querySelector('.boton')
 
   function enviar(msg) {
@@ -80,7 +135,7 @@
   function abrir() {
     if (!iframe.src) iframe.src = base + '/burbuja?plataforma=' + encodeURIComponent(plataforma)
     abierta = true
-    iframe.classList.add('abierta')
+    panel.classList.add('abierta')
     boton.classList.add('abierta')
     boton.setAttribute('aria-expanded', 'true')
     boton.setAttribute('aria-label', 'Cerrar Veltro')
@@ -89,7 +144,7 @@
 
   function cerrar() {
     abierta = false
-    iframe.classList.remove('abierta')
+    panel.classList.remove('abierta')
     boton.classList.remove('abierta')
     boton.setAttribute('aria-expanded', 'false')
     boton.setAttribute('aria-label', 'Abrir Veltro')

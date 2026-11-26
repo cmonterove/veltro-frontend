@@ -4333,6 +4333,23 @@
     "fileTooBig": "{name} dépasse 20 Mo.",
     "linkInvalid": "Vérifiez le lien.",
     "tooManyFiles": "Une demande accepte jusqu'à 5 fichiers.",
-    "attachFailed": "Elle a été créée, mais une pièce jointe n'a pas pu être envoyée : ajoutez-la depuis Veltro."
+    "attachFailed": "Elle a été créée, mais une pièce jointe n'a pas pu être envoyée : ajoutez-la depuis Veltro.",
+    "mailSend": "Envoyer aussi par e-mail",
+    "mailFrom": "De",
+    "mailTo": "À",
+    "mailHead": "Le responsable du département (toujours)",
+    "mailAssignees": "Les responsables de la tâche (toujours)",
+    "mailWholeDept": "Tout le département",
+    "mailAddPeople": "Ajouter des personnes",
+    "mailPeopleCount": "{count} personnes",
+    "mailConnectText": "Connectez votre Gmail pour l'envoyer aussi par e-mail.",
+    "mailConnect": "Connecter Gmail",
+    "mailConnecting": "En attente de Google…",
+    "mailSent": "E-mail envoyé à {count, plural, one {# personne} other {# personnes}}.",
+    "mailFailed": "L'e-mail n'a pas pu être envoyé : prévenez-les depuis Veltro.",
+    "mailNoRecipients": "Aucun e-mail envoyé : personne à qui l'envoyer (ajoutez des responsables ou des personnes).",
+    "connectedTitle": "Gmail connecté",
+    "connectedText": "Vous pouvez revenir à la bulle.",
+    "connectFailed": "Impossible de connecter Gmail. Réessayez depuis la bulle."
   }
 }

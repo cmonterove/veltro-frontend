@@ -4333,6 +4333,23 @@
     "fileTooBig": "{name} supera los 20 MB.",
     "linkInvalid": "Revisa el enlace.",
     "tooManyFiles": "Una solicitud lleva hasta 5 archivos.",
-    "attachFailed": "Quedó creada, pero algún adjunto no se pudo subir: agrégalo desde Veltro."
+    "attachFailed": "Quedó creada, pero algún adjunto no se pudo subir: agrégalo desde Veltro.",
+    "mailSend": "Enviar también por correo",
+    "mailFrom": "Desde",
+    "mailTo": "Para",
+    "mailHead": "El jefe del departamento (siempre)",
+    "mailAssignees": "Los responsables de la tarea (siempre)",
+    "mailWholeDept": "Todo el departamento",
+    "mailAddPeople": "Agregar personas",
+    "mailPeopleCount": "{count} personas",
+    "mailConnectText": "Conecta tu Gmail para enviarlo también por correo.",
+    "mailConnect": "Conectar Gmail",
+    "mailConnecting": "Esperando a Google…",
+    "mailSent": "Correo enviado a {count, plural, one {# persona} other {# personas}}.",
+    "mailFailed": "No se pudo enviar el correo: avísales desde Veltro.",
+    "mailNoRecipients": "No se envió el correo: no había a quién (agrega responsables o personas).",
+    "connectedTitle": "Gmail conectado",
+    "connectedText": "Ya puedes volver a la burbuja.",
+    "connectFailed": "No se pudo conectar Gmail. Vuelve a intentarlo desde la burbuja."
   }
 }

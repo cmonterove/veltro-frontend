@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Check, ExternalLink, FileText, Link2, LogOut, Paperclip, Plus, X } from 'lucide-react'
+import { Check, ExternalLink, FileText, Link2, LogOut, Mail, Paperclip, Plus, UserPlus, X } from 'lucide-react'
 import { LogoMark } from '@/components/app/logo'
 import { AppProvider } from '@/components/app/app-context'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { NewRequestDialog } from '@/components/requests/new-request-dialog'
-import { Avatar } from '@/components/ui/avatar'
+import { Avatar, AvatarStack } from '@/components/ui/avatar'
+import { Checkbox, Switch } from '@/components/ui/switch'
+import { AssigneesMenu } from '@/components/tasks/pickers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -36,7 +38,8 @@ const MSG = {
 } as const
 
 type HostContext = { platform: string; url?: string; record?: { id?: string; title?: string }; text?: string; host?: string }
-type Done = { label: string; href: string }
+type Done = { label: string; href: string; note?: string | null }
+type MailAccount = { id: string; email: string; isDefault: boolean }
 type Prefs = { tab?: 'task' | 'request'; accountId?: string; workspaceId?: string; departmentId?: string }
 type SignedUpload = { uploadUrl: string; headers: Record<string, string>; uploadToken: string }
 type Attachment = { id: string; kind: 'file'; file: File; preview: string | null } | { id: string; kind: 'link'; url: string }
@@ -162,6 +165,13 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const [linkDraft, setLinkDraft] = useState<string | null>(null)
   const [attachError, setAttachError] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  // enviar también por correo, desde el Gmail de la persona (null: todavía no se sabe si tiene)
+  const [mailAccounts, setMailAccounts] = useState<MailAccount[] | null>(null)
+  const [mailOn, setMailOn] = useState(true)
+  const [mailFrom, setMailFrom] = useState('')
+  const [mailDept, setMailDept] = useState(false)
+  const [mailPeople, setMailPeople] = useState<string[]>([])
+  const [mailConnecting, setMailConnecting] = useState(false)
   const [done, setDone] = useState<Done | null>(null)
   const [round, setRound] = useState(0)
   const verifier = useRef<string | null>(null)
@@ -189,6 +199,44 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     })
   }, [source])
 
+  async function loadMail() {
+    const r = await call<{ items: MailAccount[] }>('/v1/me/mail-accounts').catch(() => null)
+    if (!r) return
+    setMailAccounts(r.items)
+    setMailFrom((f) => (r.items.some((a) => a.id === f) ? f : ((r.items.find((a) => a.isDefault) ?? r.items[0])?.id ?? '')))
+    return r.items.length
+  }
+
+  // conectar Gmail con lo que ya tiene la web (en una ventanita, con su sesión); al volver la burbuja lo ve sola
+  const connectMail = () => {
+    const w = window.open('/api/integrations/google/mail-connect?returnTo=/burbuja/listo', 'veltro-burbuja-gmail', 'popup,width=520,height=680')
+    if (!w) return
+    setMailConnecting(true)
+    const started = Date.now()
+    const id = setInterval(async () => {
+      const n = await loadMail()
+      if (n || Date.now() - started > 10 * 60_000) {
+        clearInterval(id)
+        setMailConnecting(false)
+      }
+    }, 2000)
+  }
+
+  // el aviso por correo, después de crear (el texto lo arma la API): a quien la recibe siempre, y si se pide,
+  // a todo el departamento y a las personas elegidas
+  const notify = async (itemType: 'task' | 'request', itemId: string) => {
+    if (!mailOn || !mailFrom) return null
+    try {
+      const r = await call<{ to: unknown[] }>('/v1/mail/send', {
+        method: 'POST',
+        body: { mailAccountId: mailFrom, itemType, itemId, toDepartment: itemType === 'request' && mailDept, extraTo: mailPeople },
+      })
+      return t('mailSent', { count: r.to.length })
+    } catch (e) {
+      return e instanceof HttpError && e.status === 422 ? t('mailNoRecipients') : t('mailFailed')
+    }
+  }
+
   const load = useCallback(
     async (accountId?: string) => {
       try {
@@ -197,6 +245,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
         setMe({ id: res.user.id, name: res.user.fullName || res.user.email, avatar: res.user.avatarUrl ?? null })
         const ctx = toAppContext(res)
         setApp(ctx)
+        if (ctx) void loadMail()
         setTab(readPrefs(platform).tab ?? 'task')
         setStatus(ctx ? 'ready' : 'no-account')
       } catch (e) {
@@ -367,7 +416,8 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     }
     setAttachError(failed ? t('attachFailed') : null)
     const ref = ws ? `${ws.key}-${task.number}` : task.id
-    setDone({ label: t('doneTask', { ref }), href: `/tasks/${ref}` })
+    const note = await notify('task', task.id)
+    setDone({ label: t('doneTask', { ref }), href: `/tasks/${ref}`, note: failed ? t('attachFailed') : note })
   }
 
   // antes de mandar la solicitud: los archivos subidos van en `files` (hasta 5) y los enlaces, al final del detalle
@@ -392,9 +442,10 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     return extra
   }
 
-  const requestCreated = (r: { id: string; code: string; department?: { id: string } | null }) => {
+  const requestCreated = async (r: { id: string; code: string; department?: { id: string } | null }) => {
     savePrefs(platform, { tab: 'request', accountId: app?.account.id, ...(r.department?.id ? { departmentId: r.department.id } : {}) })
-    setDone({ label: t('doneRequest', { code: r.code }), href: `/requests/${r.id}` })
+    const note = await notify('request', r.id)
+    setDone({ label: t('doneRequest', { code: r.code }), href: `/requests/${r.id}`, note })
   }
 
   const another = () => {
@@ -402,6 +453,74 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     clearAttachments()
     setRound((n) => n + 1)
   }
+
+  // enviar también por correo: desde qué Gmail, a quién siempre, y además todo el departamento o personas elegidas
+  const people = app?.members.filter((m) => m.id !== app.user.id) ?? []
+  const chosen = people.filter((m) => mailPeople.includes(m.id))
+  const mailBox = (
+    <div className="mx-4 mb-3 rounded-lg border border-line p-3">
+      {mailAccounts === null ? null : mailAccounts.length === 0 ? (
+        <div className="flex items-center gap-3">
+          <Mail className="size-4 shrink-0 text-fg-subtle" />
+          <p className="flex-1 text-xs text-fg-muted">{t('mailConnectText')}</p>
+          <Button variant="secondary" size="sm" loading={mailConnecting} onClick={connectMail}>
+            {mailConnecting ? t('mailConnecting') : t('mailConnect')}
+          </Button>
+        </div>
+      ) : (
+        <>
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium">
+            <Checkbox checked={mailOn} onCheckedChange={(v) => setMailOn(Boolean(v))} />
+            <Mail className="size-4 text-fg-subtle" />
+            {t('mailSend')}
+          </label>
+          {mailOn ? (
+            <div className="mt-3 flex flex-col gap-2.5 pl-6 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-16 shrink-0 text-xs text-fg-muted">{t('mailFrom')}</span>
+                {mailAccounts.length > 1 ? (
+                  <Select
+                    className="h-8 flex-1"
+                    value={mailFrom}
+                    onChange={setMailFrom}
+                    options={mailAccounts.map((a) => ({ value: a.id, label: a.email }))}
+                    aria-label={t('mailFrom')}
+                  />
+                ) : (
+                  <span className="truncate">{mailAccounts[0]?.email}</span>
+                )}
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-16 shrink-0 pt-0.5 text-xs text-fg-muted">{t('mailTo')}</span>
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <span className="text-fg">{tab === 'request' ? t('mailHead') : t('mailAssignees')}</span>
+                  {tab === 'request' ? (
+                    <label className="flex cursor-pointer items-center gap-2 text-fg-muted">
+                      <Switch checked={mailDept} onCheckedChange={setMailDept} />
+                      {t('mailWholeDept')}
+                    </label>
+                  ) : null}
+                  <AssigneesMenu value={mailPeople} members={people} onChange={setMailPeople} className="h-7 w-fit border border-line px-2 text-sm">
+                    {chosen.length ? (
+                      <>
+                        <AvatarStack people={chosen} size={16} ring="panel" />
+                        {chosen.length === 1 ? chosen[0].full_name : t('mailPeopleCount', { count: chosen.length })}
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="size-3.5 text-fg-subtle" />
+                        {t('mailAddPeople')}
+                      </>
+                    )}
+                  </AssigneesMenu>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  )
 
   // adjuntos: archivos, capturas pegadas y enlaces (van dentro del formulario de Veltro, antes del botón)
   const attachBox = (
@@ -533,7 +652,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
           ) : null}
         </Centered>
       ) : done ? (
-        <Centered title={done.label} text="" icon={<Check className="size-6" />}>
+        <Centered title={done.label} text={done.note ?? ''} icon={<Check className="size-6" />}>
           <div className="mt-2 flex gap-2">
             <Button variant="secondary" onClick={another}>
               {t('another')}
@@ -605,7 +724,12 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                 onOpenChange={() => {}}
                 defaults={{ workspaceId: prefs.workspaceId, ...(host.text ? { title: host.text } : {}) }}
                 onCreated={(task) => void taskCreated(task)}
-                extra={attachBox}
+                extra={
+                  <>
+                    {attachBox}
+                    {mailBox}
+                  </>
+                }
               />
             ) : (
               <NewRequestDialog
@@ -615,8 +739,13 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                 onOpenChange={() => {}}
                 defaultDepartment={prefs.departmentId}
                 beforeSend={requestExtra}
-                onCreated={requestCreated}
-                extra={attachBox}
+                onCreated={(r) => void requestCreated(r)}
+                extra={
+                  <>
+                    {attachBox}
+                    {mailBox}
+                  </>
+                }
               />
             )}
           </div>

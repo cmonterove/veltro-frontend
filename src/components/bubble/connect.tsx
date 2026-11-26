@@ -10,17 +10,7 @@ import { connectBubble } from '@/app/actions/bubble'
 /** Aviso a la burbuja (si el vínculo sigue vivo) de que ya puede retirar su token. */
 export const READY_MESSAGE = 'veltro-burbuja:conectada'
 
-export function ConnectBubble({
-  platform,
-  host,
-  email,
-  challenge,
-}: {
-  platform: string
-  host: string | null
-  email: string
-  challenge: string | null
-}) {
+export function ConnectBubble({ platform, host, email, challenge }: { platform: string; host: string | null; email: string; challenge: string | null }) {
   const t = useTranslations('bubble')
   const [state, setState] = useState<'idle' | 'saving' | 'done' | 'no-opener' | 'error'>('idle')
 

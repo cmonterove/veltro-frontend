@@ -4333,6 +4333,23 @@
     "fileTooBig": "{name} passa de 20 MB.",
     "linkInvalid": "Confira o link.",
     "tooManyFiles": "Uma solicitação aceita até 5 arquivos.",
-    "attachFailed": "Foi criada, mas algum anexo não pôde ser enviado: adicione pelo Veltro."
+    "attachFailed": "Foi criada, mas algum anexo não pôde ser enviado: adicione pelo Veltro.",
+    "mailSend": "Enviar também por e-mail",
+    "mailFrom": "De",
+    "mailTo": "Para",
+    "mailHead": "O chefe do departamento (sempre)",
+    "mailAssignees": "Os responsáveis da tarefa (sempre)",
+    "mailWholeDept": "Todo o departamento",
+    "mailAddPeople": "Adicionar pessoas",
+    "mailPeopleCount": "{count} pessoas",
+    "mailConnectText": "Conecte seu Gmail para enviar também por e-mail.",
+    "mailConnect": "Conectar Gmail",
+    "mailConnecting": "Aguardando o Google…",
+    "mailSent": "E-mail enviado para {count, plural, one {# pessoa} other {# pessoas}}.",
+    "mailFailed": "Não foi possível enviar o e-mail: avise pelo Veltro.",
+    "mailNoRecipients": "O e-mail não foi enviado: não havia para quem (adicione responsáveis ou pessoas).",
+    "connectedTitle": "Gmail conectado",
+    "connectedText": "Você já pode voltar para a bolha.",
+    "connectFailed": "Não foi possível conectar o Gmail. Tente de novo pela bolha."
   }
 }
