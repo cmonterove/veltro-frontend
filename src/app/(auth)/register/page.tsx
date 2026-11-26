@@ -7,6 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('register') }
 }
 
-export default function RegisterPage() {
-  return <AuthScreen initialMode="register" />
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const { next } = await searchParams
+  return <AuthScreen initialMode="register" next={next} />
 }

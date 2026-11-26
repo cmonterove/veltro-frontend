@@ -335,6 +335,21 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
             </p>
           ) : null}
         </div>
+      ) : !ctx.account ? (
+        // entró sin cuenta (se registró desde la burbuja): no se le pide armar una; la cuenta es de su empresa
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-highlight">
+            <LogoMark className="size-7" />
+          </span>
+          <h1 className="text-base font-semibold">{t('noAccountTitle')}</h1>
+          <p className="text-sm leading-relaxed text-fg-muted">{t('noAccountText')}</p>
+          <Button variant="ghost" size="sm" className="mt-2" onClick={() => void load()}>
+            {t('retry')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={disconnect}>
+            <LogOut /> {t('disconnect')}
+          </Button>
+        </div>
       ) : done ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-accent text-accent-fg">

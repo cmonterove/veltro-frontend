@@ -4324,6 +4324,9 @@
     "authorize": "Conectar",
     "cancel": "Cancelar",
     "authorized": "Pronto! Você já pode voltar para {platform}.",
-    "noOpener": "Volte para {platform} e abra a bolha de novo."
+    "noOpener": "Volte para {platform} e abra a bolha de novo.",
+    "noAccountTitle": "Você ainda não está em nenhuma conta",
+    "noAccountText": "Peça à sua empresa que convide você para o Veltro. Assim que adicionarem você, poderá criar tarefas e solicitações daqui.",
+    "retry": "Verificar de novo"
   }
 }

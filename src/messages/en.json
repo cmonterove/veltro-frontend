@@ -4324,6 +4324,9 @@
     "authorize": "Connect",
     "cancel": "Cancel",
     "authorized": "Done! You can go back to {platform}.",
-    "noOpener": "Go back to {platform} and open the bubble again."
+    "noOpener": "Go back to {platform} and open the bubble again.",
+    "noAccountTitle": "You're not in any account yet",
+    "noAccountText": "Ask your company to invite you to Veltro. Once they add you, you'll be able to add tasks and requests from here.",
+    "retry": "Check again"
   }
 }

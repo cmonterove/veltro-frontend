@@ -4324,6 +4324,9 @@
     "authorize": "Connecter",
     "cancel": "Annuler",
     "authorized": "C'est fait ! Vous pouvez revenir à {platform}.",
-    "noOpener": "Revenez à {platform} et rouvrez la bulle."
+    "noOpener": "Revenez à {platform} et rouvrez la bulle.",
+    "noAccountTitle": "Vous n'êtes encore dans aucun compte",
+    "noAccountText": "Demandez à votre entreprise de vous inviter sur Veltro. Dès qu'on vous aura ajouté, vous pourrez créer des tâches et des demandes d'ici.",
+    "retry": "Vérifier à nouveau"
   }
 }

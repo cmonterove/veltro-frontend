@@ -76,7 +76,9 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
 
   await saveSession(res.session)
   await syncLocaleCookie(resolvedLocale)
-  redirect('/onboarding')
+  // desde la burbuja de otra plataforma (OP…): de vuelta a conectarla, sin armar cuenta ni espacio
+  const next = safeNext(formData.get('next'))
+  redirect(next.startsWith('/burbuja/') ? next : '/onboarding')
 }
 
 /** Envía el enlace para elegir una contraseña nueva. Responde igual exista o no la cuenta. */
