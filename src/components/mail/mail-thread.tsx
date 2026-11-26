@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Archive, ArrowLeft, Forward, Inbox, ListPlus, Mail, Reply, ReplyAll, Star, Trash2, Undo2 } from 'lucide-react'
+import { Archive, ArrowLeft, Forward, Inbox, ListPlus, Mail, Maximize2, Reply, ReplyAll, Star, Trash2, Undo2 } from 'lucide-react'
 import { useWorkspaceMap } from '@/components/app/app-context'
+import { FullscreenContext, FullscreenExitButton } from '@/components/app/fullscreen'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,13 +19,14 @@ import { cn, taskRef } from '@/lib/utils'
 import { MailAttachments, MailBody } from './mail-body'
 import { MailComposer, type ComposeMode } from './mail-composer'
 import { errorCode, RECONNECT_CODES, useMailError } from './mail-errors'
-import { bodyText, longWhen, personName, shortWhen } from './mail-utils'
+import { bodyText, longWhen, personName, replyTargets, shortWhen } from './mail-utils'
 import { MailReconnect } from './mail-connect'
 
 /**
  * Un hilo abierto, en la hoja: el asunto con lo que se hace con él (archivar, no leído, estrella,
  * papelera, crear una tarea), cada mensaje (los viejos plegados en una línea; el último y los sin leer,
- * abiertos) y, al pie, responder, responder a todos o reenviar. Al abrirlo queda leído.
+ * abiertos) y, al pie, responder, responder a todos o reenviar. Al abrirlo queda leído. Se puede leer a
+ * toda la ventana (sin el menú ni la lista): así los correos anchos, con tablas, se ven completos.
  */
 export function MailThread({
   box,
@@ -32,14 +34,21 @@ export function MailThread({
   threadId,
   folder,
   onBack,
+  wide = false,
+  onFullscreen,
 }: {
   box: string
   fromEmail: string
   threadId: string
   folder: string | null
   onBack: () => void
+  /** a toda la ventana: el correo puede ser más ancho */
+  wide?: boolean
+  onFullscreen?: () => void
 }) {
   const t = useTranslations('mail')
+  const tn = useTranslations('nav')
+  const fullscreen = useContext(FullscreenContext)
   const locale = useDateLocale()
   const mailError = useMailError()
   const { data, error, isLoading } = useMailThread(box, threadId)
@@ -48,7 +57,7 @@ export function MailThread({
   const [opened, setOpened] = useState<Set<string>>(new Set())
   const [showAll, setShowAll] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
-  const bottom = useRef<HTMLDivElement>(null)
+  const replyArea = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const wsMap = useWorkspaceMap()
 
@@ -61,8 +70,9 @@ export function MailThread({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.id])
 
+  // responder se escribe arriba: si se pidió desde un mensaje más abajo, se sube hasta el editor
   useEffect(() => {
-    if (compose) bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    if (compose) replyArea.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [compose])
 
   const known = useMemo<MailAddress[]>(() => {
@@ -124,6 +134,8 @@ export function MailThread({
 
   const startCompose = (kind: 'reply' | 'replyAll' | 'forward', m: ApiMailMessage = last!) => setCompose({ kind, message: m, threadId: data.id, subject: data.subject })
   const replyAllUseful = last ? last.to.length + last.cc.length > 1 : false
+  const replyTo = last ? replyTargets(last, false).to[0] : undefined
+  const replyName = replyTo ? personName({ name: replyTo.name ?? null, email: replyTo.email }) : null
 
   const taskDescription = last
     ? [
@@ -137,7 +149,13 @@ export function MailThread({
 
   return (
     <div className="flex min-h-0 w-full flex-col">
-      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-line-soft px-4 py-3 sm:px-6">
+      <header
+        className={cn(
+          'flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-line-soft px-4 py-3 sm:px-6',
+          // ampliado, el asunto y los botones van alineados con la columna del correo (1180 px)
+          wide && 'sm:px-[max(1.5rem,calc((100%-1180px)/2+1.5rem))]',
+        )}
+      >
         <Button variant="ghost" size="icon" onClick={onBack} aria-label={t('backToList')} className="lg:hidden">
           <ArrowLeft />
         </Button>
@@ -158,11 +176,46 @@ export function MailThread({
             <ListPlus />
             {t('createTask')}
           </Button>
+          {/* a toda la ventana (y, ya adentro, «Salir · Esc» aquí mismo) */}
+          {fullscreen?.full ? (
+            <FullscreenExitButton className="ml-1.5" />
+          ) : onFullscreen ? (
+            <Action label={tn('fullscreen')} onClick={onFullscreen} icon={<Maximize2 />} className="ml-0.5 hidden md:inline-flex" />
+          ) : null}
         </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-        <div className="mx-auto w-full max-w-[860px] pb-6">
+        <div className={cn('mx-auto w-full pb-6', wide ? 'max-w-[1180px]' : 'max-w-[860px]')}>
+          {/* responder va arriba, debajo del asunto: no hay que bajar hasta el final de un correo largo.
+              El editor se abre aquí mismo y el correo queda debajo para consultarlo */}
+          <div ref={replyArea} className="scroll-mt-2 border-b border-line-soft px-4 py-3 sm:px-6">
+            {compose ? (
+              <MailComposer key={`${compose.kind}-${'message' in compose ? compose.message.id : ''}`} box={box} fromEmail={fromEmail} mode={compose} known={known} onClose={() => setCompose(null)} />
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => startCompose('reply')}
+                  className="flex h-9 min-w-48 flex-1 items-center gap-2.5 rounded-xl border border-line bg-panel px-3 text-left text-[13.5px] text-fg-muted outline-none transition-colors hover:border-line-strong hover:text-fg focus-visible:ring-2 focus-visible:ring-accent-mid/40"
+                >
+                  <Reply className="size-4 shrink-0" />
+                  <span className="truncate">{replyName ? t('replyTo', { name: replyName }) : t('reply')}</span>
+                </button>
+                {replyAllUseful ? (
+                  <Button variant="secondary" className="h-9" onClick={() => startCompose('replyAll')}>
+                    <ReplyAll />
+                    {t('replyAll')}
+                  </Button>
+                ) : null}
+                <Button variant="secondary" className="h-9" onClick={() => startCompose('forward')}>
+                  <Forward />
+                  {t('forward')}
+                </Button>
+              </div>
+            )}
+          </div>
+
           {visible.map((m, i) => (
             <div key={m.id}>
               {collapseMiddle && i === 1 ? (
@@ -191,29 +244,6 @@ export function MailThread({
               )}
             </div>
           ))}
-
-          <div ref={bottom} className="px-4 pt-5 sm:px-6">
-            {compose ? (
-              <MailComposer key={`${compose.kind}-${'message' in compose ? compose.message.id : ''}`} box={box} fromEmail={fromEmail} mode={compose} known={known} onClose={() => setCompose(null)} />
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={() => startCompose('reply')}>
-                  <Reply />
-                  {t('reply')}
-                </Button>
-                {replyAllUseful ? (
-                  <Button variant="secondary" onClick={() => startCompose('replyAll')}>
-                    <ReplyAll />
-                    {t('replyAll')}
-                  </Button>
-                ) : null}
-                <Button variant="secondary" onClick={() => startCompose('forward')}>
-                  <Forward />
-                  {t('forward')}
-                </Button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -234,10 +264,10 @@ export function MailThread({
   )
 }
 
-function Action({ label, onClick, icon }: { label: string; onClick: () => void; icon: React.ReactNode }) {
+function Action({ label, onClick, icon, className }: { label: string; onClick: () => void; icon: React.ReactNode; className?: string }) {
   return (
     <Tooltip content={label}>
-      <Button variant="ghost" size="icon" onClick={onClick} aria-label={label}>
+      <Button variant="ghost" size="icon" onClick={onClick} aria-label={label} className={className}>
         {icon}
       </Button>
     </Tooltip>

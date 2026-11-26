@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { Check, ChevronDown, Inbox, Info, KeyRound, MessagesSquare, PenLine, Paperclip, Plus, Search, ShieldAlert, Star, Tag, Trash2, Users, X, type LucideIcon } from 'lucide-react'
+import { Check, ChevronDown, Inbox, Info, KeyRound, Mails, MessagesSquare, PenLine, Paperclip, Plus, Search, Send, ShieldAlert, Star, Tag, Trash2, Users, X, type LucideIcon } from 'lucide-react'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuCheckboxItem, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
@@ -19,12 +19,20 @@ import { MailConnectGuide } from './mail-connect-guide'
 import { setInboxTabs, unreadOf, useInboxTabsOf } from './inbox-tabs'
 import { firstName, personName, shortWhen } from './mail-utils'
 
-/** Las carpetas a la vista; Spam, Papelera y las etiquetas propias van en «Más» (Borradores queda en Gmail por ahora). */
+/** Las carpetas del menú: las de siempre y, tras una raya, Spam y Papelera (Borradores queda en Gmail por ahora). */
 const FOLDERS = ['INBOX', 'STARRED', 'SENT'] as const
 const MORE = ['SPAM', 'TRASH'] as const
+const FOLDER_ICON: Record<(typeof FOLDERS)[number] | (typeof MORE)[number], LucideIcon> = { INBOX: Inbox, STARRED: Star, SENT: Send, SPAM: ShieldAlert, TRASH: Trash2 }
 
 /** Los íconos de las pestañas de Recibidos, como los de Gmail. */
 const CATEGORY_ICON: Record<MailCategory, LucideIcon> = { primary: Inbox, promotions: Tag, social: Users, updates: Info, forums: MessagesSquare }
+
+/**
+ * Los dos botones de arriba de la lista (la carpeta y la categoría), cada uno con su menú. Se reparten
+ * el ancho de la columna y tienen el alto y el redondeo de la búsqueda, para que se lean como un bloque.
+ */
+const PICKER =
+  'flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg px-3 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent-mid md:h-9 md:rounded-[12px]'
 
 export type MailNav = (patch: Record<string, string | null>, push?: boolean) => void
 
@@ -77,18 +85,25 @@ export function MailList({
   const inboxAll = labels.data?.system.find((f) => f.id === 'INBOX')?.unread ?? box.unread ?? 0
   const primaryUnread = labels.data?.categories.find((c) => c.id === 'primary')?.unread ?? box.unreadPrimary
   const inboxUnread = tabs ? (primaryUnread ?? inboxAll) : inboxAll
-  // las pestañas que la cuenta tiene (Principal siempre; mientras cargan, todas)
+  // las pestañas que la cuenta tiene (Principal siempre; mientras cargan, las cuatro de siempre: Foros
+  // casi nadie lo usa y aparecería un momento para irse)
   const categories = MAIL_CATEGORIES.filter(
-    (c) => !labels.data || c === 'primary' || c === category || (labels.data.categories.find((x) => x.id === c)?.total ?? 0) > 0,
+    (c) => c === 'primary' || c === category || (labels.data ? (labels.data.categories.find((x) => x.id === c)?.total ?? 0) > 0 : c !== 'forums'),
   )
   const userLabels = labels.data?.labels ?? []
   const activeLabel = userLabels.find((l) => l.id === folder)
-  const moreActive = folder === 'SPAM' || folder === 'TRASH' || Boolean(activeLabel)
+  // el botón de la carpeta: su ícono y su nombre (buscando, «Todo el correo»; una etiqueta, la suya)
+  const folderKey = [...FOLDERS, ...MORE].find((f) => f === folder) ?? null
+  const FolderIcon = folderKey ? FOLDER_ICON[folderKey] : folder ? Tag : Mails
+  const folderName = activeLabel?.name ?? (folderKey ? t(`folders.${folderKey}`) : folder ? t('folders.labels') : t('folders.all'))
+  const CategoryIcon = category ? CATEGORY_ICON[category] : Inbox
+  // las cifras de los menús, cortas: «5,1 mil» en vez de «5107»
+  const short = (n: number) => format.number(n, n >= 1000 ? { notation: 'compact', maximumFractionDigits: 1 } : {})
   const code = threads.error ? errorCode(threads.error) : null
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="shrink-0 px-4 pb-3 pt-5 md:pb-2 md:pl-3 md:pr-3.5 md:pt-1">
+      <div className="shrink-0 px-4 pb-3 pt-5 md:pb-0 md:pl-3 md:pr-3.5 md:pt-1">
         <div className="flex items-center gap-2">
           <div className="mr-auto min-w-0 md:flex md:items-baseline md:gap-2.5">
             <h1 className="text-lg font-semibold tracking-tight md:text-[28px] md:font-bold md:leading-none md:tracking-[-0.035em]">{t('title')}</h1>
@@ -186,49 +201,36 @@ export function MailList({
           ) : null}
         </form>
 
-        <div className="mt-2 flex gap-1 overflow-x-auto scrollbar-none md:mt-2.5" role="group" aria-label={t('folders.label')}>
-          {FOLDERS.map((f) => {
-            const on = folder === f
-            // con las pestañas a la vista, la cuenta va en Principal
-            const unread = f === 'INBOX' && !category ? inboxUnread : 0
-            return (
-              <button
-                key={f}
-                type="button"
-                onClick={() => go({ f, q: null, h: null, cat: null })}
-                aria-pressed={on}
-                className={cn(
-                  'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs transition-colors md:h-8 md:rounded-[10px] md:text-[13px]',
-                  on ? 'bg-fg font-medium text-canvas md:text-tinta' : 'text-fg-muted hover:bg-hover hover:text-fg',
-                )}
-              >
-                {t(`folders.${f}`)}
-                {unread ? (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-count px-1 text-[10.5px] font-semibold tabular-nums text-count-fg">{format.number(unread)}</span>
-                ) : null}
-              </button>
-            )
-          })}
-          {/* «Más»: Spam, Papelera y las etiquetas propias; con una elegida, la pastilla lleva su nombre */}
+        {/* Dos botones en una fila: la carpeta (Recibidos, Destacados, Enviados, Spam, Papelera y las
+            etiquetas) y, en Recibidos con pestañas, la categoría (Principal, Promociones…). Lo sin leer
+            va dentro de cada menú y abreviado: Promociones o Notificaciones llegan a miles. */}
+        <div className="mt-2 flex min-w-0 items-center gap-2 md:mt-2.5">
           <Menu>
-            <MenuTrigger
-              className={cn(
-                'inline-flex h-7 min-w-0 shrink items-center gap-1 rounded-full px-2.5 text-xs outline-none transition-colors md:h-8 md:rounded-[10px] md:text-[13px]',
-                moreActive ? 'bg-fg font-medium text-canvas md:text-tinta' : 'text-fg-muted hover:bg-hover hover:text-fg',
+            <MenuTrigger aria-label={t('folders.label')} className={cn(PICKER, 'bg-fg text-canvas data-[popup-open]:opacity-90 md:text-tinta')}>
+              {activeLabel ? (
+                <span className="size-2 shrink-0 rounded-full ring-1 ring-inset ring-black/10" style={{ background: activeLabel.color?.background ?? 'currentColor' }} />
+              ) : (
+                <FolderIcon className="size-3.5 shrink-0" />
               )}
-            >
-              {activeLabel ? <span className="size-2 shrink-0 rounded-full" style={{ background: activeLabel.color?.background ?? 'currentColor' }} /> : null}
-              <span className="truncate">{activeLabel?.name ?? (moreActive ? t(`folders.${folder}`) : t('folders.more'))}</span>
-              <ChevronDown className="size-3 shrink-0" />
+              <span className="truncate">{folderName}</span>
+              <ChevronDown className="ml-auto size-3.5 shrink-0 opacity-60" />
             </MenuTrigger>
-            <MenuContent align="end" className="max-h-80 w-60 overflow-y-auto scrollbar-thin">
-              {MORE.map((f) => (
-                <MenuItem key={f} onClick={() => go({ f, q: null, h: null, cat: null })}>
-                  {f === 'SPAM' ? <ShieldAlert /> : <Trash2 />}
-                  <span className="flex-1">{t(`folders.${f}`)}</span>
-                  {folder === f ? <Check className="!text-accent" /> : null}
-                </MenuItem>
-              ))}
+            <MenuContent align="start" className="max-h-96 w-60 overflow-y-auto scrollbar-thin">
+              {[...FOLDERS, ...MORE].map((f, i) => {
+                const Icon = FOLDER_ICON[f]
+                const unread = f === 'INBOX' ? inboxUnread : f === 'SPAM' ? (labels.data?.system.find((x) => x.id === 'SPAM')?.unread ?? 0) : 0
+                return (
+                  <Fragment key={f}>
+                    {i === FOLDERS.length ? <MenuSeparator /> : null}
+                    <MenuItem onClick={() => go({ f, q: null, h: null, cat: null })}>
+                      <Icon />
+                      <span className="flex-1">{t(`folders.${f}`)}</span>
+                      {unread ? <span className="text-xs tabular-nums text-fg-subtle">{short(unread)}</span> : null}
+                      {folder === f ? <Check className="!text-accent" /> : null}
+                    </MenuItem>
+                  </Fragment>
+                )
+              })}
               {userLabels.length ? (
                 <>
                   <MenuSeparator />
@@ -237,49 +239,43 @@ export function MailList({
                     <MenuItem key={l.id} onClick={() => go({ f: l.id, q: null, h: null, cat: null })}>
                       <span className="size-2.5 shrink-0 rounded-full ring-1 ring-inset ring-fg/10" style={{ background: l.color?.background ?? 'var(--hover)' }} />
                       <span className="min-w-0 flex-1 truncate">{l.name}</span>
-                      {l.unread ? <span className="shrink-0 text-xs tabular-nums text-fg-subtle">{l.unread}</span> : null}
+                      {l.unread ? <span className="shrink-0 text-xs tabular-nums text-fg-subtle">{short(l.unread)}</span> : null}
+                      {folder === l.id ? <Check className="!text-accent" /> : null}
                     </MenuItem>
                   ))}
                 </>
               ) : null}
             </MenuContent>
           </Menu>
+          {category ? (
+            <Menu>
+              <MenuTrigger aria-label={t('categories.label')} className={cn(PICKER, 'bg-hover text-fg hover:bg-active data-[popup-open]:bg-active')}>
+                <CategoryIcon className="size-3.5 shrink-0 text-accent-ink" />
+                <span className="truncate">{t(`categories.${category}`)}</span>
+                <ChevronDown className="ml-auto size-3.5 shrink-0 opacity-60" />
+              </MenuTrigger>
+              <MenuContent align="start" className="w-60">
+                {categories.map((c) => {
+                  const Icon = CATEGORY_ICON[c]
+                  const unread = c === 'primary' ? inboxUnread : (labels.data?.categories.find((x) => x.id === c)?.unread ?? 0)
+                  return (
+                    <MenuItem key={c} onClick={() => go({ cat: c === 'primary' ? null : c, h: null })}>
+                      <Icon />
+                      <span className="flex-1">{t(`categories.${c}`)}</span>
+                      {unread ? <span className="text-xs tabular-nums text-fg-subtle">{short(unread)}</span> : null}
+                      {category === c ? <Check className="!text-accent" /> : null}
+                    </MenuItem>
+                  )
+                })}
+              </MenuContent>
+            </Menu>
+          ) : null}
         </div>
-        {/* Las pestañas de Recibidos, como en Gmail: debajo de las carpetas y más suaves. Las cinco con
-            nombre no entran en la columna: como Gmail en una ventana angosta, la elegida lleva su nombre
-            y las demás su ícono (el nombre, al pasar por encima). Principal siempre con lo sin leer. */}
-        {category ? (
-          <div className="-mx-1 mt-1.5 flex gap-0.5 px-1" role="group" aria-label={t('categories.label')}>
-            {categories.map((c) => {
-              const on = category === c
-              const Icon = CATEGORY_ICON[c]
-              const name = t(`categories.${c}`)
-              const unread = c === 'primary' ? inboxUnread : 0
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => go({ cat: c === 'primary' ? null : c, h: null })}
-                  aria-pressed={on}
-                  aria-label={name}
-                  title={on ? undefined : name}
-                  className={cn(
-                    'inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg text-xs transition-colors md:text-[12.5px]',
-                    on ? 'bg-hover px-2 font-medium text-fg' : 'min-w-7 px-1.5 text-fg-muted hover:bg-hover/60 hover:text-fg',
-                  )}
-                >
-                  <Icon className={cn('size-3.5 shrink-0', on ? 'text-accent-ink' : 'opacity-80')} />
-                  {on ? <span>{name}</span> : null}
-                  {unread ? <span className="text-[11px] font-semibold tabular-nums text-accent-ink">{format.number(unread)}</span> : null}
-                </button>
-              )
-            })}
-          </div>
-        ) : null}
         {q ? <p className="mt-2 truncate text-xs text-fg-muted">{t('resultsFor', { q })}</p> : null}
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-6 scrollbar-thin md:pl-2 md:pr-0 md:pt-1" aria-label={t('title')}>
+      {/* arriba, lo justo para la esquina curva del abierto (16 px): si es el primero, no queda cortada */}
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-6 scrollbar-thin md:pl-2 md:pr-0 md:pt-4" aria-label={t('title')}>
         {threads.isLoading ? (
           <div className="flex flex-col gap-2 px-2">
             {Array.from({ length: 7 }, (_, i) => (

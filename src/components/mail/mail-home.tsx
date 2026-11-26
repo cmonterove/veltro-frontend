@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { ArrowRight, CalendarDays, CheckCheck, HardDrive, Inbox, Info, KeyRound, MessagesSquare, Paperclip, PenLine, Reply, Send, ShieldAlert, Star, Tag, Users, type LucideIcon } from 'lucide-react'
 import { useApp } from '@/components/app/app-context'
@@ -49,6 +49,7 @@ export function MailHome({
 }) {
   const t = useTranslations('mail.home')
   const tc = useTranslations('mail.categories')
+  const format = useFormatter()
   const tf = useTranslations('mail.folders')
   const { profile } = useApp()
   const locale = useDateLocale()
@@ -155,31 +156,48 @@ export function MailHome({
           {/* las pestañas (con lo suyo sin leer) o, sin pestañas, las carpetas */}
           <section className="rounded-2xl border border-line-soft bg-panel">
             <SectionTitle icon={tabs ? Tag : Inbox} title={tabs ? t('tabs') : t('folders')} />
-            <div className="grid grid-cols-2 gap-1.5 px-3 pb-3">
-              {tabs
-                ? MAIL_CATEGORIES.filter((c) => c !== 'primary' && (!labels.data || (labels.data.categories.find((x) => x.id === c)?.total ?? 0) > 0)).map((c) => {
-                    const Icon = CATEGORY_ICON[c]
-                    const n = labels.data?.categories.find((x) => x.id === c)?.unread ?? 0
-                    return <Tile key={c} icon={Icon} label={tc(c)} value={n ? t('unreadShort', { count: n }) : t('caughtUp')} strong={n > 0} onClick={() => go({ f: null, q: null, h: null, cat: c })} />
-                  })
-                : (
-                    [
-                      { id: 'STARRED', icon: Star, n: starred, value: starred ? t('starredShort', { count: starred }) : t('none') },
-                      { id: 'SENT', icon: Send, n: 0, value: t('open') },
-                      { id: 'SPAM', icon: ShieldAlert, n: labels.data?.system.find((f) => f.id === 'SPAM')?.unread ?? 0, value: '' },
-                      ...(labels.data?.labels ?? []).filter((l) => l.unread).slice(0, 3).map((l) => ({ id: l.id, icon: Tag, n: l.unread, value: '' })),
-                    ] as const
-                  ).map((f) => (
-                    <Tile
-                      key={f.id}
-                      icon={f.icon}
-                      label={f.id.startsWith('Label_') ? (labels.data?.labels.find((l) => l.id === f.id)?.name ?? '') : tf(f.id)}
-                      value={f.value || (f.n ? t('unreadShort', { count: f.n }) : t('caughtUp'))}
-                      strong={f.n > 0 && f.id !== 'STARRED'}
-                      onClick={() => go({ f: f.id, q: null, h: null, cat: null })}
-                    />
-                  ))}
-            </div>
+            {tabs ? (
+              // una fila por pestaña, para que entre el nombre entero («Notificaciones» no cabía en media columna)
+              <ul className="flex flex-col gap-0.5 px-2 pb-2">
+                {MAIL_CATEGORIES.filter((c) => c !== 'primary' && (labels.data ? (labels.data.categories.find((x) => x.id === c)?.total ?? 0) > 0 : c !== 'forums')).map((c) => {
+                  const Icon = CATEGORY_ICON[c]
+                  const n = labels.data?.categories.find((x) => x.id === c)?.unread ?? 0
+                  return (
+                    <li key={c}>
+                      <button
+                        type="button"
+                        onClick={() => go({ f: null, q: null, h: null, cat: c })}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left outline-none transition-colors hover:bg-hover focus-visible:bg-hover"
+                      >
+                        <Icon className="size-4 shrink-0 text-fg-subtle" />
+                        <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-fg">{tc(c)}</span>
+                        <span className={cn('shrink-0 text-2xs tabular-nums', n ? 'font-semibold text-accent-ink' : 'text-fg-subtle')}>{n ? format.number(n, n >= 1000 ? { notation: 'compact', maximumFractionDigits: 1 } : {}) : t('caughtUp')}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <div className="grid grid-cols-2 gap-1.5 px-3 pb-3">
+                {(
+                  [
+                    { id: 'STARRED', icon: Star, n: starred, value: starred ? t('starredShort', { count: starred }) : t('none') },
+                    { id: 'SENT', icon: Send, n: 0, value: t('open') },
+                    { id: 'SPAM', icon: ShieldAlert, n: labels.data?.system.find((f) => f.id === 'SPAM')?.unread ?? 0, value: '' },
+                    ...(labels.data?.labels ?? []).filter((l) => l.unread).slice(0, 3).map((l) => ({ id: l.id, icon: Tag, n: l.unread, value: '' })),
+                  ] as const
+                ).map((f) => (
+                  <Tile
+                    key={f.id}
+                    icon={f.icon}
+                    label={f.id.startsWith('Label_') ? (labels.data?.labels.find((l) => l.id === f.id)?.name ?? '') : tf(f.id)}
+                    value={f.value || (f.n ? t('unreadShort', { count: f.n }) : t('caughtUp'))}
+                    strong={f.n > 0 && f.id !== 'STARRED'}
+                    onClick={() => go({ f: f.id, q: null, h: null, cat: null })}
+                  />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* atajos: búsquedas que se usan mucho, traer de Drive y los permisos */}

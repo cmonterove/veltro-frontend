@@ -76,7 +76,18 @@ export function AppShell({ children, sidebarCollapsed = false }: { children: Rea
     setClaims((c) => c + 1)
     return () => setClaims((c) => c - 1)
   }, [])
-  const fullscreen = useMemo(() => ({ full, exit: () => setFull(false), claim: claimExit }), [full, claimExit])
+  const fullscreen = useMemo(
+    () => ({
+      full,
+      enter: () => {
+        setFull(true)
+        track('feature.fullscreen')
+      },
+      exit: () => setFull(false),
+      claim: claimExit,
+    }),
+    [full, claimExit],
+  )
   // al entrar y salir la barra de arriba se pliega con animación; se recorta solo mientras está plegada
   // o plegándose (a la vista no: su sombra sale de la caja)
   const [clipTop, setClipTop] = useState(false)

@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
  */
 type FullscreenState = {
   full: boolean
+  /** entrar desde una pantalla (el correo abierto, para leerlo a toda la ventana) */
+  enter: () => void
   exit: () => void
   /** una pantalla avisa que tiene su propio botón (el marco no muestra el flotante); devuelve cómo desavisar */
   claim: () => () => void

@@ -713,6 +713,7 @@
     "backToList": "Retour à la liste",
     "folders": {
       "label": "Dossiers",
+      "all": "Tous les messages",
       "INBOX": "Boîte de réception",
       "STARRED": "Suivis",
       "SENT": "Envoyés",
@@ -735,6 +736,7 @@
     "createTask": "Créer une tâche",
     "moreMessages": "{count, plural, one {# message de plus} other {# messages de plus}}",
     "reply": "Répondre",
+    "replyTo": "Répondre à {name}",
     "replyAll": "Répondre à tous",
     "forward": "Transférer",
     "toLine": "à {names}",

@@ -713,6 +713,7 @@
     "backToList": "Volver a la lista",
     "folders": {
       "label": "Carpetas",
+      "all": "Todo el correo",
       "INBOX": "Recibidos",
       "STARRED": "Destacados",
       "SENT": "Enviados",
@@ -735,6 +736,7 @@
     "createTask": "Crear tarea",
     "moreMessages": "{count, plural, one {# mensaje más} other {# mensajes más}}",
     "reply": "Responder",
+    "replyTo": "Responder a {name}",
     "replyAll": "Responder a todos",
     "forward": "Reenviar",
     "toLine": "para {names}",

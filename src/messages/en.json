@@ -713,6 +713,7 @@
     "backToList": "Back to the list",
     "folders": {
       "label": "Folders",
+      "all": "All mail",
       "INBOX": "Inbox",
       "STARRED": "Starred",
       "SENT": "Sent",
@@ -735,6 +736,7 @@
     "createTask": "Create task",
     "moreMessages": "{count, plural, one {# more message} other {# more messages}}",
     "reply": "Reply",
+    "replyTo": "Reply to {name}",
     "replyAll": "Reply all",
     "forward": "Forward",
     "toLine": "to {names}",

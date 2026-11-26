@@ -713,6 +713,7 @@
     "backToList": "Voltar para a lista",
     "folders": {
       "label": "Pastas",
+      "all": "Todos os e-mails",
       "INBOX": "Caixa de entrada",
       "STARRED": "Com estrela",
       "SENT": "Enviados",
@@ -735,6 +736,7 @@
     "createTask": "Criar tarefa",
     "moreMessages": "{count, plural, one {mais # mensagem} other {mais # mensagens}}",
     "reply": "Responder",
+    "replyTo": "Responder a {name}",
     "replyAll": "Responder a todos",
     "forward": "Encaminhar",
     "toLine": "para {names}",

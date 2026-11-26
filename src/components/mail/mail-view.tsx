@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
+import { FullscreenContext } from '@/components/app/fullscreen'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isMailCategory } from '@/lib/api/correo'
 import { useHydrated } from '@/lib/hooks'
@@ -46,6 +47,12 @@ export function MailView() {
   const tabs = useInboxTabs(box)
   const cat = params.get('cat')
   const category = folder === 'INBOX' && !q && tabs ? (isMailCategory(cat) ? cat : 'primary') : null
+  // leer un correo a toda la ventana: la pantalla completa de siempre y, además, sin la lista. Se pide
+  // desde el correo; con la F o el botón de arriba la lista sigue (para ir de un correo a otro)
+  const fullscreen = useContext(FullscreenContext)
+  const [reading, setReading] = useState(false)
+  if (reading && !fullscreen?.full) setReading(false)
+  const focus = reading && Boolean(threadId)
 
   const go: MailNav = useCallback(
     (patch, push = false) => {
@@ -113,7 +120,7 @@ export function MailView() {
   return (
     <div className="flex h-full min-h-0">
       {/* encima de la sombra de la hoja: el hilo abierto de la lista se une a ella sin un borde oscuro */}
-      <aside className={cn('min-h-0 w-full shrink-0 md:on-frame md:relative md:z-[1] lg:flex lg:w-[380px] 2xl:w-[440px]', detail ? 'hidden' : 'flex')}>
+      <aside className={cn('min-h-0 w-full shrink-0 md:on-frame md:relative md:z-[1] lg:flex lg:w-[380px] 2xl:w-[440px]', detail ? 'hidden' : 'flex', focus && 'lg:hidden')}>
         <MailList
           box={box}
           boxes={readable}
@@ -132,7 +139,19 @@ export function MailView() {
           // el correo nuevo: una hoja de carta que llena el panel (trae su propio encabezado y su pie)
           <MailComposer variant="page" box={box.id} fromEmail={box.email} mode={{ kind: 'new' }} onClose={back} />
         ) : threadId ? (
-          <MailThread key={`${box.id}-${threadId}`} box={box.id} fromEmail={box.email} threadId={threadId} folder={folder} onBack={back} />
+          <MailThread
+            key={`${box.id}-${threadId}`}
+            box={box.id}
+            fromEmail={box.email}
+            threadId={threadId}
+            folder={folder}
+            onBack={back}
+            wide={focus}
+            onFullscreen={() => {
+              setReading(true)
+              fullscreen?.enter()
+            }}
+          />
         ) : (
           <MailHome box={box} tabs={tabs} go={go} hrefFor={hrefFor} onCompose={() => go({ c: 'new' }, true)} />
         )}
