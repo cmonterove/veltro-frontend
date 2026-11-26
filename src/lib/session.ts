@@ -1,4 +1,5 @@
 import 'server-only'
+import * as Sentry from '@sentry/nextjs'
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -57,6 +58,8 @@ export const getAppContext = cache(async (): Promise<
   if (!res) return { status: 'anonymous' }
 
   const profile = toProfile(res.user)
+  // los errores de esta petición en el servidor llevan el id de la persona (nunca el correo)
+  Sentry.setUser({ id: res.user.id })
   if (res.status === 'onboarding' || !res.account) return { status: 'onboarding', profile }
 
   return {

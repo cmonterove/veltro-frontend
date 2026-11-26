@@ -1,11 +1,19 @@
 'use client'
 
-import { createContext, useContext, useMemo } from 'react'
+import * as Sentry from '@sentry/nextjs'
+import { createContext, useContext, useEffect, useMemo } from 'react'
 import type { AppContextValue, WorkspaceWithRole } from '@/lib/types'
 
 const AppContext = createContext<AppContextValue | null>(null)
 
 export function AppProvider({ value, children }: { value: AppContextValue; children: React.ReactNode }) {
+  // a Sentry solo van el id de la persona y la cuenta en la que está (nunca el correo)
+  const userId = value.user.id
+  const accountId = value.account.id
+  useEffect(() => {
+    Sentry.setUser({ id: userId })
+    Sentry.setTag('account', accountId)
+  }, [userId, accountId])
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
 

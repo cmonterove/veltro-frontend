@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import { withSentryConfig } from '@sentry/nextjs/config'
 import createNextIntlPlugin from 'next-intl/plugin'
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
@@ -18,4 +19,16 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withNextIntl(nextConfig)
+export default withSentryConfig(withNextIntl(nextConfig), {
+  org: 'neris-soft',
+  project: 'veltro-web',
+  // Con SENTRY_AUTH_TOKEN (secreto, solo en Vercel) el build sube los source maps: los errores del navegador se leen
+  // con el código original. Sin él, el build sigue igual. Los source maps del navegador se borran después: no se publican.
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+  silent: !process.env.CI,
+  telemetry: false,
+  // fuera del navegador el código de depuración de Sentry (al compilar para producción: en `next dev` con Turbopack
+  // Next lo marca como opción inválida)
+  webpack: { treeshake: { removeDebugLogging: process.env.NODE_ENV === 'production' } },
+})
