@@ -213,8 +213,7 @@ export function NewRequestDialog({
         </DialogBody>
       )}
       {extra}
-      {/* dentro de la burbuja, el botón queda siempre a la vista al pie */}
-      <DialogFooter className={embedded ? 'sticky bottom-0 rounded-b-xl border-t border-line bg-panel pb-3' : undefined}>
+      <DialogFooter>
         {embedded ? null : (
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             {t('cancel')}
