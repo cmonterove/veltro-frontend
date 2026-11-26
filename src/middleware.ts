@@ -12,8 +12,9 @@ import {
   type ApiSession,
 } from '@/lib/api/session-cookies'
 
-// /invite: el enlace de una invitación se abre con o sin sesión
-const PUBLIC_PATHS = ['/login', '/register', '/auth', '/invite']
+// /invite: el enlace de una invitación se abre con o sin sesión. /burbuja: el panel que va dentro de otras
+// plataformas usa su propio token (la ventanita de conectar pide la sesión por su cuenta)
+const PUBLIC_PATHS = ['/login', '/register', '/auth', '/invite', '/burbuja']
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
