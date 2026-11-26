@@ -14,7 +14,7 @@ import {
 
 // /invite: el enlace de una invitación se abre con o sin sesión. /burbuja: el panel que va dentro de otras
 // plataformas usa su propio token (la ventanita de conectar pide la sesión por su cuenta)
-const PUBLIC_PATHS = ['/login', '/register', '/auth', '/invite', '/burbuja']
+const PUBLIC_PATHS = ['/login', '/register', '/auth', '/invite', '/burbuja', '/burbuja.js']
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
