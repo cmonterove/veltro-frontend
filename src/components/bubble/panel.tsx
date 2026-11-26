@@ -107,6 +107,8 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<Done | null>(null)
   const verifier = useRef<string | null>(null)
+  const popup = useRef<Window | null>(null)
+  const [polling, setPolling] = useState(false)
   const platform = host.platform
 
   const post = (msg: Record<string, unknown>) => window.parent?.postMessage(msg, '*')
@@ -183,20 +185,27 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     void load()
   }, [load])
 
-  // mientras la ventanita está abierta, se pregunta cada 2 s (si la persona entró con Google, no hay aviso)
+  // mientras haya una conexión pendiente se pregunta cada 2 s (si la persona entró con Google, no llega aviso).
+  // Si cierra la ventanita, el botón vuelve a estar disponible; se sigue preguntando un rato por si sí confirmó
+  // (al pasar por Google el navegador da la ventana por cerrada aunque siga abierta).
   useEffect(() => {
-    if (status !== 'connecting') return
+    if (!polling) return
     const started = Date.now()
     const id = setInterval(async () => {
       if (Date.now() - started > 10 * 60_000) {
         clearInterval(id)
-        setStatus('disconnected')
+        setPolling(false)
+        setStatus((s) => (s === 'connecting' ? 'disconnected' : s))
         return
       }
-      if (await claim()) clearInterval(id)
-    }, 2000)
+      if (popup.current?.closed) setStatus((s) => (s === 'connecting' ? 'disconnected' : s))
+      if (await claim()) {
+        clearInterval(id)
+        setPolling(false)
+      }
+    }, 1500)
     return () => clearInterval(id)
-  }, [status, claim])
+  }, [polling, claim])
 
   const connect = async () => {
     const v = b64url(crypto.getRandomValues(new Uint8Array(32)))
@@ -206,7 +215,9 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     const site = window.location.ancestorOrigins?.[0]?.replace(/^https?:\/\//, '') ?? host.host ?? ''
     const q = new URLSearchParams({ platform, c: challenge, ...(site ? { host: site } : {}) })
     const w = window.open(`/burbuja/conectar?${q}`, 'veltro-burbuja-conectar', 'popup,width=460,height=640')
+    popup.current = w
     setStatus(w ? 'connecting' : 'blocked')
+    setPolling(Boolean(w))
   }
 
   const disconnect = async () => {
