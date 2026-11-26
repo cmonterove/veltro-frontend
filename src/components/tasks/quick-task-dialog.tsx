@@ -29,6 +29,7 @@ export function QuickTaskDialog({
   onOpenChange,
   defaults,
   onCreated,
+  embedded,
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
@@ -36,6 +37,8 @@ export function QuickTaskDialog({
   defaults?: { workspaceId?: string; dueDate?: string | null; assigneeIds?: string[]; title?: string; description?: string }
   /** si está, se queda donde está (p. ej. leyendo el correo) en vez de abrir la tarea */
   onCreated?: (task: TaskRow) => void
+  /** sin la ventana flotante, dentro de otra superficie (la burbuja de Veltro en otras plataformas) */
+  embedded?: boolean
 }) {
   const t = useTranslations('tasks')
   const statusName = useStatusName()
@@ -119,125 +122,129 @@ export function QuickTaskDialog({
     )
   }
 
+  const content =
+    editableWs.length === 0 ? (
+      <p className="p-5 text-sm text-fg-muted">{t('noEditableWorkspace')}</p>
+    ) : (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          submit()
+        }}
+      >
+        <div className="flex items-center gap-2 px-4 pt-3">
+          <Menu>
+            <MenuTrigger className="inline-flex h-7 items-center gap-1.5 rounded-md border border-line px-2 text-sm hover:bg-hover data-[popup-open]:bg-hover">
+              {ws ? <WorkspaceMark ws={ws} size={16} /> : null}
+              <span className="max-w-40 truncate">{ws?.name}</span>
+              <ChevronDown className="size-3.5 text-fg-subtle" />
+            </MenuTrigger>
+            <MenuContent>
+              <MenuRadioGroup value={workspaceId} onValueChange={(v) => setWorkspaceId(String(v))}>
+                {editableWs.map((w) => (
+                  <MenuRadioItem key={w.id} value={w.id}>
+                    <WorkspaceMark ws={w} size={16} />
+                    {w.name}
+                  </MenuRadioItem>
+                ))}
+              </MenuRadioGroup>
+            </MenuContent>
+          </Menu>
+          <span className="text-xs text-fg-subtle">{t('newTask')}</span>
+        </div>
+
+        <div className="px-5 pb-2 pt-3">
+          <AutoTextarea
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                submit()
+              }
+            }}
+            placeholder={t('titlePlaceholder')}
+            className="bg-transparent text-lg font-medium outline-none placeholder:text-fg-subtle"
+            maxLength={500}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pb-4">
+          <StatusMenu options={statusOptions} value={status} onChange={setStatusPick} className="h-7 border border-line px-2 text-sm">
+            <StatusIcon status={status.category} />
+            {statusName(status)}
+          </StatusMenu>
+          <PriorityMenu
+            value={effPriority}
+            onChange={(p) => {
+              setPriority(p)
+              setManual((m) => ({ ...m, priority: true }))
+            }}
+            className={cn('h-7 border border-line px-2 text-sm', parsed.priority && fromText)}
+          >
+            <PriorityIcon priority={effPriority} />
+            {tPriority(effPriority)}
+          </PriorityMenu>
+          <AssigneesMenu
+            value={effAssignees}
+            members={members}
+            onChange={(ids) => {
+              setAssignees(ids)
+              setManual((m) => ({ ...m, assignee: true }))
+            }}
+            className={cn('h-7 border border-line px-2 text-sm', parsed.assigneeIds.length && fromText)}
+          >
+            {assigneeMembers.length ? (
+              <>
+                <AvatarStack people={assigneeMembers} size={16} ring="panel" />
+                {assigneeMembers.length === 1 ? assigneeMembers[0].full_name.split(' ')[0] : t('assigneesCount', { count: assigneeMembers.length })}
+              </>
+            ) : (
+              <>
+                <CircleUser className="size-3.5 text-fg-subtle" />
+                {t('unassigned')}
+              </>
+            )}
+          </AssigneesMenu>
+          <DuePopover
+            value={effDue}
+            onChange={(d) => {
+              setDue(d)
+              setManual((m) => ({ ...m, due: true }))
+            }}
+            className={cn('h-7 border border-line px-2 text-sm', parsed.due && fromText)}
+          >
+            {effDue ? <DueDate due={effDue} /> : <span className="text-fg-muted">{t('dueLabel')}</span>}
+          </DuePopover>
+        </div>
+        <p className="-mt-2 px-5 pb-3 text-xs text-fg-subtle">
+          {parsed.due || parsed.assigneeIds.length || parsed.priority ? (
+            <>
+              <span className="text-accent-ink">{t('quick.understood')}</span> «{parsed.title}»
+            </>
+          ) : (
+            t('quick.hint')
+          )}
+        </p>
+
+        <div className="flex items-center gap-3 border-t border-line px-4 py-3">
+          <label className="flex cursor-default items-center gap-2 text-xs text-fg-muted">
+            <Switch checked={keepOpen} onCheckedChange={setKeepOpen} />
+            {t('createMore')}
+          </label>
+          <Button type="submit" variant="primary" size="sm" className={cn('ml-auto')} loading={create.isPending} disabled={!(parsed.title || title).trim()}>
+            {t('create')}
+          </Button>
+        </div>
+      </form>
+    )
+
+  if (embedded) return <div className="rounded-xl border border-line bg-panel">{content}</div>
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl" hideClose>
-        {editableWs.length === 0 ? (
-          <p className="p-5 text-sm text-fg-muted">{t('noEditableWorkspace')}</p>
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              submit()
-            }}
-          >
-            <div className="flex items-center gap-2 px-4 pt-3">
-              <Menu>
-                <MenuTrigger className="inline-flex h-7 items-center gap-1.5 rounded-md border border-line px-2 text-sm hover:bg-hover data-[popup-open]:bg-hover">
-                  {ws ? <WorkspaceMark ws={ws} size={16} /> : null}
-                  <span className="max-w-40 truncate">{ws?.name}</span>
-                  <ChevronDown className="size-3.5 text-fg-subtle" />
-                </MenuTrigger>
-                <MenuContent>
-                  <MenuRadioGroup value={workspaceId} onValueChange={(v) => setWorkspaceId(String(v))}>
-                    {editableWs.map((w) => (
-                      <MenuRadioItem key={w.id} value={w.id}>
-                        <WorkspaceMark ws={w} size={16} />
-                        {w.name}
-                      </MenuRadioItem>
-                    ))}
-                  </MenuRadioGroup>
-                </MenuContent>
-              </Menu>
-              <span className="text-xs text-fg-subtle">{t('newTask')}</span>
-            </div>
-
-            <div className="px-5 pb-2 pt-3">
-              <AutoTextarea
-                autoFocus
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    submit()
-                  }
-                }}
-                placeholder={t('titlePlaceholder')}
-                className="bg-transparent text-lg font-medium outline-none placeholder:text-fg-subtle"
-                maxLength={500}
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5 px-4 pb-4">
-              <StatusMenu options={statusOptions} value={status} onChange={setStatusPick} className="h-7 border border-line px-2 text-sm">
-                <StatusIcon status={status.category} />
-                {statusName(status)}
-              </StatusMenu>
-              <PriorityMenu
-                value={effPriority}
-                onChange={(p) => {
-                  setPriority(p)
-                  setManual((m) => ({ ...m, priority: true }))
-                }}
-                className={cn('h-7 border border-line px-2 text-sm', parsed.priority && fromText)}
-              >
-                <PriorityIcon priority={effPriority} />
-                {tPriority(effPriority)}
-              </PriorityMenu>
-              <AssigneesMenu
-                value={effAssignees}
-                members={members}
-                onChange={(ids) => {
-                  setAssignees(ids)
-                  setManual((m) => ({ ...m, assignee: true }))
-                }}
-                className={cn('h-7 border border-line px-2 text-sm', parsed.assigneeIds.length && fromText)}
-              >
-                {assigneeMembers.length ? (
-                  <>
-                    <AvatarStack people={assigneeMembers} size={16} ring="panel" />
-                    {assigneeMembers.length === 1 ? assigneeMembers[0].full_name.split(' ')[0] : t('assigneesCount', { count: assigneeMembers.length })}
-                  </>
-                ) : (
-                  <>
-                    <CircleUser className="size-3.5 text-fg-subtle" />
-                    {t('unassigned')}
-                  </>
-                )}
-              </AssigneesMenu>
-              <DuePopover
-                value={effDue}
-                onChange={(d) => {
-                  setDue(d)
-                  setManual((m) => ({ ...m, due: true }))
-                }}
-                className={cn('h-7 border border-line px-2 text-sm', parsed.due && fromText)}
-              >
-                {effDue ? <DueDate due={effDue} /> : <span className="text-fg-muted">{t('dueLabel')}</span>}
-              </DuePopover>
-            </div>
-            <p className="-mt-2 px-5 pb-3 text-xs text-fg-subtle">
-              {parsed.due || parsed.assigneeIds.length || parsed.priority ? (
-                <>
-                  <span className="text-accent-ink">{t('quick.understood')}</span> «{parsed.title}»
-                </>
-              ) : (
-                t('quick.hint')
-              )}
-            </p>
-
-            <div className="flex items-center gap-3 border-t border-line px-4 py-3">
-              <label className="flex cursor-default items-center gap-2 text-xs text-fg-muted">
-                <Switch checked={keepOpen} onCheckedChange={setKeepOpen} />
-                {t('createMore')}
-              </label>
-              <Button type="submit" variant="primary" size="sm" className={cn('ml-auto')} loading={create.isPending} disabled={!(parsed.title || title).trim()}>
-                {t('create')}
-              </Button>
-            </div>
-          </form>
-        )}
+        {content}
       </DialogContent>
     </Dialog>
   )

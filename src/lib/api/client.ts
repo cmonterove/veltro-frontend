@@ -8,10 +8,23 @@ import { SUSPENDED_EVENT, SUSPENSION_CODES } from './ajustes'
 
 type Init = { method?: string; body?: unknown; query?: Query; headers?: Record<string, string> }
 
+/**
+ * Por dónde sale. La web: /api/veltro (la sesión de las cookies). La burbuja de Veltro dentro de otra plataforma
+ * cambia a /api/burbuja (su propio token) con `setApiBridge`, y sin sesión no se va al login: avisa a la burbuja.
+ */
+const bridge: { base: string; headers: Record<string, string>; onUnauthorized: (() => void) | null } = {
+  base: '/api/veltro',
+  headers: {},
+  onUnauthorized: null,
+}
+export function setApiBridge(b: Partial<typeof bridge>) {
+  Object.assign(bridge, b)
+}
+
 export async function api<T>(path: string, init: Init = {}): Promise<T> {
-  const headers: Record<string, string> = { ...init.headers }
+  const headers: Record<string, string> = { ...bridge.headers, ...init.headers }
   if (init.body !== undefined) headers['content-type'] = 'application/json'
-  const res = await fetch(`/api/veltro${path}${queryString(init.query)}`, {
+  const res = await fetch(`${bridge.base}${path}${queryString(init.query)}`, {
     method: init.method ?? 'GET',
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
@@ -21,7 +34,8 @@ export async function api<T>(path: string, init: Init = {}): Promise<T> {
     return await parseResponse<T>(res)
   } catch (e) {
     // la sesión ya no sirve: de vuelta al login, conservando dónde estaba
-    if (e instanceof ApiError && e.status === 401 && typeof window !== 'undefined' && !location.pathname.startsWith('/login')) {
+    if (e instanceof ApiError && e.status === 401 && bridge.onUnauthorized) bridge.onUnauthorized()
+    else if (e instanceof ApiError && e.status === 401 && typeof window !== 'undefined' && !location.pathname.startsWith('/login')) {
       location.href = `/login?next=${encodeURIComponent(location.pathname + location.search)}`
     }
     // suspendida (la persona o la cuenta): el shell recarga el contexto y muestra el aviso

@@ -15,6 +15,27 @@ const RESPONSE_HEADERS = ['content-type', 'cache-control', 'retry-after']
 
 const error = (status: number, code: string, message: string) => NextResponse.json({ error: { code, message } }, { status })
 
+// crear una tarea en un espacio o pedirle algo a un departamento
+const CREATES = /^\/v1\/(workspaces\/[^/]+\/tasks|accounts\/[^/]+\/requests|bubble\/requests)$/
+
+function sourceFrom(header: string | null) {
+  if (!header) return null
+  try {
+    const s = JSON.parse(decodeURIComponent(header)) as Record<string, unknown>
+    if (typeof s?.platform !== 'string' || !s.platform.trim()) return null
+    const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined)
+    const url = str(s.url, 2000)
+    return {
+      platform: s.platform.trim().slice(0, 40),
+      ...(url && /^https?:\/\//i.test(url) ? { url } : {}),
+      ...(str(s.recordId, 120) ? { recordId: str(s.recordId, 120) } : {}),
+      ...(str(s.recordTitle, 200) ? { recordTitle: str(s.recordTitle, 200) } : {}),
+    }
+  } catch {
+    return null
+  }
+}
+
 async function session(request: NextRequest) {
   if (request.method !== 'DELETE') return error(405, 'method_not_allowed', 'Usa DELETE.')
   const out = new NextResponse(null, { status: 204 })
@@ -55,10 +76,23 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ path
     const v = request.headers.get(h)
     if (v) headers.set(h, v)
   }
+  const target = `/${path.join('/')}`
+  let body: BodyInit | undefined = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer()
+  // De dónde viene (la plataforma, la página y el registro, que manda la burbuja en x-veltro-source): se agrega al
+  // crear una tarea o una solicitud. Así los formularios de Veltro se usan tal cual, sin saber de la burbuja.
+  const source = sourceFrom(request.headers.get('x-veltro-source'))
+  if (source && request.method === 'POST' && CREATES.test(target) && body) {
+    try {
+      const json = JSON.parse(new TextDecoder().decode(body as ArrayBuffer) || '{}') as Record<string, unknown>
+      if (json && typeof json === 'object' && !Array.isArray(json) && !json.source) body = JSON.stringify({ ...json, source })
+    } catch {
+      /* no es JSON: va tal cual y la API responde */
+    }
+  }
   const res = await fetch(`${API_URL}/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`, {
     method: request.method,
     headers,
-    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer(),
+    body,
     cache: 'no-store',
   })
   const out = new NextResponse(res.status === 204 ? null : res.body, { status: res.status })
