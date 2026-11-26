@@ -4296,11 +4296,6 @@
     "department": "Département",
     "account": "Compte",
     "urgent": "C'est urgent",
-    "capture": "Ajouter une capture d'écran",
-    "capturing": "Choisissez cet onglet pour la capture…",
-    "captureRemove": "Retirer la capture",
-    "captureFailed": "Impossible de faire la capture.",
-    "captureUnsupported": "Ce navigateur ne permet pas de capturer l'écran.",
     "createTask": "Créer la tâche",
     "createRequest": "Envoyer la demande",
     "saving": "Enregistrement…",
@@ -4327,6 +4322,17 @@
     "noOpener": "Revenez à {platform} et rouvrez la bulle.",
     "noAccountTitle": "Vous n'êtes encore dans aucun compte",
     "noAccountText": "Demandez à votre entreprise de vous inviter sur Veltro. Dès qu'on vous aura ajouté, vous pourrez créer des tâches et des demandes d'ici.",
-    "retry": "Vérifier à nouveau"
+    "retry": "Vérifier à nouveau",
+    "attachTitle": "Pièces jointes",
+    "attachFile": "Fichier",
+    "attachLink": "Lien",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "pasteHint": "Envoyez des fichiers, ajoutez des liens ou collez une capture avec Ctrl+V.",
+    "fileNotAllowed": "{name} : ce type de fichier n'est pas accepté.",
+    "fileTooBig": "{name} dépasse 20 Mo.",
+    "linkInvalid": "Vérifiez le lien.",
+    "tooManyFiles": "Une demande accepte jusqu'à 5 fichiers.",
+    "attachFailed": "Elle a été créée, mais une pièce jointe n'a pas pu être envoyée : ajoutez-la depuis Veltro."
   }
 }

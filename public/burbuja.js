@@ -95,50 +95,13 @@
     boton.setAttribute('aria-label', 'Abrir Veltro')
   }
 
-  // Captura de la pestaña: el navegador pregunta qué compartir (sugiere esta pestaña). Mientras, el panel se
-  // esconde para que no salga en la foto. Sin librerías: getDisplayMedia + un cuadro del video.
-  function capturar() {
-    var md = navigator.mediaDevices
-    if (!md || !md.getDisplayMedia) return enviar({ type: PREFIJO + 'captura', error: 'unsupported' })
-    iframe.style.visibility = 'hidden'
-    md.getDisplayMedia({ video: { displaySurface: 'browser' }, audio: false, preferCurrentTab: true, selfBrowserSurface: 'include' })
-      .then(function (stream) {
-        var video = document.createElement('video')
-        video.muted = true
-        video.playsInline = true
-        video.srcObject = stream
-        return video.play().then(function () {
-          // un respiro: que el aviso de «compartiendo» del navegador se vaya y el panel ya no esté
-          return new Promise(function (ok) { setTimeout(ok, 350) })
-        }).then(function () {
-          var w = video.videoWidth, h = video.videoHeight
-          var escala = Math.min(1, 1920 / w)
-          var lienzo = document.createElement('canvas')
-          lienzo.width = Math.round(w * escala)
-          lienzo.height = Math.round(h * escala)
-          lienzo.getContext('2d').drawImage(video, 0, 0, lienzo.width, lienzo.height)
-          stream.getTracks().forEach(function (t) { t.stop() })
-          return new Promise(function (ok) { lienzo.toBlob(ok, 'image/png') })
-        })
-      })
-      .then(function (blob) {
-        iframe.style.visibility = ''
-        enviar(blob ? { type: PREFIJO + 'captura', blob: blob } : { type: PREFIJO + 'captura', error: 'failed' })
-      })
-      .catch(function () {
-        iframe.style.visibility = ''
-        enviar({ type: PREFIJO + 'captura', error: 'failed' })
-      })
-  }
-
   window.addEventListener('message', function (e) {
     if (e.origin !== base || e.source !== iframe.contentWindow) return
     var d = e.data || {}
     if (d.type === PREFIJO + 'listo') {
       panelListo = true
       enviar(contextoActual())
-    } else if (d.type === PREFIJO + 'capturar') capturar()
-    else if (d.type === PREFIJO + 'cerrar') cerrar()
+    } else if (d.type === PREFIJO + 'cerrar') cerrar()
   })
 
   boton.addEventListener('click', function () {

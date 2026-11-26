@@ -4296,11 +4296,6 @@
     "department": "Department",
     "account": "Account",
     "urgent": "It's urgent",
-    "capture": "Add a screenshot",
-    "capturing": "Pick this tab for the screenshot…",
-    "captureRemove": "Remove the screenshot",
-    "captureFailed": "Couldn't take the screenshot.",
-    "captureUnsupported": "This browser can't capture the screen.",
     "createTask": "Create task",
     "createRequest": "Send request",
     "saving": "Saving…",
@@ -4327,6 +4322,17 @@
     "noOpener": "Go back to {platform} and open the bubble again.",
     "noAccountTitle": "You're not in any account yet",
     "noAccountText": "Ask your company to invite you to Veltro. Once they add you, you'll be able to add tasks and requests from here.",
-    "retry": "Check again"
+    "retry": "Check again",
+    "attachTitle": "Attachments",
+    "attachFile": "File",
+    "attachLink": "Link",
+    "add": "Add",
+    "remove": "Remove",
+    "pasteHint": "Upload files, add links or paste a screenshot with Ctrl+V.",
+    "fileNotAllowed": "{name}: that file type isn't supported.",
+    "fileTooBig": "{name} is over 20 MB.",
+    "linkInvalid": "Check the link.",
+    "tooManyFiles": "A request can have up to 5 files.",
+    "attachFailed": "It was created, but some attachment couldn't be uploaded: add it from Veltro."
   }
 }

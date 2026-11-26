@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Camera, Check, ExternalLink, Link2, LogOut, X } from 'lucide-react'
+import { Check, ExternalLink, FileText, Link2, LogOut, Paperclip, Plus, X } from 'lucide-react'
 import { LogoMark } from '@/components/app/logo'
 import { AppProvider } from '@/components/app/app-context'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { NewRequestDialog } from '@/components/requests/new-request-dialog'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { setApiBridge } from '@/lib/api/client'
@@ -21,8 +22,7 @@ import { READY_MESSAGE } from './connect'
 
 /*
  * La burbuja de Veltro dentro de otra plataforma. Habla con /burbuja.js (la página que la contiene) por
- * postMessage: recibe de dónde se la llama (plataforma, página, registro, texto sugerido) y la captura de
- * pantalla; pide capturar y cerrar. Con Veltro habla por /api/burbuja (su propio token, en una cookie
+ * postMessage: recibe de dónde se la llama (plataforma, página, registro, texto sugerido) y le pide cerrar. Con Veltro habla por /api/burbuja (su propio token, en una cookie
  * particionada por el sitio que la contiene).
  *
  * Los formularios son los de Veltro (nueva tarea y nueva solicitud, con todo lo que tienen): la burbuja les da
@@ -32,8 +32,6 @@ import { READY_MESSAGE } from './connect'
 const MSG = {
   ready: 'veltro-burbuja:listo',
   context: 'veltro-burbuja:contexto',
-  capture: 'veltro-burbuja:capturar',
-  captured: 'veltro-burbuja:captura',
   close: 'veltro-burbuja:cerrar',
 } as const
 
@@ -41,6 +39,44 @@ type HostContext = { platform: string; url?: string; record?: { id?: string; tit
 type Done = { label: string; href: string }
 type Prefs = { tab?: 'task' | 'request'; accountId?: string; workspaceId?: string; departmentId?: string }
 type SignedUpload = { uploadUrl: string; headers: Record<string, string>; uploadToken: string }
+type Attachment = { id: string; kind: 'file'; file: File; preview: string | null } | { id: string; kind: 'link'; url: string }
+
+// lo que acepta la API (lib/archivos de la API), hasta 20 MB; si el navegador no da el tipo, por la extensión
+const MAX_BYTES = 20 * 1024 * 1024
+const TYPE_BY_EXT: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  heic: 'image/heic',
+  avif: 'image/avif',
+  pdf: 'application/pdf',
+  txt: 'text/plain',
+  csv: 'text/csv',
+  md: 'text/markdown',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  odt: 'application/vnd.oasis.opendocument.text',
+  ods: 'application/vnd.oasis.opendocument.spreadsheet',
+  odp: 'application/vnd.oasis.opendocument.presentation',
+  rtf: 'application/rtf',
+  zip: 'application/zip',
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  wav: 'audio/wav',
+  weba: 'audio/webm',
+  ogg: 'audio/ogg',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+}
+const ALLOWED = new Set(Object.values(TYPE_BY_EXT))
+const mimeOf = (f: File) => (f.type && ALLOWED.has(f.type) ? f.type : (TYPE_BY_EXT[f.name.split('.').pop()?.toLowerCase() ?? ''] ?? f.type))
 
 class HttpError extends Error {
   constructor(
@@ -65,7 +101,7 @@ async function call<T>(path: string, init: { method?: string; body?: unknown } =
   return (res.status === 204 ? null : await res.json()) as T
 }
 
-/** Sube la captura con la URL firmada que dio la API (paso 1) y devuelve el sello para el paso 2. */
+/** Sube el archivo con la URL firmada que dio la API (paso 1) y devuelve el sello para el paso 2. */
 async function upload(blob: Blob, step1: SignedUpload) {
   const res = await fetch(step1.uploadUrl, { method: 'PUT', headers: step1.headers, body: blob })
   if (!res.ok) throw new HttpError(res.status, 'upload_failed')
@@ -122,8 +158,10 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const [me, setMe] = useState<{ id: string; name: string; avatar: string | null } | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'no-account' | 'disconnected' | 'connecting' | 'blocked' | 'error'>('loading')
   const [tab, setTab] = useState<'task' | 'request'>('task')
-  const [shot, setShot] = useState<{ blob: Blob; url: string } | null>(null)
-  const [capture, setCapture] = useState<'idle' | 'busy' | 'failed' | 'unsupported'>('idle')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [linkDraft, setLinkDraft] = useState<string | null>(null)
+  const [attachError, setAttachError] = useState<string | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
   const [done, setDone] = useState<Done | null>(null)
   const [round, setRound] = useState(0)
   const verifier = useRef<string | null>(null)
@@ -182,7 +220,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     }
   }, [load])
 
-  // mensajes de la página que contiene la burbuja (contexto y captura) y de la ventanita de conectar
+  // mensajes de la página que contiene la burbuja (su contexto) y de la ventanita de conectar
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       const d = e.data as { type?: string } & Record<string, unknown>
@@ -200,15 +238,6 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
           text: typeof c.text === 'string' ? c.text : undefined,
           host: typeof c.host === 'string' ? c.host : undefined,
         }))
-      }
-      if (d.type === MSG.captured) {
-        if (d.blob instanceof Blob) {
-          setShot((old) => {
-            if (old) URL.revokeObjectURL(old.url)
-            return { blob: d.blob as Blob, url: URL.createObjectURL(d.blob as Blob) }
-          })
-          setCapture('idle')
-        } else setCapture(d.error === 'unsupported' ? 'unsupported' : 'failed')
       }
     }
     window.addEventListener('message', onMessage)
@@ -262,42 +291,105 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     setStatus('disconnected')
   }
 
-  const clearShot = () => {
-    if (shot) URL.revokeObjectURL(shot.url)
-    setShot(null)
+  // ── adjuntos: archivos (o capturas pegadas con Ctrl+V) y enlaces ──
+  const addFiles = (files: File[]) => {
+    setAttachError(null)
+    const ok: Attachment[] = []
+    for (const f of files) {
+      if (!ALLOWED.has(mimeOf(f))) setAttachError(t('fileNotAllowed', { name: f.name }))
+      else if (f.size > MAX_BYTES) setAttachError(t('fileTooBig', { name: f.name }))
+      else ok.push({ id: crypto.randomUUID(), kind: 'file', file: f, preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : null })
+    }
+    setAttachments((a) => [...a, ...ok])
   }
+  const addLink = () => {
+    const url = (linkDraft ?? '').trim()
+    const full = /^https?:\/\//i.test(url) ? url : `https://${url}`
+    try {
+      new URL(full)
+    } catch {
+      setAttachError(t('linkInvalid'))
+      return
+    }
+    setAttachError(null)
+    setAttachments((a) => [...a, { id: crypto.randomUUID(), kind: 'link', url: full }])
+    setLinkDraft(null)
+  }
+  const removeAttachment = (id: string) =>
+    setAttachments((a) =>
+      a.filter((x) => {
+        if (x.id === id && x.kind === 'file' && x.preview) URL.revokeObjectURL(x.preview)
+        return x.id !== id
+      }),
+    )
+  const clearAttachments = () => {
+    for (const x of attachments) if (x.kind === 'file' && x.preview) URL.revokeObjectURL(x.preview)
+    setAttachments([])
+    setLinkDraft(null)
+    setAttachError(null)
+  }
+  // una captura copiada (o un archivo) se pega con Ctrl+V en cualquier parte de la burbuja
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const files = [...(e.clipboardData?.files ?? [])]
+      if (!files.length) return
+      e.preventDefault()
+      addFiles(files.map((f, i) => (f.name && f.name !== 'image.png' ? f : new File([f], `captura-${Date.now()}${i ? `-${i}` : ''}.png`, { type: f.type }))))
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  })
 
-  // la tarea ya está: la captura se le adjunta y se muestra el listo
+  // la tarea ya está: se le adjuntan los archivos y enlaces y se muestra el listo
   const taskCreated = async (task: TaskRow) => {
     const ws = app?.workspaces.find((w) => w.id === task.workspace_id)
     savePrefs(platform, { tab: 'task', accountId: app?.account.id, workspaceId: task.workspace_id })
-    if (shot) {
+    let failed = false
+    for (const x of attachments) {
       try {
+        if (x.kind === 'link') {
+          await call(`/v1/workspaces/${task.workspace_id}/attachments`, { method: 'POST', body: { kind: 'link', url: x.url, taskId: task.id } })
+          continue
+        }
         const s1 = await call<SignedUpload>(`/v1/workspaces/${task.workspace_id}/attachments/upload-url`, {
           method: 'POST',
-          body: { name: 'captura.png', mimeType: 'image/png', sizeBytes: shot.blob.size },
+          body: { name: x.file.name, mimeType: mimeOf(x.file), sizeBytes: x.file.size },
         })
-        const uploadToken = await upload(shot.blob, s1)
+        const uploadToken = await upload(x.file, s1)
         await call(`/v1/workspaces/${task.workspace_id}/attachments`, {
           method: 'POST',
-          body: { kind: 'file', uploadToken, name: 'captura.png', taskId: task.id },
+          body: { kind: 'file', uploadToken, name: x.file.name, taskId: task.id },
         })
       } catch {
-        /* la tarea quedó; la captura no: se puede adjuntar desde Veltro */
+        // la tarea quedó; ese adjunto no: se puede agregar desde Veltro
+        failed = true
       }
     }
+    setAttachError(failed ? t('attachFailed') : null)
     const ref = ws ? `${ws.key}-${task.number}` : task.id
     setDone({ label: t('doneTask', { ref }), href: `/tasks/${ref}` })
   }
 
-  // antes de mandar la solicitud: la captura subida va en `files`
-  const requestExtra = async () => {
-    if (!shot || !app) return {}
-    const s1 = await call<SignedUpload>(`/v1/accounts/${app.account.id}/requests/files/upload-url`, {
-      method: 'POST',
-      body: { name: 'captura.png', mimeType: 'image/png', sizeBytes: shot.blob.size },
-    })
-    return { files: [{ uploadToken: await upload(shot.blob, s1) }] }
+  // antes de mandar la solicitud: los archivos subidos van en `files` (hasta 5) y los enlaces, al final del detalle
+  const requestExtra = async (draft: { body: string }) => {
+    if (!app) return {}
+    const files = attachments.filter((x) => x.kind === 'file')
+    const links = attachments.filter((x) => x.kind === 'link')
+    if (files.length > 5) {
+      setAttachError(t('tooManyFiles'))
+      throw new Error('too_many_files')
+    }
+    const uploaded = []
+    for (const x of files) {
+      const s1 = await call<SignedUpload>(`/v1/accounts/${app.account.id}/requests/files/upload-url`, {
+        method: 'POST',
+        body: { name: x.file.name, mimeType: mimeOf(x.file), sizeBytes: x.file.size },
+      })
+      uploaded.push({ uploadToken: await upload(x.file, s1) })
+    }
+    const extra: Record<string, unknown> = uploaded.length ? { files: uploaded } : {}
+    if (links.length) extra.body = [draft.body, links.map((l) => l.url).join('\n')].filter(Boolean).join('\n\n').slice(0, 4000)
+    return extra
   }
 
   const requestCreated = (r: { id: string; code: string; department?: { id: string } | null }) => {
@@ -307,9 +399,86 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
 
   const another = () => {
     setDone(null)
-    clearShot()
+    clearAttachments()
     setRound((n) => n + 1)
   }
+
+  // adjuntos: archivos, capturas pegadas y enlaces (van dentro del formulario de Veltro, antes del botón)
+  const attachBox = (
+    <div className="mx-4 mb-3 rounded-lg border border-line p-3">
+      <div className="flex items-center gap-2">
+        <Paperclip className="size-4 text-fg-subtle" />
+        <span className="text-sm font-medium">{t('attachTitle')}</span>
+        <div className="ml-auto flex gap-1">
+          <Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>
+            <Plus /> {t('attachFile')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setLinkDraft((v) => (v === null ? '' : v))}>
+            <Link2 /> {t('attachLink')}
+          </Button>
+        </div>
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            addFiles([...(e.target.files ?? [])])
+            e.target.value = ''
+          }}
+        />
+      </div>
+      {linkDraft !== null ? (
+        <div className="mt-2 flex gap-2">
+          <Input
+            autoFocus
+            value={linkDraft}
+            onChange={(e) => setLinkDraft(e.target.value)}
+            onKeyDown={(e) => {
+              // dentro del formulario de Veltro: Enter agrega el enlace, no manda la tarea
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                e.stopPropagation()
+                addLink()
+              }
+            }}
+            placeholder="https://…"
+            className="h-8 text-sm"
+          />
+          <Button variant="secondary" size="md" disabled={!linkDraft.trim()} onClick={addLink}>
+            {t('add')}
+          </Button>
+        </div>
+      ) : null}
+      {attachments.length ? (
+        <ul className="mt-2 flex flex-col gap-1.5">
+          {attachments.map((x) => (
+            <li key={x.id} className="flex items-center gap-2 rounded-lg bg-hover px-2 py-1.5 text-sm">
+              {x.kind === 'file' && x.preview ? (
+                // eslint-disable-next-line @next/next/no-img-element -- archivo local, sin optimizar
+                <img src={x.preview} alt="" className="size-7 shrink-0 rounded object-cover" />
+              ) : x.kind === 'file' ? (
+                <FileText className="size-4 shrink-0 text-fg-subtle" />
+              ) : (
+                <Link2 className="size-4 shrink-0 text-fg-subtle" />
+              )}
+              <span className="min-w-0 flex-1 truncate">{x.kind === 'file' ? x.file.name : x.url.replace(/^https?:\/\//, '')}</span>
+              <Button variant="ghost" size="icon-xs" aria-label={t('remove')} onClick={() => removeAttachment(x.id)}>
+                <X />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1.5 text-xs text-fg-subtle">{t('pasteHint')}</p>
+      )}
+      {attachError ? (
+        <p className="mt-2 text-xs text-danger" role="alert">
+          {attachError}
+        </p>
+      ) : null}
+    </div>
+  )
 
   const record = host.record?.title || host.record?.id
   const prefs = typeof window === 'undefined' ? {} : readPrefs(platform)
@@ -436,6 +605,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                 onOpenChange={() => {}}
                 defaults={{ workspaceId: prefs.workspaceId, ...(host.text ? { title: host.text } : {}) }}
                 onCreated={(task) => void taskCreated(task)}
+                extra={attachBox}
               />
             ) : (
               <NewRequestDialog
@@ -446,34 +616,9 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                 defaultDepartment={prefs.departmentId}
                 beforeSend={requestExtra}
                 onCreated={requestCreated}
+                extra={attachBox}
               />
             )}
-
-            {/* la captura de la página que contiene la burbuja */}
-            {shot ? (
-              <div className="relative overflow-hidden rounded-lg border border-line bg-panel">
-                {/* eslint-disable-next-line @next/next/no-img-element -- blob local, sin optimizar */}
-                <img src={shot.url} alt="" className="max-h-40 w-full object-cover object-top" />
-                <Button variant="secondary" size="icon-xs" className="absolute right-2 top-2" aria-label={t('captureRemove')} onClick={clearShot}>
-                  <X />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="subtle"
-                className="w-full"
-                loading={capture === 'busy'}
-                onClick={() => {
-                  setCapture('busy')
-                  post({ type: MSG.capture })
-                }}
-              >
-                <Camera /> {capture === 'busy' ? t('capturing') : t('capture')}
-              </Button>
-            )}
-            {capture === 'failed' || capture === 'unsupported' ? (
-              <p className="text-xs text-danger">{capture === 'failed' ? t('captureFailed') : t('captureUnsupported')}</p>
-            ) : null}
           </div>
 
           <footer className="flex items-center border-t border-line bg-panel px-4 py-2">

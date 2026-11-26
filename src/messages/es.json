@@ -4296,11 +4296,6 @@
     "department": "Departamento",
     "account": "Cuenta",
     "urgent": "Es urgente",
-    "capture": "Agregar captura de pantalla",
-    "capturing": "Elige esta pestaña para la captura…",
-    "captureRemove": "Quitar la captura",
-    "captureFailed": "No se pudo tomar la captura.",
-    "captureUnsupported": "Este navegador no permite capturar la pantalla.",
     "createTask": "Crear tarea",
     "createRequest": "Enviar solicitud",
     "saving": "Guardando…",
@@ -4327,6 +4322,17 @@
     "noOpener": "Vuelve a {platform} y abre la burbuja otra vez.",
     "noAccountTitle": "Todavía no estás en ninguna cuenta",
     "noAccountText": "Pide a tu empresa que te invite a Veltro. Apenas te sumen, desde aquí podrás cargar tareas y solicitudes.",
-    "retry": "Volver a revisar"
+    "retry": "Volver a revisar",
+    "attachTitle": "Adjuntos",
+    "attachFile": "Archivo",
+    "attachLink": "Enlace",
+    "add": "Agregar",
+    "remove": "Quitar",
+    "pasteHint": "Sube archivos, agrega enlaces o pega una captura con Ctrl+V.",
+    "fileNotAllowed": "{name}: ese tipo de archivo no se admite.",
+    "fileTooBig": "{name} supera los 20 MB.",
+    "linkInvalid": "Revisa el enlace.",
+    "tooManyFiles": "Una solicitud lleva hasta 5 archivos.",
+    "attachFailed": "Quedó creada, pero algún adjunto no se pudo subir: agrégalo desde Veltro."
   }
 }

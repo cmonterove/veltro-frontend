@@ -30,6 +30,7 @@ export function QuickTaskDialog({
   defaults,
   onCreated,
   embedded,
+  extra,
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
@@ -39,6 +40,8 @@ export function QuickTaskDialog({
   onCreated?: (task: TaskRow) => void
   /** sin la ventana flotante, dentro de otra superficie (la burbuja de Veltro en otras plataformas) */
   embedded?: boolean
+  /** algo más dentro del formulario, justo antes del botón (p. ej. los adjuntos de la burbuja) */
+  extra?: React.ReactNode
 }) {
   const t = useTranslations('tasks')
   const statusName = useStatusName()
@@ -228,6 +231,7 @@ export function QuickTaskDialog({
           )}
         </p>
 
+        {extra}
         <div className="flex items-center gap-3 border-t border-line px-4 py-3">
           <label className="flex cursor-default items-center gap-2 text-xs text-fg-muted">
             <Switch checked={keepOpen} onCheckedChange={setKeepOpen} />

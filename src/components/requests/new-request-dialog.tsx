@@ -30,6 +30,7 @@ export function NewRequestDialog({
   onOpenChange,
   defaultDepartment,
   embedded,
+  extra,
   onCreated,
   beforeSend,
 }: {
@@ -38,10 +39,12 @@ export function NewRequestDialog({
   defaultDepartment?: string
   /** sin la ventana flotante, dentro de otra superficie (la burbuja de Veltro en otras plataformas) */
   embedded?: boolean
+  /** algo más dentro del formulario, justo antes del botón (p. ej. los adjuntos de la burbuja) */
+  extra?: React.ReactNode
   /** si está, se queda donde está en vez de abrir la solicitud */
   onCreated?: (r: { id: string; code: string }) => void
-  /** lo que se suma al pedido justo antes de mandarlo (p. ej. la captura ya subida, en `files`) */
-  beforeSend?: () => Promise<Record<string, unknown>>
+  /** lo que se suma al pedido justo antes de mandarlo (p. ej. los archivos ya subidos en `files`, o el detalle con los enlaces) */
+  beforeSend?: (draft: { body: string }) => Promise<Record<string, unknown>>
 }) {
   const t = useTranslations('requests.create')
   const tk = useTranslations('requests.kind')
@@ -82,7 +85,7 @@ export function NewRequestDialog({
 
   const submit = async () => {
     if (!ready) return
-    const extra = beforeSend ? await beforeSend().catch(() => null) : {}
+    const extra = beforeSend ? await beforeSend({ body: body.trim() }).catch(() => null) : {}
     if (!extra) return
     create.mutate(
       { departmentId: dept, title: title.trim(), body: body.trim(), kind, urgent, dueDate: due, ...extra },
@@ -209,7 +212,9 @@ export function NewRequestDialog({
           </div>
         </DialogBody>
       )}
-      <DialogFooter>
+      {extra}
+      {/* dentro de la burbuja, el botón queda siempre a la vista al pie */}
+      <DialogFooter className={embedded ? 'sticky bottom-0 rounded-b-xl border-t border-line bg-panel pb-3' : undefined}>
         {embedded ? null : (
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             {t('cancel')}
