@@ -4,14 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ExternalLink, FileText, Link2, LogOut, Mail, Paperclip, Plus, UserPlus, X } from 'lucide-react'
 import { LogoMark } from '@/components/app/logo'
-import { AppProvider } from '@/components/app/app-context'
+import { AppProvider, canEdit } from '@/components/app/app-context'
+import { WorkspaceMark } from '@/components/app/marks'
+import { Field, Input } from '@/components/ui/input'
 import { QuickTaskDialog } from '@/components/tasks/quick-task-dialog'
 import { NewRequestDialog } from '@/components/requests/new-request-dialog'
 import { Avatar, AvatarStack } from '@/components/ui/avatar'
 import { Checkbox, Switch } from '@/components/ui/switch'
 import { AssigneesMenu } from '@/components/tasks/pickers'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { setApiBridge } from '@/lib/api/client'
@@ -174,6 +175,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const [mailConnecting, setMailConnecting] = useState(false)
   const [done, setDone] = useState<Done | null>(null)
   const [round, setRound] = useState(0)
+  const [workspaceId, setWorkspaceId] = useState('')
   const verifier = useRef<string | null>(null)
   const popup = useRef<Window | null>(null)
   const [polling, setPolling] = useState(false)
@@ -245,6 +247,9 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
         setMe({ id: res.user.id, name: res.user.fullName || res.user.email, avatar: res.user.avatarUrl ?? null })
         const ctx = toAppContext(res)
         setApp(ctx)
+        const ws = ctx?.workspaces.filter((w) => canEdit(w)) ?? []
+        const remembered = readPrefs(platform).workspaceId
+        setWorkspaceId(ws.find((w) => w.id === remembered)?.id ?? ws[0]?.id ?? '')
         if (ctx) void loadMail()
         setTab(readPrefs(platform).tab ?? 'task')
         setStatus(ctx ? 'ready' : 'no-account')
@@ -600,6 +605,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   )
 
   const record = host.record?.title || host.record?.id
+  const editable = app?.workspaces.filter((w) => canEdit(w)) ?? []
   const prefs = typeof window === 'undefined' ? {} : readPrefs(platform)
 
   return (
@@ -700,29 +706,58 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                   </button>
                 ))}
               </div>
-              {app.accounts.length > 1 ? (
-                <Select
-                  className="w-40"
-                  value={app.account.id}
-                  onChange={(id) => {
-                    savePrefs(platform, { accountId: id })
-                    setStatus('loading')
-                    void load(id)
-                  }}
-                  options={app.accounts.map((a) => ({ value: a.id, label: a.name }))}
-                  aria-label={t('account')}
-                />
+            </div>
+
+            {/* la cuenta y, para las tareas, el espacio: con una sola opción se muestra fija */}
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={t('account')}>
+                {app.accounts.length > 1 ? (
+                  <Select
+                    value={app.account.id}
+                    onChange={(id) => {
+                      savePrefs(platform, { accountId: id })
+                      setStatus('loading')
+                      void load(id)
+                    }}
+                    options={app.accounts.map((a) => ({ value: a.id, label: a.name }))}
+                    aria-label={t('account')}
+                  />
+                ) : (
+                  <Fixed>{app.account.name}</Fixed>
+                )}
+              </Field>
+              {tab === 'task' ? (
+                <Field label={t('space')}>
+                  {editable.length > 1 ? (
+                    <Select
+                      value={workspaceId}
+                      onChange={(id) => {
+                        setWorkspaceId(id)
+                        savePrefs(platform, { workspaceId: id })
+                      }}
+                      options={editable.map((w) => ({ value: w.id, label: w.name, icon: <WorkspaceMark ws={w} size={16} /> }))}
+                      aria-label={t('space')}
+                    />
+                  ) : editable[0] ? (
+                    <Fixed>
+                      <WorkspaceMark ws={editable[0]} size={16} />
+                      {editable[0].name}
+                    </Fixed>
+                  ) : (
+                    <Fixed>{t('noSpaces')}</Fixed>
+                  )}
+                </Field>
               ) : null}
             </div>
 
             {/* los formularios de Veltro, tal cual */}
             {tab === 'task' ? (
               <QuickTaskDialog
-                key={`t-${app.account.id}-${round}`}
+                key={`t-${app.account.id}-${workspaceId}-${round}`}
                 embedded
                 open
                 onOpenChange={() => {}}
-                defaults={{ workspaceId: prefs.workspaceId, ...(host.text ? { title: host.text } : {}) }}
+                defaults={{ workspaceId: workspaceId || undefined, ...(host.text ? { title: host.text } : {}) }}
                 onCreated={(task) => void taskCreated(task)}
                 extra={
                   <>
@@ -772,4 +807,9 @@ function Centered({ title, text, icon, children }: { title: string; text: string
       {children}
     </div>
   )
+}
+
+/** Un valor que no se elige (hay uno solo): se ve como el selector, sin flecha. */
+function Fixed({ children }: { children: React.ReactNode }) {
+  return <div className="flex h-9 min-w-0 items-center gap-2 truncate rounded-md border border-line bg-hover px-2.5 text-sm text-fg">{children}</div>
 }

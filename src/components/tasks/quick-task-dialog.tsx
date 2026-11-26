@@ -136,23 +136,25 @@ export function QuickTaskDialog({
         }}
       >
         <div className="flex items-center gap-2 px-4 pt-3">
-          <Menu>
-            <MenuTrigger className="inline-flex h-7 items-center gap-1.5 rounded-md border border-line px-2 text-sm hover:bg-hover data-[popup-open]:bg-hover">
-              {ws ? <WorkspaceMark ws={ws} size={16} /> : null}
-              <span className="max-w-40 truncate">{ws?.name}</span>
-              <ChevronDown className="size-3.5 text-fg-subtle" />
-            </MenuTrigger>
-            <MenuContent>
-              <MenuRadioGroup value={workspaceId} onValueChange={(v) => setWorkspaceId(String(v))}>
-                {editableWs.map((w) => (
-                  <MenuRadioItem key={w.id} value={w.id}>
-                    <WorkspaceMark ws={w} size={16} />
-                    {w.name}
-                  </MenuRadioItem>
-                ))}
-              </MenuRadioGroup>
-            </MenuContent>
-          </Menu>
+          {embedded ? null : (
+            <Menu>
+              <MenuTrigger className="inline-flex h-7 items-center gap-1.5 rounded-md border border-line px-2 text-sm hover:bg-hover data-[popup-open]:bg-hover">
+                {ws ? <WorkspaceMark ws={ws} size={16} /> : null}
+                <span className="max-w-40 truncate">{ws?.name}</span>
+                <ChevronDown className="size-3.5 text-fg-subtle" />
+              </MenuTrigger>
+              <MenuContent>
+                <MenuRadioGroup value={workspaceId} onValueChange={(v) => setWorkspaceId(String(v))}>
+                  {editableWs.map((w) => (
+                    <MenuRadioItem key={w.id} value={w.id}>
+                      <WorkspaceMark ws={w} size={16} />
+                      {w.name}
+                    </MenuRadioItem>
+                  ))}
+                </MenuRadioGroup>
+              </MenuContent>
+            </Menu>
+          )}
           <span className="text-xs text-fg-subtle">{t('newTask')}</span>
         </div>
 
