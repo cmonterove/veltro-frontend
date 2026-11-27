@@ -1,5 +1,6 @@
 'use server'
 
+import { createHash, randomBytes } from 'node:crypto'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -9,6 +10,7 @@ import { apiAnon, saveSession } from '@/lib/api/server'
 import { ApiError } from '@/lib/api/shared'
 import type { ApiSessionResponse } from '@/lib/api/types'
 import { passwordProblem } from '@/lib/api/ajustes'
+import { googleLoginCookie } from '@/lib/auth/google-login'
 
 export type AuthState = { error?: string; email?: string; checkEmail?: boolean; sent?: boolean } | undefined
 
@@ -120,8 +122,25 @@ async function providerEnabled(provider: OAuthProvider) {
 export async function signInWithProvider(provider: OAuthProvider, next?: string): Promise<AuthState> {
   if (provider !== 'google' && provider !== 'apple') return { error: 'oauth_unavailable' }
   if (!(await providerEnabled(provider))) return { error: 'oauth_unavailable' }
-  const supabase = await createClient()
   const target = safeNext(next ?? null)
+  // Google vuelve a la web (no a Supabase): así «Elige una cuenta» muestra el dominio de Veltro.
+  // Si la API no tiene Google configurado, se usa el camino de Supabase de siempre.
+  if (provider === 'google') {
+    const state = `login.${randomBytes(24).toString('base64url')}`
+    const nonce = randomBytes(24).toString('base64url')
+    const url = await apiAnon<{ url: string }>('/v1/auth/google/start', {
+      method: 'POST',
+      body: { state, nonce: createHash('sha256').update(nonce).digest('hex') },
+    })
+      .then((r) => r.url)
+      .catch(() => null)
+    if (url) {
+      const value = Buffer.from(JSON.stringify({ s: state, n: nonce, next: target })).toString('base64url')
+      ;(await cookies()).set(googleLoginCookie(value, 10 * 60))
+      redirect(url)
+    }
+  }
+  const supabase = await createClient()
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: { redirectTo: `${appUrl()}/auth/confirm?next=${encodeURIComponent(target)}` },

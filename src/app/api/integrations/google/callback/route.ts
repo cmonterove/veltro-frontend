@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { googleReason } from '@/lib/api/integraciones'
 import { API_URL } from '@/lib/api/session-cookies'
+import { finishGoogleLogin } from '@/lib/auth/google-login'
 import { apiWithSession, BINDING_COOKIE, BINDING_PATH, MAIL_BINDING_COOKIE, safeMailReturn, safeReturn, withSession } from '../_shared'
 
 /**
@@ -18,6 +19,9 @@ import { apiWithSession, BINDING_COOKIE, BINDING_PATH, MAIL_BINDING_COOKIE, safe
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const state = params.get('state')
+
+  // entrar a Veltro con Google (no es una conexión): ver lib/auth/google-login
+  if (state?.startsWith('login.')) return finishGoogleLogin(request, state)
 
   if (state?.startsWith('app.')) {
     const target = new URL(`${API_URL}/v1/integrations/mail/google/return`)
