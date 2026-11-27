@@ -41,7 +41,8 @@ const MSG = {
 
 type HostContext = { platform: string; url?: string; record?: { id?: string; title?: string }; text?: string; host?: string }
 type Done = { label: string; href: string; note?: string | null }
-type MailAccount = { id: string; email: string; isDefault: boolean }
+type MailAccount = { id: string; email: string; isDefault: boolean; provider?: string }
+type ExchangeServer = { id: string; name: string }
 type Prefs = { tab?: 'task' | 'request'; accountId?: string; workspaceId?: string; departmentId?: string }
 type SignedUpload = { uploadUrl: string; headers: Record<string, string>; uploadToken: string }
 type Attachment = { id: string; kind: 'file'; file: File; preview: string | null } | { id: string; kind: 'link'; url: string }
@@ -173,7 +174,9 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const [mailFrom, setMailFrom] = useState('')
   const [mailDept, setMailDept] = useState(false)
   const [mailPeople, setMailPeople] = useState<string[]>([])
-  const [mailConnecting, setMailConnecting] = useState(false)
+  const [mailConnecting, setMailConnecting] = useState<'google' | 'exchange' | null>(null)
+  // correos de empresa (Exchange, p. ej. Promoting) que se pueden conectar con usuario y clave
+  const [exchangeServers, setExchangeServers] = useState<ExchangeServer[]>([])
   const [done, setDone] = useState<Done | null>(null)
   const [round, setRound] = useState(0)
   const [workspaceId, setWorkspaceId] = useState('')
@@ -203,27 +206,33 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   }, [source])
 
   async function loadMail() {
-    const r = await call<{ items: MailAccount[] }>('/v1/me/mail-accounts').catch(() => null)
+    const r = await call<{ items: MailAccount[]; providers?: { exchange?: ExchangeServer[] } }>('/v1/me/mail-accounts').catch(() => null)
     if (!r) return
     setMailAccounts(r.items)
+    setExchangeServers(r.providers?.exchange ?? [])
     setMailFrom((f) => (r.items.some((a) => a.id === f) ? f : ((r.items.find((a) => a.isDefault) ?? r.items[0])?.id ?? '')))
     return r.items.length
   }
 
-  // conectar Gmail con lo que ya tiene la web (en una ventanita, con su sesión); al volver la burbuja lo ve sola
-  const connectMail = () => {
-    const w = window.open('/api/integrations/google/mail-connect?returnTo=/burbuja/listo', 'veltro-burbuja-gmail', 'popup,width=520,height=680')
+  // conectar un correo con lo que ya tiene la web (en una ventanita, con su sesión): Gmail o el de la empresa
+  // (usuario y clave). Al volver la burbuja lo ve sola; si se cierra la ventanita, el botón se libera.
+  const connectMail = (kind: 'google' | 'exchange' = 'google', server?: string) => {
+    const url = kind === 'google' ? '/api/integrations/google/mail-connect?returnTo=/burbuja/listo' : `/burbuja/correo?${new URLSearchParams({ server: server ?? '' })}`
+    const w = window.open(url, `veltro-burbuja-${kind}`, 'popup,width=520,height=680')
     if (!w) return
-    setMailConnecting(true)
+    setMailConnecting(kind)
+    const before = mailAccounts?.length ?? 0
     const started = Date.now()
     const id = setInterval(async () => {
-      const n = await loadMail()
-      if (n || Date.now() - started > 10 * 60_000) {
+      const n = (await loadMail()) ?? 0
+      if (n > before || w.closed || Date.now() - started > 10 * 60_000) {
         clearInterval(id)
-        setMailConnecting(false)
+        setMailConnecting(null)
+        if (w.closed) void loadMail()
       }
     }, 2000)
   }
+  const exchangeMissing = exchangeServers.filter(() => !mailAccounts?.some((a) => a.provider === 'exchange'))
 
   // el aviso por correo, después de crear (el texto lo arma la API): a quien la recibe siempre, y si se pide,
   // a todo el departamento y a las personas elegidas
@@ -468,10 +477,17 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
       {mailAccounts === null ? null : mailAccounts.length === 0 ? (
         <div className="flex items-center gap-3">
           <Mail className="size-4 shrink-0 text-fg-subtle" />
-          <p className="flex-1 text-xs text-fg-muted">{t('mailConnectText')}</p>
-          <Button variant="secondary" size="sm" loading={mailConnecting} onClick={connectMail}>
-            {mailConnecting ? t('mailConnecting') : t('mailConnect')}
-          </Button>
+          <p className="min-w-0 flex-1 text-xs text-fg-muted">{t('mailConnectText')}</p>
+          <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+            {exchangeServers.map((s) => (
+              <Button key={s.id} variant="secondary" size="sm" loading={mailConnecting === 'exchange'} disabled={Boolean(mailConnecting)} onClick={() => connectMail('exchange', s.id)}>
+                {mailConnecting === 'exchange' ? t('mailConnectingExchange') : t('mailConnectExchange', { name: s.name })}
+              </Button>
+            ))}
+            <Button variant="secondary" size="sm" loading={mailConnecting === 'google'} disabled={Boolean(mailConnecting)} onClick={() => connectMail('google')}>
+              {mailConnecting === 'google' ? t('mailConnecting') : t('mailConnect')}
+            </Button>
+          </div>
         </div>
       ) : (
         <>
@@ -495,6 +511,11 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                 ) : (
                   <span className="truncate">{mailAccounts[0]?.email}</span>
                 )}
+                {exchangeMissing.map((sv) => (
+                  <Button key={sv.id} variant="ghost" size="xs" className="shrink-0" loading={mailConnecting === 'exchange'} disabled={Boolean(mailConnecting)} onClick={() => connectMail('exchange', sv.id)}>
+                    {mailConnecting === 'exchange' ? t('mailConnectingExchange') : t('mailConnectExchange', { name: sv.name })}
+                  </Button>
+                ))}
               </div>
               <div className="flex items-start gap-2">
                 <span className="w-16 shrink-0 pt-0.5 text-xs text-fg-muted">{t('mailTo')}</span>

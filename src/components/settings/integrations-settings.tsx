@@ -19,6 +19,7 @@ import type { ApiMailbox } from '@/lib/api/correo'
 import { cn } from '@/lib/utils'
 import { PrefPanel } from './pref-panel'
 import { ServiceArt, SERVICE_TONE, type ServiceKind } from './service-art'
+import { ExchangeBlocks } from './exchange-mail'
 
 const RETURN_TO = '/settings/preferences#integrations'
 
@@ -50,6 +51,7 @@ export function IntegrationsSection({ redirectUri }: { redirectUri: string }) {
   return (
     <PrefPanel id="integrations" title={t('pageTitle')}>
       {googleConfigured ? <GoogleBlock /> : <GoogleSetup redirectUri={redirectUri} />}
+      <ExchangeBlocks head={(p) => <ProviderHead {...p} />} />
       <MicrosoftSoon />
     </PrefPanel>
   )

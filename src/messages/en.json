@@ -1953,6 +1953,34 @@
         "title": "Microsoft: Outlook and OneDrive",
         "body": "Outlook, OneDrive and its calendar, just like Google.",
         "soon": "Coming soon"
+      },
+      "exchange": {
+        "title": "{name} email",
+        "hint": "Connect your company email with your username and password.",
+        "connected": "Connected",
+        "connect": "Connect",
+        "update": "Change password",
+        "disconnect": "Disconnect",
+        "disconnected": "Email disconnected.",
+        "dialogText": "Sign in with the username and password you use for your {name} email.",
+        "username": "Username",
+        "usernameHint": "Your email or Windows username, e.g. user@company.com",
+        "usernamePlaceholder": "user@company.com",
+        "password": "Password",
+        "show": "Show password",
+        "hide": "Hide password",
+        "privacy": "Veltro stores your password encrypted and only uses it to send notifications from your {name} email. If you change it, reconnect.",
+        "cancel": "Cancel",
+        "checking": "Checking…",
+        "done": "Done: Veltro will send from {email}.",
+        "errors": {
+          "exchange_auth_failed": "Wrong username or password.",
+          "exchange_unreachable": "Couldn’t reach the mail server. Try again in a while.",
+          "exchange_no_address": "The server didn’t return that account’s address.",
+          "exchange_server_unknown": "That email isn’t enabled in Veltro.",
+          "rate_limited": "Too many attempts. Wait a while.",
+          "generic": "Couldn’t connect the email. Try again."
+        }
       }
     },
     "org": {
@@ -4342,7 +4370,7 @@
     "mailWholeDept": "The whole department",
     "mailAddPeople": "Add people",
     "mailPeopleCount": "{count} people",
-    "mailConnectText": "Connect your Gmail to also send it by email.",
+    "mailConnectText": "Connect your email to also send it by email.",
     "mailConnect": "Connect Gmail",
     "mailConnecting": "Waiting for Google…",
     "mailSent": "Email sent to {count, plural, one {# person} other {# people}}.",
@@ -4350,6 +4378,9 @@
     "mailNoRecipients": "No email was sent: there was no one to send it to (add assignees or people).",
     "connectedTitle": "Gmail connected",
     "connectedText": "You can close this window and keep going in Veltro.",
-    "connectFailed": "Couldn't connect Gmail. Try again from Veltro."
+    "connectFailed": "Couldn't connect Gmail. Try again from Veltro.",
+    "mailConnectExchange": "Connect {name}",
+    "mailConnectingExchange": "Waiting for the window…",
+    "exchangeTitle": "Connect your {name} email"
   }
 }

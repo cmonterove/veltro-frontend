@@ -1953,6 +1953,34 @@
         "title": "Microsoft: Outlook e OneDrive",
         "body": "Outlook, OneDrive e a agenda, como com o Google.",
         "soon": "Em breve"
+      },
+      "exchange": {
+        "title": "E-mail de {name}",
+        "hint": "Conecte o e-mail da empresa com seu usuário e senha.",
+        "connected": "Conectado",
+        "connect": "Conectar",
+        "update": "Trocar senha",
+        "disconnect": "Desconectar",
+        "disconnected": "E-mail desconectado.",
+        "dialogText": "Entre com o usuário e a senha que você usa no e-mail de {name}.",
+        "username": "Usuário",
+        "usernameHint": "O do seu e-mail ou do Windows, ex.: usuario@empresa.com",
+        "usernamePlaceholder": "usuario@empresa.com",
+        "password": "Senha",
+        "show": "Mostrar senha",
+        "hide": "Ocultar senha",
+        "privacy": "O Veltro guarda sua senha criptografada e só a usa para enviar avisos pelo seu e-mail de {name}. Se você trocá-la, conecte de novo.",
+        "cancel": "Cancelar",
+        "checking": "Verificando…",
+        "done": "Pronto: o Veltro enviará de {email}.",
+        "errors": {
+          "exchange_auth_failed": "Usuário ou senha incorretos.",
+          "exchange_unreachable": "Não foi possível falar com o servidor de e-mail. Tente de novo mais tarde.",
+          "exchange_no_address": "O servidor não devolveu o endereço dessa conta.",
+          "exchange_server_unknown": "Esse e-mail não está habilitado no Veltro.",
+          "rate_limited": "Muitas tentativas. Aguarde um pouco.",
+          "generic": "Não foi possível conectar o e-mail. Tente de novo."
+        }
       }
     },
     "org": {
@@ -4342,7 +4370,7 @@
     "mailWholeDept": "Todo o departamento",
     "mailAddPeople": "Adicionar pessoas",
     "mailPeopleCount": "{count} pessoas",
-    "mailConnectText": "Conecte seu Gmail para enviar também por e-mail.",
+    "mailConnectText": "Conecte seu e-mail para enviar também por e-mail.",
     "mailConnect": "Conectar Gmail",
     "mailConnecting": "Aguardando o Google…",
     "mailSent": "E-mail enviado para {count, plural, one {# pessoa} other {# pessoas}}.",
@@ -4350,6 +4378,9 @@
     "mailNoRecipients": "O e-mail não foi enviado: não havia para quem (adicione responsáveis ou pessoas).",
     "connectedTitle": "Gmail conectado",
     "connectedText": "Você já pode fechar esta janela e continuar no Veltro.",
-    "connectFailed": "Não foi possível conectar o Gmail. Tente de novo pelo Veltro."
+    "connectFailed": "Não foi possível conectar o Gmail. Tente de novo pelo Veltro.",
+    "mailConnectExchange": "Conectar {name}",
+    "mailConnectingExchange": "Aguardando a janela…",
+    "exchangeTitle": "Conectar seu e-mail de {name}"
   }
 }
