@@ -4379,6 +4379,7 @@
     "connectedTitle": "Gmail conectado",
     "connectedText": "Você já pode fechar esta janela e continuar no Veltro.",
     "connectFailed": "Não foi possível conectar o Gmail. Tente de novo pelo Veltro.",
+    "mailAddAccount": "Conectar outra conta",
     "mailConnectExchange": "Conectar {name}",
     "mailConnectingExchange": "Aguardando a janela…",
     "exchangeTitle": "Conectar seu e-mail de {name}"

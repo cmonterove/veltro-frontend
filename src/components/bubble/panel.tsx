@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Check, ExternalLink, FileText, Link2, LogOut, Mail, Paperclip, Plus, UserPlus, X } from 'lucide-react'
+import { Check, ChevronDown, ExternalLink, FileText, Link2, LogOut, Mail, Paperclip, Plus, UserPlus, X } from 'lucide-react'
 import { Logo, LogoMark } from '@/components/app/logo'
 import { CARD } from '@/components/ui/surface'
 import { AppProvider, canEdit } from '@/components/app/app-context'
@@ -15,6 +15,7 @@ import { Checkbox, Switch } from '@/components/ui/switch'
 import { AssigneesMenu } from '@/components/tasks/pickers'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { Spinner } from '@/components/ui/spinner'
 import { setApiBridge } from '@/lib/api/client'
 import { toAccount, toDepartment, toMember, toProfile, toWorkspace } from '@/lib/api/adapters'
@@ -212,7 +213,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     setMailAccounts(r.items)
     setExchangeServers(r.providers?.exchange ?? [])
     setMailFrom((f) => (r.items.some((a) => a.id === f) ? f : ((r.items.find((a) => a.isDefault) ?? r.items[0])?.id ?? '')))
-    return r.items.length
+    return r.items
   }
 
   // conectar un correo con lo que ya tiene la web (en una ventanita, con su sesión): Gmail o el de la empresa
@@ -222,18 +223,20 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
     const w = window.open(url, `veltro-burbuja-${kind}`, 'popup,width=520,height=680')
     if (!w) return
     setMailConnecting(kind)
-    const before = mailAccounts?.length ?? 0
+    const before = new Set((mailAccounts ?? []).map((a) => a.id))
     const started = Date.now()
     const id = setInterval(async () => {
-      const n = (await loadMail()) ?? 0
-      if (n > before || w.closed || Date.now() - started > 10 * 60_000) {
+      const items = (await loadMail()) ?? []
+      // la cuenta recién conectada queda elegida para enviar
+      const added = items.find((a) => !before.has(a.id))
+      if (added) setMailFrom(added.id)
+      if (added || w.closed || Date.now() - started > 10 * 60_000) {
         clearInterval(id)
         setMailConnecting(null)
         if (w.closed) void loadMail()
       }
     }, 2000)
   }
-  const exchangeMissing = exchangeServers.filter(() => !mailAccounts?.some((a) => a.provider === 'exchange'))
 
   // el aviso por correo, después de crear (el texto lo arma la API): a quien la recibe siempre, y si se pide,
   // a todo el departamento y a las personas elegidas
@@ -520,27 +523,54 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
             <div className="mt-3 flex flex-col gap-2.5 pl-6 text-sm">
               <div className="flex items-center gap-2">
                 <span className="w-16 shrink-0 text-xs text-fg-muted">{t('mailFrom')}</span>
-                {(() => {
-                  const acc = mailAccounts.find((a) => a.id === mailFrom) ?? mailAccounts[0]
-                  return acc ? <MailAccountLogo provider={acc.provider ?? 'google'} server={exchangeServers[0]?.id} className="size-4" /> : null
-                })()}
-                {mailAccounts.length > 1 ? (
-                  <Select
-                    className="h-8 flex-1"
-                    value={mailFrom}
-                    onChange={setMailFrom}
-                    options={mailAccounts.map((a) => ({ value: a.id, label: a.email }))}
-                    aria-label={t('mailFrom')}
-                  />
-                ) : (
-                  <span className="truncate">{mailAccounts[0]?.email}</span>
-                )}
-                {exchangeMissing.map((sv) => (
-                  <Button key={sv.id} variant="ghost" size="xs" className="shrink-0" loading={mailConnecting === 'exchange'} disabled={Boolean(mailConnecting)} onClick={() => connectMail('exchange', sv.id)}>
-                    {mailConnecting === 'exchange' ? null : <ExchangeLogo server={sv.id} className="size-3.5" />}
-                    {mailConnecting === 'exchange' ? t('mailConnectingExchange') : t('mailConnectExchange', { name: sv.name })}
-                  </Button>
-                ))}
+                <Menu>
+                  <MenuTrigger
+                    disabled={Boolean(mailConnecting)}
+                    className="inline-flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-line bg-panel px-2 text-left text-sm hover:bg-hover data-[popup-open]:bg-hover disabled:opacity-60"
+                  >
+                    {mailConnecting ? (
+                      <>
+                        <Spinner className="size-3.5" />
+                        <span className="truncate text-fg-muted">{mailConnecting === 'google' ? t('mailConnecting') : t('mailConnectingExchange')}</span>
+                      </>
+                    ) : (
+                      (() => {
+                        const acc = mailAccounts.find((a) => a.id === mailFrom) ?? mailAccounts[0]
+                        return acc ? (
+                          <>
+                            <MailAccountLogo provider={acc.provider ?? 'google'} server={exchangeServers[0]?.id} className="size-4" />
+                            <span className="min-w-0 flex-1 truncate">{acc.email}</span>
+                          </>
+                        ) : null
+                      })()
+                    )}
+                    <ChevronDown className="ml-auto size-3.5 shrink-0 text-fg-subtle" />
+                  </MenuTrigger>
+                  <MenuContent align="start" className="w-72">
+                    <MenuRadioGroup value={mailFrom} onValueChange={(v) => setMailFrom(String(v))}>
+                      {mailAccounts.map((a) => (
+                        <MenuRadioItem key={a.id} value={a.id}>
+                          <MailAccountLogo provider={a.provider ?? 'google'} server={exchangeServers[0]?.id} className="!size-4" />
+                          <span className="truncate">{a.email}</span>
+                        </MenuRadioItem>
+                      ))}
+                    </MenuRadioGroup>
+                    <MenuSeparator />
+                    <MenuLabel>{t('mailAddAccount')}</MenuLabel>
+                    {exchangeServers.map((sv) => (
+                      <MenuItem key={sv.id} onClick={() => connectMail('exchange', sv.id)}>
+                        <ExchangeLogo server={sv.id} className="!size-4" />
+                        {sv.name}
+                        <Plus className="ml-auto !size-3.5" />
+                      </MenuItem>
+                    ))}
+                    <MenuItem onClick={() => connectMail('google')}>
+                      <GmailLogo className="!size-4" />
+                      Gmail
+                      <Plus className="ml-auto !size-3.5" />
+                    </MenuItem>
+                  </MenuContent>
+                </Menu>
               </div>
               <div className="flex items-start gap-2">
                 <span className="w-16 shrink-0 pt-0.5 text-xs text-fg-muted">{t('mailTo')}</span>
