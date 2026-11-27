@@ -4306,7 +4306,7 @@
     "noSpaces": "Vous n'avez aucun espace où créer des tâches dans ce compte.",
     "noDepartments": "Ce compte n'a pas encore de départements.",
     "error": "Impossible d'enregistrer. Réessayez.",
-    "connectTitle": "Connectez la bulle",
+    "connectTitle": "Connectez-vous à Veltro",
     "connectText": "Connectez-vous avec votre compte Veltro pour créer des tâches et des demandes sans quitter {platform}.",
     "connect": "Se connecter avec Veltro",
     "connecting": "En attente de la fenêtre Veltro…",
@@ -4314,12 +4314,12 @@
     "disconnect": "Déconnecter",
     "loading": "Chargement…",
     "authorizeTitle": "Connecter {platform} à Veltro",
-    "authorizeText": "La bulle de {platform} pourra créer des tâches et des demandes avec votre compte ({email}). Vous pouvez retirer l'accès à tout moment dans Réglages › Jetons d'API.",
+    "authorizeText": "{platform} pourra créer des tâches et des demandes dans Veltro avec votre compte ({email}). Vous pouvez retirer l’accès à tout moment dans Réglages › Jetons d’API.",
     "authorizeHost": "Site : {host}",
     "authorize": "Connecter",
     "cancel": "Annuler",
     "authorized": "C'est fait ! Vous pouvez revenir à {platform}.",
-    "noOpener": "Revenez à {platform} et rouvrez la bulle.",
+    "noOpener": "Revenez à {platform} et rouvrez Veltro.",
     "noAccountTitle": "Vous n'êtes encore dans aucun compte",
     "noAccountText": "Demandez à votre entreprise de vous inviter sur Veltro. Dès qu'on vous aura ajouté, vous pourrez créer des tâches et des demandes d'ici.",
     "retry": "Vérifier à nouveau",
@@ -4349,7 +4349,7 @@
     "mailFailed": "L'e-mail n'a pas pu être envoyé : prévenez-les depuis Veltro.",
     "mailNoRecipients": "Aucun e-mail envoyé : personne à qui l'envoyer (ajoutez des responsables ou des personnes).",
     "connectedTitle": "Gmail connecté",
-    "connectedText": "Vous pouvez revenir à la bulle.",
-    "connectFailed": "Impossible de connecter Gmail. Réessayez depuis la bulle."
+    "connectedText": "Vous pouvez fermer cette fenêtre et continuer dans Veltro.",
+    "connectFailed": "Impossible de connecter Gmail. Réessayez depuis Veltro."
   }
 }

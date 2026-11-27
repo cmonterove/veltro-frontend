@@ -4306,7 +4306,7 @@
     "noSpaces": "You have no spaces where you can create tasks in this account.",
     "noDepartments": "This account has no departments yet.",
     "error": "Couldn't save. Please try again.",
-    "connectTitle": "Connect the bubble",
+    "connectTitle": "Connect to Veltro",
     "connectText": "Sign in with your Veltro account to add tasks and requests without leaving {platform}.",
     "connect": "Connect with Veltro",
     "connecting": "Waiting for the Veltro window…",
@@ -4314,12 +4314,12 @@
     "disconnect": "Disconnect",
     "loading": "Loading…",
     "authorizeTitle": "Connect {platform} to Veltro",
-    "authorizeText": "The {platform} bubble will be able to create tasks and requests with your account ({email}). You can revoke access anytime in Settings › API tokens.",
+    "authorizeText": "{platform} will be able to create tasks and requests in Veltro with your account ({email}). You can revoke access anytime in Settings › API tokens.",
     "authorizeHost": "Site: {host}",
     "authorize": "Connect",
     "cancel": "Cancel",
     "authorized": "Done! You can go back to {platform}.",
-    "noOpener": "Go back to {platform} and open the bubble again.",
+    "noOpener": "Go back to {platform} and open Veltro again.",
     "noAccountTitle": "You're not in any account yet",
     "noAccountText": "Ask your company to invite you to Veltro. Once they add you, you'll be able to add tasks and requests from here.",
     "retry": "Check again",
@@ -4349,7 +4349,7 @@
     "mailFailed": "The email couldn't be sent: let them know from Veltro.",
     "mailNoRecipients": "No email was sent: there was no one to send it to (add assignees or people).",
     "connectedTitle": "Gmail connected",
-    "connectedText": "You can go back to the bubble.",
-    "connectFailed": "Couldn't connect Gmail. Try again from the bubble."
+    "connectedText": "You can close this window and keep going in Veltro.",
+    "connectFailed": "Couldn't connect Gmail. Try again from Veltro."
   }
 }

@@ -4306,7 +4306,7 @@
     "noSpaces": "Você não tem espaços onde criar tarefas nesta conta.",
     "noDepartments": "Esta conta ainda não tem departamentos.",
     "error": "Não foi possível salvar. Tente de novo.",
-    "connectTitle": "Conecte a bolha",
+    "connectTitle": "Conecte-se ao Veltro",
     "connectText": "Entre com sua conta do Veltro para criar tarefas e solicitações sem sair de {platform}.",
     "connect": "Conectar com o Veltro",
     "connecting": "Aguardando a janela do Veltro…",
@@ -4314,12 +4314,12 @@
     "disconnect": "Desconectar",
     "loading": "Carregando…",
     "authorizeTitle": "Conectar {platform} ao Veltro",
-    "authorizeText": "A bolha de {platform} poderá criar tarefas e solicitações com sua conta ({email}). Você pode remover o acesso quando quiser em Ajustes › Tokens de API.",
+    "authorizeText": "{platform} poderá criar tarefas e solicitações no Veltro com sua conta ({email}). Você pode remover o acesso quando quiser em Ajustes › Tokens de API.",
     "authorizeHost": "Site: {host}",
     "authorize": "Conectar",
     "cancel": "Cancelar",
     "authorized": "Pronto! Você já pode voltar para {platform}.",
-    "noOpener": "Volte para {platform} e abra a bolha de novo.",
+    "noOpener": "Volte para {platform} e abra o Veltro de novo.",
     "noAccountTitle": "Você ainda não está em nenhuma conta",
     "noAccountText": "Peça à sua empresa que convide você para o Veltro. Assim que adicionarem você, poderá criar tarefas e solicitações daqui.",
     "retry": "Verificar de novo",
@@ -4349,7 +4349,7 @@
     "mailFailed": "Não foi possível enviar o e-mail: avise pelo Veltro.",
     "mailNoRecipients": "O e-mail não foi enviado: não havia para quem (adicione responsáveis ou pessoas).",
     "connectedTitle": "Gmail conectado",
-    "connectedText": "Você já pode voltar para a bolha.",
-    "connectFailed": "Não foi possível conectar o Gmail. Tente de novo pela bolha."
+    "connectedText": "Você já pode fechar esta janela e continuar no Veltro.",
+    "connectFailed": "Não foi possível conectar o Gmail. Tente de novo pelo Veltro."
   }
 }

@@ -4306,7 +4306,7 @@
     "noSpaces": "No tienes espacios donde crear tareas en esta cuenta.",
     "noDepartments": "Esta cuenta todavía no tiene departamentos.",
     "error": "No se pudo guardar. Inténtalo de nuevo.",
-    "connectTitle": "Conecta la burbuja",
+    "connectTitle": "Conéctate a Veltro",
     "connectText": "Entra con tu cuenta de Veltro para cargar tareas y solicitudes sin salir de {platform}.",
     "connect": "Conectar con Veltro",
     "connecting": "Esperando la ventana de Veltro…",
@@ -4314,12 +4314,12 @@
     "disconnect": "Desconectar",
     "loading": "Cargando…",
     "authorizeTitle": "Conectar {platform} con Veltro",
-    "authorizeText": "La burbuja de {platform} podrá crear tareas y solicitudes con tu cuenta ({email}). Puedes quitarle el acceso cuando quieras en Ajustes › Tokens de API.",
+    "authorizeText": "{platform} podrá crear tareas y solicitudes en Veltro con tu cuenta ({email}). Puedes quitarle el acceso cuando quieras en Ajustes › Tokens de API.",
     "authorizeHost": "Sitio: {host}",
     "authorize": "Conectar",
     "cancel": "Cancelar",
     "authorized": "¡Listo! Ya puedes volver a {platform}.",
-    "noOpener": "Vuelve a {platform} y abre la burbuja otra vez.",
+    "noOpener": "Vuelve a {platform} y abre Veltro otra vez.",
     "noAccountTitle": "Todavía no estás en ninguna cuenta",
     "noAccountText": "Pide a tu empresa que te invite a Veltro. Apenas te sumen, desde aquí podrás cargar tareas y solicitudes.",
     "retry": "Volver a revisar",
@@ -4349,7 +4349,7 @@
     "mailFailed": "No se pudo enviar el correo: avísales desde Veltro.",
     "mailNoRecipients": "No se envió el correo: no había a quién (agrega responsables o personas).",
     "connectedTitle": "Gmail conectado",
-    "connectedText": "Ya puedes volver a la burbuja.",
-    "connectFailed": "No se pudo conectar Gmail. Vuelve a intentarlo desde la burbuja."
+    "connectedText": "Ya puedes cerrar esta ventana y seguir en Veltro.",
+    "connectFailed": "No se pudo conectar Gmail. Vuelve a intentarlo desde Veltro."
   }
 }
