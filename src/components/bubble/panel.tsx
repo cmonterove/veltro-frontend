@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Check, ChevronDown, ExternalLink, FileText, Link2, LogOut, Mail, Paperclip, Plus, UserPlus, X } from 'lucide-react'
+import { Check, ChevronDown, ExternalLink, FileText, Link2, LogOut, Mail, Paperclip, Plus, Unplug, UserPlus, X } from 'lucide-react'
 import { Logo, LogoMark } from '@/components/app/logo'
 import { CARD } from '@/components/ui/surface'
 import { AppProvider, canEdit } from '@/components/app/app-context'
@@ -15,7 +15,7 @@ import { Checkbox, Switch } from '@/components/ui/switch'
 import { AssigneesMenu } from '@/components/tasks/pickers'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuSubmenuTrigger, MenuTrigger } from '@/components/ui/menu'
 import { Spinner } from '@/components/ui/spinner'
 import { setApiBridge } from '@/lib/api/client'
 import { toAccount, toDepartment, toMember, toProfile, toWorkspace } from '@/lib/api/adapters'
@@ -177,6 +177,8 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const [mailDept, setMailDept] = useState(false)
   const [mailPeople, setMailPeople] = useState<string[]>([])
   const [mailConnecting, setMailConnecting] = useState<'google' | 'exchange' | null>(null)
+  const [mailRemoving, setMailRemoving] = useState<string | null>(null)
+  const [mailError, setMailError] = useState<string | null>(null)
   // correos de empresa (Exchange, p. ej. Promoting) que se pueden conectar con usuario y clave
   const [exchangeServers, setExchangeServers] = useState<ExchangeServer[]>([])
   const [done, setDone] = useState<Done | null>(null)
@@ -236,6 +238,20 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
         if (w.closed) void loadMail()
       }
     }, 2000)
+  }
+
+  // desconectar una cuenta (con el token de la burbuja): si era la elegida, loadMail elige otra
+  const disconnectMail = async (id: string) => {
+    setMailRemoving(id)
+    setMailError(null)
+    try {
+      await call(`/v1/me/mail-accounts/${id}`, { method: 'DELETE' })
+      await loadMail()
+    } catch {
+      setMailError(t('mailDisconnectFailed'))
+    } finally {
+      setMailRemoving(null)
+    }
   }
 
   // el aviso por correo, después de crear (el texto lo arma la API): a quien la recibe siempre, y si se pide,
@@ -525,13 +541,15 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                 <span className="w-16 shrink-0 text-xs text-fg-muted">{t('mailFrom')}</span>
                 <Menu>
                   <MenuTrigger
-                    disabled={Boolean(mailConnecting)}
+                    disabled={Boolean(mailConnecting || mailRemoving)}
                     className="inline-flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-line bg-panel px-2 text-left text-sm hover:bg-hover data-[popup-open]:bg-hover disabled:opacity-60"
                   >
-                    {mailConnecting ? (
+                    {mailConnecting || mailRemoving ? (
                       <>
                         <Spinner className="size-3.5" />
-                        <span className="truncate text-fg-muted">{mailConnecting === 'google' ? t('mailConnecting') : t('mailConnectingExchange')}</span>
+                        <span className="truncate text-fg-muted">
+                          {mailRemoving ? t('mailDisconnecting') : mailConnecting === 'google' ? t('mailConnecting') : t('mailConnectingExchange')}
+                        </span>
                       </>
                     ) : (
                       (() => {
@@ -569,9 +587,25 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                       Gmail
                       <Plus className="ml-auto !size-3.5" />
                     </MenuItem>
+                    <MenuSeparator />
+                    <MenuSubmenu>
+                      <MenuSubmenuTrigger>
+                        <Unplug />
+                        {t('mailDisconnect')}
+                      </MenuSubmenuTrigger>
+                      <MenuContent side="right" align="start" sideOffset={4} className="w-64">
+                        {mailAccounts.map((a) => (
+                          <MenuItem key={a.id} danger onClick={() => void disconnectMail(a.id)}>
+                            <MailAccountLogo provider={a.provider ?? 'google'} server={exchangeServers[0]?.id} className="!size-4" />
+                            <span className="truncate">{a.email}</span>
+                          </MenuItem>
+                        ))}
+                      </MenuContent>
+                    </MenuSubmenu>
                   </MenuContent>
                 </Menu>
               </div>
+              {mailError ? <p className="pl-[4.5rem] text-xs text-danger">{mailError}</p> : null}
               <div className="flex items-start gap-2">
                 <span className="w-16 shrink-0 pt-0.5 text-xs text-fg-muted">{t('mailTo')}</span>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
