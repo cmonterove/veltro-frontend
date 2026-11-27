@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Building2, Check, Eye, EyeOff } from 'lucide-react'
+import { Check, Eye, EyeOff } from 'lucide-react'
+import { ExchangeLogo } from '@/components/mail/provider-logos'
 import { api, ApiError } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogHeader } from '@/components/ui/dialog'
@@ -140,7 +141,7 @@ export function ExchangeBlocks({ head }: { head: (p: { mark: React.ReactNode; na
         return (
           <div key={s.id} className="border-t border-line-soft pb-3 pt-3">
             {head({
-              mark: <Building2 className="size-5 text-fg-muted" />,
+              mark: <ExchangeLogo server={s.id} />,
               name: t('title', { name: s.name }),
               sub: accounts.isLoading ? (
                 <Skeleton className="h-3.5 w-48" />

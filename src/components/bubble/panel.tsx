@@ -22,6 +22,7 @@ import type { ApiContext } from '@/lib/api/types'
 import type { TaskRow } from '@/lib/database.types'
 import type { AppContextValue } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { ExchangeLogo, GmailLogo, MailAccountLogo } from '@/components/mail/provider-logos'
 import { READY_MESSAGE } from './connect'
 
 /*
@@ -475,17 +476,36 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
   const mailBox = (
     <div className="mx-4 mb-3 rounded-xl bg-canvas p-3 ring-1 ring-line-soft">
       {mailAccounts === null ? null : mailAccounts.length === 0 ? (
-        <div className="flex items-center gap-3">
-          <Mail className="size-4 shrink-0 text-fg-subtle" />
-          <p className="min-w-0 flex-1 text-xs text-fg-muted">{t('mailConnectText')}</p>
-          <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+        <div>
+          <p className="flex items-center gap-2 text-xs text-fg-muted">
+            <Mail className="size-3.5 shrink-0 text-fg-subtle" />
+            {t('mailConnectText')}
+          </p>
+          <div className={cn('mt-2.5 grid gap-2', exchangeServers.length ? 'grid-cols-2' : 'grid-cols-1')}>
             {exchangeServers.map((s) => (
-              <Button key={s.id} variant="secondary" size="sm" loading={mailConnecting === 'exchange'} disabled={Boolean(mailConnecting)} onClick={() => connectMail('exchange', s.id)}>
-                {mailConnecting === 'exchange' ? t('mailConnectingExchange') : t('mailConnectExchange', { name: s.name })}
+              <Button
+                key={s.id}
+                variant="secondary"
+                className="h-10 justify-start gap-2.5 bg-panel px-3"
+                loading={mailConnecting === 'exchange'}
+                disabled={Boolean(mailConnecting)}
+                onClick={() => connectMail('exchange', s.id)}
+                aria-label={t('mailConnectExchange', { name: s.name })}
+              >
+                {mailConnecting === 'exchange' ? null : <ExchangeLogo server={s.id} />}
+                <span className="truncate">{mailConnecting === 'exchange' ? t('mailConnectingExchange') : s.name}</span>
               </Button>
             ))}
-            <Button variant="secondary" size="sm" loading={mailConnecting === 'google'} disabled={Boolean(mailConnecting)} onClick={() => connectMail('google')}>
-              {mailConnecting === 'google' ? t('mailConnecting') : t('mailConnect')}
+            <Button
+              variant="secondary"
+              className="h-10 justify-start gap-2.5 bg-panel px-3"
+              loading={mailConnecting === 'google'}
+              disabled={Boolean(mailConnecting)}
+              onClick={() => connectMail('google')}
+              aria-label={t('mailConnect')}
+            >
+              {mailConnecting === 'google' ? null : <GmailLogo />}
+              <span className="truncate">{mailConnecting === 'google' ? t('mailConnecting') : 'Gmail'}</span>
             </Button>
           </div>
         </div>
@@ -500,6 +520,10 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
             <div className="mt-3 flex flex-col gap-2.5 pl-6 text-sm">
               <div className="flex items-center gap-2">
                 <span className="w-16 shrink-0 text-xs text-fg-muted">{t('mailFrom')}</span>
+                {(() => {
+                  const acc = mailAccounts.find((a) => a.id === mailFrom) ?? mailAccounts[0]
+                  return acc ? <MailAccountLogo provider={acc.provider ?? 'google'} server={exchangeServers[0]?.id} className="size-4" /> : null
+                })()}
                 {mailAccounts.length > 1 ? (
                   <Select
                     className="h-8 flex-1"
@@ -513,6 +537,7 @@ export function BubblePanel({ initialPlatform }: { initialPlatform: string }) {
                 )}
                 {exchangeMissing.map((sv) => (
                   <Button key={sv.id} variant="ghost" size="xs" className="shrink-0" loading={mailConnecting === 'exchange'} disabled={Boolean(mailConnecting)} onClick={() => connectMail('exchange', sv.id)}>
+                    {mailConnecting === 'exchange' ? null : <ExchangeLogo server={sv.id} className="size-3.5" />}
                     {mailConnecting === 'exchange' ? t('mailConnectingExchange') : t('mailConnectExchange', { name: sv.name })}
                   </Button>
                 ))}
